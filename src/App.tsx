@@ -2,6 +2,7 @@ import { useRoutes } from 'react-router-dom';
 import { useAuth, LoginForm } from '@/contexts/users/AuthenticateUser';
 import { DashboardLayout } from '@/shared/ui';
 import { routes } from '@/shared/ui/router';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/components/ui';
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -17,11 +18,15 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h1>
-          <LoginForm />
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-muted">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LoginForm />
+          </CardContent>
+        </Card>
       </div>
     );
   }

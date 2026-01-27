@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { LoginCredentialsSchema } from '../domain';
 import { useAuth } from '../infrastructure/hooks';
+import { Button, Input, Label } from '@/shared/ui/components/ui';
 
 export const LoginForm = () => {
   const { login, loginError, isLoggingIn, resetLoginError } = useAuth();
@@ -31,57 +32,41 @@ export const LoginForm = () => {
       {error && (
         <div
           role="alert"
-          className="p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm"
+          className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-sm"
         >
           {error}
         </div>
       )}
 
-      <div className="space-y-1">
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Email
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoggingIn}
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
           placeholder="correo@ejemplo.com"
         />
       </div>
 
-      <div className="space-y-1">
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Contraseña
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="password">Contraseña</Label>
+        <Input
           id="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoggingIn}
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
           placeholder="••••••••"
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={isLoggingIn}
-        className="w-full py-2 px-4 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
-      >
+      <Button type="submit" disabled={isLoggingIn} className="w-full">
         {isLoggingIn ? "Ingresando..." : "Ingresar"}
-      </button>
+      </Button>
     </form>
   );
 };
