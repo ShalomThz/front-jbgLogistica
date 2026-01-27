@@ -1,0 +1,1 @@
+export { StockPage } from './StockPage';
