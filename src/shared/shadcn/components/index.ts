@@ -78,3 +78,4 @@ export {
   SidebarTrigger,
   useSidebar,
 } from './sidebar'
+export { AnimatedThemeToggler } from './animated-theme-toggler'

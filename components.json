@@ -18,5 +18,7 @@
     "lib": "@/shared/shadcn/lib",
     "hooks": "@/shared/shadcn/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}"
+  }
 }
