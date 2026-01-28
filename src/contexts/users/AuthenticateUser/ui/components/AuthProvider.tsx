@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { useCurrentUser, useLogin, useLogout, AuthContext } from '../infrastructure/hooks';
-import type { LoginCredentials } from '../domain';
+import { useCurrentUser, useLogin, useLogout, AuthContext } from '../../infrastructure/hooks';
+import type { LoginCredentials } from '../../domain';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { data: user, isLoading } = useCurrentUser();

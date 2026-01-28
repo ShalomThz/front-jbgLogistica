@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { LoginCredentialsSchema } from '../domain';
-import { useAuth } from '../infrastructure/hooks';
+import { LoginCredentialsSchema } from '../../domain';
+import { useAuth } from '../../infrastructure/hooks';
 import { Button, Input, Label } from '@/shared/shadcn';
 
 export const LoginForm = () => {
@@ -28,11 +28,11 @@ export const LoginForm = () => {
   const error = validationError || loginError;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
       {error && (
         <div
           role="alert"
-          className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-sm"
+          className="p-2 sm:p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-xs sm:text-sm"
         >
           {error}
         </div>

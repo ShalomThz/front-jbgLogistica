@@ -79,3 +79,6 @@ export {
   useSidebar,
 } from './sidebar'
 export { AnimatedThemeToggler } from './animated-theme-toggler'
+export { BackgroundGradientAnimation } from './background-gradient-animation'
+export { Globe } from './globe'
+export { EncryptedText } from './encrypted-text'

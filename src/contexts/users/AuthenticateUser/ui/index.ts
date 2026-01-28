@@ -1,3 +1,4 @@
-export { AuthProvider } from './AuthProvider';
-export { ProtectedRoute } from './ProtectedRoute';
-export { LoginForm } from './LoginForm';
+export { AuthProvider } from './components/AuthProvider';
+export { ProtectedRoute } from './components/ProtectedRoute';
+export { LoginForm } from './components/LoginForm';
+export { LoginPage } from './pages/LoginPage';

@@ -1,8 +1,7 @@
-import { useRoutes } from 'react-router-dom';
-import { useAuth, LoginForm } from '@/contexts/users/AuthenticateUser';
-import { DashboardLayout } from '@/shared/custom';
-import { routes } from '@/shared/custom/router';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/shadcn';
+import { useRoutes } from "react-router-dom";
+import { useAuth, LoginPage } from "@/contexts/users/AuthenticateUser";
+import { DashboardLayout } from "@/shared/custom";
+import { routes } from "@/shared/custom/router";
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -17,25 +16,10 @@ function App() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LoginForm />
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <LoginPage />;
   }
 
-  return (
-    <DashboardLayout>
-      {routeElement}
-    </DashboardLayout>
-  );
+  return <DashboardLayout>{routeElement}</DashboardLayout>;
 }
 
 export default App;
