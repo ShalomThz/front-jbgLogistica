@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
-import { Sidebar } from '../components';
 import { Header } from '../components';
+import { AppSidebar } from '../components';
+import {
+  Sidebar,
+  SidebarProvider,
+  SidebarInset,
+} from '@/shared/shadcn/components';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -8,14 +13,16 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
-    <div className="min-h-screen flex bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
+    <SidebarProvider>
+      <Sidebar>
+        <AppSidebar />
+      </Sidebar>
+      <SidebarInset>
         <Header />
-        <main className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6 overflow-auto">
           {children}
-        </main>
-      </div>
-    </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
