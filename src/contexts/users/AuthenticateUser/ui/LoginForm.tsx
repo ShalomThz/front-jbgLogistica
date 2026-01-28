@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { LoginCredentialsSchema } from '../domain';
 import { useAuth } from '../infrastructure/hooks';
-import { Button, Input, Label } from '@/shared/ui/components/ui';
+import { Button, Input, Label } from '@/shared/shadcn';
 
 export const LoginForm = () => {
   const { login, loginError, isLoggingIn, resetLoginError } = useAuth();

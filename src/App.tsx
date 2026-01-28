@@ -1,8 +1,8 @@
 import { useRoutes } from 'react-router-dom';
 import { useAuth, LoginForm } from '@/contexts/users/AuthenticateUser';
-import { DashboardLayout } from '@/shared/ui';
-import { routes } from '@/shared/ui/router';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/components/ui';
+import { DashboardLayout } from '@/shared/custom';
+import { routes } from '@/shared/custom/router';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/shadcn';
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth();

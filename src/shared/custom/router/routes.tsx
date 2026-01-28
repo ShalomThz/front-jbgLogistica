@@ -16,7 +16,7 @@ import { StoragePage } from '@/contexts/warehouse-storage/ui/pages';
 import { ZonesPage, TariffsPage, BoxesPage } from '@/contexts/pricing-catalogue/ui/pages';
 
 // Dashboard
-import { DashboardPage } from '@/shared/ui/pages';
+import { DashboardPage } from '@/shared/custom/pages';
 
 export const routes: RouteObject[] = [
   {
