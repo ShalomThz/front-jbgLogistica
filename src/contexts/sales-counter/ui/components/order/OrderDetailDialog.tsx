@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/shared/shadcn";
-import type { ShipmentOrder, ShipmentOrderStatus } from "../../domain/entities/ShipmentOrder";
+import type { ShipmentOrder, ShipmentOrderStatus } from "../../../domain/entities/ShipmentOrder";
 
 const STATUS_LABELS: Record<ShipmentOrderStatus, string> = {
   DRAFT: "Borrador",

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { StorageDetailDialog } from "../components/StorageDetailDialog";
-import type { StorageItem, StorageStatus } from "../components/StorageDetailDialog";
+import { StorageDetailDialog } from "../components/storage/StorageDetailDialog";
+import type { StorageItem, StorageStatus } from "../components/storage/StorageDetailDialog";
 
 const STATUS_LABELS: Record<StorageStatus, string> = { AVAILABLE: "Disponible", RESERVED: "Reservado", DISPATCHED: "Despachado" };
 const STATUS_VARIANT: Record<StorageStatus, "default" | "secondary" | "outline"> = { AVAILABLE: "default", RESERVED: "secondary", DISPATCHED: "outline" };

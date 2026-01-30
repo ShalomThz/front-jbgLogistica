@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/shared/shadcn";
 import type { ShipmentOrder, ShipmentOrderStatus } from "../../domain/entities/ShipmentOrder";
-import { OrderDetailDialog } from "../components/OrderDetailDialog";
+import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
 
 const STATUS_LABELS: Record<ShipmentOrderStatus, string> = {
   DRAFT: "Borrador",

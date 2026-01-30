@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { DeliveryRouteDetailDialog } from "../components/DeliveryRouteDetailDialog";
-import type { DeliveryRoute, RouteStatus } from "../components/DeliveryRouteDetailDialog";
+import { DeliveryRouteDetailDialog } from "../components/delivery-route/DeliveryRouteDetailDialog";
+import type { DeliveryRoute, RouteStatus } from "../components/delivery-route/DeliveryRouteDetailDialog";
 
 const STATUS_LABELS: Record<RouteStatus, string> = { ACTIVE: "Activa", INACTIVE: "Inactiva" };
 const STATUS_VARIANT: Record<RouteStatus, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };

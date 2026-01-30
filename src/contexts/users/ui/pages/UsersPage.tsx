@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { UserDetailDialog } from "../components/UserDetailDialog";
-import type { User, UserStatus } from "../components/UserDetailDialog";
+import { UserDetailDialog } from "../components/user/UserDetailDialog";
+import type { User, UserStatus } from "../components/user/UserDetailDialog";
 
 const STATUS_LABELS: Record<UserStatus, string> = { ACTIVE: "Activo", INACTIVE: "Inactivo" };
 const STATUS_VARIANT: Record<UserStatus, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };

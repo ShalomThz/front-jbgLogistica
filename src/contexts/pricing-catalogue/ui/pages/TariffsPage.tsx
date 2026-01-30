@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { TariffDetailDialog } from "../components/TariffDetailDialog";
-import type { Tariff, TariffStatus } from "../components/TariffDetailDialog";
+import { TariffDetailDialog } from "../components/tariff/TariffDetailDialog";
+import type { Tariff, TariffStatus } from "../components/tariff/TariffDetailDialog";
 
 const STATUS_LABELS: Record<TariffStatus, string> = { ACTIVE: "Activa", INACTIVE: "Inactiva" };
 const STATUS_VARIANT: Record<TariffStatus, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };

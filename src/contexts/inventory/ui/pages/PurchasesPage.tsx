@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { PurchaseDetailDialog } from "../components/PurchaseDetailDialog";
-import type { Purchase, PurchaseStatus } from "../components/PurchaseDetailDialog";
+import { PurchaseDetailDialog } from "../components/purchase/PurchaseDetailDialog";
+import type { Purchase, PurchaseStatus } from "../components/purchase/PurchaseDetailDialog";
 
 const STATUS_LABELS: Record<PurchaseStatus, string> = { PENDING: "Pendiente", RECEIVED: "Recibida", CANCELLED: "Cancelada" };
 const STATUS_VARIANT: Record<PurchaseStatus, "outline" | "default" | "secondary"> = { PENDING: "outline", RECEIVED: "default", CANCELLED: "secondary" };

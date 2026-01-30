@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { DriverDetailDialog } from "../components/DriverDetailDialog";
-import type { Driver, DriverStatus } from "../components/DriverDetailDialog";
+import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
+import type { Driver, DriverStatus } from "../components/driver/DriverDetailDialog";
 
 const STATUS_LABELS: Record<DriverStatus, string> = { AVAILABLE: "Disponible", ON_ROUTE: "En ruta", OFF_DUTY: "Fuera de servicio" };
 const STATUS_VARIANT: Record<DriverStatus, "default" | "secondary" | "outline"> = { AVAILABLE: "default", ON_ROUTE: "secondary", OFF_DUTY: "outline" };

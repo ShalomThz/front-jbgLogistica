@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { ZoneDetailDialog } from "../components/ZoneDetailDialog";
-import type { Zone, ZoneStatus } from "../components/ZoneDetailDialog";
+import { ZoneDetailDialog } from "../components/zone/ZoneDetailDialog";
+import type { Zone, ZoneStatus } from "../components/zone/ZoneDetailDialog";
 
 const STATUS_LABELS: Record<ZoneStatus, string> = { ACTIVE: "Activa", INACTIVE: "Inactiva" };
 const STATUS_VARIANT: Record<ZoneStatus, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };

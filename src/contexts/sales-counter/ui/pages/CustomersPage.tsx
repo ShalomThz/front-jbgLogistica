@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
-import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { CustomerDetailDialog } from "../components/CustomerDetailDialog";
-import type { Customer, CustomerStatus } from "../components/CustomerDetailDialog";
+import { Plus, Search } from "lucide-react";
+import { Input, Badge, Button, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
+import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialog";
+import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
+import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
+import type { Customer, CustomerStatus } from "../components/customer/CustomerDetailDialog";
 
 const STATUS_LABELS: Record<CustomerStatus, string> = { ACTIVE: "Activo", INACTIVE: "Inactivo" };
 const STATUS_VARIANT: Record<CustomerStatus, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };
 
-const MOCK_DATA: Customer[] = [
+const INITIAL_DATA: Customer[] = [
   { id: "cli-001", name: "Carlos Mendoza", phone: "5512345678", email: "carlos@email.com", totalOrders: 12, status: "ACTIVE", createdAt: new Date("2024-03-15") },
   { id: "cli-002", name: "María López", phone: "5587654321", email: "maria@email.com", totalOrders: 8, status: "ACTIVE", createdAt: new Date("2024-05-20") },
   { id: "cli-003", name: "Juan Pérez", phone: "5598765432", email: "juan@email.com", totalOrders: 3, status: "INACTIVE", createdAt: new Date("2024-01-10") },
@@ -16,16 +18,56 @@ const MOCK_DATA: Customer[] = [
 ];
 
 export const CustomersPage = () => {
+  const [customers, setCustomers] = useState<Customer[]>(INITIAL_DATA);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Customer | null>(null);
-  const filtered = MOCK_DATA.filter((c) => {
+  const [formOpen, setFormOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+  const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
+
+  const filtered = customers.filter((c) => {
     const s = searchQuery === "" || c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery) || c.email.toLowerCase().includes(searchQuery.toLowerCase());
     return s && (statusFilter === "all" || c.status === statusFilter);
   });
+
+  const handleCreate = (data: Omit<Customer, "id" | "totalOrders" | "createdAt">) => {
+    const newCustomer: Customer = { ...data, id: `cli-${String(Date.now()).slice(-6)}`, totalOrders: 0, createdAt: new Date() };
+    setCustomers((prev) => [...prev, newCustomer]);
+    setFormOpen(false);
+  };
+
+  const handleUpdate = (data: Omit<Customer, "id" | "totalOrders" | "createdAt">) => {
+    if (!editCustomer) return;
+    setCustomers((prev) => prev.map((c) => (c.id === editCustomer.id ? { ...c, ...data } : c)));
+    setEditCustomer(null);
+  };
+
+  const handleDelete = () => {
+    if (!deleteCustomer) return;
+    setCustomers((prev) => prev.filter((c) => c.id !== deleteCustomer.id));
+    setDeleteCustomer(null);
+  };
+
+  const handleEditFromDetail = (customer: Customer) => {
+    setSelected(null);
+    setEditCustomer(customer);
+  };
+
+  const handleDeleteFromDetail = (customer: Customer) => {
+    setSelected(null);
+    setDeleteCustomer(customer);
+  };
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Clientes</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Clientes</h1>
+        <Button onClick={() => setFormOpen(true)}>
+          <Plus className="size-4" />
+          Crear Cliente
+        </Button>
+      </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1"><Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" /><Input placeholder="Buscar por nombre, teléfono o email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
         <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="ACTIVE">Activo</SelectItem><SelectItem value="INACTIVE">Inactivo</SelectItem></SelectContent></Select>
@@ -36,7 +78,10 @@ export const CustomersPage = () => {
             <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c)}><TableCell className="font-medium">{c.name}</TableCell><TableCell className="hidden sm:table-cell">{c.phone}</TableCell><TableCell className="hidden md:table-cell text-sm">{c.email}</TableCell><TableCell>{c.totalOrders}</TableCell><TableCell><Badge variant={STATUS_VARIANT[c.status]}>{STATUS_LABELS[c.status]}</Badge></TableCell><TableCell className="hidden lg:table-cell text-xs text-muted-foreground">{c.createdAt.toLocaleDateString("es-MX")}</TableCell></TableRow>
           ))}</TableBody></Table>
       </div>
-      <CustomerDetailDialog customer={selected} open={!!selected} onClose={() => setSelected(null)} />
+      <CustomerDetailDialog customer={selected} open={!!selected} onClose={() => setSelected(null)} onEdit={handleEditFromDetail} onDelete={handleDeleteFromDetail} />
+      <CustomerFormDialog open={formOpen} onClose={() => setFormOpen(false)} onSave={handleCreate} />
+      <CustomerFormDialog open={!!editCustomer} onClose={() => setEditCustomer(null)} onSave={handleUpdate} customer={editCustomer} />
+      <CustomerDeleteDialog customer={deleteCustomer} open={!!deleteCustomer} onClose={() => setDeleteCustomer(null)} onConfirm={handleDelete} />
     </div>
   );
 };

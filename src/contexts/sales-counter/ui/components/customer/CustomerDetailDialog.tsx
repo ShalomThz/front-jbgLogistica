@@ -1,4 +1,5 @@
-import { Badge, Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/shared/shadcn";
+import { Pencil, Trash2 } from "lucide-react";
+import { Badge, Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
 
 type CustomerStatus = "ACTIVE" | "INACTIVE";
 interface Customer { id: string; name: string; phone: string; email: string; totalOrders: number; status: CustomerStatus; createdAt: Date; }
@@ -10,9 +11,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (<div className="grid grid-cols-3 gap-2"><span className="text-sm text-muted-foreground">{label}</span><span className="col-span-2 text-sm">{value}</span></div>);
 }
 
-interface Props { customer: Customer | null; open: boolean; onClose: () => void; }
+interface Props { customer: Customer | null; open: boolean; onClose: () => void; onEdit?: (customer: Customer) => void; onDelete?: (customer: Customer) => void; }
 
-export const CustomerDetailDialog = ({ customer, open, onClose }: Props) => {
+export const CustomerDetailDialog = ({ customer, open, onClose, onEdit, onDelete }: Props) => {
   if (!customer) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -26,6 +27,12 @@ export const CustomerDetailDialog = ({ customer, open, onClose }: Props) => {
           <Separator />
           <div className="space-y-2"><h4 className="text-sm font-semibold">Actividad</h4><div className="rounded-md border p-3 space-y-1"><DetailRow label="Total órdenes" value={String(customer.totalOrders)} /><DetailRow label="Estado" value={STATUS_LABELS[customer.status]} /><DetailRow label="Fecha registro" value={customer.createdAt.toLocaleDateString("es-MX")} /></div></div>
         </div>
+        {(onEdit || onDelete) && (
+          <DialogFooter>
+            {onDelete && <Button variant="outline" size="sm" onClick={() => onDelete(customer)}><Trash2 className="mr-1.5 size-4" />Eliminar</Button>}
+            {onEdit && <Button size="sm" onClick={() => onEdit(customer)}><Pencil className="mr-1.5 size-4" />Editar</Button>}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { ProductDetailDialog } from "../components/ProductDetailDialog";
-import type { Product, ProductStatus, ProductCategory } from "../components/ProductDetailDialog";
+import { ProductDetailDialog } from "../components/product/ProductDetailDialog";
+import type { Product, ProductStatus, ProductCategory } from "../components/product/ProductDetailDialog";
 
 const STATUS_LABELS: Record<ProductStatus, string> = { ACTIVE: "Activo", DISCONTINUED: "Descontinuado" };
 const STATUS_VARIANT: Record<ProductStatus, "default" | "secondary"> = { ACTIVE: "default", DISCONTINUED: "secondary" };

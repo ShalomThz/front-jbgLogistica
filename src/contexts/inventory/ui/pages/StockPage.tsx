@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { StockDetailDialog } from "../components/StockDetailDialog";
-import type { StockItem, StockStatus } from "../components/StockDetailDialog";
+import { StockDetailDialog } from "../components/stock/StockDetailDialog";
+import type { StockItem, StockStatus } from "../components/stock/StockDetailDialog";
 
 const STATUS_LABELS: Record<StockStatus, string> = { OK: "OK", LOW: "Bajo", OUT_OF_STOCK: "Agotado" };
 const STATUS_VARIANT: Record<StockStatus, "default" | "outline" | "secondary"> = { OK: "default", LOW: "outline", OUT_OF_STOCK: "secondary" };

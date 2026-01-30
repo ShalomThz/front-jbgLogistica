@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { StoreDetailDialog } from "../components/StoreDetailDialog";
-import type { Store, StoreStatus } from "../components/StoreDetailDialog";
+import { StoreDetailDialog } from "../components/store/StoreDetailDialog";
+import type { Store, StoreStatus } from "../components/store/StoreDetailDialog";
 
 const STATUS_LABELS: Record<StoreStatus, string> = { OPEN: "Abierta", CLOSED: "Cerrada", MAINTENANCE: "Mantenimiento" };
 const STATUS_VARIANT: Record<StoreStatus, "default" | "outline" | "secondary"> = { OPEN: "default", CLOSED: "outline", MAINTENANCE: "secondary" };

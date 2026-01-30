@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Badge, Table, TableHeader, TableBody, TableHead, TableRow, TableCell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import { RoleDetailDialog } from "../components/RoleDetailDialog";
-import type { Role, RoleStatus } from "../components/RoleDetailDialog";
+import { RoleDetailDialog } from "../components/role/RoleDetailDialog";
+import type { Role, RoleStatus } from "../components/role/RoleDetailDialog";
 
 const STATUS_LABELS: Record<RoleStatus, string> = { ACTIVE: "Activo", INACTIVE: "Inactivo" };
 const STATUS_VARIANT: Record<RoleStatus, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };
