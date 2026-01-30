@@ -8,7 +8,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from '@/shared/shadcn/components';
 
 interface NavItem {
@@ -25,36 +24,39 @@ const navigation: NavSection[] = [
   {
     title: 'Ventas',
     items: [
-      { label: 'Nueva Orden', href: '/sales/new' },
-      { label: 'Órdenes', href: '/sales/orders' },
-      { label: 'Clientes', href: '/sales/customers' },
-    ],
-  },
-  {
-    title: 'Fulfillment',
-    items: [
-      { label: 'Escanear', href: '/fulfillment/scan' },
-      { label: 'Guías', href: '/fulfillment/waybills' },
+      { label: 'Clientes', href: '/customers' },
+      { label: 'Órdenes', href: '/orders' },
+      { label: 'Bodega', href: '/warehouse' },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { label: 'Stock', href: '/inventory/stock' },
+      { label: 'Productos', href: '/products' },
+      { label: 'Inventario', href: '/inventory' },
+      { label: 'Compras', href: '/purchases' },
     ],
   },
   {
-    title: 'Almacén',
+    title: 'Logística',
     items: [
-      { label: 'Rositas', href: '/warehouse/storage' },
+      { label: 'Rutas de Entrega', href: '/delivery-routes' },
+      { label: 'Conductores', href: '/drivers' },
     ],
   },
   {
-    title: 'Configuración',
+    title: 'Operaciones',
     items: [
-      { label: 'Zonas', href: '/config/zones' },
-      { label: 'Tarifas', href: '/config/tariffs' },
-      { label: 'Cajas', href: '/config/boxes' },
+      { label: 'Tarifas', href: '/tariffs' },
+      { label: 'Tiendas', href: '/stores' },
+      { label: 'Zonas', href: '/zones' },
+    ],
+  },
+  {
+    title: 'Administración',
+    items: [
+      { label: 'Usuarios', href: '/users' },
+      { label: 'Roles', href: '/roles' },
     ],
   },
 ];
@@ -64,10 +66,9 @@ export const AppSidebar = () => {
 
   return (
     <>
-      <SidebarHeader>
+      <SidebarHeader className="h-16 flex items-center justify-center border-b border-border">
         <Link to="/" className="px-2 text-xl font-bold">JBG</Link>
       </SidebarHeader>
-      <SidebarSeparator />
       <SidebarContent>
         {navigation.map((section) => (
           <SidebarGroup key={section.title}>
@@ -78,7 +79,7 @@ export const AppSidebar = () => {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname === item.href}
+                      isActive={location.pathname.startsWith(item.href)}
                     >
                       <Link to={item.href}>{item.label}</Link>
                     </SidebarMenuButton>

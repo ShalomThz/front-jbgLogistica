@@ -82,3 +82,37 @@ export { AnimatedThemeToggler } from './animated-theme-toggler'
 export { BackgroundGradientAnimation } from './background-gradient-animation'
 export { Globe } from './globe'
 export { EncryptedText } from './encrypted-text'
+export { LoaderOne, LoaderTwo, LoaderThree, LoaderFour, LoaderFive } from './loader'
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from './table'
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from './select'
+export { Badge, badgeVariants } from './badge'
+export { Checkbox } from './checkbox'
+export { Switch } from './switch'
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './dialog'

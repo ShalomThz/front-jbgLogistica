@@ -2,6 +2,7 @@ import { useRoutes } from "react-router-dom";
 import { useAuth, LoginPage } from "@/contexts/users/AuthenticateUser";
 import { DashboardLayout } from "@/shared/custom";
 import { routes } from "@/shared/custom/router";
+import { LoaderOne } from "@/shared/shadcn";
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -9,8 +10,8 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Cargando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoaderOne />
       </div>
     );
   }

@@ -17,9 +17,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <Sidebar>
         <AppSidebar />
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="flex flex-col h-screen overflow-hidden">
         <Header />
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6 overflow-y-auto">
           {children}
         </div>
       </SidebarInset>
