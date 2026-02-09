@@ -4,17 +4,15 @@ import type {
   FindStoresRequestPrimitives,
   FindStoresResponsePrimitives,
 } from "../../../domain/schemas/store";
-import { storeSchema, findStoresResponseSchema } from "../../../domain/schemas/store";
+import {
+  storeSchema,
+  findStoresResponseSchema,
+} from "../../../domain/schemas/store";
 import { httpClient } from "@/shared/infrastructure/http";
 
 export type UpdateStoreRequest = Partial<CreateStoreRequestPrimitives>;
 
 export const storeRepository = {
-  getAll: async (): Promise<FindStoresResponsePrimitives> => {
-    const data = await httpClient<unknown>("/store");
-    return findStoresResponseSchema.parse(data);
-  },
-
   find: async (
     request: FindStoresRequestPrimitives,
   ): Promise<FindStoresResponsePrimitives> => {

@@ -17,11 +17,6 @@ export type UpdateUserRequest = Partial<
 };
 
 export const userRepository = {
-  getAll: async (): Promise<FindUsersResponsePrimitives> => {
-    const data = await httpClient<unknown>("/user");
-    return findUsersResponseSchema.parse(data);
-  },
-
   find: async (
     request: FindUsersRequestPrimitives,
   ): Promise<FindUsersResponsePrimitives> => {
