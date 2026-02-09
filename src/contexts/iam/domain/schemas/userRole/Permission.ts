@@ -7,4 +7,5 @@ export const PERMISSIONS = [
   "CAN_MANAGE_STORES",
   "CAN_MANAGE_ZONES",
   "CAN_MANAGE_TARIFFS",
+  "CAN_SHIP",
 ] as const;
