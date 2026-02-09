@@ -1,5 +1,5 @@
-import { LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/users/AuthenticateUser';
+import { LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/iam";
 import {
   Avatar,
   AvatarFallback,
@@ -10,22 +10,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/shared/shadcn/components';
+} from "@/shared/shadcn/components";
 
 export const UserMenu = () => {
   const { user, logout } = useAuth();
 
-  const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-    : '??';
+  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium">{user?.name}</p>
-            <p className="text-xs text-muted-foreground">{user?.role}</p>
+            <p className="text-sm font-medium">{user?.email}</p>
+            <p className="text-xs text-muted-foreground">{user?.role.name}</p>
           </div>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
@@ -34,8 +32,10 @@ export const UserMenu = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>
-          <p>{user?.name}</p>
-          <p className="text-xs text-muted-foreground font-normal">{user?.role}</p>
+          <p>{user?.email}</p>
+          <p className="text-xs text-muted-foreground font-normal">
+            {user?.role.name}
+          </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => logout()}>

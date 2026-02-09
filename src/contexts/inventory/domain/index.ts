@@ -1,6 +1,11 @@
 export {
-  StockItemSchema,
-  StockMovementSchema,
-  type StockItem,
-  type StockMovement,
-} from './entities/StockItem';
+  boxSchema,
+  createBoxRequestSchema,
+  findBoxesResponseSchema,
+
+  type BoxPrimitives,
+  type CreateBoxRequestPrimitives,
+  type FindBoxesResponsePrimitives,
+
+} from "./schemas";
+

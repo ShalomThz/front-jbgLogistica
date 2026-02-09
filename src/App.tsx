@@ -1,5 +1,5 @@
 import { useRoutes } from "react-router-dom";
-import { useAuth, LoginPage } from "@/contexts/users/AuthenticateUser";
+import { useAuth, LoginPage } from "@/contexts/iam";
 import { DashboardLayout } from "@/shared/custom";
 import { routes } from "@/shared/custom/router";
 import { LoaderOne } from "@/shared/shadcn";

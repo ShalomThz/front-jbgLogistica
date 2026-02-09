@@ -1,17 +1,14 @@
 // Users Context
-export * from './users/AuthenticateUser';
+export * from "./iam";
 
 // Sales Counter Context
-export * from './sales-counter/domain';
+export * from "./sales/domain";
 
 // Pricing Catalogue Context
-export * from './pricing-catalogue/domain';
+export * from "./pricing/domain";
 
 // Shipping Fulfillment Context
-export * from './shipping-fulfillment/domain';
+export * from "./shipping/domain";
 
 // Inventory Context
-export * from './inventory/domain';
-
-// Warehouse Storage Context
-export * from './warehouse-storage/domain';
+export * from "./inventory/domain";

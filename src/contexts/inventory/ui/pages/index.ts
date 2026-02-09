@@ -1,3 +1,1 @@
-export { StockPage } from './StockPage';
-export { ProductsPage } from './ProductsPage';
-export { PurchasesPage } from './PurchasesPage';
+export { BoxPage } from "./BoxPage";

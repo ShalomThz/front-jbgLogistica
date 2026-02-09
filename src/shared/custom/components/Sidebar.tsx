@@ -9,10 +9,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/shared/shadcn/components';
+import { useAuth } from '@/contexts/iam/infrastructure/hooks';
+import type { Permission } from '@/contexts/iam/domain';
 
 interface NavItem {
   label: string;
   href: string;
+  permissions?: Permission[];
 }
 
 interface NavSection {
@@ -24,45 +27,58 @@ const navigation: NavSection[] = [
   {
     title: 'Ventas',
     items: [
-      { label: 'Clientes', href: '/customers' },
-      { label: 'Órdenes', href: '/orders' },
-      { label: 'Bodega', href: '/warehouse' },
+      { label: 'Clientes', href: '/customers', permissions: ['CAN_MANAGE_CUSTOMERS'] },
+      { label: 'Órdenes', href: '/orders', permissions: ['CAN_SELL'] },
+      { label: 'Bodega', href: '/warehouse', permissions: ['CAN_MANAGE_INVENTORY'] },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { label: 'Productos', href: '/products' },
-      { label: 'Inventario', href: '/inventory' },
-      { label: 'Compras', href: '/purchases' },
+      { label: 'Cajas', href: '/boxes', permissions: ['CAN_MANAGE_INVENTORY'] },
     ],
   },
   {
     title: 'Logística',
     items: [
-      { label: 'Rutas de Entrega', href: '/delivery-routes' },
-      { label: 'Conductores', href: '/drivers' },
+      { label: 'Rutas de Entrega', href: '/delivery-routes', permissions: ['CAN_SELL'] },
+      { label: 'Conductores', href: '/drivers', permissions: ['CAN_SELL'] },
     ],
   },
   {
     title: 'Operaciones',
     items: [
-      { label: 'Tarifas', href: '/tariffs' },
-      { label: 'Tiendas', href: '/stores' },
-      { label: 'Zonas', href: '/zones' },
+      { label: 'Tarifas', href: '/tariffs', permissions: ['CAN_MANAGE_TARIFFS'] },
+      { label: 'Zonas', href: '/zones', permissions: ['CAN_MANAGE_ZONES'] },
     ],
   },
   {
     title: 'Administración',
     items: [
-      { label: 'Usuarios', href: '/users' },
-      { label: 'Roles', href: '/roles' },
+      { label: 'Tiendas', href: '/stores', permissions: ['CAN_MANAGE_STORES'] },
+      { label: 'Usuarios', href: '/users', permissions: ['CAN_MANAGE_USERS'] },
+      { label: 'Roles', href: '/roles', permissions: ['CAN_MANAGE_USERS'] },
     ],
   },
 ];
 
 export const AppSidebar = () => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  const userPermissions = user?.role.permissions ?? [];
+
+  const hasPermission = (requiredPermissions?: Permission[]) => {
+    if (!requiredPermissions || requiredPermissions.length === 0) return true;
+    return requiredPermissions.some((p) => userPermissions.includes(p));
+  };
+
+  const filteredNavigation = navigation
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => hasPermission(item.permissions)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <>
@@ -70,7 +86,7 @@ export const AppSidebar = () => {
         <Link to="/" className="px-2 text-xl font-bold">JBG</Link>
       </SidebarHeader>
       <SidebarContent>
-        {navigation.map((section) => (
+        {filteredNavigation.map((section) => (
           <SidebarGroup key={section.title}>
             <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
             <SidebarGroupContent>

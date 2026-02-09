@@ -1,45 +1,139 @@
-import type { RouteObject } from 'react-router-dom';
+import type { RouteObject } from "react-router-dom";
+import { ProtectedRoute } from "@/shared/custom/components";
 
-// Sales Counter
-import { OrdersPage, NewOrderPage, CustomersPage } from '@/contexts/sales-counter/ui/pages';
-
-// Warehouse Storage
-import { StoragePage } from '@/contexts/warehouse-storage/ui/pages';
+// Sales
+import {
+  OrdersPage,
+  NewOrderPage,
+  CustomersPage,
+  WarehousePage,
+} from "@/contexts/sales/ui/pages";
 
 // Inventory
-import { ProductsPage, StockPage, PurchasesPage } from '@/contexts/inventory/ui/pages';
+import { BoxPage } from "@/contexts/inventory/ui/pages";
 
-// Shipping Fulfillment
-import { DeliveryRoutesPage, DriversPage } from '@/contexts/shipping-fulfillment/ui/pages';
+// Shipping
+import { DeliveryRoutesPage, DriversPage } from "@/contexts/shipping/ui/pages";
 
-// Pricing Catalogue
-import { TariffsPage, StoresPage, ZonesPage } from '@/contexts/pricing-catalogue/ui/pages';
+// Pricing
+import {
+  TariffsPage,
+  ZonesPage,
+} from "@/contexts/pricing/ui/pages";
 
-// Users
-import { UsersPage, RolesPage } from '@/contexts/users/ui/pages';
+// IAM
+import { UsersPage, RolesPage, StoresPage } from "@/contexts/iam/ui/pages";
 
 // Dashboard
-import { DashboardPage } from '@/shared/custom/pages';
+import { DashboardPage } from "@/shared/custom/pages";
 
 export const routes: RouteObject[] = [
-  { path: '/', element: <DashboardPage /> },
+  // Dashboard - acceso general para usuarios autenticados
+  { path: "/", element: <DashboardPage /> },
+
   // Ventas
-  { path: '/customers', element: <CustomersPage /> },
-  { path: '/orders', element: <OrdersPage /> },
-  { path: '/orders/new', element: <NewOrderPage /> },
-  { path: '/warehouse', element: <StoragePage /> },
+  {
+    path: "/customers",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_CUSTOMERS"]}>
+        <CustomersPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/orders",
+    element: (
+      <ProtectedRoute permissions={["CAN_SELL"]}>
+        <OrdersPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/orders/new",
+    element: (
+      <ProtectedRoute permissions={["CAN_SELL"]}>
+        <NewOrderPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/warehouse",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
+        <WarehousePage />
+      </ProtectedRoute>
+    ),
+  },
+
   // Inventario
-  { path: '/products', element: <ProductsPage /> },
-  { path: '/inventory', element: <StockPage /> },
-  { path: '/purchases', element: <PurchasesPage /> },
+  {
+    path: "/boxes",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
+        <BoxPage />
+      </ProtectedRoute>
+    ),
+  },
+
   // Logística
-  { path: '/delivery-routes', element: <DeliveryRoutesPage /> },
-  { path: '/drivers', element: <DriversPage /> },
+  {
+    path: "/delivery-routes",
+    element: (
+      <ProtectedRoute permissions={["CAN_SELL"]}>
+        <DeliveryRoutesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/drivers",
+    element: (
+      <ProtectedRoute permissions={["CAN_SELL"]}>
+        <DriversPage />
+      </ProtectedRoute>
+    ),
+  },
+
   // Operaciones
-  { path: '/tariffs', element: <TariffsPage /> },
-  { path: '/stores', element: <StoresPage /> },
-  { path: '/zones', element: <ZonesPage /> },
+  {
+    path: "/tariffs",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_TARIFFS"]}>
+        <TariffsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/stores",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_STORES"]}>
+        <StoresPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/zones",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_ZONES"]}>
+        <ZonesPage />
+      </ProtectedRoute>
+    ),
+  },
+
   // Administración
-  { path: '/users', element: <UsersPage /> },
-  { path: '/roles', element: <RolesPage /> },
+  {
+    path: "/users",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_USERS"]}>
+        <UsersPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/roles",
+    element: (
+      <ProtectedRoute permissions={["CAN_MANAGE_USERS"]}>
+        <RolesPage />
+      </ProtectedRoute>
+    ),
+  },
 ];
