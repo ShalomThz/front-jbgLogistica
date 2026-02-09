@@ -1,7 +1,7 @@
 export {
   customerProfileSchema,
   type CustomerProfilePrimitives,
-} from "./CustomerProfile";
+} from "../order/CustomerProfile";
 export {
   customerSchema,
   type CustomerPrimitives,

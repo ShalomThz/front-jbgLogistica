@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { FindCustomersResponsePrimitives } from "../../../domain/schemas";
 import { customerRepository, type UpdateCustomerRequest } from "../../services";
-import type { CustomerPrimitives, FindCustomersResponsePrimitives } from "../../../domain/schemas";
+import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 
 const CUSTOMERS_QUERY_KEY = ["customers"];
-
-type CreateCustomerRequest = Omit<CustomerPrimitives, "id" | "createdAt" | "updatedAt">;
 
 interface UseCustomersOptions {
   page?: number;

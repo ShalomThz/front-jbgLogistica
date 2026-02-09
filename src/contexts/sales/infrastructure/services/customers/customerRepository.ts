@@ -7,17 +7,18 @@ import {
   findCustomersResponseSchema,
 } from "../../../domain/schemas";
 import { httpClient } from "@/shared/infrastructure/http";
+import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 
-type CreateCustomerRequest = Omit<CustomerPrimitives, "id" | "createdAt" | "updatedAt">;
 export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
 
 export const customerRepository = {
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number } = {},
+    request: { filters: unknown[]; limit?: number; offset?: number },
   ): Promise<FindCustomersResponsePrimitives> => {
-    const data = await httpClient<unknown>("/customer/find", {
+
+    const data = await httpClient<FindCustomersResponsePrimitives>("/customer/find", {
       method: "POST",
-      body: JSON.stringify({ filters: [], ...request }),
+      body: JSON.stringify({ ...request }),
     });
     return findCustomersResponseSchema.parse(data);
   },

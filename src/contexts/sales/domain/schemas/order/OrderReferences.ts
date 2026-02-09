@@ -1,9 +1,8 @@
 import { z } from "zod";
+
 export const orderReferencesSchema = z.object({
-  partnerInvoice: z.string().nullable(),
-  officialInvoice: z.string().nullable(),
-  partnerInvoiceUrl: z.url().nullable(),
-  officialInvoiceUrl: z.url().nullable(),
+  orderNumber: z.string().nullable(),
+  partnerOrderNumber: z.string().nullable(),
 });
 
 export type OrderReferencesPrimitives = z.infer<typeof orderReferencesSchema>;

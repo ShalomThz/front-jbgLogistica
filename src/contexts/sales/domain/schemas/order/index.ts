@@ -4,11 +4,9 @@ export {
 } from "./OrderReferences";
 export {
   ownershipTypes,
-  weightUnits,
-  packageSchema,
+   packageSchema,
   type BoxOwnership,
-  type WeightUnit,
-  type PackagePrimitives,
+   type PackagePrimitives,
 } from "./Package";
 export {
   orderFinancialsSchema,
@@ -16,21 +14,8 @@ export {
 } from "./OrderFinancials";
 export {
   orderStatuses,
-  shipmentOrderSchema,
+  orderSchema,
   type OrderStatus,
-  type OrderStatus as ShipmentOrderStatus,
-  type ShipmentOrderPrimitives,
-} from "./ShipmentOrder";
-export {
-  carrierSchema,
-  type CarrierType,
-  type CarrierPrimitives,
-} from "./Carrier";
-export {
-  rateSchema,
-  type RatePrimitives,
-} from "./Rate";
-export {
-  shippingDetailsSchema,
-  type ShippingDetailsPrimitives,
-} from "./shippingDetails";
+  type OrderPrimitives,
+} from "./Order";
+ 

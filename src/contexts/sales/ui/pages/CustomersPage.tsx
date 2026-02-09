@@ -21,8 +21,9 @@ import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
 import { useCustomers } from "../../infrastructure/hooks";
 import type { CustomerPrimitives } from "@/contexts/sales/domain";
+import type { CreateCustomerRequest } from "../../domain/schemas/customer/Customer";
 
-type CreateCustomerData = Omit<CustomerPrimitives, "id" | "createdAt" | "updatedAt">;
+type CreateCustomerData = CreateCustomerRequest
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
