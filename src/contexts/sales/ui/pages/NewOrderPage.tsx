@@ -19,7 +19,7 @@ import {
 import { ArrowLeft, ChevronDown, Edit, Package, Search, Truck, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { userRepository } from "../../../iam";
+
 
 interface ContactData {
   name: string;
@@ -230,8 +230,6 @@ const MEXICO_STATES = [
   "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas",
 ];
 
-const emptyContact: ContactData = { name: "", email: "", phone: "" };
-const emptyAddress: AddressData = { country: "México", address1: "", address2: "", zip: "", province: "", city: "", reference: "", geolocation: { latitude: 0, longitude: 0 } };
 const emptyPackage: PackageData = {
   productSearch: "",
   packageType: "",

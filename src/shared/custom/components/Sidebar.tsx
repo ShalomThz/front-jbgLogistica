@@ -11,10 +11,25 @@ import {
 } from '@/shared/shadcn/components';
 import { useAuth } from '@/contexts/iam/infrastructure/hooks';
 import type { Permission } from '@/contexts/iam/domain';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Users,
+  ShoppingCart,
+  Warehouse,
+  Package,
+  Route,
+  Truck,
+  DollarSign,
+  MapPin,
+  Store,
+  UserCog,
+  Shield,
+} from 'lucide-react';
 
 interface NavItem {
   label: string;
   href: string;
+  icon: LucideIcon;
   permissions?: Permission[];
 }
 
@@ -27,37 +42,37 @@ const navigation: NavSection[] = [
   {
     title: 'Ventas',
     items: [
-      { label: 'Clientes', href: '/customers', permissions: ['CAN_MANAGE_CUSTOMERS'] },
-      { label: 'Órdenes', href: '/orders', permissions: ['CAN_SELL'] },
-      { label: 'Bodega', href: '/warehouse', permissions: ['CAN_MANAGE_INVENTORY'] },
+      { label: 'Clientes', href: '/customers', icon: Users, permissions: ['CAN_MANAGE_CUSTOMERS'] },
+      { label: 'Órdenes', href: '/orders', icon: ShoppingCart, permissions: ['CAN_SELL'] },
+      { label: 'Bodega', href: '/warehouse', icon: Warehouse, permissions: ['CAN_MANAGE_INVENTORY'] },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { label: 'Cajas', href: '/boxes', permissions: ['CAN_MANAGE_INVENTORY'] },
+      { label: 'Cajas', href: '/boxes', icon: Package, permissions: ['CAN_MANAGE_INVENTORY'] },
     ],
   },
   {
     title: 'Logística',
     items: [
-      { label: 'Rutas de Entrega', href: '/delivery-routes', permissions: ['CAN_SELL'] },
-      { label: 'Conductores', href: '/drivers', permissions: ['CAN_SELL'] },
+      { label: 'Rutas de Entrega', href: '/delivery-routes', icon: Route, permissions: ['CAN_SELL'] },
+      { label: 'Conductores', href: '/drivers', icon: Truck, permissions: ['CAN_SELL'] },
     ],
   },
   {
     title: 'Operaciones',
     items: [
-      { label: 'Tarifas', href: '/tariffs', permissions: ['CAN_MANAGE_TARIFFS'] },
-      { label: 'Zonas', href: '/zones', permissions: ['CAN_MANAGE_ZONES'] },
+      { label: 'Tarifas', href: '/tariffs', icon: DollarSign, permissions: ['CAN_MANAGE_TARIFFS'] },
+      { label: 'Zonas', href: '/zones', icon: MapPin, permissions: ['CAN_MANAGE_ZONES'] },
     ],
   },
   {
     title: 'Administración',
     items: [
-      { label: 'Tiendas', href: '/stores', permissions: ['CAN_MANAGE_STORES'] },
-      { label: 'Usuarios', href: '/users', permissions: ['CAN_MANAGE_USERS'] },
-      { label: 'Roles', href: '/roles', permissions: ['CAN_MANAGE_USERS'] },
+      { label: 'Tiendas', href: '/stores', icon: Store, permissions: ['CAN_MANAGE_STORES'] },
+      { label: 'Usuarios', href: '/users', icon: UserCog, permissions: ['CAN_MANAGE_USERS'] },
+      { label: 'Roles', href: '/roles', icon: Shield, permissions: ['CAN_MANAGE_USERS'] },
     ],
   },
 ];
@@ -97,7 +112,10 @@ export const AppSidebar = () => {
                       asChild
                       isActive={location.pathname.startsWith(item.href)}
                     >
-                      <Link to={item.href}>{item.label}</Link>
+                      <Link to={item.href}>
+                        <item.icon className="size-4" />
+                        {item.label}
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

@@ -45,6 +45,7 @@ const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_MANAGE_STORES: "Gestionar tiendas",
   CAN_MANAGE_ZONES: "Gestionar zonas",
   CAN_MANAGE_TARIFFS: "Gestionar tarifas",
+  CAN_SHIP: "Enviar paquetes",
 };
 
 interface Props {

@@ -22,6 +22,7 @@ const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_MANAGE_STORES: "Gestionar tiendas",
   CAN_MANAGE_ZONES: "Gestionar zonas",
   CAN_MANAGE_TARIFFS: "Gestionar tarifas",
+  CAN_SHIP: "Enviar paquetes",
 };
 
 const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -33,6 +34,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_MANAGE_STORES: "Permite crear, editar y eliminar tiendas",
   CAN_MANAGE_ZONES: "Permite gestionar zonas de envío",
   CAN_MANAGE_TARIFFS: "Permite gestionar tarifas y precios",
+  CAN_SHIP: "Permite gestionar envíos y rutas de entrega",
 };
 
 interface Props {

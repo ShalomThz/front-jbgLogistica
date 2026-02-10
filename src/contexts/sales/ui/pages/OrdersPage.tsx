@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
 import {
   Button,
   Input,
@@ -17,107 +17,76 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/shadcn";
-import type { OrderPrimitives, OrderStatus } from "../../domain";
+import type { OrderPrimitives } from "../../domain";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "../../domain";
+import { useOrders } from "../../infrastructure/hooks";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  DRAFT: "Borrador",
-  PENDING_HQ_PROCESS: "Pendiente",
-  COMPLETED: "Completada",
-  CANCELLED: "Cancelada",
-};
-
-const STATUS_VARIANT: Record<OrderStatus, "secondary" | "default" | "outline" | "destructive"> = {
-  DRAFT: "secondary",
-  PENDING_HQ_PROCESS: "outline",
-  COMPLETED: "default",
-  CANCELLED: "destructive",
-};
-
-const now = new Date().toISOString();
-
-const MOCK_ORDERS: OrderPrimitives[] = [
-  {
-    id: "ORD-001",
-    storeId: "store-001",
-    origin: {
-      id: null,
-      name: "JBG Logística - Centro",
-      company: "JBG Logística",
-      email: "centro@jbg.com",
-      phone: "5512340000",
-      address: { address1: "Av. Central 100", address2: "", city: "CDMX", province: "CDMX", zip: "06000", country: "México", reference: "", geolocation: { latitude: 0, longitude: 0, placeId: null } },
-    },
-    destination: {
-      id: null,
-      name: "Carlos Mendoza",
-      company: "",
-      phone: "5512345678",
-      email: "carlos@email.com",
-      address: { address1: "Av. Reforma 123", address2: "Piso 4", city: "CDMX", province: "CDMX", zip: "06600", country: "México", reference: "", geolocation: { latitude: 0, longitude: 0, placeId: null } },
-    },
-    financials: {
-      totalPrice: { amount: 350, currency: "MXN" }, isPaid: true, costBreakdown: {
-        insurance: null,
-        tools: null,
-        additionalCost: null,
-        wrap: null,
-        tape: null,
-      }
-    },
-    references: {
-      orderNumber: "JBG-0001",
-      partnerOrderNumber: null,
-    },
-    status: "COMPLETED",
-    package: {
-      boxId: "box-001",
-      dimensions: { length: 40, width: 30, height: 20, unit: "cm" },
-      ownership: "STORE",
-      weight: {
-        value: 5, unit: "kg"
-      }
-    },
-    type: "HQ",
-    createdAt: now,
-    updatedAt: now,
-  },
-];
+const LIMIT_OPTIONS = [10, 20, 50];
 
 export const OrdersPage = () => {
   const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
+
+  const {
+    orders,
+    pagination,
+    totalPages,
+    isLoading,
+    refetch,
+  } = useOrders({ page, limit });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<OrderPrimitives | null>(null);
 
-  const filteredOrders = MOCK_ORDERS.filter((order) => {
+  const filtered = orders.filter((order) => {
+    const query = searchQuery.toLowerCase();
     const matchesSearch =
       searchQuery === "" ||
-      order.destination.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (order.references.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (order.references.partnerOrderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+      order.destination.name.toLowerCase().includes(query) ||
+      order.id.toLowerCase().includes(query) ||
+      (order.references.orderNumber?.toLowerCase().includes(query) ?? false) ||
+      (order.references.partnerOrderNumber?.toLowerCase().includes(query) ?? false);
 
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
+  const from = pagination ? pagination.offset + 1 : 0;
+  const to = pagination ? pagination.offset + orders.length : 0;
+  const total = pagination?.total ?? 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Cargando órdenes...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Órdenes</h1>
-        <Button onClick={() => navigate("/orders/new")}>
-          <Plus className="size-4" />
-          Crear Orden
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={() => refetch()}>
+            <RefreshCw className="size-4" />
+          </Button>
+          <Button onClick={() => navigate("/orders/new")}>
+            <Plus className="size-4" />
+            Crear Orden
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, ID o factura..."
+            placeholder="Buscar por nombre, ID o referencia..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -132,6 +101,25 @@ export const OrdersPage = () => {
             <SelectItem value="DRAFT">Borrador</SelectItem>
             <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
             <SelectItem value="COMPLETED">Completada</SelectItem>
+            <SelectItem value="CANCELLED">Cancelada</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={String(limit)}
+          onValueChange={(v) => {
+            setLimit(Number(v));
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LIMIT_OPTIONS.map((opt) => (
+              <SelectItem key={opt} value={String(opt)}>
+                {opt} por página
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -142,20 +130,20 @@ export const OrdersPage = () => {
             <TableRow>
               <TableHead>Destinatario</TableHead>
               <TableHead className="hidden md:table-cell">Destino</TableHead>
-              <TableHead className="hidden sm:table-cell">Factura</TableHead>
+              <TableHead className="hidden sm:table-cell">Referencia</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.length === 0 ? (
+            {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                   No se encontraron órdenes.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => (
+              filtered.map((order) => (
                 <TableRow
                   key={order.id}
                   className="cursor-pointer"
@@ -173,11 +161,11 @@ export const OrdersPage = () => {
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell text-xs">
-                    {order.references.orderNumber ?? "—"}
+                    {order.references.orderNumber ?? order.references.partnerOrderNumber ?? "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[order.status]}>
-                      {STATUS_LABELS[order.status]}
+                    <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
+                      {ORDER_STATUS_LABELS[order.status]}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono">
@@ -189,6 +177,37 @@ export const OrdersPage = () => {
           </TableBody>
         </Table>
       </div>
+
+      {pagination && total > 0 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {from}-{to} de {total}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="size-4" />
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!pagination.hasMore}
+            >
+              Siguiente
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <OrderDetailDialog
         order={selectedOrder}

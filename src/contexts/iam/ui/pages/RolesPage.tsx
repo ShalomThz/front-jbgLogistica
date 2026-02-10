@@ -25,6 +25,7 @@ const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_MANAGE_STORES: "Tiendas",
   CAN_MANAGE_ZONES: "Zonas",
   CAN_MANAGE_TARIFFS: "Tarifas",
+  CAN_SHIP: "Envíos",
 };
 
 const INITIAL_DATA: UserRolePrimitives[] = [
