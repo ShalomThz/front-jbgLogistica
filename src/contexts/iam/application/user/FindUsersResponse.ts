@@ -1,5 +1,5 @@
+import { userListViewSchema } from "@contexts/iam/domain/schemas/user/User";
 import { z } from "zod";
-import { userSchema } from "@contexts/iam/domain/schemas/user/User";
 
 const paginationSchema = z.object({
   total: z.number().int().nonnegative(),
@@ -9,7 +9,7 @@ const paginationSchema = z.object({
 });
 
 export const findUsersResponseSchema = z.object({
-  data: z.array(userSchema),
+  data: z.array(userListViewSchema),
   pagination: paginationSchema,
 });
 

@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
 } from '@contexts/shared/shadcn/components';
 import { useAuth } from '@contexts/iam/infrastructure/hooks/auth/useAuth';
-import type { Permission } from '@contexts/iam/domain/schemas/userRole/UserRole';
+import type { Permission } from '@/contexts/iam/domain/schemas/user/UserRole';
 import type { LucideIcon } from 'lucide-react';
 import {
   Users,

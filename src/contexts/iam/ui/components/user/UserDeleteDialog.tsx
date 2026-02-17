@@ -7,10 +7,10 @@ import {
   DialogFooter,
   Button,
 } from "@contexts/shared/shadcn";
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 interface Props {
-  user: UserPrimitives | null;
+  user: UserListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;

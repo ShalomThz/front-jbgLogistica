@@ -1,16 +1,16 @@
-import { Pencil, Trash2 } from "lucide-react";
 import {
   Badge,
-  Separator,
+  Button,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  Button,
+  DialogHeader,
+  DialogTitle,
+  Separator,
 } from "@contexts/shared/shadcn";
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import { Pencil, Trash2 } from "lucide-react";
+import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
 
 const PERMISSION_LABELS: Record<string, string> = {
   CAN_SELL: "Vender",
@@ -21,6 +21,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   CAN_MANAGE_STORES: "Gestionar tiendas",
   CAN_MANAGE_ZONES: "Gestionar zonas",
   CAN_MANAGE_TARIFFS: "Gestionar tarifas",
+  CAN_SHIP: "Realizar envíos",
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -42,11 +43,11 @@ const formatDateTime = (date: string) =>
   });
 
 interface Props {
-  user: UserPrimitives | null;
+  user: UserListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  onEdit?: (user: UserPrimitives) => void;
-  onDelete?: (user: UserPrimitives) => void;
+  onEdit?: (user:UserListViewPrimitives) => void;
+  onDelete?: (user:UserListViewPrimitives) => void;
 }
 
 export const UserDetailDialog = ({
@@ -56,6 +57,7 @@ export const UserDetailDialog = ({
   onEdit,
   onDelete,
 }: Props) => {
+
   if (!user) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -67,7 +69,7 @@ export const UserDetailDialog = ({
               {user.isActive ? "Activo" : "Inactivo"}
             </Badge>
           </DialogTitle>
-          <DialogDescription>Usuario {user.id}</DialogDescription>
+          <DialogDescription>{user.name}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -78,7 +80,7 @@ export const UserDetailDialog = ({
                 label="Estado"
                 value={user.isActive ? "Activo" : "Inactivo"}
               />
-              <DetailRow label="Tienda" value={user.storeId} />
+              <DetailRow label="Tienda" value={user.store.name} />
             </div>
           </div>
           <Separator />

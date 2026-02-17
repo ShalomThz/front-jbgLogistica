@@ -3,7 +3,7 @@ import { userRepository, type UpdateUserRequest } from "@contexts/iam/infrastruc
 import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
 
-const USERS_QUERY_KEY = ["users"];
+export const USERS_QUERY_KEY = ["users"];
 
 interface UseUsersOptions {
   page?: number;

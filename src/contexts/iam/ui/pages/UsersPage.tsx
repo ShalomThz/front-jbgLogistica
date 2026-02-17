@@ -17,10 +17,13 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import { UserDetailDialog } from "../components/user/UserDetailDialog";
-import { UserFormDialog, type UserFormData } from "../components/user/UserFormDialog";
+import { CreateUserDialog } from "../components/user/CreateUserDialog";
+import { EditUserDialog } from "../components/user/EditUserDialog";
+import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
+import type { UpdateUserRequest } from "@contexts/iam/infrastructure/services/users/userRepository";
 import { UserDeleteDialog } from "../components/user/UserDeleteDialog";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -51,10 +54,10 @@ export const UsersPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<UserPrimitives | null>(null);
+  const [selected, setSelected] = useState<UserListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editUser, setEditUser] = useState<UserPrimitives | null>(null);
-  const [deleteUserDialog, setDeleteUserDialog] = useState<UserPrimitives | null>(null);
+  const [editUser, setEditUser] = useState<UserListViewPrimitives| null>(null);
+  const [deleteUserDialog, setDeleteUserDialog] = useState<UserListViewPrimitives| null>(null);
 
   const filtered = users.filter((u) => {
     const matchesSearch =
@@ -67,16 +70,15 @@ export const UsersPage = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreate = async (data: UserFormData) => {
+  const handleCreate = async (data: RegisterUserRequestPrimitives) => {
     await createUser(data);
     setFormOpen(false);
     setPage(1);
   };
 
-  const handleUpdate = async (data: UserFormData) => {
+  const handleUpdate = async (data: UpdateUserRequest) => {
     if (!editUser) return;
-    const { password, ...rest } = data;
-    await updateUser(editUser.id, password ? data : rest);
+    await updateUser(editUser.id, data);
     setEditUser(null);
   };
 
@@ -87,12 +89,12 @@ export const UsersPage = () => {
     setPage(1);
   };
 
-  const handleEditFromDetail = (user: UserPrimitives) => {
+  const handleEditFromDetail = (user: UserListViewPrimitives) => {
     setSelected(null);
     setEditUser(user);
   };
 
-  const handleDeleteFromDetail = (user: UserPrimitives) => {
+  const handleDeleteFromDetail = (user: UserListViewPrimitives) => {
     setSelected(null);
     setDeleteUserDialog(user);
   };
@@ -134,7 +136,7 @@ export const UsersPage = () => {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-45">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -150,7 +152,7 @@ export const UsersPage = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[130px]">
+          <SelectTrigger className="w-full sm:w-32.5">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -196,7 +198,7 @@ export const UsersPage = () => {
                   <TableCell className="font-medium">{u.email}</TableCell>
                   <TableCell>{u.role.name}</TableCell>
                   <TableCell className="hidden md:table-cell text-sm">
-                    {u.storeId}
+                    {u.store.name}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell text-right font-mono">
                     {u.role.permissions.length}
@@ -252,19 +254,21 @@ export const UsersPage = () => {
         onEdit={handleEditFromDetail}
         onDelete={handleDeleteFromDetail}
       />
-      <UserFormDialog
+      <CreateUserDialog
         open={formOpen}
         onClose={() => setFormOpen(false)}
         onSave={handleCreate}
         isLoading={isCreating}
       />
-      <UserFormDialog
-        open={!!editUser}
-        onClose={() => setEditUser(null)}
-        onSave={handleUpdate}
-        user={editUser}
-        isLoading={isUpdating}
-      />
+      {editUser && (
+        <EditUserDialog
+          open
+          onClose={() => setEditUser(null)}
+          onSave={handleUpdate}
+          user={editUser}
+          isLoading={isUpdating}
+        />
+      )}
       <UserDeleteDialog
         user={deleteUserDialog}
         open={!!deleteUserDialog}

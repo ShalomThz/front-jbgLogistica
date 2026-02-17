@@ -21,7 +21,6 @@ import { ZonesPage } from "@contexts/pricing/ui/pages/ZonesPage";
 
 // IAM
 import { UsersPage } from "@contexts/iam/ui/pages/UsersPage";
-import { RolesPage } from "@contexts/iam/ui/pages/RolesPage";
 import { StoresPage } from "@contexts/iam/ui/pages/StoresPage";
 
 // Dashboard
@@ -135,13 +134,5 @@ export const routes: RouteObject[] = [
         <UsersPage />
       </ProtectedRoute>
     ),
-  },
-  {
-    path: "/roles",
-    element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_USERS"]}>
-        <RolesPage />
-      </ProtectedRoute>
-    ),
-  },
+  }
 ];

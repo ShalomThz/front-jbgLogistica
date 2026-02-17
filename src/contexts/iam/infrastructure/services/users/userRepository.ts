@@ -1,5 +1,5 @@
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
-import { userSchema } from "@contexts/iam/domain/schemas/user/User";
+import type { UserListViewPrimitives, UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import { userListViewSchema, userSchema } from "@contexts/iam/domain/schemas/user/User";
 import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { FindUsersRequestPrimitives } from "@contexts/iam/application/user/FindUsersRequest";
 import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
@@ -23,9 +23,9 @@ export const userRepository = {
     return findUsersResponseSchema.parse(data);
   },
 
-  getById: async (id: string): Promise<UserPrimitives> => {
+  findById: async (id: string): Promise<UserListViewPrimitives> => {
     const data = await httpClient<unknown>(`/user/${id}`);
-    return userSchema.parse(data);
+    return userListViewSchema.parse(data);
   },
 
   create: async (
