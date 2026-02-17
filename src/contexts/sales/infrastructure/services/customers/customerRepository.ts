@@ -1,13 +1,6 @@
-import type {
-  CustomerPrimitives,
-  FindCustomersResponsePrimitives,
-} from "../../../domain/schemas";
-import {
-  customerSchema,
-  findCustomersResponseSchema,
-} from "../../../domain/schemas";
-import { httpClient } from "@/shared/infrastructure/http";
-import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
+import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
+import { customerSchema, type CustomerPrimitives, type CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
+import { findCustomersResponseSchema, type FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
 
 export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
 

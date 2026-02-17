@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { boxRepository, type UpdateBoxRequest } from "../../services";
-import type { CreateBoxRequestPrimitives, FindBoxesResponsePrimitives } from "../../../domain";
+import { boxRepository, type UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
+import type { CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import type { FindBoxesResponsePrimitives } from "@contexts/inventory/application/FindBoxesResponse";
 
 const BOXES_QUERY_KEY = ["boxes"];
 

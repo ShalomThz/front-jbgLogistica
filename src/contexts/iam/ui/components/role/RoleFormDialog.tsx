@@ -10,8 +10,9 @@ import {
   Input,
   Label,
   Checkbox,
-} from "@/shared/shadcn";
-import { PERMISSIONS, type UserRolePrimitives, type Permission } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import { PERMISSIONS } from "@contexts/iam/domain/schemas/userRole/Permission";
+import type { UserRolePrimitives, Permission } from "@contexts/iam/domain/schemas/userRole/UserRole";
 
 const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_SELL: "Vender",

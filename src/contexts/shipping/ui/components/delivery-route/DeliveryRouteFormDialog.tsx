@@ -14,8 +14,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import type { RoutePrimitives, RouteStatus } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/RouteDelivery";
 
 const ROUTE_STATUSES: RouteStatus[] = ["PLANNED", "ACTIVE", "COMPLETED"];
 

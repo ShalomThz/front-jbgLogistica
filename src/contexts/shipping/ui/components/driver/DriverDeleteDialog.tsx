@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { DriverPrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { DriverPrimitives } from "../../../domain/schemas/driver/Driver";
 
 interface Props {
   driver: DriverPrimitives | null;

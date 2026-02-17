@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { addressSchema } from "@/shared/domain";
+import { addressSchema } from "@contexts/shared/domain/schemas/address/Address";
+
 export const routeStopSchema = z.object({
   id: z.string(),
   stopOrder: z.number().int().positive(),

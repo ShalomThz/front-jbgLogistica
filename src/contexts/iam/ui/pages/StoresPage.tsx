@@ -14,18 +14,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import {
-  StoreDetailDialog,
-  StoreFormDialog,
-  StoreDeleteDialog,
-} from "../components/store";
-import { useStores } from "../../infrastructure/hooks";
-import { useZones } from "@/contexts/pricing/infrastructure/hooks";
-import type {
-  StorePrimitives,
-  CreateStoreRequestPrimitives,
-} from "@/contexts/iam/domain";
+} from "@contexts/shared/shadcn";
+import { StoreDetailDialog } from "../components/store/StoreDetailDialog";
+import { StoreFormDialog } from "../components/store/StoreFormDialog";
+import { StoreDeleteDialog } from "../components/store/StoreDeleteDialog";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 

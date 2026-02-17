@@ -16,14 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
   Checkbox,
-} from "@/shared/shadcn";
-import {
-  PERMISSIONS,
-  type UserPrimitives,
-  type UserRolePrimitives,
-  type RegisterUserRequestPrimitives,
-} from "../../../domain";
-import { useStores } from "../../../infrastructure/hooks";
+} from "@contexts/shared/shadcn";
+import { PERMISSIONS } from "@contexts/iam/domain/schemas/userRole/Permission";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { UserRolePrimitives } from "@contexts/iam/domain/schemas/userRole/UserRole";
+import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 
 type Permission = (typeof PERMISSIONS)[number];
 

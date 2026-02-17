@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { tariffRepository, type UpdateTariffRequest } from "../../services";
-import type { TariffPrimitives, FindTariffsResponsePrimitives } from "../../../domain/schemas";
+import { tariffRepository, type UpdateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
 
 const TARIFFS_QUERY_KEY = ["tariffs"];
 

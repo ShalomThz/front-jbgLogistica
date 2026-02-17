@@ -1,1 +1,0 @@
-export { BoxPage } from "./BoxPage";

@@ -1,12 +1,8 @@
-import type {
-  TariffPrimitives,
-  FindTariffsResponsePrimitives,
-} from "../../../domain/schemas";
-import {
-  tariffSchema,
-  findTariffsResponseSchema,
-} from "../../../domain/schemas";
-import { httpClient } from "@/shared/infrastructure/http";
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { tariffSchema } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
+import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTariffsResponse";
+import { httpClient } from "@contexts/shared/infrastructure/http";
 
 type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
 export type UpdateTariffRequest = Partial<CreateTariffRequest>;

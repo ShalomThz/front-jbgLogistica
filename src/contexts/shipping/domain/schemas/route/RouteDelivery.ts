@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { geolocationSchema } from "@/shared/domain";
-import { aggregateRootSchema } from "@/shared/domain";
+import { geolocationSchema } from "@contexts/shared/domain/schemas/address/Geolocation";
+import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { routeStopSchema } from "./RouteStop";
 import { mapsMetadataSchema } from "./MapsMetadata";
+
 const statuses = ["PLANNED", "ACTIVE", "COMPLETED"] as const;
 
 export const routeSchema = z.object({

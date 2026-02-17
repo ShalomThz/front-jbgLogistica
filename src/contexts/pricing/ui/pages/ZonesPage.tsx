@@ -14,10 +14,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import { ZoneDetailDialog, ZoneFormDialog, ZoneDeleteDialog } from "../components/zone";
-import { useZones } from "../../infrastructure/hooks";
-import type { ZonePrimitives } from "../../domain";
+} from "@contexts/shared/shadcn";
+import { ZoneDetailDialog } from "../components/zone/ZoneDetailDialog";
+import { ZoneFormDialog } from "../components/zone/ZoneFormDialog";
+import { ZoneDeleteDialog } from "../components/zone/ZoneDeleteDialog";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 
 type CreateZoneData = Omit<ZonePrimitives, "id" | "createdAt" | "updatedAt">;
 

@@ -14,10 +14,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import { BoxDetailDialog, BoxFormDialog, BoxDeleteDialog, BoxStockDialog } from "../components/box";
-import { useBoxes } from "../../infrastructure/hooks";
-import type { BoxPrimitives, CreateBoxRequestPrimitives } from "../../domain";
+} from "@contexts/shared/shadcn";
+import { BoxDetailDialog } from "../components/box/BoxDetailDialog";
+import { BoxFormDialog } from "../components/box/BoxFormDialog";
+import { BoxDeleteDialog } from "../components/box/BoxDeleteDialog";
+import { BoxStockDialog } from "../components/box/BoxStockDialog";
+import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 type StockOperation = "add" | "subtract";
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { aggregateRootSchema } from "@/shared/domain";
+import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
+
 const driverStatuses = ["AVAILABLE", "ON_ROUTE", "OFF_DUTY"] as const;
 
 export const driverSchema = z.object({

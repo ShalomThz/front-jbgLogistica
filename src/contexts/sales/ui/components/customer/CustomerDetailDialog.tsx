@@ -1,6 +1,6 @@
 import { Pencil, Trash2, MapPin } from "lucide-react";
-import { Badge, Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { CustomerPrimitives } from "@/contexts/sales/domain";
+import { Badge, Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
 
 const STATUS_LABELS: Record<string, string> = { ACTIVE: "Activo", INACTIVE: "Inactivo" };
 const STATUS_VARIANT: Record<string, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };

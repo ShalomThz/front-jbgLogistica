@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authRepository } from "../../services";
-import { tokenStorage } from "../../storage";
-import type { LoginRequestPrimitives, UserPrimitives } from "../../../domain/schemas";
+import { authRepository } from "@contexts/iam/infrastructure/services/auth/authRepository";
+import { tokenStorage } from "@contexts/iam/infrastructure/storage/tokenStorage";
+import type { LoginRequestPrimitives } from "@contexts/iam/application/login/LoginRequest";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 const AUTH_QUERY_KEY = ["auth", "user"];
 

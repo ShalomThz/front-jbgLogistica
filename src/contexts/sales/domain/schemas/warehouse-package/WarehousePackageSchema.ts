@@ -1,5 +1,5 @@
+import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { z } from "zod";
-import { aggregateRootSchema } from "@/shared/domain";
 
 export const warehousePackageStatuses = [
   "WAREHOUSE",

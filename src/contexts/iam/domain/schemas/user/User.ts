@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { emailSchema, aggregateRootSchema } from "@/shared/domain";
+import { emailSchema} from "@contexts/shared/domain/schemas/Email";
+import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { userRoleSchema } from "../userRole/UserRole";
 
 export const userSchema = z.object({

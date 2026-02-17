@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { ZonePrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 
 interface Props {
   zone: ZonePrimitives | null;

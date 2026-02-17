@@ -6,8 +6,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { UserPrimitives } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 interface Props {
   user: UserPrimitives | null;

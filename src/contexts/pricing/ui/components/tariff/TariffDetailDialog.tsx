@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { TariffPrimitives } from "../../../domain";
+import { Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (<div className="grid grid-cols-3 gap-2"><span className="text-sm text-muted-foreground">{label}</span><span className="col-span-2 text-sm">{value}</span></div>);

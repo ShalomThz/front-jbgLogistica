@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { aggregateRootSchema, moneySchema } from "@/shared/domain";
+import { aggregateRootSchema} from "@contexts/shared/domain/schemas/AggregateRoot";
+import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import { countryCodeSchema } from "./CountryCode";
 export const tariffSchema = z.object({
   id: z.string(),

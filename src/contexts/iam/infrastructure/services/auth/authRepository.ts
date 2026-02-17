@@ -1,11 +1,10 @@
-import type {
-  LoginRequestPrimitives,
-  LoginResponsePrimitives,
-  UserPrimitives,
-} from "../../../domain";
-import { loginResponseSchema, userSchema } from "../../../domain";
-import { httpClient } from "@/shared/infrastructure/http";
-import { tokenStorage } from "../../storage";
+import type { LoginRequestPrimitives } from "@contexts/iam/application/login/LoginRequest";
+import type { LoginResponsePrimitives } from "@contexts/iam/application/login/LoginResponse";
+import { loginResponseSchema } from "@contexts/iam/application/login/LoginResponse";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import { userSchema } from "@contexts/iam/domain/schemas/user/User";
+import { httpClient } from "@contexts/shared/infrastructure/http";
+import { tokenStorage } from "@contexts/iam/infrastructure/storage/tokenStorage";
 
 export const authRepository = {
   login: async (

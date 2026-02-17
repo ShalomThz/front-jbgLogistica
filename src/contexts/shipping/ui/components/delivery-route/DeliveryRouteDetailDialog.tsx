@@ -9,8 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { RoutePrimitives, RouteStatus } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/RouteDelivery";
 
 const STATUS_LABELS: Record<RouteStatus, string> = {
   PLANNED: "Planeada",

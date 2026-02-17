@@ -15,11 +15,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
+} from "@contexts/shared/shadcn";
 import { WarehouseDetailDialog } from "../components/warehouse/WarehouseDetailDialog";
 import { WarehouseFormDialog } from "../components/warehouse/WarehouseFormDialog";
 import { WarehouseDeleteDialog } from "../components/warehouse/WarehouseDeleteDialog";
-import type { WarehousePackagePrimitives, WarehousePackageStatus } from "../../domain";
+import type { WarehousePackagePrimitives, WarehousePackageStatus } from "../../domain/schemas/warehouse-package/WarehousePackageSchema";
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",

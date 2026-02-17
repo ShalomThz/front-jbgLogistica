@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { storeRepository, type UpdateStoreRequest } from "../../services";
-import type { CreateStoreRequestPrimitives, FindStoresResponsePrimitives } from "../../../domain";
+import { storeRepository, type UpdateStoreRequest } from "@contexts/iam/infrastructure/services/stores/storeRepository";
+import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
+import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
 
 const STORES_QUERY_KEY = ["stores"];
 

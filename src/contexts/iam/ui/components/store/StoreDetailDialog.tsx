@@ -8,8 +8,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { StorePrimitives } from "@/contexts/iam/domain";
+} from "@contexts/shared/shadcn";
+import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (

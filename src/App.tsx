@@ -1,8 +1,9 @@
 import { useRoutes } from "react-router-dom";
-import { useAuth, LoginPage } from "@/contexts/iam";
-import { DashboardLayout } from "@/shared/custom";
-import { routes } from "@/shared/custom/router";
-import { LoaderOne } from "@/shared/shadcn";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { LoginPage } from "@contexts/iam/ui/pages/LoginPage";
+import { DashboardLayout } from "@contexts/shared/custom";
+import { routes } from "@contexts/shared/custom/router";
+import { LoaderOne } from "@contexts/shared/shadcn";
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth();

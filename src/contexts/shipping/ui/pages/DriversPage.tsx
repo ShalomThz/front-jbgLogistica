@@ -15,11 +15,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
+} from "@contexts/shared/shadcn";
 import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
 import { DriverFormDialog } from "../components/driver/DriverFormDialog";
 import { DriverDeleteDialog } from "../components/driver/DriverDeleteDialog";
-import type { DriverPrimitives, DriverStatus } from "../../domain";
+import type { DriverPrimitives, DriverStatus } from "../../domain/schemas/driver/Driver";
 
 const STATUS_LABELS: Record<DriverStatus, string> = {
   AVAILABLE: "Disponible",

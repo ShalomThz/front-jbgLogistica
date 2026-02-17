@@ -15,12 +15,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
+} from "@contexts/shared/shadcn";
 import { UserDetailDialog } from "../components/user/UserDetailDialog";
 import { UserFormDialog, type UserFormData } from "../components/user/UserFormDialog";
 import { UserDeleteDialog } from "../components/user/UserDeleteDialog";
-import { useUsers } from "../../infrastructure/hooks";
-import type { UserPrimitives } from "../../domain";
+import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 

@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { BoxPrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 interface Props {
   box: BoxPrimitives | null;

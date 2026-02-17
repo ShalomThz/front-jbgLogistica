@@ -14,12 +14,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import { TariffDetailDialog, TariffFormDialog, TariffDeleteDialog } from "../components/tariff";
-import { useTariffs } from "../../infrastructure/hooks";
-import { useZones } from "../../infrastructure/hooks";
-import { useBoxes } from "@/contexts/inventory/infrastructure/hooks";
-import type { TariffPrimitives } from "../../domain";
+} from "@contexts/shared/shadcn";
+import { TariffDetailDialog } from "../components/tariff/TariffDetailDialog";
+import { TariffFormDialog } from "../components/tariff/TariffFormDialog";
+import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
+import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 type CreateTariffData = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
 

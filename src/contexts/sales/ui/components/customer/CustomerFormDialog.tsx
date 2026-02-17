@@ -14,10 +14,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import type { CustomerPrimitives } from "@/contexts/sales/domain";
-import type { AddressPrimitives } from "@/shared/domain";
-import { useStores } from "@/contexts/iam/infrastructure/hooks";
+} from "@contexts/shared/shadcn";
+import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
+import type { AddressPrimitives } from "@contexts/shared/domain/schemas/address/Address";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 
 const COUNTRIES = [
   { code: "MX", name: "México" },

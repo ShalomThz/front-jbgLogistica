@@ -9,8 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { DriverPrimitives, DriverStatus } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { DriverPrimitives, DriverStatus } from "../../../domain/schemas/driver/Driver";
 
 const STATUS_LABELS: Record<DriverStatus, string> = {
   AVAILABLE: "Disponible",

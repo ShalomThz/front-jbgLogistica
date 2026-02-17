@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { FindCustomersResponsePrimitives } from "../../../domain/schemas";
-import { customerRepository, type UpdateCustomerRequest } from "../../services";
+import type { FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
+import { customerRepository, type UpdateCustomerRequest } from "../../services/customers/customerRepository";
 import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 
 const CUSTOMERS_QUERY_KEY = ["customers"];
@@ -8,11 +8,16 @@ const CUSTOMERS_QUERY_KEY = ["customers"];
 interface UseCustomersOptions {
   page?: number;
   limit?: number;
+  search?: string;
 }
 
-export const useCustomers = ({ page = 1, limit = 10 }: UseCustomersOptions = {}) => {
+export const useCustomers = ({ page = 1, limit = 10, search = "" }: UseCustomersOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
+
+  const filters = search
+    ? [{ field: "name", filterOperator: "LIKE", value: search }]
+    : [];
 
   const {
     data,
@@ -20,8 +25,9 @@ export const useCustomers = ({ page = 1, limit = 10 }: UseCustomersOptions = {})
     error,
     refetch,
   } = useQuery<FindCustomersResponsePrimitives>({
-    queryKey: [...CUSTOMERS_QUERY_KEY, { page, limit }],
-    queryFn: () => customerRepository.find({ filters: [], limit, offset }),
+    queryKey: [...CUSTOMERS_QUERY_KEY, { page, limit, search }],
+    queryFn: () => customerRepository.find({ filters, limit, offset }),
+    enabled: search === "" || search.length >= 2,
   });
 
   const customers = data?.data ?? [];

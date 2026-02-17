@@ -1,9 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { userRepository, type UpdateUserRequest } from "../../services";
-import type {
-  RegisterUserRequestPrimitives,
-  FindUsersResponsePrimitives,
-} from "../../../domain/schemas/user";
+import { userRepository, type UpdateUserRequest } from "@contexts/iam/infrastructure/services/users/userRepository";
+import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
+import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
 
 const USERS_QUERY_KEY = ["users"];
 

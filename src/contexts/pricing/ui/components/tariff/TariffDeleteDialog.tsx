@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { TariffPrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 interface Props {
   tariff: TariffPrimitives | null;

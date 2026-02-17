@@ -9,8 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { UserPrimitives } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 const PERMISSION_LABELS: Record<string, string> = {
   CAN_SELL: "Vender",

@@ -1,14 +1,10 @@
-import type {
-  UserPrimitives,
-  RegisterUserRequestPrimitives,
-  FindUsersRequestPrimitives,
-  FindUsersResponsePrimitives,
-} from "../../../domain/schemas/user";
-import {
-  userSchema,
-  findUsersResponseSchema,
-} from "../../../domain/schemas/user";
-import { httpClient } from "@/shared/infrastructure/http";
+import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import { userSchema } from "@contexts/iam/domain/schemas/user/User";
+import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
+import type { FindUsersRequestPrimitives } from "@contexts/iam/application/user/FindUsersRequest";
+import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
+import { findUsersResponseSchema } from "@contexts/iam/application/user/FindUsersResponse";
+import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export type UpdateUserRequest = Partial<
   Omit<RegisterUserRequestPrimitives, "password">

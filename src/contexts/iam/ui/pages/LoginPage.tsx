@@ -1,4 +1,4 @@
-import { EncryptedText, Globe } from "@/shared/shadcn";
+import { EncryptedText, Globe } from "@contexts/shared/shadcn";
 
 import { LoginForm } from "../components/auth/LoginForm";
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label } from "@/shared/shadcn";
-import type { BoxPrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label } from "@contexts/shared/shadcn";
+import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 type StockOperation = "add" | "subtract";
 

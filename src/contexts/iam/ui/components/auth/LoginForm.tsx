@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { loginRequestSchema } from "../../../domain";
-import { useAuth } from "../../../infrastructure/hooks";
-import { Button, Input, Label } from "@/shared/shadcn";
+import { loginRequestSchema } from "@contexts/iam/application/login/LoginRequest";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { Button, Input, Label } from "@contexts/shared/shadcn";
 
 export const LoginForm = () => {
   const { login, loginError, isLoggingIn, resetLoginError } = useAuth();

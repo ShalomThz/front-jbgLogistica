@@ -1,0 +1,1 @@
+export const orderTypes = ["PARTNER", "HQ"] as const;

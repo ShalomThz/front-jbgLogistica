@@ -15,12 +15,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
+} from "@contexts/shared/shadcn";
 import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialog";
 import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
-import { useCustomers } from "../../infrastructure/hooks";
-import type { CustomerPrimitives } from "@/contexts/sales/domain";
+import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
+import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
 import type { CreateCustomerRequest } from "../../domain/schemas/customer/Customer";
 
 type CreateCustomerData = CreateCustomerRequest

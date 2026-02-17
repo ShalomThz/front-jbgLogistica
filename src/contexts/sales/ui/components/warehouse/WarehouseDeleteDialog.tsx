@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { WarehousePackagePrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { WarehousePackagePrimitives } from "../../../domain/schemas/warehouse-package/WarehousePackageSchema";
 
 interface Props {
   pkg: WarehousePackagePrimitives | null;

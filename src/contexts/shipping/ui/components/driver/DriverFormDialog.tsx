@@ -14,8 +14,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import type { DriverPrimitives, DriverStatus } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { DriverPrimitives, DriverStatus } from "../../../domain/schemas/driver/Driver";
 
 const DRIVER_STATUSES: DriverStatus[] = ["AVAILABLE", "ON_ROUTE", "OFF_DUTY"];
 

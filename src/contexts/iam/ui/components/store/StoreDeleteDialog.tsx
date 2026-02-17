@@ -6,8 +6,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { StorePrimitives } from "@/contexts/iam/domain";
+} from "@contexts/shared/shadcn";
+import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 
 interface Props {
   store: StorePrimitives | null;

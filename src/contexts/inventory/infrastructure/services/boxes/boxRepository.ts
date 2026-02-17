@@ -1,10 +1,8 @@
-import type {
-  BoxPrimitives,
-  CreateBoxRequestPrimitives,
-  FindBoxesResponsePrimitives,
-} from "../../../domain";
-import { boxSchema, findBoxesResponseSchema } from "../../../domain";
-import { httpClient } from "@/shared/infrastructure/http";
+import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import { boxSchema } from "@contexts/inventory/domain/schemas/box/Box";
+import type { FindBoxesResponsePrimitives } from "@contexts/inventory/application/FindBoxesResponse";
+import { findBoxesResponseSchema } from "@contexts/inventory/application/FindBoxesResponse";
+import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export type UpdateBoxRequest = Partial<CreateBoxRequestPrimitives>;
 

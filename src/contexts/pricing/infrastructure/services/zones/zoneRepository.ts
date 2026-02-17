@@ -1,9 +1,8 @@
-import type {
-  ZonePrimitives,
-  FindZonesResponsePrimitives,
-} from "../../../domain/schemas";
-import { zoneSchema, findZonesResponseSchema } from "../../../domain/schemas";
-import { httpClient } from "@/shared/infrastructure/http";
+import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
+import { zoneSchema } from "@contexts/pricing/domain/schemas/zone/Zone";
+import type { FindZonesResponsePrimitives } from "@contexts/pricing/application/FindZonesResponse";
+import { findZonesResponseSchema } from "@contexts/pricing/application/FindZonesResponse";
+import { httpClient } from "@contexts/shared/infrastructure/http";
 
 type CreateZoneRequest = Omit<ZonePrimitives, "id" | "createdAt" | "updatedAt">;
 export type UpdateZoneRequest = Partial<CreateZoneRequest>;

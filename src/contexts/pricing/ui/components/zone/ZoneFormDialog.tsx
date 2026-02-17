@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Textarea } from "@/shared/shadcn";
-import type { ZonePrimitives } from "../../../domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Textarea } from "@contexts/shared/shadcn";
+import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 
 type CreateZoneData = Omit<ZonePrimitives, "id" | "createdAt" | "updatedAt">;
 

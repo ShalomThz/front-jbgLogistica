@@ -9,8 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { WarehousePackagePrimitives, WarehousePackageStatus } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { WarehousePackagePrimitives, WarehousePackageStatus } from "../../../domain/schemas/warehouse-package/WarehousePackageSchema";
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",

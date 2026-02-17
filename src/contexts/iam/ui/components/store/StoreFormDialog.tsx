@@ -14,12 +14,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import type {
-  StorePrimitives,
-  CreateStoreRequestPrimitives,
-} from "@/contexts/iam/domain";
-import { useZones } from "@/contexts/pricing/infrastructure/hooks";
+} from "@contexts/shared/shadcn";
+import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 
 interface Props {
   open: boolean;

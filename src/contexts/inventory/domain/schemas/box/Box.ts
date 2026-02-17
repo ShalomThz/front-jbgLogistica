@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { aggregateRootSchema, dimensionsSchema } from "@/shared/domain";
+import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
+import { dimensionsSchema } from "@contexts/shared/domain/schemas/Dimensions";
 export const boxSchema = z.object({
   id: z.string(),
   name: z.string(),

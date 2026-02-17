@@ -6,8 +6,8 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-} from "@/shared/shadcn";
-import type { UserRolePrimitives } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import type { UserRolePrimitives } from "@contexts/iam/domain/schemas/userRole/UserRole";
 
 interface Props {
   role: UserRolePrimitives | null;

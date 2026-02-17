@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@/shared/shadcn";
-import type { CustomerPrimitives } from "@/contexts/sales/domain";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
+import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
 
 interface Props {
   customer: CustomerPrimitives | null;

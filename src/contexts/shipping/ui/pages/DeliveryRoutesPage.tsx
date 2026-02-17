@@ -15,11 +15,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
+} from "@contexts/shared/shadcn";
 import { DeliveryRouteDetailDialog } from "../components/delivery-route/DeliveryRouteDetailDialog";
 import { DeliveryRouteFormDialog } from "../components/delivery-route/DeliveryRouteFormDialog";
 import { DeliveryRouteDeleteDialog } from "../components/delivery-route/DeliveryRouteDeleteDialog";
-import type { RoutePrimitives, RouteStatus } from "../../domain";
+import type { RoutePrimitives, RouteStatus } from "../../domain/schemas/route/RouteDelivery";
 
 const STATUS_LABELS: Record<RouteStatus, string> = {
   PLANNED: "Planeada",
@@ -39,21 +39,21 @@ const INITIAL_DATA: RoutePrimitives[] = [
   {
     id: "RUT-001",
     driverId: "DRV-001",
-    origin: { latitude: 19.4326, longitude: -99.1332 },
+    origin: { latitude: 19.4326, longitude: -99.1332, placeId: null },
     status: "ACTIVE",
     stops: [
       {
         id: "STP-001",
         stopOrder: 1,
         orderId: "ORD-001",
-        address: { address1: "Av. Reforma 123", address2: "", city: "CDMX", province: "CDMX", zip: "06600", country: "MX", reference: "", geolocation: { latitude: 19.43, longitude: -99.14 } },
+        address: { address1: "Av. Reforma 123", address2: "", city: "CDMX", province: "CDMX", zip: "06600", country: "MX", reference: "", geolocation: { latitude: 19.43, longitude: -99.14, placeId: null } },
         isCompleted: true,
       },
       {
         id: "STP-002",
         stopOrder: 2,
         orderId: "ORD-002",
-        address: { address1: "Insurgentes Sur 456", address2: "", city: "CDMX", province: "CDMX", zip: "03100", country: "MX", reference: "", geolocation: { latitude: 19.38, longitude: -99.18 } },
+        address: { address1: "Insurgentes Sur 456", address2: "", city: "CDMX", province: "CDMX", zip: "03100", country: "MX", reference: "", geolocation: { latitude: 19.38, longitude: -99.18, placeId: null } },
         isCompleted: false,
       },
     ],
@@ -65,14 +65,14 @@ const INITIAL_DATA: RoutePrimitives[] = [
   {
     id: "RUT-002",
     driverId: "DRV-002",
-    origin: { latitude: 19.4100, longitude: -99.1700 },
+    origin: { latitude: 19.4100, longitude: -99.1700, placeId: null },
     status: "PLANNED",
     stops: [
       {
         id: "STP-003",
         stopOrder: 1,
         orderId: "ORD-003",
-        address: { address1: "Polanco 789", address2: "", city: "CDMX", province: "CDMX", zip: "11560", country: "MX", reference: "", geolocation: { latitude: 19.43, longitude: -99.19 } },
+        address: { address1: "Polanco 789", address2: "", city: "CDMX", province: "CDMX", zip: "11560", country: "MX", reference: "", geolocation: { latitude: 19.43, longitude: -99.19, placeId: null } },
         isCompleted: false,
       },
     ],
@@ -84,28 +84,28 @@ const INITIAL_DATA: RoutePrimitives[] = [
   {
     id: "RUT-003",
     driverId: "DRV-003",
-    origin: { latitude: 19.3600, longitude: -99.1600 },
+    origin: { latitude: 19.3600, longitude: -99.1600, placeId: null },
     status: "COMPLETED",
     stops: [
       {
         id: "STP-004",
         stopOrder: 1,
         orderId: "ORD-004",
-        address: { address1: "Coyoacán Centro", address2: "", city: "CDMX", province: "CDMX", zip: "04000", country: "MX", reference: "", geolocation: { latitude: 19.35, longitude: -99.16 } },
+        address: { address1: "Coyoacán Centro", address2: "", city: "CDMX", province: "CDMX", zip: "04000", country: "MX", reference: "", geolocation: { latitude: 19.35, longitude: -99.16, placeId: null } },
         isCompleted: true,
       },
       {
         id: "STP-005",
         stopOrder: 2,
         orderId: "ORD-005",
-        address: { address1: "Universidad 321", address2: "", city: "CDMX", province: "CDMX", zip: "04510", country: "MX", reference: "", geolocation: { latitude: 19.32, longitude: -99.18 } },
+        address: { address1: "Universidad 321", address2: "", city: "CDMX", province: "CDMX", zip: "04510", country: "MX", reference: "", geolocation: { latitude: 19.32, longitude: -99.18, placeId: null } },
         isCompleted: true,
       },
       {
         id: "STP-006",
         stopOrder: 3,
         orderId: "ORD-006",
-        address: { address1: "Del Valle 654", address2: "", city: "CDMX", province: "CDMX", zip: "03100", country: "MX", reference: "", geolocation: { latitude: 19.38, longitude: -99.17 } },
+        address: { address1: "Del Valle 654", address2: "", city: "CDMX", province: "CDMX", zip: "03100", country: "MX", reference: "", geolocation: { latitude: 19.38, longitude: -99.17, placeId: null } },
         isCompleted: true,
       },
     ],

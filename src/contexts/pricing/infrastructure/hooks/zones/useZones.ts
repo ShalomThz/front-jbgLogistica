@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { zoneRepository, type UpdateZoneRequest } from "../../services";
-import type { ZonePrimitives, FindZonesResponsePrimitives } from "../../../domain/schemas";
+import { zoneRepository, type UpdateZoneRequest } from "@contexts/pricing/infrastructure/services/zones/zoneRepository";
+import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
+import type { FindZonesResponsePrimitives } from "@contexts/pricing/application/FindZonesResponse";
 
 const ZONES_QUERY_KEY = ["zones"];
 

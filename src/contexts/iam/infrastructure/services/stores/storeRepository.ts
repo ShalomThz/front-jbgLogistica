@@ -1,14 +1,10 @@
-import type {
-  StorePrimitives,
-  CreateStoreRequestPrimitives,
-  FindStoresRequestPrimitives,
-  FindStoresResponsePrimitives,
-} from "../../../domain/schemas/store";
-import {
-  storeSchema,
-  findStoresResponseSchema,
-} from "../../../domain/schemas/store";
-import { httpClient } from "@/shared/infrastructure/http";
+import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import { storeSchema } from "@contexts/iam/domain/schemas/store/Store";
+import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
+import type { FindStoresRequestPrimitives } from "@contexts/iam/application/store/FindStoresRequest";
+import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
+import { findStoresResponseSchema } from "@contexts/iam/application/store/FindStoresResponse";
+import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export type UpdateStoreRequest = Partial<CreateStoreRequestPrimitives>;
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/shadcn";
-import type { TariffPrimitives } from "../../../domain";
-import { useZones } from "../../../infrastructure/hooks";
-import { useBoxes } from "@/contexts/inventory/infrastructure/hooks";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@contexts/shared/shadcn";
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 
 type CreateTariffData = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
 

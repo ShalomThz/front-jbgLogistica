@@ -14,9 +14,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/shadcn";
-import type { WarehousePackagePrimitives, WarehousePackageStatus } from "../../../domain";
-import { warehousePackageStatuses } from "../../../domain";
+} from "@contexts/shared/shadcn";
+import { warehousePackageStatuses, type WarehousePackagePrimitives, type WarehousePackageStatus } from "../../../domain/schemas/warehouse-package/WarehousePackageSchema";
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",

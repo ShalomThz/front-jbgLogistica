@@ -10,11 +10,11 @@ import {
   TableHead,
   TableRow,
   TableCell,
-} from "@/shared/shadcn";
+} from "@contexts/shared/shadcn";
 import { RoleDetailDialog } from "../components/role/RoleDetailDialog";
 import { RoleFormDialog } from "../components/role/RoleFormDialog";
 import { RoleDeleteDialog } from "../components/role/RoleDeleteDialog";
-import type { UserRolePrimitives, Permission } from "../../domain";
+import type { UserRolePrimitives, Permission } from "@contexts/iam/domain/schemas/userRole/UserRole";
 
 const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_SELL: "Vender",
