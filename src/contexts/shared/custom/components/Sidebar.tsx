@@ -111,6 +111,7 @@ export const AppSidebar = () => {
                     <SidebarMenuButton
                       asChild
                       isActive={location.pathname.startsWith(item.href)}
+                      className="data-[active=true]:text-primary"
                     >
                       <Link to={item.href}>
                         <item.icon className="size-4" />
