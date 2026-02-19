@@ -19,7 +19,7 @@ export function ContactStep() {
   return (
     <>
       {/* Order Information */}
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-md shadow-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Información de la Orden</CardTitle>
         </CardHeader>

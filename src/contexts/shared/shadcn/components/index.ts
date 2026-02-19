@@ -117,6 +117,7 @@ export {
   DialogTrigger,
 } from './dialog'
 export { Textarea } from './textarea'
+export { Progress } from './progress'
 export {
   Popover,
   PopoverTrigger,

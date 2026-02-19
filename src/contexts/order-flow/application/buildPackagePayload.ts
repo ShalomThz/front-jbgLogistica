@@ -5,7 +5,7 @@ export const buildPackagePayload = (packageData: PackageFormData) => ({
   ownership: packageData.ownership,
   weight: {
     value: parseFloat(packageData.weight) || 0,
-    unit: "kg" as const,
+    unit: packageData.weightUnit,
   },
   dimensions: {
     length: parseFloat(packageData.length) || 0,

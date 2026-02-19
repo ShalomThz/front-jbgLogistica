@@ -1,3 +1,11 @@
+import { z } from "zod";
+
+export const findCountriesRequestSchema = z.object({
+  search: z.string().optional(),
+});
+
+export type FindCountriesRequest = z.infer<typeof findCountriesRequestSchema>;
+
 export const COUNTRIES = [
   { code: "MX", name: "México" },
   { code: "US", name: "Estados Unidos" },

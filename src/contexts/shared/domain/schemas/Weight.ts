@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const weightUnits = ["kg", "lb"] as const;
+export const weightUnits = ["kg", "lb"] as const;
 
 export const weightSchema = z.object({
   value: z.number().positive(),

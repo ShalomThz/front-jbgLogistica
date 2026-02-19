@@ -28,7 +28,7 @@ export const newOrderDefaultValues: NewOrderFormValues = {
   recipient: { ...emptyContactWithAddress },
   package: {
     productSearch: "",
-    boxId: "",
+    boxId: null,
     ownership: "CUSTOMER",
     packageType: "",
     length: "",
@@ -36,6 +36,7 @@ export const newOrderDefaultValues: NewOrderFormValues = {
     height: "",
     dimensionUnit: "cm",
     weight: "",
+    weightUnit: "kg",
     quantity: "1",
     productType: "",
     savePackage: false,

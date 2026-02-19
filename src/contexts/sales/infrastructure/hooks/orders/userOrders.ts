@@ -32,9 +32,25 @@ export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
     },
   });
 
+  const updateHQMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateHQOrderRequest }) =>
+      orderRepository.updateHQ(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
   const createPartnerMutation = useMutation({
     mutationFn: (data: CreatePartnerOrderRequest) =>
       orderRepository.createPartner(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
+  const updatePartnerMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreatePartnerOrderRequest }) =>
+      orderRepository.updatePartner(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
     },
@@ -50,12 +66,22 @@ export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
 
     createHQOrder: async (data: CreateHQOrderRequest) =>
       await createHQMutation.mutateAsync(data),
+    updateHQOrder: async (id: string, data: CreateHQOrderRequest) =>
+      await updateHQMutation.mutateAsync({ id, data }),
     createPartnerOrder: async (data: CreatePartnerOrderRequest) =>
       await createPartnerMutation.mutateAsync(data),
-    isCreating: createHQMutation.isPending || createPartnerMutation.isPending,
+    updatePartnerOrder: async (id: string, data: CreatePartnerOrderRequest) =>
+      await updatePartnerMutation.mutateAsync({ id, data }),
+    isCreating:
+      createHQMutation.isPending ||
+      createPartnerMutation.isPending ||
+      updateHQMutation.isPending ||
+      updatePartnerMutation.isPending,
     createError:
       createHQMutation.error?.message ??
       createPartnerMutation.error?.message ??
+      updateHQMutation.error?.message ??
+      updatePartnerMutation.error?.message ??
       null,
   };
 };

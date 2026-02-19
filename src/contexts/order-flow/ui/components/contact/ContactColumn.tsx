@@ -23,12 +23,12 @@ import {
   Separator,
   Switch,
 } from "@contexts/shared/shadcn";
-import { COUNTRIES } from "@contexts/shared/domain/schemas/address/Country";
-import { ChevronsUpDown, Check, UserPlus } from "lucide-react";
+import { ChevronsUpDown, Check, UserPlus, Eraser } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch, Controller, type FieldErrors } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
+import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
 import { MEXICO_STATES } from "@contexts/order-flow/domain/catalogs/MexicoStates";
@@ -62,14 +62,34 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
 
   const { customers: savedContacts, isLoading: isLoadingContacts } = useCustomers({ search });
+  const { countries } = useCountries({ search: countrySearch });
 
   const contactId = useWatch({ control, name: `${prefix}.id` as "sender.id" | "recipient.id" });
   const country = useWatch({ control, name: `${prefix}.address.country` as "sender.address.country" | "recipient.address.country" });
   const province = useWatch({ control, name: `${prefix}.address.province` as "sender.address.province" | "recipient.address.province" });
 
   const selectedContact = savedContacts.find((c) => c.id === contactId);
+
+  const handleClear = () => {
+    setValue(`${prefix}.id`, null);
+    setValue(`${prefix}.name`, "");
+    setValue(`${prefix}.company`, "");
+    setValue(`${prefix}.email`, "");
+    setValue(`${prefix}.phone`, "");
+    setValue(`${prefix}.address.country`, "MX");
+    setValue(`${prefix}.address.address1`, "");
+    setValue(`${prefix}.address.address2`, "");
+    setValue(`${prefix}.address.zip`, "");
+    setValue(`${prefix}.address.province`, "");
+    setValue(`${prefix}.address.city`, "");
+    setValue(`${prefix}.address.reference`, "");
+    setValue(`${prefix}.save`, false);
+    setSearch("");
+  };
 
   const handleSelectSaved = (c: CustomerPrimitives) => {
     setValue(`${prefix}.id`, c.id);
@@ -88,11 +108,24 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
   };
 
   return (
-    <Card>
+    <Card className="shadow-md shadow-primary/20">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <UserPlus className="size-4" />
-          {title}
+        <CardTitle className="flex items-center justify-between text-base">
+          <span className="flex items-center gap-2">
+            <UserPlus className="size-4" />
+            {title}
+          </span>
+          {contactId && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground hover:text-destructive"
+              onClick={handleClear}
+            >
+              <Eraser className="size-4" />
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
@@ -164,7 +197,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
           <Label className="text-sm font-semibold text-muted-foreground">
             Datos personales
           </Label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 *:space-y-1">
             <div className="col-span-2">
               <Label htmlFor={`${title}-name`}>Nombre completo *</Label>
               <Input
@@ -224,30 +257,66 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
           <Label className="text-sm font-semibold text-muted-foreground">
             Dirección
           </Label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 *:space-y-1">
             <div>
               <Label>País</Label>
               <Controller
                 control={control}
                 name={`${prefix}.address.country`}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      setValue(`${prefix}.address.province`, "");
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Seleccionar país" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES.map((c) => (
-                        <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                render={({ field }) => {
+                  const selected = countries.find((c) => c.code === field.value);
+                  return (
+                    <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={countryOpen}
+                          className="w-full justify-between font-normal"
+                        >
+                          {selected
+                            ? <span className="truncate">{selected.name}</span>
+                            : <span className="text-muted-foreground">Seleccionar país</span>
+                          }
+                          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Buscar país..."
+                            onValueChange={setCountrySearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Sin resultados</CommandEmpty>
+                            <CommandGroup>
+                              {countries.map((c) => (
+                                <CommandItem
+                                  key={c.code}
+                                  value={c.code}
+                                  onSelect={() => {
+                                    field.onChange(c.code);
+                                    setValue(`${prefix}.address.province`, "");
+                                    setCountryOpen(false);
+                                    setCountrySearch("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 size-4",
+                                      field.value === c.code ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {c.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                }}
               />
             </div>
             <div>
@@ -334,12 +403,16 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
               )}
             </div>
             <div>
-              <Label htmlFor={`${title}-ref`}>Referencias</Label>
+              <Label htmlFor={`${title}-ref`}>Referencias *</Label>
               <Input
                 id={`${title}-ref`}
-                placeholder="Referencias de la dirección"
+                aria-invalid={!!getAddressError(errors, prefix, "reference")}
+                placeholder="Ej: Entre calles, color de fachada... (máx. 25)"
                 {...register(`${prefix}.address.reference`)}
               />
+              {getAddressError(errors, prefix, "reference") && (
+                <p className="text-sm text-destructive">{getAddressError(errors, prefix, "reference")}</p>
+              )}
             </div>
           </div>
         </div>
@@ -349,7 +422,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
         {/* Save toggle */}
         <div className="flex items-center justify-between">
           <Label htmlFor={`${title}-save`} className="text-sm">
-            Guardar {title.toLowerCase()}
+            {contactId ? `Actualizar ${title.toLowerCase()}` : `Guardar ${title.toLowerCase()}`}
           </Label>
           <Controller
             control={control}

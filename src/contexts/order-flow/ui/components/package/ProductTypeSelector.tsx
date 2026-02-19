@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@contexts/shared/shadcn";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
@@ -36,14 +36,23 @@ export function ProductTypeSelector() {
   const consignmentNoteClassCode = useWatch<NewOrderFormValues, "package.consignmentNoteClassCode">({ name: "package.consignmentNoteClassCode" });
   const consignmentNotePackagingCode = useWatch<NewOrderFormValues, "package.consignmentNotePackagingCode">({ name: "package.consignmentNotePackagingCode" });
 
-  const { categories, isLoading: isLoadingCategories } = useSkydropxCategories();
-  const { subcategories, isLoading: isLoadingSubcategories } = useSkydropxSubcategories(
+  const { categories, isLoading: isLoadingCategories, refetch: refetchCategories } = useSkydropxCategories();
+  const { subcategories, isLoading: isLoadingSubcategories, refetch: refetchSubcategories } = useSkydropxSubcategories(
     skydropxCategoryId || null,
   );
-  const { classes, isLoading: isLoadingClasses } = useSkydropxClasses(
+  const { classes, isLoading: isLoadingClasses, refetch: refetchClasses } = useSkydropxClasses(
     skydropxSubcategoryId || null,
   );
-  const { packagings, isLoading: isLoadingPackagings } = useSkydropxPackagings();
+  const { packagings, isLoading: isLoadingPackagings, refetch: refetchPackagings } = useSkydropxPackagings();
+
+  const isRefetching = isLoadingCategories || isLoadingSubcategories || isLoadingClasses || isLoadingPackagings;
+
+  function handleRetry() {
+    refetchCategories();
+    if (skydropxCategoryId) refetchSubcategories();
+    if (skydropxSubcategoryId) refetchClasses();
+    refetchPackagings();
+  }
 
   const selectedCategory = categories.find((c) => c.id === skydropxCategoryId);
   const selectedSubcategory = subcategories.find((s) => s.id === skydropxSubcategoryId);
@@ -52,9 +61,22 @@ export function ProductTypeSelector() {
 
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-semibold text-muted-foreground">
-        Tipo de producto
-      </Label>
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold text-muted-foreground">
+          Tipo de producto
+        </Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleRetry}
+          disabled={isRefetching}
+          className="h-7 gap-1.5"
+        >
+          <RefreshCw className={cn("size-3.5", isRefetching && "animate-spin")} />
+          Actualizar
+        </Button>
+      </div>
       <p className="text-sm text-muted-foreground">
         Selecciona la clasificación de tu producto para la carta porte
       </p>

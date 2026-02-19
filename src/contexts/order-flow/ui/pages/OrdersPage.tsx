@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import type { OrderPrimitives } from "@contexts/sales/domain/schemas/order/Order";
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
@@ -39,7 +39,7 @@ export const OrdersPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedOrder, setSelectedOrder] = useState<OrderPrimitives | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
 
   const filtered = orders.filter((order) => {
     const query = searchQuery.toLowerCase();

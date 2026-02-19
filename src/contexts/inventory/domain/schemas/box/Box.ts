@@ -5,7 +5,7 @@ export const boxSchema = z.object({
   id: z.string(),
   name: z.string(),
   dimensions: dimensionsSchema,
-  stock: z.number().int().positive(),
+  stock: z.number().int().min(0),
   ...aggregateRootSchema.shape,
 });
 

@@ -185,11 +185,11 @@ export const BoxPage = () => {
               </TableRow>
             ) : (
               filtered.map((b) => (
-                <TableRow key={b.id} className="cursor-pointer" onClick={() => setSelected(b)}>
+                <TableRow key={b.id} className={`cursor-pointer${b.stock === 0 ? " bg-destructive/5 hover:bg-destructive/10" : ""}`} onClick={() => setSelected(b)}>
                   <TableCell className="font-medium">{b.name}</TableCell>
                   <TableCell>{b.dimensions.length} x {b.dimensions.width} x {b.dimensions.height}</TableCell>
                   <TableCell className="hidden sm:table-cell">{UNIT_LABELS[b.dimensions.unit]}</TableCell>
-                  <TableCell className="text-center font-medium">{b.stock}</TableCell>
+                  <TableCell className={`text-center font-medium${b.stock === 0 ? " text-destructive" : ""}`}>{b.stock === 0 ? "Sin stock" : b.stock}</TableCell>
                   <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                     {new Date(b.createdAt).toLocaleDateString("es-MX")}
                   </TableCell>

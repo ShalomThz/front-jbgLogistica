@@ -20,7 +20,7 @@ interface NewOrderPageProps {
 }
 
 export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {}) => {
-  const { form, step, setStep, shipmentId, setShipmentId, validateStep } = useNewOrderForm({ initialValues });
+  const { form, step, setStep, shipmentId, setShipmentId, handleContactNext, handlePackageNext, isUpdatingContacts, isProcessingBox } = useNewOrderForm({ initialValues });
 
   const submission = useNewOrderSubmission({
     form,
@@ -28,6 +28,7 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
     step,
     setShipmentId,
     setStep,
+    orderId,
   });
 
   const orderType = useWatch({ control: form.control, name: "orderType" });
@@ -36,16 +37,18 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
 
   const handleNext = async () => {
     if (step === "contact") {
-      const valid = await validateStep("contact");
-      if (!valid) return;
+      const ok = await handleContactNext();
+      if (!ok) return;
       setStep("package");
     } else if (step === "package") {
-      const valid = await validateStep("package");
-      if (!valid) return;
+      const ok = await handlePackageNext();
+      if (!ok) return;
       if (orderType === "PARTNER") {
-        submission.handleCreatePartnerOrder();
+        if (orderId) submission.handleUpdatePartnerOrder();
+        else submission.handleCreatePartnerOrder();
       } else {
-        submission.handleCreateOrderAndQuote();
+        if (orderId) submission.handleUpdateOrderAndQuote();
+        else submission.handleCreateOrderAndQuote();
       }
     }
   };
@@ -118,6 +121,7 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
             rates={submission.rates}
             isLoadingRates={submission.isLoadingRates}
             ratesError={submission.ratesError}
+            onRefetch={submission.refetchRates}
             onSubmit={submission.handleSelectProviderAndFulfill}
             onBack={() => setStep("package")}
             isSubmitting={submission.isSelectingProvider}
@@ -133,8 +137,8 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
           <Button variant="outline" onClick={step === "contact" ? () => submission.navigate("/orders") : handleBack}>
             {step === "contact" ? "Cancelar" : "Anterior"}
           </Button>
-          <Button disabled={submission.isCreating} onClick={handleNext}>
-            {step === "contact" && "Siguiente"}
+          <Button disabled={submission.isCreating || isUpdatingContacts || isProcessingBox} onClick={handleNext}>
+            {step === "contact" && (isUpdatingContacts ? "Guardando..." : "Siguiente")}
             {step === "package" &&
               orderType === "PARTNER" &&
               (submission.isCreating ? "Creando..." : "Crear Orden")}

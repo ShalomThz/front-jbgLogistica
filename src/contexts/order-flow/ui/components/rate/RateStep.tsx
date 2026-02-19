@@ -8,10 +8,12 @@ import {
   Checkbox,
   Input,
   Label,
+  Progress,
   Separator,
   Skeleton,
 } from "@contexts/shared/shadcn";
-import { CheckCircle2, Edit, MapPin, Package, Truck, User } from "lucide-react";
+import { CheckCircle2, Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
@@ -26,6 +28,7 @@ interface RateStepProps {
   rates: RatePrimitives[];
   isLoadingRates: boolean;
   ratesError: string | null;
+  onRefetch: () => void;
   onSubmit: () => void;
   onBack: () => void;
   isSubmitting: boolean;
@@ -37,6 +40,7 @@ export function RateStep({
   rates,
   isLoadingRates,
   ratesError,
+  onRefetch,
   onSubmit,
   onBack,
   isSubmitting,
@@ -51,6 +55,19 @@ export function RateStep({
   const pkg = useWatch<NewOrderFormValues, "package">({ name: "package" });
 
   const isJBGRate = shippingService.selectedRate?.serviceName === JBG_SERVICE_NAME;
+
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  useEffect(() => {
+    if (!isLoadingRates) {
+      setLoadingProgress(0);
+      return;
+    }
+    setLoadingProgress(10);
+    const interval = setInterval(() => {
+      setLoadingProgress((prev) => (prev >= 85 ? 85 : prev + 5));
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isLoadingRates]);
 
   const handleRateSelection = (rate: RatePrimitives) => {
     setValue("shippingService.selectedRate", rate);
@@ -94,12 +111,28 @@ export function RateStep({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Rate Selection */}
       <div className="lg:col-span-2">
+        {isLoadingRates && (
+          <Progress value={loadingProgress} className="mb-2 h-1" />
+        )}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Truck className="size-4" />
-              Selecciona un servicio de paquetería
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Truck className="size-4" />
+                Selecciona un servicio de paquetería
+              </CardTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onRefetch}
+                disabled={isLoadingRates}
+                className="h-7 gap-1.5"
+              >
+                <RefreshCw className={`size-3.5 ${isLoadingRates ? "animate-spin" : ""}`} />
+                Actualizar
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-0 pt-0">
             {/* Headers */}

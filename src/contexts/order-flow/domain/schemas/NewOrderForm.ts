@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import { ownershipTypes } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { dimensionUnits } from "@contexts/shared/domain/schemas/Dimensions";
+import { weightUnits } from "@contexts/shared/domain/schemas/Weight";
 import { orderTypes } from "@contexts/sales/domain/schemas/order/OrderTypes";
 
 // --- Contact with address (sender/recipient) ---
@@ -13,7 +14,7 @@ const contactAddressSchema = z.object({
   province: z.string().min(1, "El estado es requerido"),
   zip: z.string().min(1, "El código postal es requerido"),
   country: z.string().min(2).max(2),
-  reference: z.string(),
+  reference: z.string().min(1, "La referencia es requerida").max(25, "Máximo 25 caracteres"),
 });
 
 const contactWithAddressSchema = z.object({
@@ -30,7 +31,7 @@ const contactWithAddressSchema = z.object({
 
 const packageFormDataSchema = z.object({
   productSearch: z.string(),
-  boxId: z.string().min(1, "Selecciona una caja"),
+  boxId: z.string().nullable(),
   ownership: z.enum(ownershipTypes),
   packageType: z.string(),
   length: z.string().refine((v) => parseFloat(v) > 0, "El largo debe ser mayor a 0"),
@@ -38,6 +39,7 @@ const packageFormDataSchema = z.object({
   height: z.string().refine((v) => parseFloat(v) > 0, "El alto debe ser mayor a 0"),
   dimensionUnit: z.enum(dimensionUnits),
   weight: z.string().refine((v) => parseFloat(v) > 0, "El peso debe ser mayor a 0"),
+  weightUnit: z.enum(weightUnits),
   quantity: z.string(),
   productType: z.string(),
   savePackage: z.boolean(),

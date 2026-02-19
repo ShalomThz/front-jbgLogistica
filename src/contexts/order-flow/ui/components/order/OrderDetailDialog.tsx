@@ -12,7 +12,7 @@ import {
   Skeleton,
 } from "@contexts/shared/shadcn";
 import { useShipmentByOrderId } from "@contexts/shipping/infrastructure/hooks/shipments/useShipment";
-import type { OrderPrimitives } from "@contexts/sales/domain/schemas/order/Order";
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { OrderLabelSection } from "./OrderLabelSection";
@@ -27,7 +27,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 interface OrderDetailDialogProps {
-  order: OrderPrimitives | null;
+  order: OrderListView | null;
   open: boolean;
   onClose: () => void;
 }
@@ -60,7 +60,7 @@ export const OrderDetailDialog = ({
               {ORDER_STATUS_LABELS[order.status]}
             </Badge>
           </DialogTitle>
-          <DialogDescription>Tienda {order.storeId}</DialogDescription>
+          <DialogDescription>Tienda {order.store.name}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
