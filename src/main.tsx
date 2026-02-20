@@ -24,7 +24,7 @@ createRoot(document.getElementById("root")!).render(
         {import.meta.env.MODE === 'development' && (<ReactQueryDevtools initialIsOpen={false} />)}
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           <App />
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="top-right" expand offset={{ top: 72 }} />
         </ThemeProvider>
       </QueryClientProvider>
     </BrowserRouter>

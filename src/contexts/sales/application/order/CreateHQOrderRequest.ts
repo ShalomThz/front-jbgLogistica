@@ -16,8 +16,6 @@ export const createHQOrderSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }),
-  saveOriginCustomer: z.boolean().default(false),
-  saveDestinationCustomer: z.boolean().default(false),
 });
 
 export type CreateHQOrderRequest = z.infer<typeof createHQOrderSchema>;

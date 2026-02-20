@@ -15,8 +15,6 @@ export const createPartnerOrderSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }),
-  saveOriginCustomer: z.boolean().default(false),
-  saveDestinationCustomer: z.boolean().default(false),
 });
 
 export type CreatePartnerOrderRequest = z.infer<

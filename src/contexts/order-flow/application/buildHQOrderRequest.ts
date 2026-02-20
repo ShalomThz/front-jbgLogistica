@@ -3,8 +3,8 @@ import type { NewOrderFormValues } from "../domain/schemas/NewOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
 
 export const buildHQOrderRequest = (formValues: NewOrderFormValues, storeId: string) => {
-  const { save: saveOriginCustomer, address: senderAddress, ...senderContact } = formValues.sender;
-  const { save: saveDestinationCustomer, address: recipientAddress, ...recipientContact } = formValues.recipient;
+  const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
+  const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
   return createHQOrderSchema.parse({
     storeId,
@@ -15,7 +15,5 @@ export const buildHQOrderRequest = (formValues: NewOrderFormValues, storeId: str
     package: buildPackagePayload(formValues.package),
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
-    saveOriginCustomer,
-    saveDestinationCustomer,
   });
 };

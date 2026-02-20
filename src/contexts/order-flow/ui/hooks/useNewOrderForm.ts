@@ -42,6 +42,7 @@ export const useNewOrderForm = ({ initialValues }: UseNewOrderFormOptions = {}) 
 
     const { sender, recipient } = form.getValues();
     const updates: Promise<void>[] = [];
+    let hasError = false;
 
     if (sender.save && !sender.id) {
       updates.push(
@@ -51,7 +52,10 @@ export const useNewOrderForm = ({ initialValues }: UseNewOrderFormOptions = {}) 
             form.setValue("sender.id", created.id);
             form.setValue("sender.save", false);
           })
-          .catch(() => { toast.error(`No se pudo guardar el remitente "${sender.name}"`); }),
+          .catch((err) => {
+            hasError = true;
+            toast.error(err?.message ?? `No se pudo guardar el remitente "${sender.name}"`);
+          }),
       );
     }
 
@@ -62,7 +66,10 @@ export const useNewOrderForm = ({ initialValues }: UseNewOrderFormOptions = {}) 
             toast.success(`Remitente "${sender.name}" actualizado`);
             form.setValue("sender.save", false);
           })
-          .catch(() => { toast.error(`No se pudo actualizar el remitente "${sender.name}"`); }),
+          .catch((err) => {
+            hasError = true;
+            toast.error(err?.message ?? `No se pudo actualizar el remitente "${sender.name}"`);
+          }),
       );
     }
 
@@ -74,7 +81,10 @@ export const useNewOrderForm = ({ initialValues }: UseNewOrderFormOptions = {}) 
             form.setValue("recipient.id", created.id);
             form.setValue("recipient.save", false);
           })
-          .catch(() => { toast.error(`No se pudo guardar el destinatario "${recipient.name}"`); }),
+          .catch((err) => {
+            hasError = true;
+            toast.error(err?.message ?? `No se pudo guardar el destinatario "${recipient.name}"`);
+          }),
       );
     }
 
@@ -85,12 +95,15 @@ export const useNewOrderForm = ({ initialValues }: UseNewOrderFormOptions = {}) 
             toast.success(`Destinatario "${recipient.name}" actualizado`);
             form.setValue("recipient.save", false);
           })
-          .catch(() => { toast.error(`No se pudo actualizar el destinatario "${recipient.name}"`); }),
+          .catch((err) => {
+            hasError = true;
+            toast.error(err?.message ?? `No se pudo actualizar el destinatario "${recipient.name}"`);
+          }),
       );
     }
 
     await Promise.all(updates);
-    return true;
+    return !hasError;
   };
 
   const handlePackageNext = async () => {
