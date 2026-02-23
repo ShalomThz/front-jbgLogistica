@@ -15,7 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
+import { BadgeCheck } from "lucide-react";
+import { AddressSuggestions } from "@contexts/shared/ui/components/address/AddressSuggestions";
+import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import type { AddressPrimitives } from "@contexts/shared/domain/schemas/address/Address";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 
@@ -31,8 +33,8 @@ const COUNTRIES = [
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Omit<CustomerPrimitives, "id" | "createdAt" | "updatedAt">) => void;
-  customer?: CustomerPrimitives | null;
+  onSave: (data: { name: string; company: string; email: string; phone: string; registeredByStoreId: string; address: AddressPrimitives }) => void;
+  customer?: CustomerListViewPrimitives | null;
   isLoading?: boolean;
 }
 
@@ -56,6 +58,7 @@ export const CustomerFormDialog = ({ open, onClose, onSave, customer, isLoading 
   const [phone, setPhone] = useState("");
   const [registeredByStoreId, setRegisteredByStoreId] = useState("");
   const [address, setAddress] = useState<AddressPrimitives>(emptyAddress);
+  const [addressQuery, setAddressQuery] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -64,7 +67,7 @@ export const CustomerFormDialog = ({ open, onClose, onSave, customer, isLoading 
         setCompany(customer.company);
         setEmail(customer.email);
         setPhone(customer.phone);
-        setRegisteredByStoreId(customer.registeredByStoreId);
+        setRegisteredByStoreId(customer.store.id);
         setAddress(customer.address);
       } else {
         setName("");
@@ -98,6 +101,19 @@ export const CustomerFormDialog = ({ open, onClose, onSave, customer, isLoading 
       ...prev,
       geolocation: { ...prev.geolocation, [field]: value },
     }));
+  };
+
+  const isAddressVerified = !!address.geolocation?.placeId && (address.geolocation.latitude !== 0 || address.geolocation.longitude !== 0);
+
+  const commitAddressSearch = () => {
+    setAddressQuery([address.address1, address.address2, address.city, address.province, address.zip, address.country].filter(Boolean).join(", "));
+  };
+
+  const handleAddressKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitAddressSearch();
+    }
   };
 
   const isEdit = !!customer;
@@ -147,40 +163,60 @@ export const CustomerFormDialog = ({ open, onClose, onSave, customer, isLoading 
           </div>
 
           <div className="space-y-4 rounded-md border p-4">
-            <h4 className="text-sm font-semibold">Dirección</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold">Dirección</h4>
+              {isAddressVerified && (
+                <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                  <BadgeCheck className="size-3.5" />
+                  Dirección verificada
+                </span>
+              )}
+            </div>
+            <AddressSuggestions
+              query={addressQuery}
+              onSelect={(details) => setAddress({ ...details, reference: address.reference })}
+            />
             <div className="space-y-2">
-              <Label htmlFor="address1">Dirección *</Label>
+              <Label htmlFor="address1">Calle y número *</Label>
               <Input
                 id="address1"
                 value={address.address1}
                 onChange={(e) => updateAddress("address1", e.target.value)}
+                onBlur={commitAddressSearch}
+                onKeyDown={handleAddressKeyDown}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address2">Dirección 2</Label>
+              <Label htmlFor="address2">Colonia</Label>
               <Input
                 id="address2"
                 value={address.address2}
                 onChange={(e) => updateAddress("address2", e.target.value)}
+                onBlur={commitAddressSearch}
+                onKeyDown={handleAddressKeyDown}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="city">Ciudad *</Label>
+                <Label htmlFor="city">Ciudad/Municipio *</Label>
                 <Input
                   id="city"
                   value={address.city}
                   onChange={(e) => updateAddress("city", e.target.value)}
+                  onBlur={commitAddressSearch}
+                  onKeyDown={handleAddressKeyDown}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="province">Provincia/Estado *</Label>
+                <Label htmlFor="province">Estado *</Label>
                 <Input
                   id="province"
                   value={address.province}
                   onChange={(e) => updateAddress("province", e.target.value)}
+                  onBlur={commitAddressSearch}
+                  onKeyDown={handleAddressKeyDown}
                   required
                 />
               </div>
@@ -192,12 +228,14 @@ export const CustomerFormDialog = ({ open, onClose, onSave, customer, isLoading 
                   id="zip"
                   value={address.zip}
                   onChange={(e) => updateAddress("zip", e.target.value)}
+                  onBlur={commitAddressSearch}
+                  onKeyDown={handleAddressKeyDown}
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label>País *</Label>
-                <Select value={address.country} onValueChange={(v) => updateAddress("country", v)}>
+                <Select value={address.country} onValueChange={(v) => { updateAddress("country", v); commitAddressSearch(); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar país" />
                   </SelectTrigger>

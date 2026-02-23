@@ -1,9 +1,9 @@
-import { customerSchema } from "@contexts/sales/domain/schemas/customer/Customer";
+import { customerListViewSchema } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { paginationSchema } from "@contexts/shared/domain/schemas/Pagination";
 import { z } from "zod";
 
 export const findCustomersResponseSchema = z.object({
-  data: z.array(customerSchema),
+  data: z.array(customerListViewSchema),
   pagination: paginationSchema,
 });
 

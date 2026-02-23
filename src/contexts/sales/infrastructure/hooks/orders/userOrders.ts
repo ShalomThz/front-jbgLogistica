@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
+import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
 import type { FindOrdersResponse } from "../../../application/order/FindOrderResponse";
 import { orderRepository } from "../../services/orders/orderRepository";
 
@@ -32,14 +33,6 @@ export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
     },
   });
 
-  const updateHQMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CreateHQOrderRequest }) =>
-      orderRepository.updateHQ(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
-    },
-  });
-
   const createPartnerMutation = useMutation({
     mutationFn: (data: CreatePartnerOrderRequest) =>
       orderRepository.createPartner(data),
@@ -48,9 +41,9 @@ export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
     },
   });
 
-  const updatePartnerMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CreatePartnerOrderRequest }) =>
-      orderRepository.updatePartner(id, data),
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: EditOrderRequest }) =>
+      orderRepository.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
     },
@@ -66,22 +59,18 @@ export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
 
     createHQOrder: async (data: CreateHQOrderRequest) =>
       await createHQMutation.mutateAsync(data),
-    updateHQOrder: async (id: string, data: CreateHQOrderRequest) =>
-      await updateHQMutation.mutateAsync({ id, data }),
     createPartnerOrder: async (data: CreatePartnerOrderRequest) =>
       await createPartnerMutation.mutateAsync(data),
-    updatePartnerOrder: async (id: string, data: CreatePartnerOrderRequest) =>
-      await updatePartnerMutation.mutateAsync({ id, data }),
+    updateOrder: async (id: string, data: EditOrderRequest) =>
+      await updateMutation.mutateAsync({ id, data }),
     isCreating:
       createHQMutation.isPending ||
       createPartnerMutation.isPending ||
-      updateHQMutation.isPending ||
-      updatePartnerMutation.isPending,
+      updateMutation.isPending,
     createError:
       createHQMutation.error?.message ??
       createPartnerMutation.error?.message ??
-      updateHQMutation.error?.message ??
-      updatePartnerMutation.error?.message ??
+      updateMutation.error?.message ??
       null,
   };
 };

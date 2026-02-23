@@ -54,13 +54,17 @@ export function ContactStep() {
           {/* Order References */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {orderType === "HQ" && (
-              <div>
-                <Label htmlFor="order-number">Número de Orden</Label>
+              <div className="space-y-1">
+                <Label htmlFor="order-number">Número de Orden *</Label>
                 <Input
                   id="order-number"
+                  aria-invalid={!!errors.orderData?.orderNumber}
                   placeholder="Ej: ORD-001234"
                   {...register("orderData.orderNumber")}
                 />
+                {errors.orderData?.orderNumber && (
+                  <p className="text-sm text-destructive">{errors.orderData.orderNumber.message}</p>
+                )}
               </div>
             )}
             <div>

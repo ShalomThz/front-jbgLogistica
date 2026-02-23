@@ -20,7 +20,7 @@ import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialo
 import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
-import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
+import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import type { CreateCustomerRequest } from "../../domain/schemas/customer/Customer";
 
 type CreateCustomerData = CreateCustomerRequest
@@ -46,10 +46,10 @@ export const CustomersPage = () => {
   } = useCustomers({ page, limit });
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selected, setSelected] = useState<CustomerPrimitives | null>(null);
+  const [selected, setSelected] = useState<CustomerListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editCustomer, setEditCustomer] = useState<CustomerPrimitives | null>(null);
-  const [deleteCustomerDialog, setDeleteCustomerDialog] = useState<CustomerPrimitives | null>(null);
+  const [editCustomer, setEditCustomer] = useState<CustomerListViewPrimitives | null>(null);
+  const [deleteCustomerDialog, setDeleteCustomerDialog] = useState<CustomerListViewPrimitives | null>(null);
 
   const filtered = customers.filter((c) => {
     const query = searchQuery.toLowerCase();
@@ -81,12 +81,12 @@ export const CustomersPage = () => {
     setPage(1);
   };
 
-  const handleEditFromDetail = (customer: CustomerPrimitives) => {
+  const handleEditFromDetail = (customer: CustomerListViewPrimitives) => {
     setSelected(null);
     setEditCustomer(customer);
   };
 
-  const handleDeleteFromDetail = (customer: CustomerPrimitives) => {
+  const handleDeleteFromDetail = (customer: CustomerListViewPrimitives) => {
     setSelected(null);
     setDeleteCustomerDialog(customer);
   };

@@ -106,7 +106,7 @@ export const useShipmentRates = ({
   enabled = true,
   additionalData,
 }: UseShipmentRatesOptions) => {
-  const { data, isLoading, error, refetch } = useQuery<RatePrimitives[]>({
+  const { data, isFetching, error, refetch } = useQuery<RatePrimitives[]>({
     queryKey: [...SHIPMENTS_QUERY_KEY, shipmentId, "rates", additionalData],
     queryFn: () => shipmentRepository.getRates({ shipmentId, additionalData }),
     enabled: enabled && !!shipmentId,
@@ -114,7 +114,7 @@ export const useShipmentRates = ({
 
   return {
     rates: data ?? [],
-    isLoading,
+    isLoading: isFetching,
     error: error?.message ?? null,
     refetch,
   };

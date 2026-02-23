@@ -1,18 +1,11 @@
 import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft, Check } from "lucide-react";
-import { FormProvider, useWatch } from "react-hook-form";
-import { useNewOrderForm, type OrderStep } from "../hooks/useNewOrderForm";
-import { useNewOrderSubmission } from "../hooks/useNewOrderSubmission";
+import { FormProvider } from "react-hook-form";
+import { useOrderFlow } from "../hooks/useOrderFlow";
 import { ContactStep } from "../components/contact/ContactStep";
 import { PackageStep } from "../components/package/PackageStep";
 import { RateStep } from "../components/rate/RateStep";
 import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
-
-const STEPS: { key: OrderStep; label: string }[] = [
-  { key: "contact", label: "Contactos" },
-  { key: "package", label: "Paquete" },
-  { key: "rate", label: "Cotización" },
-];
 
 interface NewOrderPageProps {
   initialValues?: NewOrderFormValues;
@@ -20,43 +13,7 @@ interface NewOrderPageProps {
 }
 
 export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {}) => {
-  const { form, step, setStep, shipmentId, setShipmentId, handleContactNext, handlePackageNext, isUpdatingContacts, isProcessingBox } = useNewOrderForm({ initialValues });
-
-  const submission = useNewOrderSubmission({
-    form,
-    shipmentId,
-    step,
-    setShipmentId,
-    setStep,
-    orderId,
-  });
-
-  const orderType = useWatch({ control: form.control, name: "orderType" });
-
-  const stepIndex = STEPS.findIndex((s) => s.key === step);
-
-  const handleNext = async () => {
-    if (step === "contact") {
-      const ok = await handleContactNext();
-      if (!ok) return;
-      setStep("package");
-    } else if (step === "package") {
-      const ok = await handlePackageNext();
-      if (!ok) return;
-      if (orderType === "PARTNER") {
-        if (orderId) submission.handleUpdatePartnerOrder();
-        else submission.handleCreatePartnerOrder();
-      } else {
-        if (orderId) submission.handleUpdateOrderAndQuote();
-        else submission.handleCreateOrderAndQuote();
-      }
-    }
-  };
-
-  const handleBack = () => {
-    if (step === "package") setStep("contact");
-    else if (step === "rate") setStep("package");
-  };
+  const flow = useOrderFlow({ initialValues, orderId });
 
   return (
     <div className="space-y-6">
@@ -65,18 +22,20 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
         <Button
           variant="ghost"
           size="icon"
-          onClick={step === "contact" ? () => submission.navigate("/orders") : handleBack}
+          onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}
         >
           <ArrowLeft className="size-5" />
         </Button>
-        <h1 className="text-2xl font-bold">{orderId ? "Editar Orden" : "Nueva Orden"}</h1>
+        <h1 className="text-2xl font-bold">
+          {flow.isEditing ? "Editar Orden" : "Nueva Orden"}
+        </h1>
       </div>
 
       {/* Step Indicator */}
       <nav className="flex items-center gap-2">
-        {STEPS.map((s, i) => {
-          const isCompleted = i < stepIndex;
-          const isCurrent = s.key === step;
+        {flow.steps.map((s, i) => {
+          const isCompleted = i < flow.stepIndex;
+          const isCurrent = s.key === flow.step;
           const isClickable = isCompleted;
 
           return (
@@ -87,7 +46,7 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
               <button
                 type="button"
                 disabled={!isClickable}
-                onClick={() => isClickable && setStep(s.key)}
+                onClick={() => isClickable && flow.setStep(s.key)}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                   isCurrent
                     ? "bg-primary text-primary-foreground"
@@ -109,40 +68,36 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
       </nav>
 
       {/* Form */}
-      <FormProvider {...form}>
-        {step === "contact" && <ContactStep />}
+      <FormProvider {...flow.form}>
+        {flow.step === "contact" && <ContactStep />}
 
-        {step === "package" && (
-          <PackageStep onEditContacts={() => setStep("contact")} />
+        {flow.step === "package" && (
+          <PackageStep onEditContacts={() => flow.setStep("contact")} />
         )}
 
-        {step === "rate" && (
+        {flow.step === "rate" && (
           <RateStep
-            rates={submission.rates}
-            isLoadingRates={submission.isLoadingRates}
-            ratesError={submission.ratesError}
-            onRefetch={submission.refetchRates}
-            onSubmit={submission.handleSelectProviderAndFulfill}
-            onBack={() => setStep("package")}
-            isSubmitting={submission.isSelectingProvider}
-            fulfilledShipment={submission.fulfilledShipment}
-            onFinish={() => submission.navigate("/orders")}
+            rates={flow.rates}
+            isLoadingRates={flow.isLoadingRates}
+            ratesError={flow.ratesError}
+            onRefetch={flow.refetchRates}
+            onSubmit={flow.selectAndFulfill}
+            onBack={flow.handleBack}
+            isSubmitting={flow.isSelectingProvider}
+            fulfilledShipment={flow.fulfilledShipment}
+            onFinish={flow.goToOrders}
           />
         )}
       </FormProvider>
 
       {/* Bottom Navigation */}
-      {step !== "rate" && (
+      {flow.step !== "rate" && (
         <div className="flex justify-between">
-          <Button variant="outline" onClick={step === "contact" ? () => submission.navigate("/orders") : handleBack}>
-            {step === "contact" ? "Cancelar" : "Anterior"}
+          <Button variant="outline" onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}>
+            {flow.step === "contact" ? "Cancelar" : "Anterior"}
           </Button>
-          <Button disabled={submission.isCreating || isUpdatingContacts || isProcessingBox} onClick={handleNext}>
-            {step === "contact" && (isUpdatingContacts ? "Guardando..." : "Siguiente")}
-            {step === "package" &&
-              orderType === "PARTNER" &&
-              (submission.isCreating ? "Creando..." : "Crear Orden")}
-            {step === "package" && orderType === "HQ" && (submission.isCreating ? "Cotizando..." : "Cotizar")}
+          <Button disabled={flow.isNextDisabled} onClick={flow.handleNext}>
+            {flow.nextButtonLabel}
           </Button>
         </div>
       )}

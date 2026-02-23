@@ -1,6 +1,6 @@
 import { Pencil, Trash2, MapPin } from "lucide-react";
 import { Badge, Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
-import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
+import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 
 const STATUS_LABELS: Record<string, string> = { ACTIVE: "Activo", INACTIVE: "Inactivo" };
 const STATUS_VARIANT: Record<string, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };
@@ -15,11 +15,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 interface Props {
-  customer: CustomerPrimitives | null;
+  customer: CustomerListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  onEdit?: (customer: CustomerPrimitives) => void;
-  onDelete?: (customer: CustomerPrimitives) => void;
+  onEdit?: (customer: CustomerListViewPrimitives) => void;
+  onDelete?: (customer: CustomerListViewPrimitives) => void;
 }
 
 export const CustomerDetailDialog = ({ customer, open, onClose, onEdit, onDelete }: Props) => {
@@ -72,7 +72,7 @@ export const CustomerDetailDialog = ({ customer, open, onClose, onEdit, onDelete
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Información adicional</h4>
             <div className="rounded-md border p-3 space-y-1">
-              <DetailRow label="ID Tienda" value={customer.registeredByStoreId} />
+              <DetailRow label="Tienda" value={customer.store.name} />
               <DetailRow label="Fecha registro" value={createdDate} />
               <DetailRow label="Última actualización" value={new Date(customer.updatedAt).toLocaleDateString("es-MX")} />
             </div>

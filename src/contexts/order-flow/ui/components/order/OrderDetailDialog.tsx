@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 import {
   Badge,
   Button,
@@ -38,6 +39,7 @@ export const OrderDetailDialog = ({
   onClose,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
+  const [showLabel, setShowLabel] = useState(false);
   const isCompleted = order?.status === "COMPLETED";
   const {
     data: shipment,
@@ -184,7 +186,19 @@ export const OrderDetailDialog = ({
         {isCompleted && !isShipmentLoading && !isError && shipment && (
           <div className="space-y-4">
             <OrderShipmentSection shipment={shipment} />
-            {shipment.label && <OrderLabelSection label={shipment.label} />}
+            {shipment.label && !showLabel && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowLabel(true)}
+              >
+                <FileText className="size-4" />
+                Ver etiqueta de envío
+              </Button>
+            )}
+            {shipment.label && showLabel && (
+              <OrderLabelSection label={shipment.label} />
+            )}
           </div>
         )}
 

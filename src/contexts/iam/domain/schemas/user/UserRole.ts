@@ -2,6 +2,7 @@ import z from "zod";
 
 export const PERMISSIONS = [
   "CAN_SELL",
+  "CAN_CREATE_HQ_ORDERS",
   "CAN_MANAGE_INVENTORY",
   "CAN_MANAGE_USERS",
   "CAN_VIEW_REPORTS",
@@ -10,6 +11,7 @@ export const PERMISSIONS = [
   "CAN_MANAGE_ZONES",
   "CAN_MANAGE_TARIFFS",
   "CAN_SHIP",
+  "CAN_MANAGE_WAREHOUSE",
 ] as const;
 
 export const userRoleSchema = z.object({

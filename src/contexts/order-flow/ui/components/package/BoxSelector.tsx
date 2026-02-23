@@ -38,7 +38,7 @@ export function BoxSelector() {
   const isStoreBox = ownership === "STORE";
   const outOfStock = isStoreBox && selectedBox?.stock === 0;
 
-  const nameChanged = selectedBox && packageType !== selectedBox.name;
+  const nameChanged = selectedBox && packageType && packageType !== selectedBox.name;
   const dimensionsChanged = selectedBox && (
     parseFloat(length) !== selectedBox.dimensions.length ||
     parseFloat(width) !== selectedBox.dimensions.width ||

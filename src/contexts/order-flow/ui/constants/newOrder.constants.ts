@@ -14,6 +14,7 @@ const emptyContactWithAddress = {
     province: "",
     city: "",
     reference: "",
+    geolocation: { latitude: 0, longitude: 0, placeId: null },
   },
   save: false,
 } as const satisfies NewOrderFormValues["sender"];

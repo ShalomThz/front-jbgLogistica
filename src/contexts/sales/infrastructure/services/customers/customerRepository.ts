@@ -8,8 +8,7 @@ export const customerRepository = {
   find: async (
     request: { filters: unknown[]; limit?: number; offset?: number },
   ): Promise<FindCustomersResponsePrimitives> => {
-
-    const data = await httpClient<FindCustomersResponsePrimitives>("/customer/find", {
+    const data = await httpClient<unknown>("/customer/find", {
       method: "POST",
       body: JSON.stringify({ ...request }),
     });

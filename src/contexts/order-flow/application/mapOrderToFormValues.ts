@@ -1,4 +1,4 @@
-import type { OrderPrimitives } from "@contexts/sales/domain/schemas/order/Order";
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import type { CustomerProfilePrimitives } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import type { NewOrderFormValues } from "../domain/schemas/NewOrderForm";
 import { newOrderDefaultValues } from "../ui/constants/newOrder.constants";
@@ -6,10 +6,7 @@ import { newOrderDefaultValues } from "../ui/constants/newOrder.constants";
 function mapContact(
   profile: CustomerProfilePrimitives,
 ): NewOrderFormValues["sender"] {
-  const { geolocation: _, ...addressWithoutGeo } = profile.address as Record<
-    string,
-    unknown
-  >;
+  const addr = profile.address;
 
   return {
     id: profile.id,
@@ -18,20 +15,21 @@ function mapContact(
     email: profile.email,
     phone: profile.phone,
     address: {
-      address1: (addressWithoutGeo.address1 as string) ?? "",
-      address2: (addressWithoutGeo.address2 as string) ?? "",
-      city: (addressWithoutGeo.city as string) ?? "",
-      province: (addressWithoutGeo.province as string) ?? "",
-      zip: (addressWithoutGeo.zip as string) ?? "",
-      country: (addressWithoutGeo.country as string) ?? "MX",
-      reference: (addressWithoutGeo.reference as string) ?? "",
+      address1: addr.address1 ?? "",
+      address2: addr.address2 ?? "",
+      city: addr.city ?? "",
+      province: addr.province ?? "",
+      zip: addr.zip ?? "",
+      country: addr.country ?? "MX",
+      reference: addr.reference ?? "",
+      geolocation: addr.geolocation ?? { latitude: 0, longitude: 0, placeId: null },
     },
     save: false,
   };
 }
 
 export function mapOrderToFormValues(
-  order: OrderPrimitives,
+  order: OrderListView,
 ): NewOrderFormValues {
   return {
     orderType: order.type,

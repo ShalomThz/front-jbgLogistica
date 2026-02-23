@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
-import type { CustomerPrimitives } from "@contexts/sales/domain/schemas/customer/Customer";
+import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 
 interface Props {
-  customer: CustomerPrimitives | null;
+  customer: CustomerListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;

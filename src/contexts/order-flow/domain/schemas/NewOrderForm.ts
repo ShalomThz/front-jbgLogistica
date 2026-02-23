@@ -4,6 +4,7 @@ import { ownershipTypes } from "@contexts/sales/domain/schemas/value-objects/Pac
 import { dimensionUnits } from "@contexts/shared/domain/schemas/Dimensions";
 import { weightUnits } from "@contexts/shared/domain/schemas/Weight";
 import { orderTypes } from "@contexts/sales/domain/schemas/order/OrderTypes";
+import { geolocationSchema } from "@contexts/shared/domain/schemas/address/Geolocation";
 
 // --- Contact with address (sender/recipient) ---
 
@@ -15,6 +16,7 @@ const contactAddressSchema = z.object({
   zip: z.string().min(1, "El código postal es requerido"),
   country: z.string().min(2).max(2),
   reference: z.string().min(1, "La referencia es requerida").max(25, "Máximo 25 caracteres"),
+  geolocation: geolocationSchema,
 });
 
 const contactWithAddressSchema = z.object({
@@ -64,7 +66,7 @@ export const newOrderFormSchema = z
   .object({
     orderType: z.enum(orderTypes),
     orderData: z.object({
-      orderNumber: z.string(),
+      orderNumber: z.string().min(1, "El número de orden es requerido"),
       partnerOrderNumber: z.string(),
     }),
     sender: contactWithAddressSchema,
