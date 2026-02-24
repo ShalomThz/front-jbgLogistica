@@ -1,11 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { tariffRepository, type UpdateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
-import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { tariffRepository, type UpdateTariffRequest, type CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
 
 const TARIFFS_QUERY_KEY = ["tariffs"];
-
-type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
 
 interface UseTariffsOptions {
   page?: number;

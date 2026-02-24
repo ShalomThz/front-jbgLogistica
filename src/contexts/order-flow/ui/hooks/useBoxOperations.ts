@@ -73,7 +73,7 @@ export const useBoxOperations = ({ form, initialValues }: UseBoxOperationsOption
         toast.success(`Caja "${pkg.packageType}" ya existente, vinculada`, { id: "order-flow" });
       } else {
         try {
-          const created = await createBox({ name: pkg.packageType, dimensions, stock: 1 });
+          const created = await createBox({ name: pkg.packageType, dimensions, stock: 1, price: { amount: 0, currency: "USD" } });
           toast.success(`Caja "${pkg.packageType}" guardada`, { id: "order-flow" });
           form.setValue("package.boxId", created.id, { shouldValidate: true });
         } catch {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tariffSchema } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { tariffListViewSchema } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
 
 const paginationSchema = z.object({
   total: z.number().int().nonnegative(),
@@ -9,7 +9,7 @@ const paginationSchema = z.object({
 });
 
 export const findTariffsResponseSchema = z.object({
-  data: z.array(tariffSchema),
+  data: z.array(tariffListViewSchema),
   pagination: paginationSchema,
 });
 

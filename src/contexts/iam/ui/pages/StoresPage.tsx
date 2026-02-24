@@ -19,8 +19,7 @@ import { StoreDetailDialog } from "../components/store/StoreDetailDialog";
 import { StoreFormDialog } from "../components/store/StoreFormDialog";
 import { StoreDeleteDialog } from "../components/store/StoreDeleteDialog";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
-import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
-import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 
 const LIMIT_OPTIONS = [10, 20, 50];
@@ -43,16 +42,11 @@ export const StoresPage = () => {
     isDeleting,
   } = useStores({ page, limit });
 
-  const { zones } = useZones();
-
   const [searchQuery, setSearchQuery] = useState("");
-  const [selected, setSelected] = useState<StorePrimitives | null>(null);
+  const [selected, setSelected] = useState<StoreListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editStore, setEditStore] = useState<StorePrimitives | null>(null);
-  const [deleteStoreDialog, setDeleteStoreDialog] = useState<StorePrimitives | null>(null);
-
-  const getZoneName = (id: string) =>
-    zones.find((z) => z.id === id)?.name ?? id;
+  const [editStore, setEditStore] = useState<StoreListViewPrimitives | null>(null);
+  const [deleteStoreDialog, setDeleteStoreDialog] = useState<StoreListViewPrimitives | null>(null);
 
   const filtered = stores.filter(
     (s) =>
@@ -81,12 +75,12 @@ export const StoresPage = () => {
     setPage(1);
   };
 
-  const handleEditFromDetail = (store: StorePrimitives) => {
+  const handleEditFromDetail = (store: StoreListViewPrimitives) => {
     setSelected(null);
     setEditStore(store);
   };
 
-  const handleDeleteFromDetail = (store: StorePrimitives) => {
+  const handleDeleteFromDetail = (store: StoreListViewPrimitives) => {
     setSelected(null);
     setDeleteStoreDialog(store);
   };
@@ -177,7 +171,7 @@ export const StoresPage = () => {
                 >
                   <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {getZoneName(s.zoneId)}
+                    {s.zone.name}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {s.address.city}

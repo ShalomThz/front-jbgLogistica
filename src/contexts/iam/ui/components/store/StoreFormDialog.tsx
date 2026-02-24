@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 
@@ -23,7 +23,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSave: (data: CreateStoreRequestPrimitives) => void;
-  store?: StorePrimitives | null;
+  store?: StoreListViewPrimitives | null;
   isLoading?: boolean;
 }
 
@@ -50,7 +50,7 @@ export const StoreFormDialog = ({
   useEffect(() => {
     if (open) {
       setName(store?.name ?? "");
-      setZoneId(store?.zoneId ?? "");
+      setZoneId(store?.zone.id ?? "");
       setPhone(store?.phone ?? "");
       setContactEmail(store?.contactEmail ?? "");
       setAddress1(store?.address.address1 ?? "");

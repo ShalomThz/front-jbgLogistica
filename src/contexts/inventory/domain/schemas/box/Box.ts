@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { dimensionsSchema } from "@contexts/shared/domain/schemas/Dimensions";
+import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 export const boxSchema = z.object({
   id: z.string(),
   name: z.string(),
   dimensions: dimensionsSchema,
   stock: z.number().int().min(0),
+  price: moneySchema,
   ...aggregateRootSchema.shape,
 });
 

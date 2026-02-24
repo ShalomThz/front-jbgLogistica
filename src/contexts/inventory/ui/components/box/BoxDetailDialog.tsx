@@ -23,6 +23,8 @@ export const BoxDetailDialog = ({ box, open, onClose, onEdit, onDelete }: Props)
         <div className="space-y-4">
           <div className="space-y-2"><h4 className="text-sm font-semibold">Dimensiones</h4><div className="rounded-md border p-3 space-y-1"><DetailRow label="Largo" value={`${box.dimensions.length} ${box.dimensions.unit}`} /><DetailRow label="Ancho" value={`${box.dimensions.width} ${box.dimensions.unit}`} /><DetailRow label="Alto" value={`${box.dimensions.height} ${box.dimensions.unit}`} /><DetailRow label="Tamaño" value={dims} /></div></div>
           <Separator />
+          <div className="space-y-2"><h4 className="text-sm font-semibold">Precio</h4><div className="rounded-md border p-3 space-y-1"><DetailRow label="Monto" value={`$${box.price.amount.toFixed(2)}`} /><DetailRow label="Moneda" value={box.price.currency} /></div></div>
+          <Separator />
           <div className="space-y-2"><h4 className="text-sm font-semibold">Inventario</h4><div className="rounded-md border p-3 space-y-1"><DetailRow label="Stock" value={String(box.stock)} /><DetailRow label="Fecha creación" value={new Date(box.createdAt).toLocaleDateString("es-MX")} /><DetailRow label="Última actualización" value={new Date(box.updatedAt).toLocaleDateString("es-MX")} /></div></div>
         </div>
         {(onEdit || onDelete) && (

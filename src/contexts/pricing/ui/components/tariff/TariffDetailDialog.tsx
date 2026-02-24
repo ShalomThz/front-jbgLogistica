@@ -1,17 +1,17 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
-import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (<div className="grid grid-cols-3 gap-2"><span className="text-sm text-muted-foreground">{label}</span><span className="col-span-2 text-sm">{value}</span></div>);
 }
 
 interface Props {
-  tariff: TariffPrimitives | null;
+  tariff: TariffListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  onEdit?: (tariff: TariffPrimitives) => void;
-  onDelete?: (tariff: TariffPrimitives) => void;
+  onEdit?: (tariff: TariffListViewPrimitives) => void;
+  onDelete?: (tariff: TariffListViewPrimitives) => void;
 }
 
 export const TariffDetailDialog = ({ tariff, open, onClose, onEdit, onDelete }: Props) => {
@@ -27,9 +27,9 @@ export const TariffDetailDialog = ({ tariff, open, onClose, onEdit, onDelete }: 
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Configuración</h4>
             <div className="rounded-md border p-3 space-y-1">
-              <DetailRow label="Zona origen" value={tariff.originZoneId} />
+              <DetailRow label="Zona origen" value={tariff.zone.name} />
               <DetailRow label="País destino" value={tariff.destinationCountry} />
-              <DetailRow label="Caja" value={tariff.boxId} />
+              <DetailRow label="Caja" value={tariff.box.name} />
             </div>
           </div>
           <Separator />

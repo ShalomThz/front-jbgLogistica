@@ -20,7 +20,7 @@ import {
   useSkydropxSubcategories,
   useSkydropxClasses,
   useSkydropxPackagings,
-} from "@contexts/order-flow/infrastructure/hooks/useSkydropx";
+} from "@/contexts/order-flow/infrastructure/hooks/useSkydropx";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 export function ProductTypeSelector() {

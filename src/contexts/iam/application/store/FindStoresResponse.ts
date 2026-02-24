@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { storeSchema } from "@contexts/iam/domain/schemas/store/Store";
+import { storeListViewSchema } from "@contexts/iam/domain/schemas/store/StoreListView";
 
 const paginationSchema = z.object({
   total: z.number().int().nonnegative(),
@@ -9,7 +9,7 @@ const paginationSchema = z.object({
 });
 
 export const findStoresResponseSchema = z.object({
-  data: z.array(storeSchema),
+  data: z.array(storeListViewSchema),
   pagination: paginationSchema,
 });
 

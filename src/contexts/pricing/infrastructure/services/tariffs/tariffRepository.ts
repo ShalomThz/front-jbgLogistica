@@ -4,7 +4,7 @@ import type { FindTariffsResponsePrimitives } from "@contexts/pricing/applicatio
 import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTariffsResponse";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 
-type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
+export type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
 export type UpdateTariffRequest = Partial<CreateTariffRequest>;
 
 export const tariffRepository = {

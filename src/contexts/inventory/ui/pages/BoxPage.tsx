@@ -171,6 +171,7 @@ export const BoxPage = () => {
               <TableHead>Nombre</TableHead>
               <TableHead>Dimensiones</TableHead>
               <TableHead className="hidden sm:table-cell">Unidad</TableHead>
+              <TableHead className="hidden md:table-cell text-right">Precio</TableHead>
               <TableHead className="text-center">Stock</TableHead>
               <TableHead className="hidden lg:table-cell">Creación</TableHead>
               <TableHead className="text-center">Acciones</TableHead>
@@ -179,7 +180,7 @@ export const BoxPage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   No se encontraron cajas.
                 </TableCell>
               </TableRow>
@@ -189,6 +190,7 @@ export const BoxPage = () => {
                   <TableCell className="font-medium">{b.name}</TableCell>
                   <TableCell>{b.dimensions.length} x {b.dimensions.width} x {b.dimensions.height}</TableCell>
                   <TableCell className="hidden sm:table-cell">{UNIT_LABELS[b.dimensions.unit]}</TableCell>
+                  <TableCell className="hidden md:table-cell text-right font-mono">${b.price.amount.toFixed(2)} {b.price.currency}</TableCell>
                   <TableCell className={`text-center font-medium${b.stock === 0 ? " text-destructive" : ""}`}>{b.stock === 0 ? "Sin stock" : b.stock}</TableCell>
                   <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                     {new Date(b.createdAt).toLocaleDateString("es-MX")}

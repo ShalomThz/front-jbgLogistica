@@ -19,6 +19,8 @@ export const BoxFormDialog = ({ open, onClose, onSave, box, isLoading }: Props) 
   const [height, setHeight] = useState("");
   const [unit, setUnit] = useState<DimensionUnit>("cm");
   const [stock, setStock] = useState("");
+  const [priceAmount, setPriceAmount] = useState("");
+  const [priceCurrency, setPriceCurrency] = useState("USD");
 
   useEffect(() => {
     if (open) {
@@ -28,6 +30,8 @@ export const BoxFormDialog = ({ open, onClose, onSave, box, isLoading }: Props) 
       setHeight(box?.dimensions.height?.toString() ?? "");
       setUnit((box?.dimensions.unit as DimensionUnit) ?? "cm");
       setStock(box?.stock?.toString() ?? "");
+      setPriceAmount(box?.price?.amount?.toString() ?? "");
+      setPriceCurrency(box?.price?.currency ?? "USD");
     }
   }, [open, box]);
 
@@ -37,6 +41,7 @@ export const BoxFormDialog = ({ open, onClose, onSave, box, isLoading }: Props) 
       name,
       dimensions: { length: Number(length), width: Number(width), height: Number(height), unit },
       stock: Number(stock),
+      price: { amount: Number(priceAmount), currency: priceCurrency },
     });
   };
 
@@ -82,6 +87,22 @@ export const BoxFormDialog = ({ open, onClose, onSave, box, isLoading }: Props) 
             <div className="space-y-2">
               <Label htmlFor="stock">Stock</Label>
               <Input id="stock" type="number" min="1" value={stock} onChange={(e) => setStock(e.target.value)} required />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="priceAmount">Precio</Label>
+              <Input id="priceAmount" type="number" min="0" step="0.01" value={priceAmount} onChange={(e) => setPriceAmount(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Moneda</Label>
+              <Select value={priceCurrency} onValueChange={setPriceCurrency}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="MXN">MXN</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

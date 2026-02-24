@@ -7,10 +7,10 @@ import {
   DialogFooter,
   Button,
 } from "@contexts/shared/shadcn";
-import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
 
 interface Props {
-  store: StorePrimitives | null;
+  store: StoreListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;

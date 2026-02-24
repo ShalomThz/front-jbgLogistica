@@ -55,10 +55,7 @@ export function createCriteriaSchema<T extends z.ZodRawShape>(
 
   return z.object({
     filters: z.array(filterSchema).default([]),
-    order: filterOrderSchema.default({
-      field: topLevelFields[0],
-      direction: "ASC",
-    }),
+    order: filterOrderSchema.optional(),
     limit: z.number().optional(),
     offset: z.number().optional(),
   });

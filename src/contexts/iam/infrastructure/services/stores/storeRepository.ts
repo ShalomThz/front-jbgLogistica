@@ -1,5 +1,7 @@
 import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 import { storeSchema } from "@contexts/iam/domain/schemas/store/Store";
+import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
+import { storeListViewSchema } from "@contexts/iam/domain/schemas/store/StoreListView";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 import type { FindStoresRequestPrimitives } from "@contexts/iam/application/store/FindStoresRequest";
 import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
@@ -19,9 +21,9 @@ export const storeRepository = {
     return findStoresResponseSchema.parse(data);
   },
 
-  getById: async (id: string): Promise<StorePrimitives> => {
+  getById: async (id: string): Promise<StoreListViewPrimitives> => {
     const data = await httpClient<unknown>(`/store/${id}`);
-    return storeSchema.parse(data);
+    return storeListViewSchema.parse(data);
   },
 
   create: async (

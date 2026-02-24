@@ -38,6 +38,7 @@ const ROLE_PRESETS: { name: string; permissions: Permission[] }[] = [
 const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_SELL: "Vender",
   CAN_CREATE_HQ_ORDERS: "Crear órdenes HQ",
+  CAN_SELL_BOXES: "Vender cajas",
   CAN_MANAGE_INVENTORY: "Gestionar inventario",
   CAN_MANAGE_USERS: "Gestionar usuarios",
   CAN_VIEW_REPORTS: "Ver reportes",

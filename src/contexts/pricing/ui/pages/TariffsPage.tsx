@@ -19,11 +19,8 @@ import { TariffDetailDialog } from "../components/tariff/TariffDetailDialog";
 import { TariffFormDialog } from "../components/tariff/TariffFormDialog";
 import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
-import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
-import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
-
-type CreateTariffData = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
+import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
+import type { CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 
 const COUNTRY_NAMES: Record<string, string> = { MX: "México", US: "Estados Unidos", CA: "Canadá", ES: "España", CO: "Colombia" };
 
@@ -47,35 +44,29 @@ export const TariffsPage = () => {
     isDeleting,
   } = useTariffs({ page, limit });
 
-  const { zones } = useZones({ page: 1, limit: 100 });
-  const { boxes } = useBoxes();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [countryFilter, setCountryFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<TariffPrimitives | null>(null);
+  const [selected, setSelected] = useState<TariffListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editTariff, setEditTariff] = useState<TariffPrimitives | null>(null);
-  const [deleteTariffDialog, setDeleteTariffDialog] = useState<TariffPrimitives | null>(null);
-
-  const getZoneName = (id: string) => zones.find((z) => z.id === id)?.name ?? id;
-  const getBoxName = (id: string) => boxes.find((b) => b.id === id)?.name ?? id;
+  const [editTariff, setEditTariff] = useState<TariffListViewPrimitives | null>(null);
+  const [deleteTariffDialog, setDeleteTariffDialog] = useState<TariffListViewPrimitives | null>(null);
 
   const filtered = tariffs.filter((t) => {
     const matchesSearch =
       searchQuery === "" ||
-      getZoneName(t.originZoneId).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.zone.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (COUNTRY_NAMES[t.destinationCountry] ?? t.destinationCountry).toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCountry = countryFilter === "all" || t.destinationCountry === countryFilter;
     return matchesSearch && matchesCountry;
   });
 
-  const handleCreate = async (data: CreateTariffData) => {
+  const handleCreate = async (data: CreateTariffRequest) => {
     await createTariff(data);
     setFormOpen(false);
     setPage(1);
   };
 
-  const handleUpdate = async (data: CreateTariffData) => {
+  const handleUpdate = async (data: CreateTariffRequest) => {
     if (!editTariff) return;
     await updateTariff(editTariff.id, data);
     setEditTariff(null);
@@ -88,12 +79,12 @@ export const TariffsPage = () => {
     setPage(1);
   };
 
-  const handleEditFromDetail = (tariff: TariffPrimitives) => {
+  const handleEditFromDetail = (tariff: TariffListViewPrimitives) => {
     setSelected(null);
     setEditTariff(tariff);
   };
 
-  const handleDeleteFromDetail = (tariff: TariffPrimitives) => {
+  const handleDeleteFromDetail = (tariff: TariffListViewPrimitives) => {
     setSelected(null);
     setDeleteTariffDialog(tariff);
   };
@@ -187,9 +178,9 @@ export const TariffsPage = () => {
             ) : (
               filtered.map((t) => (
                 <TableRow key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
-                  <TableCell className="font-medium">{getZoneName(t.originZoneId)}</TableCell>
+                  <TableCell className="font-medium">{t.zone.name}</TableCell>
                   <TableCell>{COUNTRY_NAMES[t.destinationCountry] ?? t.destinationCountry}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm">{getBoxName(t.boxId)}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-sm">{t.box.name}</TableCell>
                   <TableCell className="text-right font-mono">
                     ${t.price.amount.toFixed(2)} {t.price.currency}
                   </TableCell>

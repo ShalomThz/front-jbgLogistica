@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
-import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
 
 interface Props {
-  tariff: TariffPrimitives | null;
+  tariff: TariffListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;

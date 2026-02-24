@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@contexts/shared/shadcn";
-import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
+import type { CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-
-type CreateTariffData = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
 
 const COUNTRIES = [
   { code: "MX", name: "México" },
@@ -19,8 +18,8 @@ const CURRENCIES = ["MXN", "USD", "EUR"];
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: CreateTariffData) => void;
-  tariff?: TariffPrimitives | null;
+  onSave: (data: CreateTariffRequest) => void;
+  tariff?: TariffListViewPrimitives | null;
   isLoading?: boolean;
 }
 
@@ -36,9 +35,9 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: P
 
   useEffect(() => {
     if (open) {
-      setOriginZoneId(tariff?.originZoneId ?? "");
+      setOriginZoneId(tariff?.zone?.id ?? "");
       setDestinationCountry(tariff?.destinationCountry ?? "");
-      setBoxId(tariff?.boxId ?? "");
+      setBoxId(tariff?.box?.id ?? "");
       setAmount(tariff?.price.amount?.toString() ?? "");
       setCurrency(tariff?.price.currency ?? "MXN");
     }

@@ -9,7 +9,7 @@ import {
   DialogFooter,
   Button,
 } from "@contexts/shared/shadcn";
-import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
+import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -21,11 +21,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 interface Props {
-  store: StorePrimitives | null;
+  store: StoreListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  onEdit?: (store: StorePrimitives) => void;
-  onDelete?: (store: StorePrimitives) => void;
+  onEdit?: (store: StoreListViewPrimitives) => void;
+  onDelete?: (store: StoreListViewPrimitives) => void;
 }
 
 export const StoreDetailDialog = ({
@@ -50,7 +50,7 @@ export const StoreDetailDialog = ({
             <h4 className="text-sm font-semibold">Información</h4>
             <div className="rounded-md border p-3 space-y-1">
               <DetailRow label="Nombre" value={store.name} />
-              <DetailRow label="Zona" value={store.zoneId} />
+              <DetailRow label="Zona" value={store.zone.name} />
               <DetailRow label="Teléfono" value={store.phone} />
               <DetailRow label="Email" value={store.contactEmail} />
             </div>
