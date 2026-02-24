@@ -3,6 +3,7 @@ import z from "zod";
 export const PERMISSIONS = [
   "CAN_SELL",
   "CAN_CREATE_HQ_ORDERS",
+  "CAN_SELL_BOXES",
   "CAN_MANAGE_INVENTORY",
   "CAN_MANAGE_USERS",
   "CAN_VIEW_REPORTS",
