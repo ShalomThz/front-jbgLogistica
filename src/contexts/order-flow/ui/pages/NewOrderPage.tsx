@@ -79,7 +79,6 @@ export const NewOrderPage = ({ initialValues, orderId }: NewOrderPageProps = {})
           <RateStep
             rates={flow.rates}
             isLoadingRates={flow.isLoadingRates}
-            tariffNotFound={flow.tariffNotFound}
             ratesError={flow.ratesError}
             onRefetch={flow.refetchRates}
             onSubmit={flow.selectAndFulfill}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -6,7 +6,6 @@ import { useWatch, type UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useShipmentActions, useShipmentRates } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
-import { useTariffLookup } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffLookup";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
@@ -46,9 +45,6 @@ export const useOrderSubmission = ({
 
   const consignmentNoteClassCode = useWatch({ control: form.control, name: "package.consignmentNoteClassCode" });
   const consignmentNotePackagingCode = useWatch({ control: form.control, name: "package.consignmentNotePackagingCode" });
-  const boxId = useWatch({ control: form.control, name: "package.boxId" });
-  const destinationCountry = useWatch({ control: form.control, name: "recipient.address.country" });
-
   const { rates, isLoading: isLoadingRates, error: ratesError, refetch: refetchRates } = useShipmentRates({
     shipmentId: shipmentId ?? "",
     enabled: !!shipmentId && step === "rate",
@@ -57,22 +53,6 @@ export const useOrderSubmission = ({
       consignment_note_packaging_code: consignmentNotePackagingCode,
     },
   });
-
-  const { tariffPrice, tariffNotFound, isLoading: isLoadingTariff } = useTariffLookup({
-    storeId: user?.storeId,
-    boxId,
-    destinationCountry,
-    enabled: step === "rate",
-  });
-
-  const processedRates = useMemo(() => {
-    if (!rates || !tariffPrice) return rates;
-    return rates.map((rate) =>
-      rate.serviceName === "JBG Logistics"
-        ? { ...rate, price: tariffPrice }
-        : rate,
-    );
-  }, [rates, tariffPrice]);
 
   const goToOrders = () => navigate("/orders");
 
@@ -187,10 +167,8 @@ export const useOrderSubmission = ({
     submitHQOrder,
     submitPartnerOrder,
     selectAndFulfill,
-    rates: processedRates,
+    rates,
     isLoadingRates,
-    isLoadingTariff,
-    tariffNotFound,
     ratesError,
     refetchRates,
     isCreating,

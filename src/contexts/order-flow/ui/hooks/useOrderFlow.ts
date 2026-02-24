@@ -80,7 +80,6 @@ export const useOrderFlow = ({ initialValues, orderId }: UseOrderFlowOptions = {
     // Rate step
     rates: submission.rates,
     isLoadingRates: submission.isLoadingRates,
-    tariffNotFound: submission.tariffNotFound,
     ratesError: submission.ratesError,
     refetchRates: submission.refetchRates,
     selectAndFulfill: submission.selectAndFulfill,

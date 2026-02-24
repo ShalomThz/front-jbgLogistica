@@ -15,24 +15,17 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
   Switch,
 } from "@contexts/shared/shadcn";
-import { ChevronsUpDown, Check, UserPlus, Eraser, BadgeCheck } from "lucide-react";
+import { ChevronsUpDown, Check, UserPlus, Eraser } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch, Controller, type FieldErrors } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
-import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
-import { MEXICO_STATES } from "@contexts/order-flow/domain/catalogs/MexicoStates";
-import { AddressSuggestions } from "@contexts/shared/ui/components/address/AddressSuggestions";
+import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
 
 type ContactPrefix = "sender" | "recipient";
 
@@ -49,64 +42,19 @@ function getNestedError(errors: FieldErrors<NewOrderFormValues>, prefix: Contact
   return nested?.message as string | undefined;
 }
 
-function getAddressError(errors: FieldErrors<NewOrderFormValues>, prefix: ContactPrefix, field: string) {
-  const contact = errors[prefix];
-  if (!contact) return undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const address = (contact as any).address;
-  if (!address) return undefined;
-  return address[field]?.message as string | undefined;
-}
-
 export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps) {
   const form = useFormContext<NewOrderFormValues>();
   const { register, setValue, control, formState: { errors } } = form;
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [countryOpen, setCountryOpen] = useState(false);
-  const [countrySearch, setCountrySearch] = useState("");
+  const [addressFormKey, setAddressFormKey] = useState(0);
 
   const { customers: savedContacts, isLoading: isLoadingContacts } = useCustomers({ search });
-  const { countries } = useCountries({ search: countrySearch });
-
-  const [addressQuery, setAddressQuery] = useState("");
 
   const contactId = useWatch({ control, name: `${prefix}.id` as "sender.id" | "recipient.id" });
-  const country = useWatch({ control, name: `${prefix}.address.country` as "sender.address.country" | "recipient.address.country" });
-  const province = useWatch({ control, name: `${prefix}.address.province` as "sender.address.province" | "recipient.address.province" });
-  const geolocation = useWatch({ control, name: `${prefix}.address.geolocation` as "sender.address.geolocation" | "recipient.address.geolocation" });
-
-  const isAddressVerified = !!geolocation?.placeId && (geolocation.latitude !== 0 || geolocation.longitude !== 0);
-
-  const commitAddressSearch = () => {
-    const address1 = form.getValues(`${prefix}.address.address1`);
-    const address2 = form.getValues(`${prefix}.address.address2`);
-    const city = form.getValues(`${prefix}.address.city`);
-    const prov = form.getValues(`${prefix}.address.province`);
-    const zip = form.getValues(`${prefix}.address.zip`);
-    const ctry = form.getValues(`${prefix}.address.country`);
-    setAddressQuery([address1, address2, city, prov, zip, ctry].filter(Boolean).join(", "));
-  };
-
-  const handleAddressKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      commitAddressSearch();
-    }
-  };
 
   const selectedContact = savedContacts.find((c) => c.id === contactId);
-
-  const handleSelectAddress = (details: { address1: string; address2: string; city: string; province: string; zip: string; country: string; geolocation: { latitude: number; longitude: number; placeId: string | null } }) => {
-    setValue(`${prefix}.address.address1`, details.address1);
-    setValue(`${prefix}.address.address2`, details.address2);
-    setValue(`${prefix}.address.city`, details.city);
-    setValue(`${prefix}.address.province`, details.province);
-    setValue(`${prefix}.address.zip`, details.zip);
-    setValue(`${prefix}.address.country`, details.country);
-    setValue(`${prefix}.address.geolocation`, details.geolocation);
-  };
 
   const handleClear = () => {
     setValue(`${prefix}.id`, null);
@@ -123,8 +71,8 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.address.reference`, "");
     setValue(`${prefix}.address.geolocation`, { latitude: 0, longitude: 0, placeId: null });
     setValue(`${prefix}.save`, false);
-    setAddressQuery("");
     setSearch("");
+    setAddressFormKey((k) => k + 1);
   };
 
   const handleSelectSaved = (c: CustomerListViewPrimitives) => {
@@ -141,8 +89,8 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.address.city`, c.address.city);
     setValue(`${prefix}.address.reference`, c.address.reference);
     setValue(`${prefix}.address.geolocation`, c.address.geolocation ?? { latitude: 0, longitude: 0, placeId: null });
-    setAddressQuery("");
     setOpen(false);
+    setAddressFormKey((k) => k + 1);
   };
 
   return (
@@ -291,194 +239,11 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
         <Separator />
 
         {/* Address */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-semibold text-muted-foreground">
-              Dirección
-            </Label>
-            {isAddressVerified && (
-              <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-                <BadgeCheck className="size-3.5" />
-                Dirección verificada
-              </span>
-            )}
-          </div>
-          <AddressSuggestions
-            query={addressQuery}
-            onSelect={handleSelectAddress}
-          />
-          <div className="grid grid-cols-2 gap-3 *:space-y-1">
-            <div>
-              <Label>País</Label>
-              <Controller
-                control={control}
-                name={`${prefix}.address.country`}
-                render={({ field }) => {
-                  const selected = countries.find((c) => c.code === field.value);
-                  return (
-                    <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={countryOpen}
-                          className="w-full justify-between font-normal"
-                        >
-                          {selected
-                            ? <span className="truncate">{selected.name}</span>
-                            : <span className="text-muted-foreground">Seleccionar país</span>
-                          }
-                          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                        <Command shouldFilter={false}>
-                          <CommandInput
-                            placeholder="Buscar país..."
-                            onValueChange={setCountrySearch}
-                          />
-                          <CommandList>
-                            <CommandEmpty>Sin resultados</CommandEmpty>
-                            <CommandGroup>
-                              {countries.map((c) => (
-                                <CommandItem
-                                  key={c.code}
-                                  value={c.code}
-                                  onSelect={() => {
-                                    field.onChange(c.code);
-                                    setValue(`${prefix}.address.province`, "");
-                                    setCountryOpen(false);
-                                    setCountrySearch("");
-                                    commitAddressSearch();
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 size-4",
-                                      field.value === c.code ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {c.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  );
-                }}
-              />
-            </div>
-            <div>
-              <Label>Estado *</Label>
-              <Controller
-                control={control}
-                name={`${prefix}.address.province`}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={(val) => { field.onChange(val); commitAddressSearch(); }}>
-                    <SelectTrigger aria-invalid={!!getAddressError(errors, prefix, "province")}>
-                      <SelectValue placeholder="Seleccionar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {country === "MX"
-                        ? (
-                          <>
-                            {province && !MEXICO_STATES.includes(province) && (
-                              <SelectItem value={province}>{province}</SelectItem>
-                            )}
-                            {MEXICO_STATES.map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
-                            ))}
-                          </>
-                        )
-                        : (
-                          <>
-                            {province && province !== "otro" && (
-                              <SelectItem value={province}>{province}</SelectItem>
-                            )}
-                            <SelectItem value="otro">Otro</SelectItem>
-                          </>
-                        )
-                      }
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {getAddressError(errors, prefix, "province") && (
-                <p className="text-sm text-destructive">{getAddressError(errors, prefix, "province")}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor={`${title}-address1`}>Calle y número *</Label>
-              <Input
-                id={`${title}-address1`}
-                aria-invalid={!!getAddressError(errors, prefix, "address1")}
-                placeholder="Calle y número exterior"
-                {...register(`${prefix}.address.address1`, {
-                  onBlur: commitAddressSearch,
-                })}
-                onKeyDown={handleAddressKeyDown}
-              />
-              {getAddressError(errors, prefix, "address1") && (
-                <p className="text-sm text-destructive">{getAddressError(errors, prefix, "address1")}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor={`${title}-address2`}>Colonia</Label>
-              <Input
-                id={`${title}-address2`}
-                placeholder="Núm. interior, colonia, etc."
-                {...register(`${prefix}.address.address2`, {
-                  onBlur: commitAddressSearch,
-                })}
-                onKeyDown={handleAddressKeyDown}
-              />
-            </div>
-            <div>
-              <Label htmlFor={`${title}-zip`}>Código postal *</Label>
-              <Input
-                id={`${title}-zip`}
-                aria-invalid={!!getAddressError(errors, prefix, "zip")}
-                placeholder="5 dígitos"
-                {...register(`${prefix}.address.zip`, {
-                  onBlur: commitAddressSearch,
-                })}
-                onKeyDown={handleAddressKeyDown}
-              />
-              {getAddressError(errors, prefix, "zip") && (
-                <p className="text-sm text-destructive">{getAddressError(errors, prefix, "zip")}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor={`${title}-city`}>Ciudad/Municipio *</Label>
-              <Input
-                id={`${title}-city`}
-                aria-invalid={!!getAddressError(errors, prefix, "city")}
-                placeholder="Ciudad"
-                {...register(`${prefix}.address.city`, {
-                  onBlur: commitAddressSearch,
-                })}
-                onKeyDown={handleAddressKeyDown}
-              />
-              {getAddressError(errors, prefix, "city") && (
-                <p className="text-sm text-destructive">{getAddressError(errors, prefix, "city")}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor={`${title}-ref`}>Referencias *</Label>
-              <Input
-                id={`${title}-ref`}
-                aria-invalid={!!getAddressError(errors, prefix, "reference")}
-                placeholder="Ej: Entre calles, color de fachada... (máx. 25)"
-                {...register(`${prefix}.address.reference`)}
-              />
-              {getAddressError(errors, prefix, "reference") && (
-                <p className="text-sm text-destructive">{getAddressError(errors, prefix, "reference")}</p>
-              )}
-            </div>
-          </div>
-        </div>
+        <AddressSection
+          key={addressFormKey}
+          fieldPrefix={`${prefix}.address`}
+          labelPrefix={title}
+        />
 
         <Separator />
 

@@ -12,7 +12,7 @@ import {
   Separator,
   Skeleton,
 } from "@contexts/shared/shadcn";
-import { AlertTriangle, CheckCircle2, Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
+import { CheckCircle2, Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
@@ -27,7 +27,6 @@ const JBG_SERVICE_NAME = "JBG Logistics";
 interface RateStepProps {
   rates: RatePrimitives[];
   isLoadingRates: boolean;
-  tariffNotFound: boolean;
   ratesError: string | null;
   onRefetch: () => void;
   onSubmit: () => void;
@@ -40,7 +39,6 @@ interface RateStepProps {
 export function RateStep({
   rates,
   isLoadingRates,
-  tariffNotFound,
   ratesError,
   onRefetch,
   onSubmit,
@@ -170,16 +168,6 @@ export function RateStep({
             {!isLoadingRates && !ratesError && rates.length === 0 && (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 No se encontraron tarifas disponibles para este envío.
-              </div>
-            )}
-
-            {/* Tariff not found warning */}
-            {tariffNotFound && !isLoadingRates && (
-              <div className="flex items-center gap-2 py-3 px-3 my-2 rounded-md bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200">
-                <AlertTriangle className="size-4 shrink-0" />
-                <p className="text-xs">
-                  No se encontró una tarifa configurada para esta combinación de zona, caja y país destino. El precio de JBG Logistics no fue ajustado.
-                </p>
               </div>
             )}
 
