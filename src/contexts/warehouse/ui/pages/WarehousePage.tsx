@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
+import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,6 +24,7 @@ import {
   Search
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import type {
   CreatePackageRequest,
   PackageListViewPrimitives,
@@ -80,6 +82,7 @@ export const WarehousePage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editPkg, setEditPkg] = useState<PackageListViewPrimitives | null>(null);
   const [deletePkg, setDeletePkg] = useState<PackageListViewPrimitives | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   const filtered = packages.filter((p) => {
     const query = searchQuery.toLowerCase();
@@ -102,6 +105,18 @@ export const WarehousePage = () => {
     if (!editPkg) return;
     await updatePackage(editPkg.id, data);
     setEditPkg(null);
+  };
+
+  const handleStatusChange = async (id: string, status: WarehousePackageStatus) => {
+    setUpdatingStatusId(id);
+    try {
+      await updatePackage(id, { status });
+      toast.success("Estado actualizado");
+    } catch (err) {
+      toast.error(parseApiError(err));
+    } finally {
+      setUpdatingStatusId(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -242,9 +257,26 @@ export const WarehousePage = () => {
                     {p.weight.value} {p.weight.unit}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[p.status]}>
-                      {STATUS_LABELS[p.status]}
-                    </Badge>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={p.status}
+                        onValueChange={(v) => handleStatusChange(p.id, v as WarehousePackageStatus)}
+                        disabled={updatingStatusId === p.id}
+                      >
+                        <SelectTrigger className="h-7 w-36 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(STATUS_LABELS) as WarehousePackageStatus[]).map((s) => (
+                            <SelectItem key={s} value={s} className="text-xs">
+                              <Badge variant={STATUS_VARIANT[s]} className="text-xs">
+                                {STATUS_LABELS[s]}
+                              </Badge>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
