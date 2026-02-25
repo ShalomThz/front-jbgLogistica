@@ -5,10 +5,14 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Checkbox,
   Input,
   Label,
   Progress,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
   Skeleton,
 } from "@contexts/shared/shadcn";
@@ -22,7 +26,47 @@ import { calculateTotal, calculateBillableWeight } from "@contexts/order-flow/do
 import { OrderShipmentSection } from "../order/OrderShipmentSection";
 import { OrderLabelSection } from "../order/OrderLabelSection";
 
+import ampmLogo from "@/assets/carriers/ampm.png";
+import dhlLogo from "@/assets/carriers/dhl.png";
+import estafetaLogo from "@/assets/carriers/estafeta.png";
+import fedexLogo from "@/assets/carriers/fedex.png";
+import jtExpressLogo from "@/assets/carriers/jt-express.png";
+import ninetyMinutesLogo from "@/assets/carriers/ninetyminutes.png";
+import paquetexpressLogo from "@/assets/carriers/paquetexpress.png";
+import redpackLogo from "@/assets/carriers/redpack.png";
+import upsLogo from "@/assets/carriers/ups.jpeg";
+import jbgLogo from "@/assets/carriers/jbg.png";
+
 const JBG_SERVICE_NAME = "JBG Logistics";
+
+const CARRIER_LOGOS: Record<string, string> = {
+  AMPM: ampmLogo,
+  DHL: dhlLogo,
+  ESTAFETA: estafetaLogo,
+  FEDEX: fedexLogo,
+  "J&T EXPRESS": jtExpressLogo,
+  "99 MINUTOS": ninetyMinutesLogo,
+  PAQUETEXPRESS: paquetexpressLogo,
+  REDPACK: redpackLogo,
+  UPS: upsLogo,
+  "JBG LOGISTICS": jbgLogo,
+};
+
+const parseServiceName = (serviceName: string) => {
+  const parts = serviceName.split(" - ");
+  return { carrier: parts[0], service: parts.slice(1).join(" - ") || parts[0] };
+};
+
+const COST_BREAKDOWN_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
+type CostField = (typeof COST_BREAKDOWN_FIELDS)[number];
+
+const COST_LABELS: Record<CostField, string> = {
+  insurance: "Seguro",
+  tools: "Herramientas",
+  additionalCost: "Costo adicional",
+  wrap: "Embalaje",
+  tape: "Cinta",
+};
 
 interface RateStepProps {
   rates: RatePrimitives[];
@@ -47,7 +91,7 @@ export function RateStep({
   fulfilledShipment,
   onFinish,
 }: RateStepProps) {
-  const { setValue, control } = useFormContext<NewOrderFormValues>();
+  const { setValue, register, control } = useFormContext<NewOrderFormValues>();
 
   const shippingService = useWatch<NewOrderFormValues, "shippingService">({ name: "shippingService" });
   const sender = useWatch<NewOrderFormValues, "sender">({ name: "sender" });
@@ -183,12 +227,20 @@ export function RateStep({
                       }`}
                     onClick={() => handleRateSelection(rate)}
                   >
-                    <div className="col-span-3 flex items-center">
-                      <div className="font-medium text-sm">{rate.serviceName}</div>
+                    <div className="col-span-3 flex items-center gap-2">
+                      {(() => {
+                        const { carrier } = parseServiceName(rate.serviceName);
+                        const logo = CARRIER_LOGOS[carrier.toUpperCase()];
+                        return logo ? (
+                          <img src={logo} alt={carrier} className="size-6 object-contain rounded" />
+                        ) : null;
+                      })()}
+                      <div className="font-medium text-sm">{parseServiceName(rate.serviceName).carrier}</div>
                     </div>
 
                     <div className="col-span-3 flex items-center">
                       <div className="space-y-1">
+                        <div className="text-sm">{parseServiceName(rate.serviceName).service}</div>
                         {rate.isOcurre && (
                           <div className="flex items-center gap-1 text-xs">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -209,11 +261,11 @@ export function RateStep({
                     <div className="col-span-3 flex items-center justify-end">
                       <div className="text-right">
                         <div className="font-bold">
-                          ${rate.price.amount.toFixed(2)} {rate.price.currency}
+                          ${rate.price.amount.toFixed(2)} {rate.serviceName === JBG_SERVICE_NAME ? shippingService.currency : rate.price.currency}
                         </div>
                         {rate.insuranceFee.amount > 0 && (
                           <div className="text-xs text-muted-foreground">
-                            Seguro: ${rate.insuranceFee.amount.toFixed(2)}
+                            Seguro: ${rate.insuranceFee.amount.toFixed(2)} {rate.serviceName === JBG_SERVICE_NAME ? shippingService.currency : rate.price.currency}
                           </div>
                         )}
                       </div>
@@ -344,53 +396,35 @@ export function RateStep({
                     className="pl-6"
                     placeholder="0.00"
                   />
-                  <span className="absolute right-2.5 top-2.5 text-sm text-muted-foreground">MXN</span>
+                  <span className="absolute right-2.5 top-2.5 text-sm text-muted-foreground">{shippingService.currency}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* SOS Protection */}
+        {/* Costos adicionales */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Controller
-                control={control}
-                name="shippingService.sosProtection"
-                render={({ field }) => (
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Costos adicionales</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            {COST_BREAKDOWN_FIELDS.map((field) => (
+              <div key={field} className="space-y-1">
+                <Label className="text-xs">{COST_LABELS[field]}</Label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...register(`shippingService.costBreakdown.${field}`)}
+                    className="pl-6 text-xs"
+                    placeholder="0.00"
                   />
-                )}
-              />
-              <div className="space-y-2 flex-1">
-                <div className="font-medium text-sm">SOS Protección</div>
-                <div className="text-xs text-muted-foreground">
-                  Protege el envío ante robo, daño y más. Al usar la opción, aceptas los{" "}
-                  <Button variant="link" className="h-auto p-0 text-xs text-blue-600">
-                    términos y condiciones
-                  </Button>
-                  .
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Valor declarado</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">$</span>
-                    <Input
-                      {...control.register("shippingService.sosValue")}
-                      className="pl-6 text-xs"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Declara un valor entre $100 MXN y $100,000 MXN.
-                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -402,22 +436,50 @@ export function RateStep({
                 <>
                   <div className="flex justify-between text-sm">
                     <span>Precio del envío</span>
-                    <span>${shippingService.selectedRate.price.amount.toFixed(2)} {shippingService.selectedRate.price.currency}</span>
+                    <span>${shippingService.selectedRate.price.amount.toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency}</span>
                   </div>
 
-                  {shippingService.sosProtection && (
-                    <div className="flex justify-between text-sm">
-                      <span>SOS Protección</span>
-                      <span>$14.00 MXN</span>
-                    </div>
-                  )}
+                  {COST_BREAKDOWN_FIELDS.map((field) => {
+                    const val = parseFloat(shippingService.costBreakdown[field]);
+                    if (!val || val <= 0) return null;
+                    return (
+                      <div key={field} className="flex justify-between text-sm">
+                        <span>{COST_LABELS[field]}</span>
+                        <span>${val.toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate!.price.currency}</span>
+                      </div>
+                    );
+                  })}
 
                   <Separator />
+
+                  {isJBGRate && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Moneda</Label>
+                        <Controller
+                          control={control}
+                          name="shippingService.currency"
+                          render={({ field }) => (
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="MXN">MXN - Peso mexicano</SelectItem>
+                                <SelectItem value="USD">USD - Dólar americano</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                      <Separator />
+                    </>
+                  )}
 
                   <div className="flex justify-between font-bold">
                     <span>Monto total:</span>
                     <div className="text-right">
-                      <div className="text-blue-600">${calculateTotal(shippingService).toFixed(2)} MXN</div>
+                      <div className="text-blue-600">${calculateTotal(shippingService).toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency}</div>
                       <div className="text-xs text-muted-foreground">(Incluye IVA)</div>
                     </div>
                   </div>

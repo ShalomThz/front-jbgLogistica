@@ -48,8 +48,13 @@ export const newOrderDefaultValues: NewOrderFormValues = {
   },
   shippingService: {
     selectedRate: null,
-    sosProtection: true,
-    sosValue: "1600.00",
-    declaredValue: "",
+    currency: "MXN",
+    costBreakdown: {
+      insurance: "",
+      tools: "",
+      additionalCost: "",
+      wrap: "",
+      tape: "",
+    },
   },
 };

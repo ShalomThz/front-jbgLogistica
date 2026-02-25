@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import type { Permission } from "@/contexts/iam/domain/schemas/user/UserRole";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -21,7 +22,7 @@ export const ProtectedRoute = ({
   const { user, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
-    return fallback ?? <div>Cargando...</div>;
+    return fallback ?? <PageLoader />;
   }
 
   if (!isAuthenticated) {

@@ -1,7 +1,5 @@
 import type { PackageFormData, ShippingServiceState } from "../schemas/NewOrderForm";
 
-const SOS_PROTECTION_PRICE = 14.0;
-
 export const calculateVolumetricWeight = (pkg: PackageFormData) => {
   const l = parseFloat(pkg.length) || 0;
   const w = parseFloat(pkg.width) || 0;
@@ -17,6 +15,8 @@ export const calculateBillableWeight = (pkg: PackageFormData) => {
 
 export const calculateTotal = (shippingService: ShippingServiceState) => {
   const shippingPrice = shippingService.selectedRate?.price.amount || 0;
-  const sosPrice = shippingService.sosProtection ? SOS_PROTECTION_PRICE : 0;
-  return shippingPrice + sosPrice;
+  const { insurance, tools, additionalCost, wrap, tape } = shippingService.costBreakdown;
+  const breakdownTotal = [insurance, tools, additionalCost, wrap, tape]
+    .reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+  return shippingPrice + breakdownTotal;
 };

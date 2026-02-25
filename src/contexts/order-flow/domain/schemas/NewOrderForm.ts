@@ -44,9 +44,14 @@ const packageFormDataSchema = z.object({
 
 const shippingServiceSchema = z.object({
   selectedRate: z.custom<RatePrimitives>().nullable(),
-  sosProtection: z.boolean(),
-  sosValue: z.string(),
-  declaredValue: z.string(),
+  currency: z.string(),
+  costBreakdown: z.object({
+    insurance: z.string(),
+    tools: z.string(),
+    additionalCost: z.string(),
+    wrap: z.string(),
+    tape: z.string(),
+  }),
 });
 
 // --- Full form ---
