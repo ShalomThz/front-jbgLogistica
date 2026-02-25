@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
@@ -27,6 +27,7 @@ const LIMIT_OPTIONS = [10, 20, 50];
 
 export const OrdersPage = () => {
   const navigate = useNavigate();
+  const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -60,8 +61,8 @@ export const OrdersPage = () => {
   const to = pagination ? pagination.offset + orders.length : 0;
   const total = pagination?.total ?? 0;
 
-  if (isLoading) {
-    return <PageLoader text="Cargando órdenes..." />;
+  if (isLoading || isPending) {
+    return <PageLoader text={isPending ? "Cargando nueva orden..." : "Cargando órdenes..."} />;
   }
 
   return (
@@ -72,7 +73,10 @@ export const OrdersPage = () => {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button onClick={() => navigate("/orders/new")}>
+          <Button
+            onMouseEnter={() => import("@contexts/order-flow/ui/pages/NewOrderPage")}
+            onClick={() => startTransition(() => navigate("/orders/new"))}
+          >
             <Plus className="size-4" />
             Crear Orden
           </Button>

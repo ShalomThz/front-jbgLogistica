@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Pencil } from "lucide-react";
 import {
@@ -39,6 +39,7 @@ export const OrderDetailDialog = ({
   onClose,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
+  const [isPending, startTransition] = useTransition();
   const [showLabel, setShowLabel] = useState(false);
   const isCompleted = order?.status === "COMPLETED";
   const {
@@ -204,14 +205,14 @@ export const OrderDetailDialog = ({
 
         <DialogFooter>
           <Button
-            disabled={!isEditable}
+            disabled={!isEditable || isPending}
             onClick={() => {
               onClose();
-              navigate(`/orders/${order.id}/edit`);
+              startTransition(() => navigate(`/orders/${order.id}/edit`));
             }}
           >
             <Pencil className="size-4" />
-            Editar
+            {isPending ? "Cargando..." : "Editar"}
           </Button>
         </DialogFooter>
       </DialogContent>
