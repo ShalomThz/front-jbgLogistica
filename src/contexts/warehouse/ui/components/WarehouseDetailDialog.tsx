@@ -1,16 +1,19 @@
-import { Pencil, Trash2, Package } from "lucide-react";
 import {
   Badge,
-  Separator,
+  Button,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  Button,
+  DialogHeader,
+  DialogTitle,
+  Separator,
 } from "@contexts/shared/shadcn";
-import type { WarehousePackagePrimitives, WarehousePackageStatus } from "../../../domain/schemas/warehouse-package/WarehousePackageSchema";
+import { Package, Pencil, Trash2 } from "lucide-react";
+import type {
+  PackageListViewPrimitives,
+  WarehousePackageStatus,
+} from "../../domain/WarehousePackageSchema";
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",
@@ -20,7 +23,10 @@ const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   AUTHORIZED: "Autorizado",
 };
 
-const STATUS_VARIANT: Record<WarehousePackageStatus, "default" | "secondary" | "outline" | "destructive"> = {
+const STATUS_VARIANT: Record<
+  WarehousePackageStatus,
+  "default" | "secondary" | "outline" | "destructive"
+> = {
   WAREHOUSE: "secondary",
   SHIPPED: "outline",
   DELIVERED: "default",
@@ -38,11 +44,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 interface Props {
-  pkg: WarehousePackagePrimitives | null;
+  pkg: PackageListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  onEdit?: (pkg: WarehousePackagePrimitives) => void;
-  onDelete?: (pkg: WarehousePackagePrimitives) => void;
+  onEdit?: (pkg: PackageListViewPrimitives) => void;
+  onDelete?: (pkg: PackageListViewPrimitives) => void;
 }
 
 export const WarehouseDetailDialog = ({ pkg, open, onClose, onEdit, onDelete }: Props) => {
@@ -55,6 +61,9 @@ export const WarehouseDetailDialog = ({ pkg, open, onClose, onEdit, onDelete }: 
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const dimStr = `${pkg.dimensions.length} × ${pkg.dimensions.width} × ${pkg.dimensions.height} ${pkg.dimensions.unit}`;
+  const weightStr = `${pkg.weight.value} ${pkg.weight.unit}`;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -73,21 +82,20 @@ export const WarehouseDetailDialog = ({ pkg, open, onClose, onEdit, onDelete }: 
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Información del paquete</h4>
             <div className="rounded-md border p-3 space-y-1">
-              <DetailRow label="ID" value={pkg.id} />
               <DetailRow label="Factura oficial" value={pkg.officialInvoice} />
-              <DetailRow label="Peso" value={`${pkg.weightInKg} kg`} />
-              <DetailRow label="Empacador" value={pkg.packer} />
+              <DetailRow label="Dimensiones" value={dimStr} />
+              <DetailRow label="Peso" value={weightStr} />
             </div>
           </div>
           <Separator />
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Referencias</h4>
             <div className="rounded-md border p-3 space-y-1">
-              <DetailRow label="Cliente ID" value={pkg.customerId} />
-              <DetailRow label="Tienda ID" value={pkg.storeId} />
-              <DetailRow label="Proveedor ID" value={pkg.providerId} />
+              <DetailRow label="Proveedor" value={pkg.provider.name} />
               <DetailRow label="Repartidor proveedor" value={pkg.providerDeliveryPerson} />
-              <DetailRow label="Caja ID" value={pkg.boxId} />
+              <DetailRow label="Cliente" value={pkg.customer.name} />
+              <DetailRow label="Tienda" value={pkg.store.name} />
+              <DetailRow label="Registrado por" value={pkg.user.name} />
             </div>
           </div>
           <Separator />

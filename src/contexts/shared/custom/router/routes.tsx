@@ -11,7 +11,7 @@ const OrdersPage = lazy(() => import("@contexts/order-flow/ui/pages/OrdersPage")
 const NewOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewOrderPage").then(m => ({ default: m.NewOrderPage })));
 const EditOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/EditOrderPage").then(m => ({ default: m.EditOrderPage })));
 const CustomersPage = lazy(() => import("@contexts/sales/ui/pages/CustomersPage").then(m => ({ default: m.CustomersPage })));
-const WarehousePage = lazy(() => import("@contexts/sales/ui/pages/WarehousePage").then(m => ({ default: m.WarehousePage })));
+const WarehousePage = lazy(() => import("@/contexts/warehouse/ui/pages/WarehousePage").then(m => ({ default: m.WarehousePage })));
 
 // Inventory
 const BoxPage = lazy(() => import("@contexts/inventory/ui/pages/BoxPage").then(m => ({ default: m.BoxPage })));
