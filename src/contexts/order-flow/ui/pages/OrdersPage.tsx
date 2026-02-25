@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
 import {
   Button,
@@ -60,11 +61,7 @@ export const OrdersPage = () => {
   const total = pagination?.total ?? 0;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando órdenes...</p>
-      </div>
-    );
+    return <PageLoader text="Cargando órdenes..." />;
   }
 
   return (

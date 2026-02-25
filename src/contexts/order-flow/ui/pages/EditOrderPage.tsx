@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { mapOrderToFormValues } from "../../application/mapOrderToFormValues";
 import { NewOrderPage } from "./NewOrderPage";
 
@@ -9,11 +9,7 @@ export const EditOrderPage = () => {
   const { data: order, isLoading, error } = useOrder(id);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoader text="Cargando orden..." />;
   }
 
   if (error || !order) {

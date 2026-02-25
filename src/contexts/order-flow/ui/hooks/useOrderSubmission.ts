@@ -40,7 +40,7 @@ export const useOrderSubmission = ({
   const [shipmentId, setShipmentId] = useState<string | null>(null);
   const [fulfilledShipment, setFulfilledShipment] = useState<ShipmentPrimitives | null>(null);
   const { user } = useAuth();
-  const { createHQOrder, createPartnerOrder, updateOrder, isCreating } = useOrders();
+  const { createHQOrder, createPartnerOrder, updateOrder, isCreating } = useOrders({ enabled: false });
   const { findByOrderId, fulfillShipment, selectProvider, isSelectingProvider } = useShipmentActions();
 
   const consignmentNoteClassCode = useWatch({ control: form.control, name: "package.consignmentNoteClassCode" });

@@ -10,9 +10,10 @@ const ORDERS_QUERY_KEY = ["orders"];
 interface UseOrdersOptions {
   page?: number;
   limit?: number;
+  enabled?: boolean;
 }
 
-export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
+export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
@@ -20,6 +21,7 @@ export const useOrders = ({ page = 1, limit = 10 }: UseOrdersOptions = {}) => {
     useQuery<FindOrdersResponse>({
       queryKey: [...ORDERS_QUERY_KEY, { page, limit }],
       queryFn: () => orderRepository.find({ filters: [], limit, offset }),
+      enabled,
     });
 
   const orders = data?.data ?? [];

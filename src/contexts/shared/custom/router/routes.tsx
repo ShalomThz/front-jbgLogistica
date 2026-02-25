@@ -1,30 +1,32 @@
+import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
 import { ProtectedRoute } from "@contexts/shared/custom/components";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+
+// Dashboard (static — initial page)
+import { DashboardPage } from "@contexts/shared/custom/pages";
 
 // Sales
-import { OrdersPage } from "@contexts/order-flow/ui/pages/OrdersPage";
-import { NewOrderPage } from "@contexts/order-flow/ui/pages/NewOrderPage";
-import { EditOrderPage } from "@contexts/order-flow/ui/pages/EditOrderPage";
-import { CustomersPage } from "@contexts/sales/ui/pages/CustomersPage";
-import { WarehousePage } from "@contexts/sales/ui/pages/WarehousePage";
+const OrdersPage = lazy(() => import("@contexts/order-flow/ui/pages/OrdersPage").then(m => ({ default: m.OrdersPage })));
+const NewOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewOrderPage").then(m => ({ default: m.NewOrderPage })));
+const EditOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/EditOrderPage").then(m => ({ default: m.EditOrderPage })));
+const CustomersPage = lazy(() => import("@contexts/sales/ui/pages/CustomersPage").then(m => ({ default: m.CustomersPage })));
+const WarehousePage = lazy(() => import("@contexts/sales/ui/pages/WarehousePage").then(m => ({ default: m.WarehousePage })));
 
 // Inventory
-import { BoxPage } from "@contexts/inventory/ui/pages/BoxPage";
+const BoxPage = lazy(() => import("@contexts/inventory/ui/pages/BoxPage").then(m => ({ default: m.BoxPage })));
 
 // Shipping
-import { DeliveryRoutesPage } from "@contexts/shipping/ui/pages/DeliveryRoutesPage";
-import { DriversPage } from "@contexts/shipping/ui/pages/DriversPage";
+const DeliveryRoutesPage = lazy(() => import("@contexts/shipping/ui/pages/DeliveryRoutesPage").then(m => ({ default: m.DeliveryRoutesPage })));
+const DriversPage = lazy(() => import("@contexts/shipping/ui/pages/DriversPage").then(m => ({ default: m.DriversPage })));
 
 // Pricing
-import { TariffsPage } from "@contexts/pricing/ui/pages/TariffsPage";
-import { ZonesPage } from "@contexts/pricing/ui/pages/ZonesPage";
+const TariffsPage = lazy(() => import("@contexts/pricing/ui/pages/TariffsPage").then(m => ({ default: m.TariffsPage })));
+const ZonesPage = lazy(() => import("@contexts/pricing/ui/pages/ZonesPage").then(m => ({ default: m.ZonesPage })));
 
 // IAM
-import { UsersPage } from "@contexts/iam/ui/pages/UsersPage";
-import { StoresPage } from "@contexts/iam/ui/pages/StoresPage";
-
-// Dashboard
-import { DashboardPage } from "@contexts/shared/custom/pages";
+const UsersPage = lazy(() => import("@contexts/iam/ui/pages/UsersPage").then(m => ({ default: m.UsersPage })));
+const StoresPage = lazy(() => import("@contexts/iam/ui/pages/StoresPage").then(m => ({ default: m.StoresPage })));
 
 export const routes: RouteObject[] = [
   // Dashboard - acceso general para usuarios autenticados
@@ -35,7 +37,9 @@ export const routes: RouteObject[] = [
     path: "/customers",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_CUSTOMERS"]}>
-        <CustomersPage />
+        <Suspense fallback={<PageLoader />}>
+          <CustomersPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -43,7 +47,9 @@ export const routes: RouteObject[] = [
     path: "/orders",
     element: (
       <ProtectedRoute permissions={["CAN_SELL"]}>
-        <OrdersPage />
+        <Suspense fallback={<PageLoader />}>
+          <OrdersPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -51,7 +57,9 @@ export const routes: RouteObject[] = [
     path: "/orders/new",
     element: (
       <ProtectedRoute permissions={["CAN_SELL"]}>
-        <NewOrderPage />
+        <Suspense fallback={<PageLoader />}>
+          <NewOrderPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -59,7 +67,9 @@ export const routes: RouteObject[] = [
     path: "/orders/:id/edit",
     element: (
       <ProtectedRoute permissions={["CAN_SELL"]}>
-        <EditOrderPage />
+        <Suspense fallback={<PageLoader />}>
+          <EditOrderPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -67,7 +77,9 @@ export const routes: RouteObject[] = [
     path: "/warehouse",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
-        <WarehousePage />
+        <Suspense fallback={<PageLoader />}>
+          <WarehousePage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -77,7 +89,9 @@ export const routes: RouteObject[] = [
     path: "/boxes",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
-        <BoxPage />
+        <Suspense fallback={<PageLoader />}>
+          <BoxPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -87,7 +101,9 @@ export const routes: RouteObject[] = [
     path: "/delivery-routes",
     element: (
       <ProtectedRoute permissions={["CAN_SELL"]}>
-        <DeliveryRoutesPage />
+        <Suspense fallback={<PageLoader />}>
+          <DeliveryRoutesPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -95,7 +111,9 @@ export const routes: RouteObject[] = [
     path: "/drivers",
     element: (
       <ProtectedRoute permissions={["CAN_SELL"]}>
-        <DriversPage />
+        <Suspense fallback={<PageLoader />}>
+          <DriversPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -105,7 +123,9 @@ export const routes: RouteObject[] = [
     path: "/tariffs",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_TARIFFS"]}>
-        <TariffsPage />
+        <Suspense fallback={<PageLoader />}>
+          <TariffsPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -113,7 +133,9 @@ export const routes: RouteObject[] = [
     path: "/stores",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_STORES"]}>
-        <StoresPage />
+        <Suspense fallback={<PageLoader />}>
+          <StoresPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -121,7 +143,9 @@ export const routes: RouteObject[] = [
     path: "/zones",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_ZONES"]}>
-        <ZonesPage />
+        <Suspense fallback={<PageLoader />}>
+          <ZonesPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -131,7 +155,9 @@ export const routes: RouteObject[] = [
     path: "/users",
     element: (
       <ProtectedRoute permissions={["CAN_MANAGE_USERS"]}>
-        <UsersPage />
+        <Suspense fallback={<PageLoader />}>
+          <UsersPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   }

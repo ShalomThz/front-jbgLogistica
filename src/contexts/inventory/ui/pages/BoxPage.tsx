@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Minus, Plus, RefreshCw, Search } from "lucide-react";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
   Button,
@@ -109,11 +110,7 @@ export const BoxPage = () => {
   const total = pagination?.total ?? 0;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando cajas...</p>
-      </div>
-    );
+    return <PageLoader text="Cargando cajas..." />;
   }
 
   return (
