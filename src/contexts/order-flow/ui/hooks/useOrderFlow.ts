@@ -21,7 +21,7 @@ export const useOrderFlow = ({ initialValues, orderId }: UseOrderFlowOptions = {
 
   const { form, validateStep } = useOrderFlowForm({ initialValues });
   const { saveContacts, isSaving } = useContactSave({ form });
-  const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues });
+  const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues, enabled: step !== "contact" });
   const submission = useOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox });
 
   const orderType = form.watch("orderType");

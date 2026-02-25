@@ -20,8 +20,7 @@ import { ZoneFormDialog } from "../components/zone/ZoneFormDialog";
 import { ZoneDeleteDialog } from "../components/zone/ZoneDeleteDialog";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
-
-type CreateZoneData = Omit<ZonePrimitives, "id" | "createdAt" | "updatedAt">;
+import type { CreateZoneRequestPrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -56,13 +55,13 @@ export const ZonesPage = () => {
       z.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleCreate = async (data: CreateZoneData) => {
+  const handleCreate = async (data: CreateZoneRequestPrimitives) => {
     await createZone(data);
     setFormOpen(false);
     setPage(1);
   };
 
-  const handleUpdate = async (data: CreateZoneData) => {
+  const handleUpdate = async (data: CreateZoneRequestPrimitives) => {
     if (!editZone) return;
     await updateZone(editZone.id, data);
     setEditZone(null);

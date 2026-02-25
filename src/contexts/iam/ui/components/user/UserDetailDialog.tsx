@@ -11,21 +11,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { Pencil, Trash2 } from "lucide-react";
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
-
-const PERMISSION_LABELS: Record<string, string> = {
-  CAN_SELL: "Vender",
-  CAN_CREATE_HQ_ORDERS: "Crear órdenes HQ",
-  CAN_SELL_BOXES: "Vender cajas",
-  CAN_MANAGE_INVENTORY: "Gestionar inventario",
-  CAN_MANAGE_USERS: "Gestionar usuarios",
-  CAN_VIEW_REPORTS: "Ver reportes",
-  CAN_MANAGE_CUSTOMERS: "Gestionar clientes",
-  CAN_MANAGE_STORES: "Gestionar tiendas",
-  CAN_MANAGE_ZONES: "Gestionar zonas",
-  CAN_MANAGE_TARIFFS: "Gestionar tarifas",
-  CAN_SHIP: "Enviar paquetes",
-  CAN_MANAGE_WAREHOUSE: "Gestionar bodega",
-};
+import { PERMISSION_LABELS } from "./constants";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (

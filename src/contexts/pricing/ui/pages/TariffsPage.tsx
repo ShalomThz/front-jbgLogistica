@@ -20,9 +20,10 @@ import { TariffFormDialog } from "../components/tariff/TariffFormDialog";
 import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
 import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
-import type { CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
+import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { COUNTRIES } from "@contexts/shared/domain/schemas/address/Country";
 
-const COUNTRY_NAMES: Record<string, string> = { MX: "México", US: "Estados Unidos", CA: "Canadá", ES: "España", CO: "Colombia" };
+const COUNTRY_NAMES: Record<string, string> = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -60,13 +61,13 @@ export const TariffsPage = () => {
     return matchesSearch && matchesCountry;
   });
 
-  const handleCreate = async (data: CreateTariffRequest) => {
+  const handleCreate = async (data: CreateTariffRequestPrimitives) => {
     await createTariff(data);
     setFormOpen(false);
     setPage(1);
   };
 
-  const handleUpdate = async (data: CreateTariffRequest) => {
+  const handleUpdate = async (data: CreateTariffRequestPrimitives) => {
     if (!editTariff) return;
     await updateTariff(editTariff.id, data);
     setEditTariff(null);
@@ -131,11 +132,9 @@ export const TariffsPage = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="MX">México</SelectItem>
-            <SelectItem value="US">Estados Unidos</SelectItem>
-            <SelectItem value="CA">Canadá</SelectItem>
-            <SelectItem value="ES">España</SelectItem>
-            <SelectItem value="CO">Colombia</SelectItem>
+            {COUNTRIES.map((c) => (
+              <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select

@@ -8,9 +8,10 @@ const BOXES_QUERY_KEY = ["boxes"];
 interface UseBoxesOptions {
   page?: number;
   limit?: number;
+  enabled?: boolean;
 }
 
-export const useBoxes = ({ page = 1, limit = 10 }: UseBoxesOptions = {}) => {
+export const useBoxes = ({ page = 1, limit = 10, enabled = true }: UseBoxesOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
@@ -22,6 +23,7 @@ export const useBoxes = ({ page = 1, limit = 10 }: UseBoxesOptions = {}) => {
   } = useQuery<FindBoxesResponsePrimitives>({
     queryKey: [...BOXES_QUERY_KEY, { page, limit }],
     queryFn: () => boxRepository.find({ filters: [], limit, offset }),
+    enabled,
   });
 
   const boxes = data?.data ?? [];

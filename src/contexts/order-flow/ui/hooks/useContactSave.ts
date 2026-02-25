@@ -11,7 +11,7 @@ interface UseContactSaveOptions {
 
 export const useContactSave = ({ form }: UseContactSaveOptions) => {
   const { user } = useAuth();
-  const { createCustomer, updateCustomer, isUpdating, isCreating } = useCustomers();
+  const { createCustomer, updateCustomer, isUpdating, isCreating } = useCustomers({ enabled: false });
 
   const saveContacts = async (): Promise<boolean> => {
     if (!user) {

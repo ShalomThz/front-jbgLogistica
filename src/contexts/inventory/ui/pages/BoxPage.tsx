@@ -15,16 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
+import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { BoxDetailDialog } from "../components/box/BoxDetailDialog";
 import { BoxFormDialog } from "../components/box/BoxFormDialog";
 import { BoxDeleteDialog } from "../components/box/BoxDeleteDialog";
 import { BoxStockDialog } from "../components/box/BoxStockDialog";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import { UNIT_SHORT_LABELS } from "../components/box/constants";
 
 type StockOperation = "add" | "subtract";
-
-const UNIT_LABELS: Record<string, string> = { cm: "cm", in: "in" };
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -180,8 +180,11 @@ export const BoxPage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  No se encontraron cajas.
+                <TableCell colSpan={7} className="h-48 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={boxIsometricSvg} alt="Sin cajas" className="w-24 h-auto opacity-60" />
+                    <p className="text-muted-foreground">No se encontraron cajas.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -189,7 +192,7 @@ export const BoxPage = () => {
                 <TableRow key={b.id} className={`cursor-pointer${b.stock === 0 ? " bg-destructive/5 hover:bg-destructive/10" : ""}`} onClick={() => setSelected(b)}>
                   <TableCell className="font-medium">{b.name}</TableCell>
                   <TableCell>{b.dimensions.length} x {b.dimensions.width} x {b.dimensions.height}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{UNIT_LABELS[b.dimensions.unit]}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{UNIT_SHORT_LABELS[b.dimensions.unit]}</TableCell>
                   <TableCell className="hidden md:table-cell text-right font-mono">${b.price.amount.toFixed(2)} {b.price.currency}</TableCell>
                   <TableCell className={`text-center font-medium${b.stock === 0 ? " text-destructive" : ""}`}>{b.stock === 0 ? "Sin stock" : b.stock}</TableCell>
                   <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">

@@ -4,20 +4,9 @@ import { ownershipTypes } from "@contexts/sales/domain/schemas/value-objects/Pac
 import { dimensionUnits } from "@contexts/shared/domain/schemas/Dimensions";
 import { weightUnits } from "@contexts/shared/domain/schemas/Weight";
 import { orderTypes } from "@contexts/sales/domain/schemas/order/OrderTypes";
-import { geolocationSchema } from "@contexts/shared/domain/schemas/address/Geolocation";
+import { addressSchema } from "@contexts/shared/domain/schemas/address/Address";
 
 // --- Contact with address (sender/recipient) ---
-
-const contactAddressSchema = z.object({
-  address1: z.string().min(1, "La dirección es requerida"),
-  address2: z.string(),
-  city: z.string().min(1, "La ciudad es requerida"),
-  province: z.string().min(1, "El estado es requerido"),
-  zip: z.string().min(1, "El código postal es requerido"),
-  country: z.string().min(2).max(2),
-  reference: z.string().min(1, "La referencia es requerida").max(25, "Máximo 25 caracteres"),
-  geolocation: geolocationSchema,
-});
 
 const contactWithAddressSchema = z.object({
   id: z.string().nullable(),
@@ -25,7 +14,7 @@ const contactWithAddressSchema = z.object({
   company: z.string().min(1, "La empresa es requerida"),
   email: z.string().min(1, "El correo es requerido").email("El correo no es válido"),
   phone: z.string().min(1, "El teléfono es requerido"),
-  address: contactAddressSchema,
+  address: addressSchema,
   save: z.boolean(),
 });
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Search, Store } from "lucide-react";
+import { Search, Store } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,30 +25,9 @@ import {
   type RegisterUserRequestPrimitives,
 } from "../../../application/user/RegisterUserRequest";
 import { useStores } from "../../../infrastructure/hooks/stores/useStores";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const ROLE_PRESETS: { name: string; permissions: Permission[] }[] = [
-  { name: "Administrador", permissions: [...PERMISSIONS] },
-  { name: "Vendedor", permissions: ["CAN_SELL", "CAN_MANAGE_CUSTOMERS"] },
-  { name: "Bodeguero", permissions: ["CAN_MANAGE_INVENTORY"] },
-  { name: "Auditor", permissions: ["CAN_VIEW_REPORTS"] },
-];
-
-const PERMISSION_LABELS: Record<Permission, string> = {
-  CAN_SELL: "Vender",
-  CAN_CREATE_HQ_ORDERS: "Crear órdenes HQ",
-  CAN_SELL_BOXES: "Vender cajas",
-  CAN_MANAGE_INVENTORY: "Gestionar inventario",
-  CAN_MANAGE_USERS: "Gestionar usuarios",
-  CAN_VIEW_REPORTS: "Ver reportes",
-  CAN_MANAGE_CUSTOMERS: "Gestionar clientes",
-  CAN_MANAGE_STORES: "Gestionar tiendas",
-  CAN_MANAGE_ZONES: "Gestionar zonas",
-  CAN_MANAGE_TARIFFS: "Gestionar tarifas",
-  CAN_SHIP: "Enviar paquetes",
-  CAN_MANAGE_WAREHOUSE: "Gestionar bodega",
-};
+import { ROLE_PRESETS, PERMISSION_LABELS } from "./constants";
+import { FormField } from "./FormField";
+import { PasswordToggle } from "./PasswordToggle";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -304,45 +283,5 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function FormField({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
-  );
-}
-
-function PasswordToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      tabIndex={-1}
-      aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
-      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-      onClick={onToggle}
-    >
-      {show ? (
-        <EyeOff className="size-4 text-muted-foreground" />
-      ) : (
-        <Eye className="size-4 text-muted-foreground" />
-      )}
-    </Button>
   );
 }

@@ -1,24 +1,52 @@
-import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@contexts/shared/shadcn";
+import { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@contexts/shared/shadcn";
 import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
-import type { CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
+import {
+  createTariffRequestSchema,
+  type CreateTariffRequestPrimitives,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { COUNTRIES } from "@contexts/shared/domain/schemas/address/Country";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 
-const COUNTRIES = [
-  { code: "MX", name: "México" },
-  { code: "US", name: "Estados Unidos" },
-  { code: "CA", name: "Canadá" },
-  { code: "ES", name: "España" },
-  { code: "CO", name: "Colombia" },
-];
+type FormInput = z.input<typeof createTariffRequestSchema>;
 
 const CURRENCIES = ["MXN", "USD", "EUR"];
+
+function getDefaults(tariff?: TariffListViewPrimitives | null): FormInput {
+  return {
+    originZoneId: tariff?.zone?.id ?? "",
+    destinationCountry: tariff?.destinationCountry ?? "",
+    boxId: tariff?.box?.id ?? "",
+    price: {
+      amount: tariff?.price.amount ?? 0,
+      currency: tariff?.price.currency ?? "MXN",
+    },
+  };
+}
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: CreateTariffRequest) => void;
+  onSave: (data: CreateTariffRequestPrimitives) => void;
   tariff?: TariffListViewPrimitives | null;
   isLoading?: boolean;
 }
@@ -27,31 +55,22 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: P
   const { zones } = useZones({ page: 1, limit: 100 });
   const { boxes } = useBoxes();
 
-  const [originZoneId, setOriginZoneId] = useState("");
-  const [destinationCountry, setDestinationCountry] = useState("");
-  const [boxId, setBoxId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("MXN");
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormInput>({
+    resolver: zodResolver(createTariffRequestSchema),
+    defaultValues: getDefaults(tariff),
+  });
 
   useEffect(() => {
-    if (open) {
-      setOriginZoneId(tariff?.zone?.id ?? "");
-      setDestinationCountry(tariff?.destinationCountry ?? "");
-      setBoxId(tariff?.box?.id ?? "");
-      setAmount(tariff?.price.amount?.toString() ?? "");
-      setCurrency(tariff?.price.currency ?? "MXN");
-    }
-  }, [open, tariff]);
+    if (open) reset(getDefaults(tariff));
+  }, [open, tariff, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      originZoneId,
-      destinationCountry,
-      boxId,
-      price: { amount: Number(amount), currency },
-    });
-  };
+  const onSubmit = handleSubmit((values) => onSave(values as CreateTariffRequestPrimitives));
 
   const isEdit = !!tariff;
 
@@ -62,47 +81,102 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: P
           <DialogTitle>{isEdit ? "Editar Tarifa" : "Crear Tarifa"}</DialogTitle>
           <DialogDescription>{isEdit ? "Modifica los datos de la tarifa." : "Ingresa los datos de la nueva tarifa."}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} noValidate className="space-y-4">
           <div className="space-y-2">
             <Label>Zona de origen</Label>
-            <Select value={originZoneId} onValueChange={setOriginZoneId} required>
-              <SelectTrigger><SelectValue placeholder="Seleccionar zona" /></SelectTrigger>
-              <SelectContent>
-                {zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="originZoneId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger aria-invalid={!!errors.originZoneId}>
+                    <SelectValue placeholder="Seleccionar zona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.originZoneId && (
+              <p className="text-xs text-destructive">{errors.originZoneId.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>País de destino</Label>
-            <Select value={destinationCountry} onValueChange={setDestinationCountry} required>
-              <SelectTrigger><SelectValue placeholder="Seleccionar país" /></SelectTrigger>
-              <SelectContent>
-                {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="destinationCountry"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger aria-invalid={!!errors.destinationCountry}>
+                    <SelectValue placeholder="Seleccionar país" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.destinationCountry && (
+              <p className="text-xs text-destructive">{errors.destinationCountry.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Caja</Label>
-            <Select value={boxId} onValueChange={setBoxId} required>
-              <SelectTrigger><SelectValue placeholder="Seleccionar caja" /></SelectTrigger>
-              <SelectContent>
-                {boxes.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="boxId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger aria-invalid={!!errors.boxId}>
+                    <SelectValue placeholder="Seleccionar caja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {boxes.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.boxId && (
+              <p className="text-xs text-destructive">{errors.boxId.message}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="amount">Precio</Label>
-              <Input id="amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required />
+              <Input
+                id="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                aria-invalid={!!errors.price?.amount}
+                {...register("price.amount", { valueAsNumber: true })}
+              />
+              {errors.price?.amount && (
+                <p className="text-xs text-destructive">{errors.price.amount.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Moneda</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="price.currency"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={!!errors.price?.currency}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.price?.currency && (
+                <p className="text-xs text-destructive">{errors.price.currency.message}</p>
+              )}
             </div>
           </div>
           <DialogFooter>

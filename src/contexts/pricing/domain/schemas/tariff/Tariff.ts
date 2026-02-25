@@ -19,3 +19,5 @@ export const createTariffRequestSchema = tariffSchema.omit({
   createdAt: true,
   updatedAt: true,
 });
+
+export type CreateTariffRequestPrimitives = z.infer<typeof createTariffRequestSchema>;

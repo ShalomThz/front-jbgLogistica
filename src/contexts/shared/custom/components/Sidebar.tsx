@@ -17,13 +17,10 @@ import {
   ShoppingCart,
   Warehouse,
   Package,
-  Route,
-  Truck,
   DollarSign,
   MapPin,
   Store,
   UserCog,
-  Shield,
 } from 'lucide-react';
 
 interface NavItem {
@@ -54,13 +51,6 @@ const navigation: NavSection[] = [
     ],
   },
   {
-    title: 'Logística',
-    items: [
-      { label: 'Rutas de Entrega', href: '/delivery-routes', icon: Route, permissions: ['CAN_SELL'] },
-      { label: 'Conductores', href: '/drivers', icon: Truck, permissions: ['CAN_SELL'] },
-    ],
-  },
-  {
     title: 'Operaciones',
     items: [
       { label: 'Tarifas', href: '/tariffs', icon: DollarSign, permissions: ['CAN_MANAGE_TARIFFS'] },
@@ -72,7 +62,6 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Tiendas', href: '/stores', icon: Store, permissions: ['CAN_MANAGE_STORES'] },
       { label: 'Usuarios', href: '/users', icon: UserCog, permissions: ['CAN_MANAGE_USERS'] },
-      { label: 'Roles', href: '/roles', icon: Shield, permissions: ['CAN_MANAGE_USERS'] },
     ],
   },
 ];

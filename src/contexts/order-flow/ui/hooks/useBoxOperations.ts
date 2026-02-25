@@ -8,10 +8,11 @@ interface UseBoxOperationsOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<NewOrderFormValues, any, any>;
   initialValues?: NewOrderFormValues;
+  enabled?: boolean;
 }
 
-export const useBoxOperations = ({ form, initialValues }: UseBoxOperationsOptions) => {
-  const { boxes, createBox, updateBox, isCreating, isUpdating } = useBoxes({ limit: 100 });
+export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBoxOperationsOptions) => {
+  const { boxes, createBox, updateBox, isCreating, isUpdating } = useBoxes({ limit: 100, enabled });
 
   const boxSyncedRef = useRef(false);
 

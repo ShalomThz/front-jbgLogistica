@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm, Controller, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
+import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
 import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
-import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
+import {
+  createStoreRequestSchema,
+  type CreateStoreRequestPrimitives,
+} from "@contexts/iam/application/store/CreateStoreRequest";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+
+type FormInput = z.input<typeof createStoreRequestSchema>;
 
 interface Props {
   open: boolean;
@@ -25,6 +34,29 @@ interface Props {
   onSave: (data: CreateStoreRequestPrimitives) => void;
   store?: StoreListViewPrimitives | null;
   isLoading?: boolean;
+}
+
+function getDefaults(store?: StoreListViewPrimitives | null): CreateStoreRequestPrimitives {
+  return {
+    name: store?.name ?? "",
+    zoneId: store?.zone.id ?? "",
+    phone: store?.phone ?? "",
+    contactEmail: store?.contactEmail ?? "",
+    address: {
+      address1: store?.address.address1 ?? "",
+      address2: store?.address.address2 ?? "",
+      city: store?.address.city ?? "",
+      province: store?.address.province ?? "",
+      zip: store?.address.zip ?? "",
+      country: store?.address.country ?? "MX",
+      reference: store?.address.reference ?? "",
+      geolocation: store?.address.geolocation ?? {
+        latitude: 0,
+        longitude: 0,
+        placeId: null,
+      },
+    },
+  };
 }
 
 export const StoreFormDialog = ({
@@ -35,57 +67,25 @@ export const StoreFormDialog = ({
   isLoading,
 }: Props) => {
   const { zones, isLoading: isLoadingZones } = useZones();
-  const [name, setName] = useState("");
-  const [zoneId, setZoneId] = useState("");
-  const [phone, setPhone] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [address1, setAddress1] = useState("");
-  const [address2, setAddress2] = useState("");
-  const [city, setCity] = useState("");
-  const [province, setProvince] = useState("");
-  const [zip, setZip] = useState("");
-  const [country, setCountry] = useState("MX");
-  const [reference, setReference] = useState("");
+
+  const form = useForm<FormInput>({
+    resolver: zodResolver(createStoreRequestSchema),
+    defaultValues: getDefaults(store),
+  });
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = form;
 
   useEffect(() => {
-    if (open) {
-      setName(store?.name ?? "");
-      setZoneId(store?.zone.id ?? "");
-      setPhone(store?.phone ?? "");
-      setContactEmail(store?.contactEmail ?? "");
-      setAddress1(store?.address.address1 ?? "");
-      setAddress2(store?.address.address2 ?? "");
-      setCity(store?.address.city ?? "");
-      setProvince(store?.address.province ?? "");
-      setZip(store?.address.zip ?? "");
-      setCountry(store?.address.country ?? "MX");
-      setReference(store?.address.reference ?? "");
-    }
-  }, [open, store]);
+    if (open) reset(getDefaults(store));
+  }, [open, store, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      name,
-      zoneId,
-      phone,
-      contactEmail,
-      address: {
-        address1,
-        address2,
-        city,
-        province,
-        zip,
-        country,
-        reference,
-        geolocation: store?.address.geolocation ?? {
-          latitude: 0,
-          longitude: 0,
-          placeId: null,
-        },
-      },
-    });
-  };
+  const onSubmit = handleSubmit((values) => onSave(values as CreateStoreRequestPrimitives));
 
   const isEdit = !!store;
 
@@ -100,139 +100,90 @@ export const StoreFormDialog = ({
               : "Ingresa los datos de la nueva tienda."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nombre</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Sucursal Centro"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+        <FormProvider {...form}>
+          <form onSubmit={onSubmit} noValidate className="space-y-4">
             <div className="space-y-2">
-              <Label>Zona</Label>
-              <Select value={zoneId} onValueChange={setZoneId} required disabled={isLoadingZones}>
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingZones ? "Cargando..." : "Seleccionar zona"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {zones.map((z) => (
-                    <SelectItem key={z.id} value={z.id}>
-                      {z.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono</Label>
+              <Label htmlFor="name">Nombre</Label>
               <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="5512345678"
-                required
+                id="name"
+                placeholder="Ej: Sucursal Centro"
+                aria-invalid={!!errors.name}
+                {...register("name")}
               />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="contactEmail">Email de contacto</Label>
-            <Input
-              id="contactEmail"
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="tienda@ejemplo.com"
-              required
-            />
-          </div>
-          <div className="border-t pt-4 space-y-3">
-            <h4 className="text-sm font-semibold">Dirección</h4>
-            <div className="space-y-2">
-              <Label htmlFor="address1">Dirección</Label>
-              <Input
-                id="address1"
-                value={address1}
-                onChange={(e) => setAddress1(e.target.value)}
-                placeholder="Calle y número"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address2">Dirección 2 (opcional)</Label>
-              <Input
-                id="address2"
-                value={address2}
-                onChange={(e) => setAddress2(e.target.value)}
-                placeholder="Colonia, interior, etc."
-              />
+              {errors.name && (
+                <p className="text-xs text-destructive">{errors.name.message}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="city">Ciudad</Label>
-                <Input
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  required
+                <Label>Zona</Label>
+                <Controller
+                  name="zoneId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isLoadingZones}
+                    >
+                      <SelectTrigger aria-invalid={!!errors.zoneId}>
+                        <SelectValue
+                          placeholder={isLoadingZones ? "Cargando..." : "Seleccionar zona"}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {zones.map((z) => (
+                          <SelectItem key={z.id} value={z.id}>
+                            {z.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
+                {errors.zoneId && (
+                  <p className="text-xs text-destructive">{errors.zoneId.message}</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="province">Estado</Label>
+                <Label htmlFor="phone">Teléfono</Label>
                 <Input
-                  id="province"
-                  value={province}
-                  onChange={(e) => setProvince(e.target.value)}
-                  required
+                  id="phone"
+                  placeholder="5512345678"
+                  aria-invalid={!!errors.phone}
+                  {...register("phone")}
                 />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="zip">Código Postal</Label>
-                <Input
-                  id="zip"
-                  value={zip}
-                  onChange={(e) => setZip(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>País</Label>
-                <Select value={country} onValueChange={setCountry} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar país" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MX">México</SelectItem>
-                    <SelectItem value="US">Estados Unidos</SelectItem>
-                    <SelectItem value="GT">Guatemala</SelectItem>
-                  </SelectContent>
-                </Select>
+                {errors.phone && (
+                  <p className="text-xs text-destructive">{errors.phone.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reference">Referencia (opcional)</Label>
+              <Label htmlFor="contactEmail">Email de contacto</Label>
               <Input
-                id="reference"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-                placeholder="Entre calles, cerca de..."
+                id="contactEmail"
+                type="email"
+                placeholder="tienda@ejemplo.com"
+                aria-invalid={!!errors.contactEmail}
+                {...register("contactEmail")}
               />
+              {errors.contactEmail && (
+                <p className="text-xs text-destructive">{errors.contactEmail.message}</p>
+              )}
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Guardando..." : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="border-t pt-4">
+              <AddressSection fieldPrefix="address" labelPrefix="Tienda" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </FormProvider>
       </DialogContent>
     </Dialog>
   );

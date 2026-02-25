@@ -47,6 +47,7 @@
   --animate-third: moveInCircle 40s linear infinite;
   --animate-fourth: moveHorizontal 40s ease infinite;
   --animate-fifth: moveInCircle 20s ease infinite;
+  --animate-blink: blink 1.2s ease-in-out infinite;
 }
 
 :root {
@@ -127,6 +128,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
   }
 }
 

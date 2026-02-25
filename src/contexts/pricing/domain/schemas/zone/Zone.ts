@@ -15,3 +15,5 @@ export const createZoneRequestSchema = zoneSchema.omit({
   createdAt: true,
   updatedAt: true,
 });
+
+export type CreateZoneRequestPrimitives = z.infer<typeof createZoneRequestSchema>;

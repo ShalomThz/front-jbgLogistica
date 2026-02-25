@@ -1,40 +1,37 @@
-import { useState, type FormEvent } from "react";
-import { loginRequestSchema } from "@contexts/iam/application/login/LoginRequest";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  loginRequestSchema,
+  type LoginRequestPrimitives,
+} from "@contexts/iam/application/login/LoginRequest";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { Button, Input, Label } from "@contexts/shared/shadcn";
 
 export const LoginForm = () => {
   const { login, loginError, isLoggingIn, resetLoginError } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setValidationError(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginRequestPrimitives>({
+    resolver: zodResolver(loginRequestSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const onSubmit = handleSubmit(async (data) => {
     resetLoginError();
-
-    const result = loginRequestSchema.safeParse({ email, password });
-
-    if (!result.success) {
-      const firstError = result.error.issues[0];
-      setValidationError(firstError.message);
-      return;
-    }
-
-    await login(result.data);
-  };
-
-  const error = validationError || loginError;
+    await login(data);
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-      {error && (
+    <form onSubmit={onSubmit} noValidate className="space-y-3 sm:space-y-4">
+      {loginError && (
         <div
           role="alert"
           className="p-2 sm:p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-xs sm:text-sm"
         >
-          {error}
+          {loginError}
         </div>
       )}
 
@@ -43,12 +40,14 @@ export const LoginForm = () => {
         <Input
           id="email"
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           disabled={isLoggingIn}
-          required
           placeholder="correo@ejemplo.com"
+          aria-invalid={!!errors.email}
+          {...register("email")}
         />
+        {errors.email && (
+          <p className="text-xs text-destructive">{errors.email.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -56,12 +55,14 @@ export const LoginForm = () => {
         <Input
           id="password"
           type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           disabled={isLoggingIn}
-          required
           placeholder="••••••••"
+          aria-invalid={!!errors.password}
+          {...register("password")}
         />
+        {errors.password && (
+          <p className="text-xs text-destructive">{errors.password.message}</p>
+        )}
       </div>
 
       <Button type="submit" disabled={isLoggingIn} className="w-full">

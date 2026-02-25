@@ -50,7 +50,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
   const [search, setSearch] = useState("");
   const [addressFormKey, setAddressFormKey] = useState(0);
 
-  const { customers: savedContacts, isLoading: isLoadingContacts } = useCustomers({ search });
+  const { customers: savedContacts, isLoading: isLoadingContacts } = useCustomers({ search, enabled: open });
 
   const contactId = useWatch({ control, name: `${prefix}.id` as "sender.id" | "recipient.id" });
 

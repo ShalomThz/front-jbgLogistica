@@ -9,9 +9,10 @@ interface UseCustomersOptions {
   page?: number;
   limit?: number;
   search?: string;
+  enabled?: boolean;
 }
 
-export const useCustomers = ({ page = 1, limit = 10, search = "" }: UseCustomersOptions = {}) => {
+export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true }: UseCustomersOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
@@ -27,7 +28,7 @@ export const useCustomers = ({ page = 1, limit = 10, search = "" }: UseCustomers
   } = useQuery<FindCustomersResponsePrimitives>({
     queryKey: [...CUSTOMERS_QUERY_KEY, { page, limit, search }],
     queryFn: () => customerRepository.find({ filters, limit, offset }),
-    enabled: search === "" || search.length >= 2,
+    enabled: enabled && (search === "" || search.length >= 2),
   });
 
   const customers = data?.data ?? [];

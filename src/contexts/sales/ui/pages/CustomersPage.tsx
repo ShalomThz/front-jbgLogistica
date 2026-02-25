@@ -21,9 +21,7 @@ import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
-import type { CreateCustomerRequest } from "../../domain/schemas/customer/Customer";
-
-type CreateCustomerData = CreateCustomerRequest
+import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -62,13 +60,13 @@ export const CustomersPage = () => {
     );
   });
 
-  const handleCreate = async (data: CreateCustomerData) => {
+  const handleCreate = async (data: CreateCustomerRequest) => {
     await createCustomer(data);
     setFormOpen(false);
     setPage(1);
   };
 
-  const handleUpdate = async (data: CreateCustomerData) => {
+  const handleUpdate = async (data: CreateCustomerRequest) => {
     if (!editCustomer) return;
     await updateCustomer(editCustomer.id, data);
     setEditCustomer(null);

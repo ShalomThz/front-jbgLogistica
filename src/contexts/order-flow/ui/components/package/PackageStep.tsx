@@ -13,7 +13,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { Building2, Info, User } from "lucide-react";
-import boxSizesSvg from "@/assets/box-sizes.svg";
+import boxIsometricSvg from "@/assets/box-isometric.svg";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { calculateVolumetricWeight, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
 import { BoxSelector } from "./BoxSelector";
@@ -97,7 +97,7 @@ export function PackageStep({ onEditContacts }: PackageStepProps) {
             {/* Sub-col 2: image + weight calculations */}
             <div className="flex flex-col gap-4">
               <div className="flex flex-col items-center justify-center gap-2 rounded-lg border bg-muted/30 py-6">
-                <img src={boxSizesSvg} alt="Caja" className="w-32 h-auto" />
+                <img src={boxIsometricSvg} alt="Caja" className="w-32 h-auto" />
                 <p className="text-sm text-muted-foreground">
                   {pkg.packageType || "Sin caja seleccionada"}
                 </p>
