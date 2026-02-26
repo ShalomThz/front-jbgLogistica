@@ -45,6 +45,18 @@ export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) =
     },
   });
 
+  const receiptMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const blob = await packageRepository.getReceipt(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recibo-${id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+  });
+
   return {
     packages,
     pagination,
@@ -65,5 +77,8 @@ export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) =
     deletePackage: (id: string) => deleteMutation.mutateAsync(id),
     isDeleting: deleteMutation.isPending,
     deleteError: deleteMutation.error?.message ?? null,
+
+    downloadReceipt: (id: string) => receiptMutation.mutateAsync(id),
+    isDownloadingReceipt: receiptMutation.isPending,
   };
 };

@@ -1,2 +1,2 @@
-export { httpClient } from "./httpClient";
+export { httpClient, httpClientBlob } from "./httpClient";
 export { parseApiError } from "./parseApiError";

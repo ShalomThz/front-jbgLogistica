@@ -1,27 +1,14 @@
 import {
-  Button,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Input,
   Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { ChevronsUpDown, Check } from "lucide-react";
-import { useState } from "react";
 import { useFormContext, useWatch, Controller, type FieldErrors } from "react-hook-form";
-import { cn } from "@contexts/shared/shadcn/lib/utils";
-import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
+import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
 import { MEXICO_STATES } from "@contexts/shared/domain/catalogs/MexicoStates";
 
 interface AddressFormProps {
@@ -43,11 +30,6 @@ function getFieldError(errors: FieldErrors, path: string): string | undefined {
 export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: AddressFormProps) {
   const { register, setValue, control, formState: { errors } } = useFormContext();
 
-  const [countryOpen, setCountryOpen] = useState(false);
-  const [countrySearch, setCountrySearch] = useState("");
-
-  const { countries } = useCountries({ search: countrySearch });
-
   const country = useWatch({ control, name: `${fieldPrefix}.country` });
   const province = useWatch({ control, name: `${fieldPrefix}.province` });
 
@@ -65,61 +47,16 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
         <Controller
           control={control}
           name={`${fieldPrefix}.country`}
-          render={({ field }) => {
-            const selected = countries.find((c) => c.code === field.value);
-            return (
-              <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={countryOpen}
-                    className="w-full justify-between font-normal"
-                  >
-                    {selected
-                      ? <span className="truncate">{selected.name}</span>
-                      : <span className="text-muted-foreground">Seleccionar país</span>
-                    }
-                    <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="Buscar país..."
-                      onValueChange={setCountrySearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>Sin resultados</CommandEmpty>
-                      <CommandGroup>
-                        {countries.map((c) => (
-                          <CommandItem
-                            key={c.code}
-                            value={c.code}
-                            onSelect={() => {
-                              field.onChange(c.code);
-                              setValue(`${fieldPrefix}.province`, "");
-                              setCountryOpen(false);
-                              setCountrySearch("");
-                              onFieldCommit();
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 size-4",
-                                field.value === c.code ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {c.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            );
-          }}
+          render={({ field }) => (
+            <CountrySelect
+              value={field.value}
+              onChange={(code) => {
+                field.onChange(code);
+                setValue(`${fieldPrefix}.province`, "");
+                onFieldCommit();
+              }}
+            />
+          )}
         />
       </div>
       <div>

@@ -74,6 +74,8 @@ export const WarehousePage = () => {
     isUpdating,
     deletePackage,
     isDeleting,
+    downloadReceipt,
+    isDownloadingReceipt,
   } = usePackages({ page, limit });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -324,6 +326,8 @@ export const WarehousePage = () => {
         onClose={() => setSelected(null)}
         onEdit={handleEditFromDetail}
         onDelete={handleDeleteFromDetail}
+        onDownloadReceipt={downloadReceipt}
+        isDownloadingReceipt={isDownloadingReceipt}
       />
       <CreatePackageDialog
         open={createOpen}

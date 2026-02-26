@@ -125,7 +125,7 @@ export const StoresPage = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[130px]">
+          <SelectTrigger className="w-full sm:w-32.5">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

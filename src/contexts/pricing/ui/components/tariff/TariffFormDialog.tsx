@@ -23,7 +23,7 @@ import {
   createTariffRequestSchema,
   type CreateTariffRequestPrimitives,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
-import { COUNTRIES } from "@contexts/shared/domain/schemas/address/Country";
+import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 
@@ -46,7 +46,7 @@ function getDefaults(tariff?: TariffListViewPrimitives | null): FormInput {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: CreateTariffRequestPrimitives) => void;
+  onSave: (data: CreateTariffRequestPrimitives) => Promise<void>;
   tariff?: TariffListViewPrimitives | null;
   isLoading?: boolean;
 }
@@ -70,7 +70,9 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: P
     if (open) reset(getDefaults(tariff));
   }, [open, tariff, reset]);
 
-  const onSubmit = handleSubmit((values) => onSave(values as CreateTariffRequestPrimitives));
+  const onSubmit = handleSubmit(async (values) => {
+    await onSave(values as CreateTariffRequestPrimitives);
+  });
 
   const isEdit = !!tariff;
 
@@ -108,14 +110,7 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: P
               name="destinationCountry"
               control={control}
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger aria-invalid={!!errors.destinationCountry}>
-                    <SelectValue placeholder="Seleccionar país" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <CountrySelect value={field.value} onChange={field.onChange} />
               )}
             />
             {errors.destinationCountry && (

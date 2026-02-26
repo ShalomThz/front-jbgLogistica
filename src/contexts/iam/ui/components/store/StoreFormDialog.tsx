@@ -1,15 +1,17 @@
-import { useEffect } from "react";
-import { useForm, Controller, FormProvider } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { z } from "zod";
 import {
+  createStoreRequestSchema,
+  type CreateStoreRequestPrimitives,
+} from "@contexts/iam/application/store/CreateStoreRequest";
+import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+import {
+  Button,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  Button,
+  DialogHeader,
+  DialogTitle,
   Input,
   Label,
   Select,
@@ -19,14 +21,9 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
-import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
-import {
-  createStoreRequestSchema,
-  type CreateStoreRequestPrimitives,
-} from "@contexts/iam/application/store/CreateStoreRequest";
-import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
-
-type FormInput = z.input<typeof createStoreRequestSchema>;
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 
 interface Props {
   open: boolean;
@@ -68,7 +65,7 @@ export const StoreFormDialog = ({
 }: Props) => {
   const { zones, isLoading: isLoadingZones } = useZones();
 
-  const form = useForm<FormInput>({
+  const form = useForm<CreateStoreRequestPrimitives>({
     resolver: zodResolver(createStoreRequestSchema),
     defaultValues: getDefaults(store),
   });

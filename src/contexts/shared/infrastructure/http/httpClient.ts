@@ -34,3 +34,32 @@ export const httpClient = async <T>(
 
   return response.json();
 };
+
+export const httpClientBlob = async (
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<Blob> => {
+  const token = getToken();
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Error de servidor" }));
+    throw new Error(error.error || error.message || `HTTP ${response.status}`);
+  }
+
+  return response.blob();
+};

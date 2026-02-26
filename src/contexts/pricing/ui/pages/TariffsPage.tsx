@@ -22,15 +22,18 @@ import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
 import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
 import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
-import { COUNTRIES } from "@contexts/shared/domain/schemas/address/Country";
-
-const COUNTRY_NAMES: Record<string, string> = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
+import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const TariffsPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
+
+  const { countries } = useCountries();
+  const countryNames: Record<string, string> = Object.fromEntries(
+    countries.map((c) => [c.code, c.name]),
+  );
 
   const {
     tariffs,
@@ -57,7 +60,7 @@ export const TariffsPage = () => {
     const matchesSearch =
       searchQuery === "" ||
       t.zone.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (COUNTRY_NAMES[t.destinationCountry] ?? t.destinationCountry).toLowerCase().includes(searchQuery.toLowerCase());
+      (countryNames[t.destinationCountry] ?? t.destinationCountry).toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCountry = countryFilter === "all" || t.destinationCountry === countryFilter;
     return matchesSearch && matchesCountry;
   });
@@ -129,7 +132,7 @@ export const TariffsPage = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            {COUNTRIES.map((c) => (
+            {countries.map((c) => (
               <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
             ))}
           </SelectContent>
@@ -175,7 +178,7 @@ export const TariffsPage = () => {
               filtered.map((t) => (
                 <TableRow key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
                   <TableCell className="font-medium">{t.zone.name}</TableCell>
-                  <TableCell>{COUNTRY_NAMES[t.destinationCountry] ?? t.destinationCountry}</TableCell>
+                  <TableCell>{countryNames[t.destinationCountry] ?? t.destinationCountry}</TableCell>
                   <TableCell className="hidden sm:table-cell text-sm">{t.box.name}</TableCell>
                   <TableCell className="text-right font-mono">
                     ${t.price.amount.toFixed(2)} {t.price.currency}

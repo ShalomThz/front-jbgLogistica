@@ -7,7 +7,7 @@ import type {
   WarehousePackage,
 } from "@/contexts/warehouse/domain/WarehousePackageSchema";
 import { packageListViewSchema, warehousePackageSchema } from "@/contexts/warehouse/domain/WarehousePackageSchema";
-import { httpClient } from "@contexts/shared/infrastructure/http";
+import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http";
 
 export const packageRepository = {
   find: async (
@@ -45,5 +45,9 @@ export const packageRepository = {
     await httpClient<unknown>(`/package/${id}`, {
       method: "DELETE",
     });
+  },
+
+  getReceipt: async (id: string): Promise<Blob> => {
+    return httpClientBlob(`/package/${id}/receipt`);
   },
 };

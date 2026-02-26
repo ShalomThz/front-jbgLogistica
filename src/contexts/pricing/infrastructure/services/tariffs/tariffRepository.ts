@@ -5,7 +5,7 @@ import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTar
 import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
-export type UpdateTariffRequest = Partial<CreateTariffRequest>;
+export type UpdateTariffRequest = CreateTariffRequest;
 
 export const tariffRepository = {
   find: async (

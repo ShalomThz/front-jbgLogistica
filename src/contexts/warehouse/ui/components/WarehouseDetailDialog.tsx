@@ -9,7 +9,7 @@ import {
   DialogTitle,
   Separator,
 } from "@contexts/shared/shadcn";
-import { Package, Pencil, Trash2 } from "lucide-react";
+import { Download, Package, Pencil, Trash2 } from "lucide-react";
 import type {
   PackageListViewPrimitives,
   WarehousePackageStatus,
@@ -49,9 +49,11 @@ interface Props {
   onClose: () => void;
   onEdit?: (pkg: PackageListViewPrimitives) => void;
   onDelete?: (pkg: PackageListViewPrimitives) => void;
+  onDownloadReceipt?: (id: string) => void;
+  isDownloadingReceipt?: boolean;
 }
 
-export const WarehouseDetailDialog = ({ pkg, open, onClose, onEdit, onDelete }: Props) => {
+export const WarehouseDetailDialog = ({ pkg, open, onClose, onEdit, onDelete, onDownloadReceipt, isDownloadingReceipt }: Props) => {
   if (!pkg) return null;
 
   const createdDate = new Date(pkg.createdAt).toLocaleDateString("es-MX", {
@@ -116,22 +118,31 @@ export const WarehouseDetailDialog = ({ pkg, open, onClose, onEdit, onDelete }: 
             </div>
           </div>
         </div>
-        {(onEdit || onDelete) && (
-          <DialogFooter>
-            {onDelete && (
-              <Button variant="outline" size="sm" onClick={() => onDelete(pkg)}>
-                <Trash2 className="mr-1.5 size-4" />
-                Eliminar
-              </Button>
-            )}
-            {onEdit && (
-              <Button size="sm" onClick={() => onEdit(pkg)}>
-                <Pencil className="mr-1.5 size-4" />
-                Editar
-              </Button>
-            )}
-          </DialogFooter>
-        )}
+        <DialogFooter>
+          {onDownloadReceipt && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDownloadReceipt(pkg.id)}
+              disabled={isDownloadingReceipt}
+            >
+              <Download className="mr-1.5 size-4" />
+              {isDownloadingReceipt ? "Generando..." : "Descargar recibo"}
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="outline" size="sm" onClick={() => onDelete(pkg)}>
+              <Trash2 className="mr-1.5 size-4" />
+              Eliminar
+            </Button>
+          )}
+          {onEdit && (
+            <Button size="sm" onClick={() => onEdit(pkg)}>
+              <Pencil className="mr-1.5 size-4" />
+              Editar
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
