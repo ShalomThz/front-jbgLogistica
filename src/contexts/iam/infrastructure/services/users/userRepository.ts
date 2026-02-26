@@ -5,12 +5,7 @@ import type { FindUsersRequestPrimitives } from "@contexts/iam/application/user/
 import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
 import { findUsersResponseSchema } from "@contexts/iam/application/user/FindUsersResponse";
 import { httpClient } from "@contexts/shared/infrastructure/http";
-
-export type UpdateUserRequest = Partial<
-  Omit<RegisterUserRequestPrimitives, "password">
-> & {
-  password?: string;
-};
+import type { EditUserRequest } from "../../../application/user/EditUserRequest";
 
 export const userRepository = {
   find: async (
@@ -40,7 +35,7 @@ export const userRepository = {
 
   update: async (
     id: string,
-    user: UpdateUserRequest,
+    user: EditUserRequest,
   ): Promise<UserPrimitives> => {
     const data = await httpClient<unknown>(`/user/${id}`, {
       method: "PUT",

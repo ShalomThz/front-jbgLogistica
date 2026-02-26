@@ -21,10 +21,10 @@ import { UserDetailDialog } from "../components/user/UserDetailDialog";
 import { CreateUserDialog } from "../components/user/CreateUserDialog";
 import { EditUserDialog } from "../components/user/EditUserDialog";
 import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
-import type { UpdateUserRequest } from "@contexts/iam/infrastructure/services/users/userRepository";
 import { UserDeleteDialog } from "../components/user/UserDeleteDialog";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { EditUserRequest } from "../../application/user/EditUserRequest";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -77,7 +77,7 @@ export const UsersPage = () => {
     setPage(1);
   };
 
-  const handleUpdate = async (data: UpdateUserRequest) => {
+  const handleUpdate = async (data: EditUserRequest) => {
     if (!editUser) return;
     await updateUser(editUser.id, data);
     setEditUser(null);

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { userRepository, type UpdateUserRequest } from "@contexts/iam/infrastructure/services/users/userRepository";
+import { userRepository } from "@contexts/iam/infrastructure/services/users/userRepository";
 import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
+import type { EditUserRequest } from "../../../application/user/EditUserRequest";
 
 export const USERS_QUERY_KEY = ["users"];
 
@@ -36,7 +37,7 @@ export const useUsers = ({ page = 1, limit = 10 }: UseUsersOptions = {}) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateUserRequest }) =>
+    mutationFn: ({ id, data }: { id: string; data: EditUserRequest }) =>
       userRepository.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY });
@@ -63,7 +64,7 @@ export const useUsers = ({ page = 1, limit = 10 }: UseUsersOptions = {}) => {
     isCreating: createMutation.isPending,
     createError: createMutation.error?.message ?? null,
 
-    updateUser: (id: string, data: UpdateUserRequest) =>
+    updateUser: (id: string, data: EditUserRequest) =>
       updateMutation.mutateAsync({ id, data }),
     isUpdating: updateMutation.isPending,
     updateError: updateMutation.error?.message ?? null,

@@ -24,28 +24,28 @@ import { PERMISSIONS, userRoleSchema, type Permission } from "../../../domain/sc
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
 import { nameSchema } from "../../../domain/schemas/user/User";
 import { emailSchema } from "@contexts/shared/domain/schemas/Email";
-import type { UpdateUserRequest } from "../../../infrastructure/services/users/userRepository";
 import { useStores } from "../../../infrastructure/hooks/stores/useStores";
 import { ROLE_PRESETS, PERMISSION_LABELS } from "./constants";
 import { FormField } from "./FormField";
 import { PasswordToggle } from "./PasswordToggle";
+import type { EditUserRequest } from "../../../application/user/EditUserRequest";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const editFormSchema = z.object({
   name: nameSchema,
   email: emailSchema,
-  storeId: z.string().min(1, "Debes seleccionar una tienda"),
-  isActive: z.boolean(),
   role: userRoleSchema,
-  password: z
+  isActive: z.boolean(),
+  newPassword: z
     .string()
     .min(8, "La contraseña debe tener al menos 8 caracteres")
     .optional()
     .or(z.literal(""))
     .and(z.string()
-        .max(100, "La contraseña no puede exceder los 100 caracteres")
-    )
+      .max(100, "La contraseña no puede exceder los 100 caracteres")
+    ),
+  storeId: z.string().min(1, "Debes seleccionar una tienda"),
 });
 
 type FormValues = z.infer<typeof editFormSchema>;
@@ -56,7 +56,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   user: UserListViewPrimitives;
-  onSave: (data: UpdateUserRequest) => void;
+  onSave: (data: EditUserRequest) => void;
   isLoading?: boolean;
 };
 
@@ -69,7 +69,7 @@ function getDefaults(user: UserListViewPrimitives): FormValues {
     storeId: user.store.id,
     isActive: user.isActive,
     role: user.role,
-    password: "",
+    newPassword: "",
   };
 }
 
@@ -127,9 +127,8 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
     setValue("role", { name: watchedRole?.name ?? "", permissions: next }, { shouldValidate: true });
   };
 
-  const onSubmit = handleSubmit(({ password, ...rest }) => {
-    const payload: UpdateUserRequest = { ...rest };
-    if (password) payload.password = password;
+  const onSubmit = handleSubmit(({ ...rest }) => {
+    const payload: EditUserRequest = { ...rest };
     onSave(payload);
   });
 
@@ -171,16 +170,16 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
           {/* ── Password ── */}
           <FormField
             label="Nueva contraseña (dejar vacío para no cambiar)"
-            error={errors.password?.message}
+            error={errors.newPassword?.message}
           >
             <div className="relative">
               <Input
-                id="password"
+                id="newPassword"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                aria-invalid={!!errors.password}
+                aria-invalid={!!errors.newPassword}
                 className="pr-10"
-                {...register("password")}
+                {...register("newPassword")}
               />
               <PasswordToggle show={showPassword} onToggle={() => setShowPassword((p) => !p)} />
             </div>
