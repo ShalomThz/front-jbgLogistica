@@ -97,7 +97,7 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
       store.id.toLowerCase().includes(storeSearch.toLowerCase())
   );
 
-  const handleRoleChange = (name: string) => {
+  const handlePresetChange = (name: string) => {
     const preset = ROLE_PRESETS.find((r) => r.name === name);
     setValue("role", { name, permissions: preset?.permissions ?? [] }, { shouldValidate: true });
   };
@@ -217,20 +217,29 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
             />
           </FormField>
 
-          {/* ── Role preset ── */}
-          <FormField label="Rol">
-            <Select value={watchedRole?.name ?? ""} onValueChange={handleRoleChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar rol" />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLE_PRESETS.map((role) => (
-                  <SelectItem key={role.name} value={role.name}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* ── Role name ── */}
+          <FormField label="Nombre del rol *" error={(errors.role as { name?: { message?: string } } | undefined)?.name?.message}>
+            <div className="flex gap-2">
+              <Input
+                id="role.name"
+                type="text"
+                placeholder="Ej. Admin, Vendedor..."
+                aria-invalid={!!(errors.role as { name?: unknown } | undefined)?.name}
+                {...register("role.name")}
+              />
+              <Select onValueChange={handlePresetChange}>
+                <SelectTrigger className="w-40 shrink-0">
+                  <SelectValue placeholder="Preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_PRESETS.map((role) => (
+                    <SelectItem key={role.name} value={role.name}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </FormField>
 
           {/* ── Permissions ── */}

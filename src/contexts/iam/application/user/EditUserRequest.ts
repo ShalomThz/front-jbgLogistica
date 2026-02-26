@@ -11,4 +11,4 @@ export const editUserRequestSchema = z
     storeId: userSchema.shape.storeId.optional(),
   });
 
-export type   EditUserRequest = z.infer<typeof editUserRequestSchema>;
+export type EditUserRequest = z.infer<typeof editUserRequestSchema>;

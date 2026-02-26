@@ -25,12 +25,11 @@ export const userRepository = {
 
   create: async (
     user: RegisterUserRequestPrimitives,
-  ): Promise<UserPrimitives> => {
-    const data = await httpClient<unknown>("/user", {
+  ): Promise<void> => {
+    await httpClient<unknown>("/user", {
       method: "POST",
       body: JSON.stringify(user),
     });
-    return userSchema.parse(data);
   },
 
   update: async (

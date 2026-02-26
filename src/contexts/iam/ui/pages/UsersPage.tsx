@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
@@ -25,6 +26,7 @@ import { UserDeleteDialog } from "../components/user/UserDeleteDialog";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 import type { EditUserRequest } from "../../application/user/EditUserRequest";
+import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -57,8 +59,8 @@ export const UsersPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selected, setSelected] = useState<UserListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editUser, setEditUser] = useState<UserListViewPrimitives| null>(null);
-  const [deleteUserDialog, setDeleteUserDialog] = useState<UserListViewPrimitives| null>(null);
+  const [editUser, setEditUser] = useState<UserListViewPrimitives | null>(null);
+  const [deleteUserDialog, setDeleteUserDialog] = useState<UserListViewPrimitives | null>(null);
 
   const filtered = users.filter((u) => {
     const matchesSearch =
@@ -72,15 +74,23 @@ export const UsersPage = () => {
   });
 
   const handleCreate = async (data: RegisterUserRequestPrimitives) => {
-    await createUser(data);
-    setFormOpen(false);
-    setPage(1);
+    try {
+      await createUser(data);
+      setFormOpen(false);
+      setPage(1);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleUpdate = async (data: EditUserRequest) => {
     if (!editUser) return;
-    await updateUser(editUser.id, data);
-    setEditUser(null);
+    try {
+      await updateUser(editUser.id, data);
+      setEditUser(null);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleDelete = async () => {

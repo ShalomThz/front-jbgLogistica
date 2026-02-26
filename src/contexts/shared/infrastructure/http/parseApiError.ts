@@ -16,6 +16,11 @@
 type Lang = "es" | "en" | "pt";
 
 const errorTranslations: Record<string, Record<Lang, string>> = {
+    EMAIL_ALREADY_TAKEN: {
+        es: 'El correo electrónico ya está en uso',
+        en: 'Email is already taken',
+        pt: 'O e-mail já está em uso',
+    },
     BOX_NAME_ALREADY_EXISTS: {
         es: 'Ya existe una caja con ese nombre',
         en: 'A box with that name already exists',
@@ -40,6 +45,7 @@ const errorTranslations: Record<string, Record<Lang, string>> = {
 
 // ─── Interim: map English prose → code while backend returns strings ──────────
 const messageFallbacks: Array<{ pattern: RegExp; code: string }> = [
+    { pattern: /email.*already.*taken|already.*taken.*email/i, code: 'EMAIL_ALREADY_TAKEN' },
     { pattern: /already exists/i, code: 'BOX_NAME_ALREADY_EXISTS' },
     { pattern: /box not found/i, code: 'BOX_NOT_FOUND' },
     { pattern: /package not found/i, code: 'PACKAGE_NOT_FOUND' },

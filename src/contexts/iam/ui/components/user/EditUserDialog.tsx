@@ -1,16 +1,12 @@
-import { useEffect, useState } from "react";
-import { useForm, useWatch, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Search, Store } from "lucide-react";
 import {
+  Button,
+  Checkbox,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  Button,
+  DialogHeader,
+  DialogTitle,
   Input,
   Label,
   Select,
@@ -18,39 +14,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Checkbox,
 } from "@contexts/shared/shadcn";
-import { PERMISSIONS, userRoleSchema, type Permission } from "../../../domain/schemas/user/UserRole";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Search, Store } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { editUserRequestSchema, type EditUserRequest } from "../../../application/user/EditUserRequest";
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
-import { nameSchema } from "../../../domain/schemas/user/User";
-import { emailSchema } from "@contexts/shared/domain/schemas/Email";
+import { PERMISSIONS, type Permission } from "../../../domain/schemas/user/UserRole";
 import { useStores } from "../../../infrastructure/hooks/stores/useStores";
-import { ROLE_PRESETS, PERMISSION_LABELS } from "./constants";
+import { PERMISSION_LABELS, ROLE_PRESETS } from "./constants";
 import { FormField } from "./FormField";
 import { PasswordToggle } from "./PasswordToggle";
-import type { EditUserRequest } from "../../../application/user/EditUserRequest";
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
-const editFormSchema = z.object({
-  name: nameSchema,
-  email: emailSchema,
-  role: userRoleSchema,
-  isActive: z.boolean(),
-  newPassword: z
-    .string()
-    .min(8, "La contraseña debe tener al menos 8 caracteres")
-    .optional()
-    .or(z.literal(""))
-    .and(z.string()
-      .max(100, "La contraseña no puede exceder los 100 caracteres")
-    ),
-  storeId: z.string().min(1, "Debes seleccionar una tienda"),
-});
-
-type FormValues = z.infer<typeof editFormSchema>;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
   open: boolean;
@@ -62,14 +37,14 @@ type Props = {
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
 
-function getDefaults(user: UserListViewPrimitives): FormValues {
+function getDefaults(user: UserListViewPrimitives): EditUserRequest {
   return {
     name: user.name,
     email: user.email,
     storeId: user.store.id,
     isActive: user.isActive,
     role: user.role,
-    newPassword: "",
+    newPassword: undefined,
   };
 }
 
@@ -86,13 +61,12 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
     handleSubmit,
     setValue,
     reset,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(editFormSchema),
+    formState: { errors, dirtyFields },
+  } = useForm<EditUserRequest>({
+    resolver: zodResolver(editUserRequestSchema),
     defaultValues: getDefaults(user),
   });
 
-  // Reset when dialog opens or user changes
   useEffect(() => {
     if (open) reset(getDefaults(user));
   }, [open, user.id, reset]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -115,20 +89,32 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
       store.id.toLowerCase().includes(storeSearch.toLowerCase())
   );
 
-  const handleRoleChange = (name: string) => {
+  const handlePresetChange = (name: string) => {
     const preset = ROLE_PRESETS.find((r) => r.name === name);
-    setValue("role", { name, permissions: preset?.permissions ?? [] }, { shouldValidate: true });
+    setValue("role", { name, permissions: preset?.permissions ?? [] }, { shouldDirty: true, shouldValidate: true });
   };
 
   const togglePermission = (permission: Permission) => {
     const next = watchedPermissions.includes(permission)
       ? watchedPermissions.filter((p) => p !== permission)
       : [...watchedPermissions, permission];
-    setValue("role", { name: watchedRole?.name ?? "", permissions: next }, { shouldValidate: true });
+    setValue("role", { name: watchedRole?.name ?? "", permissions: next }, { shouldDirty: true, shouldValidate: true });
   };
 
-  const onSubmit = handleSubmit(({ ...rest }) => {
-    const payload: EditUserRequest = { ...rest };
+  const onSubmit = handleSubmit((data) => {
+    const payload: EditUserRequest = {};
+
+    if (dirtyFields.name) payload.name = data.name;
+    if (dirtyFields.email) payload.email = data.email;
+    if (dirtyFields.storeId) payload.storeId = data.storeId;
+    if (dirtyFields.isActive) payload.isActive = data.isActive;
+    const isRoleDirty = !!(dirtyFields.role?.name ||
+      (Array.isArray(dirtyFields.role?.permissions)
+        ? dirtyFields.role.permissions.some(Boolean)
+        : dirtyFields.role?.permissions));
+    if (isRoleDirty) payload.role = data.role;
+    if (dirtyFields.newPassword && data.newPassword) payload.newPassword = data.newPassword;
+
     onSave(payload);
   });
 
@@ -179,7 +165,9 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
                 autoComplete="new-password"
                 aria-invalid={!!errors.newPassword}
                 className="pr-10"
-                {...register("newPassword")}
+                {...register("newPassword", {
+                  setValueAs: (v: string) => (v === "" ? undefined : v),
+                })}
               />
               <PasswordToggle show={showPassword} onToggle={() => setShowPassword((p) => !p)} />
             </div>
@@ -241,20 +229,29 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
             />
           </FormField>
 
-          {/* ── Role preset ── */}
-          <FormField label="Rol">
-            <Select value={watchedRole?.name ?? ""} onValueChange={handleRoleChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar rol" />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLE_PRESETS.map((role) => (
-                  <SelectItem key={role.name} value={role.name}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* ── Role name ── */}
+          <FormField label="Nombre del rol" error={(errors.role as { name?: { message?: string } } | undefined)?.name?.message}>
+            <div className="flex gap-2">
+              <Input
+                id="role.name"
+                type="text"
+                placeholder="Ej. Admin, Vendedor..."
+                aria-invalid={!!(errors.role as { name?: unknown } | undefined)?.name}
+                {...register("role.name")}
+              />
+              <Select onValueChange={handlePresetChange}>
+                <SelectTrigger className="w-40 shrink-0">
+                  <SelectValue placeholder="Preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_PRESETS.map((role) => (
+                    <SelectItem key={role.name} value={role.name}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </FormField>
 
           {/* ── Permissions ── */}
@@ -286,7 +283,7 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="isActive"
-                  checked={field.value ?? true}
+                  checked={field.value ?? false}
                   onCheckedChange={(checked) => field.onChange(!!checked)}
                 />
                 <Label htmlFor="isActive" className="cursor-pointer">
