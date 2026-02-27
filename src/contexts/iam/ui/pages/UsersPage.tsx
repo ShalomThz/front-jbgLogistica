@@ -67,6 +67,7 @@ export const UsersPage = () => {
   const filtered = users.filter((u) => {
     const matchesSearch =
       searchQuery === "" ||
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.role.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
@@ -139,7 +140,7 @@ export const UsersPage = () => {
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por email o rol..."
+            placeholder="Buscar por nombre, email o rol..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -178,7 +179,7 @@ export const UsersPage = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Email</TableHead>
+              <TableHead>Usuario</TableHead>
               <TableHead>Rol</TableHead>
               <TableHead className="hidden md:table-cell">Tienda</TableHead>
               <TableHead className="hidden sm:table-cell text-right">
@@ -205,7 +206,10 @@ export const UsersPage = () => {
                   className="cursor-pointer"
                   onClick={() => setSelected(u)}
                 >
-                  <TableCell className="font-medium">{u.email}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{u.name}</div>
+                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                  </TableCell>
                   <TableCell>{u.role.name}</TableCell>
                   <TableCell className="hidden md:table-cell text-sm">
                     {u.store.name}
