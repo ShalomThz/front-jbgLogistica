@@ -1,11 +1,16 @@
 import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Search, Users } from "lucide-react";
 import {
   Button,
   Input,
   Badge,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   Table,
   TableHeader,
   TableBody,
@@ -42,6 +47,7 @@ export const OrdersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
+  const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
 
   const filtered = orders.filter((order) => {
     const query = searchQuery.toLowerCase();
@@ -73,10 +79,7 @@ export const OrdersPage = () => {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button
-            onMouseEnter={() => import("@contexts/order-flow/ui/pages/NewOrderPage")}
-            onClick={() => startTransition(() => navigate("/orders/new"))}
-          >
+          <Button onClick={() => setShowNewOrderDialog(true)}>
             <Plus className="size-4" />
             Crear Orden
           </Button>
@@ -215,6 +218,55 @@ export const OrdersPage = () => {
         open={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
       />
+
+      <Dialog open={showNewOrderDialog} onOpenChange={setShowNewOrderDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nueva Orden</DialogTitle>
+            <DialogDescription>
+              Selecciona el tipo de orden que deseas crear
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              className="cursor-pointer rounded-lg border p-4 text-left transition-all hover:shadow-md hover:border-primary/50"
+              onClick={() => {
+                setShowNewOrderDialog(false);
+                startTransition(() => navigate("/orders/new/hq"));
+              }}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <Building2 className="size-5 text-primary" />
+                </div>
+                <span className="font-semibold">HQ (Matriz)</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Orden completa con cotización de envío, peso, producto y guía.
+              </p>
+            </button>
+            <button
+              type="button"
+              className="cursor-pointer rounded-lg border p-4 text-left transition-all hover:shadow-md hover:border-primary/50"
+              onClick={() => {
+                setShowNewOrderDialog(false);
+                startTransition(() => navigate("/orders/new/partner"));
+              }}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="rounded-lg bg-primary/10 p-2">
+                  <Users className="size-5 text-primary" />
+                </div>
+                <span className="font-semibold">Partner (Socio)</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Orden simplificada: contactos, dimensiones y creación directa.
+              </p>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

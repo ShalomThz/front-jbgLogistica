@@ -1,34 +1,33 @@
 import { useState } from "react";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { useOrderFlowForm, type OrderStep } from "./useOrderFlowForm";
+import { useHQOrderFlowForm, type HQOrderStep } from "./useHQOrderFlowForm";
 import { useContactSave } from "./useContactSave";
 import { useBoxOperations } from "./useBoxOperations";
-import { useOrderSubmission } from "./useOrderSubmission";
+import { useHQOrderSubmission } from "./useHQOrderSubmission";
 
-const STEPS: { key: OrderStep; label: string }[] = [
+const STEPS: { key: HQOrderStep; label: string }[] = [
   { key: "contact", label: "Contactos" },
   { key: "package", label: "Paquete" },
   { key: "rate", label: "Cotización" },
 ];
 
-interface UseOrderFlowOptions {
+interface UseHQOrderFlowOptions {
   initialValues?: NewOrderFormValues;
   orderId?: string;
 }
 
-export const useOrderFlow = ({ initialValues, orderId }: UseOrderFlowOptions = {}) => {
-  const [step, setStep] = useState<OrderStep>("contact");
+export const useHQOrderFlow = ({ initialValues, orderId }: UseHQOrderFlowOptions = {}) => {
+  const [step, setStep] = useState<HQOrderStep>("contact");
 
-  const { form, validateStep } = useOrderFlowForm({ initialValues });
+  const { form, validateStep } = useHQOrderFlowForm({ initialValues });
   const { saveContacts, isSaving } = useContactSave({ form });
   const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues, enabled: step !== "contact" });
-  const submission = useOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox });
+  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox });
 
-  const orderType = form.watch("orderType");
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
 
-  const navigateToStep = (target: OrderStep) => {
+  const navigateToStep = (target: HQOrderStep) => {
     if (target === "package") submission.clearRateData();
     setStep(target);
   };
@@ -41,8 +40,7 @@ export const useOrderFlow = ({ initialValues, orderId }: UseOrderFlowOptions = {
     } else if (step === "package") {
       if (!(await validateStep("package"))) return;
       if (!(await processBox())) return;
-      if (orderType === "PARTNER") await submission.submitPartnerOrder();
-      else await submission.submitHQOrder();
+      await submission.submitHQOrder();
     }
   };
 
@@ -53,19 +51,13 @@ export const useOrderFlow = ({ initialValues, orderId }: UseOrderFlowOptions = {
 
   const nextButtonLabel = (() => {
     if (step === "contact") return isSaving ? "Guardando..." : "Siguiente";
-    if (orderType === "PARTNER") {
-      if (submission.isCreating) return isEditing ? "Actualizando..." : "Creando...";
-      return isEditing ? "Actualizar Orden" : "Crear Orden";
-    }
     return submission.isCreating ? "Cotizando..." : "Cotizar";
   })();
 
   const isNextDisabled = submission.isCreating || isSaving || isProcessingBox;
 
   return {
-    // Form
     form,
-    // Navigation
     step,
     stepIndex,
     steps: STEPS,
@@ -73,11 +65,9 @@ export const useOrderFlow = ({ initialValues, orderId }: UseOrderFlowOptions = {
     handleNext,
     handleBack,
     goToOrders: submission.goToOrders,
-    // UI state
     isEditing,
     nextButtonLabel,
     isNextDisabled,
-    // Rate step
     rates: submission.rates,
     isLoadingRates: submission.isLoadingRates,
     ratesError: submission.ratesError,

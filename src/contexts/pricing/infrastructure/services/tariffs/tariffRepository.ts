@@ -2,6 +2,8 @@ import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/T
 import { tariffSchema } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
 import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTariffsResponse";
+import type { FindTariffPriceRequest } from "@contexts/pricing/application/FindTariffPriceRequest";
+import { moneySchema, type MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
@@ -38,5 +40,13 @@ export const tariffRepository = {
     await httpClient<unknown>(`/tariff/${id}`, {
       method: "DELETE",
     });
+  },
+
+  findPrice: async (request: FindTariffPriceRequest): Promise<MoneyPrimitives> => {
+    const data = await httpClient<unknown>("/tariff/find-price", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    return moneySchema.parse(data);
   },
 };

@@ -8,7 +8,8 @@ import { DashboardPage } from "@contexts/shared/custom/pages";
 
 // Sales
 const OrdersPage = lazy(() => import("@contexts/order-flow/ui/pages/OrdersPage").then(m => ({ default: m.OrdersPage })));
-const NewOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewOrderPage").then(m => ({ default: m.NewOrderPage })));
+const NewHQOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewHQOrderPage").then(m => ({ default: m.NewHQOrderPage })));
+const NewPartnerOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewPartnerOrderPage").then(m => ({ default: m.NewPartnerOrderPage })));
 const EditOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/EditOrderPage").then(m => ({ default: m.EditOrderPage })));
 const CustomersPage = lazy(() => import("@contexts/sales/ui/pages/CustomersPage").then(m => ({ default: m.CustomersPage })));
 const WarehousePage = lazy(() => import("@/contexts/warehouse/ui/pages/WarehousePage").then(m => ({ default: m.WarehousePage })));
@@ -54,11 +55,21 @@ export const routes: RouteObject[] = [
     ),
   },
   {
-    path: "/orders/new",
+    path: "/orders/new/hq",
     element: (
       <ProtectedRoute permissions={["CAN_SELL"]}>
         <Suspense fallback={<PageLoader />}>
-          <NewOrderPage />
+          <NewHQOrderPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/orders/new/partner",
+    element: (
+      <ProtectedRoute permissions={["CAN_SELL"]}>
+        <Suspense fallback={<PageLoader />}>
+          <NewPartnerOrderPage />
         </Suspense>
       </ProtectedRoute>
     ),

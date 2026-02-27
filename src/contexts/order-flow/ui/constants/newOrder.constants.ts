@@ -58,3 +58,13 @@ export const newOrderDefaultValues: NewOrderFormValues = {
     },
   },
 };
+
+export const hqOrderDefaultValues: NewOrderFormValues = {
+  ...newOrderDefaultValues,
+  orderType: "HQ",
+};
+
+export const partnerOrderDefaultValues: NewOrderFormValues = {
+  ...newOrderDefaultValues,
+  orderType: "PARTNER",
+};
