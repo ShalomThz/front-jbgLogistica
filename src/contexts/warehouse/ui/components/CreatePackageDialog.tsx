@@ -51,7 +51,7 @@ const createFormSchema = z.object({
   providerDeliveryPerson: z.string().min(1, "Nombre del repartidor requerido"),
   dimensions: dimensionsSchema.extend({ unit: z.enum(dimensionUnits) }),
   weight: weightSchema.extend({ unit: z.enum(weightUnits) }),
-  photos: z.array(z.string()).max(4).default([]),
+  photos: z.array(z.string()).max(4)
 });
 
 type FormValues = z.infer<typeof createFormSchema>;
