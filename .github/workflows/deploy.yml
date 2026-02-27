@@ -1,12 +1,10 @@
 name: 🚀 Deploy Web to Production
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Type "deploy" to confirm'
-        required: true
-        type: string
 
 jobs:
   build-and-deploy:
