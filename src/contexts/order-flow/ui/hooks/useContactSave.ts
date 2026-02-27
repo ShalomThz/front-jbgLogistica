@@ -23,6 +23,16 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
     const updates: Promise<void>[] = [];
     let hasError = false;
 
+    if (sender.save && !sender.address.geolocation?.placeId) {
+      toast.error(`La dirección del remitente "${sender.name}" no está verificada. Selecciona una dirección de las sugerencias.`);
+      return false;
+    }
+
+    if (recipient.save && !recipient.address.geolocation?.placeId) {
+      toast.error(`La dirección del destinatario "${recipient.name}" no está verificada. Selecciona una dirección de las sugerencias.`);
+      return false;
+    }
+
     if (sender.save && !sender.id) {
       updates.push(
         createCustomer({ name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address, registeredByStoreId: user.storeId })
