@@ -29,8 +29,9 @@ import {
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus, Search, User } from "lucide-react";
+import { Box, Camera, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus, Search, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PhotosInput } from "./PhotosInput";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -49,7 +50,8 @@ const createFormSchema = z.object({
   officialInvoice: z.string().min(1, "Factura requerida"),
   providerDeliveryPerson: z.string().min(1, "Nombre del repartidor requerido"),
   dimensions: dimensionsSchema.extend({ unit: z.enum(dimensionUnits) }),
-  weight: weightSchema.extend({ unit: z.enum(weightUnits) })
+  weight: weightSchema.extend({ unit: z.enum(weightUnits) }),
+  photos: z.array(z.string()).max(4).default([]),
 });
 
 type FormValues = z.infer<typeof createFormSchema>;
@@ -67,6 +69,7 @@ function getDefaults(storeId: string): FormValues {
     providerDeliveryPerson: "",
     dimensions: { length: 0, width: 0, height: 0, unit: "cm" },
     weight: { value: 0, unit: "kg" },
+    photos: [],
   };
 }
 
@@ -233,6 +236,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
         providerDeliveryPerson: values.providerDeliveryPerson,
         dimensions: values.dimensions,
         weight: values.weight,
+        photos: values.photos,
       });
       toast.success("Paquete registrado correctamente");
       handleClose();
@@ -561,6 +565,21 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
               <p className="text-xs text-destructive">{errors.weight.value.message}</p>
             )}
           </div>
+
+          {/* ── Sección: Fotos ── */}
+          <SectionHeader icon={<Camera className="size-4" />} title="Fotos" />
+
+          <Controller
+            name="photos"
+            control={control}
+            render={({ field }) => (
+              <PhotosInput
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isBusy}
+              />
+            )}
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isBusy}>

@@ -26,8 +26,9 @@ import {
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus } from "lucide-react";
+import { Box, Camera, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PhotosInput } from "./PhotosInput";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
@@ -57,6 +58,7 @@ const editFormSchema = z.object({
   dimensions: dimensionsSchema.extend({ unit: z.enum(dimensionUnits) }),
   weight: weightSchema.extend({ unit: z.enum(weightUnits) }),
   status: z.enum(warehousePackageStatuses),
+  photos: z.array(z.string()).max(4).default([]),
 });
 
 type FormValues = z.infer<typeof editFormSchema>;
@@ -73,6 +75,7 @@ function getDefaults(pkg: PackageListViewPrimitives): FormValues {
     dimensions: pkg.dimensions,
     weight: pkg.weight,
     status: pkg.status,
+    photos: pkg.photos ?? [],
   };
 }
 
@@ -243,6 +246,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
         dimensions: values.dimensions,
         weight: values.weight,
         status: values.status,
+        photos: values.photos,
       });
       toast.success("Paquete actualizado correctamente");
       handleClose();
@@ -530,6 +534,21 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
               <p className="text-xs text-destructive">{errors.weight.value.message}</p>
             )}
           </div>
+
+          {/* ── Sección: Fotos ── */}
+          <SectionHeader icon={<Camera className="size-4" />} title="Fotos" />
+
+          <Controller
+            name="photos"
+            control={control}
+            render={({ field }) => (
+              <PhotosInput
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isBusy}
+              />
+            )}
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isBusy}>

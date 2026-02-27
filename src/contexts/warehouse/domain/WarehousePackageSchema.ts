@@ -31,6 +31,7 @@ export const packageListViewSchema = z.object({
   providerDeliveryPerson: z.string(),
   weight: weightSchema,
   status: z.enum(warehousePackageStatuses),
+  photos: z.array(z.string()).max(4).default([]),
   ...aggregateRootSchema.shape,
 });
 
@@ -50,6 +51,7 @@ export const createPackageRequestSchema = z.object({
   officialInvoice: z.string().min(1, "Factura requerida"),
   providerDeliveryPerson: z.string().min(1, "Repartidor requerido"),
   weight: weightSchema,
+  photos: z.array(z.string()).max(4).default([]),
 });
 
 export type CreatePackageRequest = z.infer<typeof createPackageRequestSchema>;
@@ -62,6 +64,7 @@ export const updatePackageRequestSchema = z.object({
   providerDeliveryPerson: z.string().optional(),
   weight: weightSchema.optional(),
   status: z.enum(warehousePackageStatuses).optional(),
+  photos: z.array(z.string()).max(4).optional(),
 });
 
 export type UpdatePackageRequest = z.infer<typeof updatePackageRequestSchema>;
@@ -81,6 +84,7 @@ export const warehousePackageSchema = z.object({
     .min(1, "Repartidor del proveedor es requerido"),
   weight: weightSchema,
   status: z.enum(warehousePackageStatuses),
+  photos: z.array(z.string()).max(4).default([]),
   ...aggregateRootSchema.shape,
 });
 
