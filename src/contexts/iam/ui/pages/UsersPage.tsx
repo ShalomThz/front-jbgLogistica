@@ -27,6 +27,7 @@ import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 import type { EditUserRequest } from "../../application/user/EditUserRequest";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -38,6 +39,7 @@ const formatDate = (date: string) =>
   });
 
 export const UsersPage = () => {
+  const { user: currentUser } = useAuth();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -106,6 +108,7 @@ export const UsersPage = () => {
   };
 
   const handleDeleteFromDetail = (user: UserListViewPrimitives) => {
+    if (user.id === currentUser?.id) return;
     setSelected(null);
     setDeleteUserDialog(user);
   };
@@ -259,7 +262,7 @@ export const UsersPage = () => {
         open={!!selected}
         onClose={() => setSelected(null)}
         onEdit={handleEditFromDetail}
-        onDelete={handleDeleteFromDetail}
+        onDelete={selected?.id === currentUser?.id ? undefined : handleDeleteFromDetail}
       />
       <CreateUserDialog
         open={formOpen}
