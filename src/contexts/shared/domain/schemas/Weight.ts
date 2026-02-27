@@ -3,7 +3,7 @@ import { z } from "zod";
 export const weightUnits = ["kg", "lb"] as const;
 
 export const weightSchema = z.object({
-  value: z.number().positive(),
+  value: z.number().nonnegative(),
   unit: z.enum(weightUnits).default("kg"),
 });
 

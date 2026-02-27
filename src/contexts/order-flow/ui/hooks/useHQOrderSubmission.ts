@@ -11,36 +11,35 @@ import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipm
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
 import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrderRequest";
-import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
-import type { OrderStep } from "./useOrderFlowForm";
+import type { HQOrderStep } from "./useHQOrderFlowForm";
 
-interface UseOrderSubmissionOptions {
+interface UseHQOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<NewOrderFormValues, any, any>;
-  step: OrderStep;
-  setStep: (step: OrderStep) => void;
+  step: HQOrderStep;
+  setStep: (step: HQOrderStep) => void;
   initialOrderId?: string;
   boxes: BoxPrimitives[];
   updateBox: (id: string, data: UpdateBoxRequest) => Promise<BoxPrimitives>;
 }
 
-export const useOrderSubmission = ({
+export const useHQOrderSubmission = ({
   form,
   step,
   setStep,
   initialOrderId,
   boxes,
   updateBox,
-}: UseOrderSubmissionOptions) => {
+}: UseHQOrderSubmissionOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [shipmentId, setShipmentId] = useState<string | null>(null);
   const [fulfilledShipment, setFulfilledShipment] = useState<ShipmentPrimitives | null>(null);
   const { user } = useAuth();
-  const { createHQOrder, createPartnerOrder, updateOrder, isCreating } = useOrders({ enabled: false });
+  const { createHQOrder, updateOrder, isCreating } = useOrders({ enabled: false });
   const { findByOrderId, fulfillShipment, selectProvider, isSelectingProvider } = useShipmentActions();
 
   const consignmentNoteClassCode = useWatch({ control: form.control, name: "package.consignmentNoteClassCode" });
@@ -104,33 +103,6 @@ export const useOrderSubmission = ({
     }
   };
 
-  const submitPartnerOrder = async () => {
-    if (orderId) {
-      try {
-        const request = buildEditOrderRequest(form.getValues());
-        await updateOrder(orderId, request);
-        goToOrders();
-      } catch (error) {
-        console.error("Error updating partner order:", error);
-        toast.error("Error al actualizar la orden. Intenta de nuevo.", { id: "order-flow" });
-      }
-    } else {
-      if (!user) {
-        toast.error("No se pudo identificar al usuario. Inicia sesión de nuevo.", { id: "order-flow" });
-        return;
-      }
-      try {
-        const request = buildPartnerOrderRequest(form.getValues(), user.storeId);
-        const order = await createPartnerOrder(request);
-        setOrderId(order.id);
-        goToOrders();
-      } catch (error) {
-        console.error("Error creating partner order:", error);
-        toast.error("Error al crear la orden. Intenta de nuevo.", { id: "order-flow" });
-      }
-    }
-  };
-
   const selectAndFulfill = async () => {
     const shippingService = form.getValues("shippingService");
     if (!shipmentId || !shippingService.selectedRate) return;
@@ -165,7 +137,6 @@ export const useOrderSubmission = ({
     goToOrders,
     clearRateData,
     submitHQOrder,
-    submitPartnerOrder,
     selectAndFulfill,
     rates,
     isLoadingRates,

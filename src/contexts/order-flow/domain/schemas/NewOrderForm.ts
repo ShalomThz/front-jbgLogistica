@@ -60,7 +60,7 @@ export const newOrderFormSchema = z
   .object({
     orderType: z.enum(orderTypes),
     orderData: z.object({
-      orderNumber: z.string().min(1, "El número de orden es requerido"),
+      orderNumber: z.string(),
       partnerOrderNumber: z.string(),
     }),
     sender: contactWithAddressSchema,
@@ -69,6 +69,13 @@ export const newOrderFormSchema = z
     shippingService: shippingServiceSchema,
   })
   .superRefine((data, ctx) => {
+    if (data.orderType === "HQ" && !data.orderData.orderNumber.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El número de orden es requerido",
+        path: ["orderData", "orderNumber"],
+      });
+    }
     if (data.orderType === "PARTNER" && !data.orderData.partnerOrderNumber.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

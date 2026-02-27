@@ -1,11 +1,14 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { mapOrderToFormValues } from "../../application/mapOrderToFormValues";
-import { NewOrderPage } from "./NewOrderPage";
+import { NewHQOrderPage } from "./NewHQOrderPage";
+import { NewPartnerOrderPage } from "./NewPartnerOrderPage";
 
 export const EditOrderPage = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get("mode");
   const { data: order, isLoading, error } = useOrder(id);
 
   if (isLoading) {
@@ -24,5 +27,8 @@ export const EditOrderPage = () => {
 
   const initialValues = mapOrderToFormValues(order);
 
-  return <NewOrderPage initialValues={initialValues} orderId={order.id} />;
+  if (order.type === "PARTNER" && mode !== "complete") {
+    return <NewPartnerOrderPage initialValues={initialValues} orderId={order.id} />;
+  }
+  return <NewHQOrderPage initialValues={initialValues} orderId={order.id} />;
 };

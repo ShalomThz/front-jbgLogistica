@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Pencil } from "lucide-react";
+import { ChevronDown, FileText, Package, Pencil } from "lucide-react";
 import {
   Badge,
   Button,
@@ -10,6 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Skeleton,
 } from "@contexts/shared/shadcn";
 import { useShipmentByOrderId } from "@contexts/shipping/infrastructure/hooks/shipments/useShipment";
@@ -204,16 +208,48 @@ export const OrderDetailDialog = ({
         )}
 
         <DialogFooter>
-          <Button
-            disabled={!isEditable || isPending}
-            onClick={() => {
-              onClose();
-              startTransition(() => navigate(`/orders/${order.id}/edit`));
-            }}
-          >
-            <Pencil className="size-4" />
-            {isPending ? "Cargando..." : "Editar"}
-          </Button>
+          {order.type === "PARTNER" ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button disabled={!isEditable || isPending}>
+                  <Pencil className="size-4" />
+                  {isPending ? "Cargando..." : "Editar"}
+                  <ChevronDown className="size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onClose();
+                    startTransition(() => navigate(`/orders/${order.id}/edit`));
+                  }}
+                >
+                  <Pencil className="size-4" />
+                  Editar orden
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onClose();
+                    startTransition(() => navigate(`/orders/${order.id}/edit?mode=complete`));
+                  }}
+                >
+                  <Package className="size-4" />
+                  Completar venta
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              disabled={!isEditable || isPending}
+              onClick={() => {
+                onClose();
+                startTransition(() => navigate(`/orders/${order.id}/edit`));
+              }}
+            >
+              <Pencil className="size-4" />
+              {isPending ? "Cargando..." : "Editar"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

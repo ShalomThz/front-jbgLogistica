@@ -171,7 +171,7 @@ export const BoxPage = () => {
               <TableHead className="hidden md:table-cell text-right">Precio</TableHead>
               <TableHead className="text-center">Stock</TableHead>
               <TableHead className="hidden lg:table-cell">Creación</TableHead>
-              <TableHead className="text-center">Acciones</TableHead>
+              <TableHead className="text-center">Inventario</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

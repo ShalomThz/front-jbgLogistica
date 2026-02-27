@@ -4,18 +4,18 @@ import {
   newOrderFormSchema,
   type NewOrderFormValues,
 } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { newOrderDefaultValues } from "../constants/newOrder.constants";
+import { hqOrderDefaultValues } from "../constants/newOrder.constants";
 
-export type OrderStep = "contact" | "package" | "rate";
+export type HQOrderStep = "contact" | "package" | "rate";
 
-interface UseOrderFlowFormOptions {
+interface UseHQOrderFlowFormOptions {
   initialValues?: NewOrderFormValues;
 }
 
-export const useOrderFlowForm = ({ initialValues }: UseOrderFlowFormOptions = {}) => {
+export const useHQOrderFlowForm = ({ initialValues }: UseHQOrderFlowFormOptions = {}) => {
   const form = useForm<NewOrderFormValues>({
     resolver: zodResolver(newOrderFormSchema),
-    defaultValues: initialValues ?? newOrderDefaultValues,
+    defaultValues: initialValues ?? hqOrderDefaultValues,
   });
 
   const validateStep = async (currentStep: "contact" | "package") => {
