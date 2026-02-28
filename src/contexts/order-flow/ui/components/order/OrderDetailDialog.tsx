@@ -1,4 +1,4 @@
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, FileText, Package, Pencil } from "lucide-react";
 import {
@@ -43,7 +43,6 @@ export const OrderDetailDialog = ({
   onClose,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
-  const [isPending, startTransition] = useTransition();
   const [showLabel, setShowLabel] = useState(false);
   const isCompleted = order?.status === "COMPLETED";
   const {
@@ -211,9 +210,9 @@ export const OrderDetailDialog = ({
           {order.type === "PARTNER" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button disabled={!isEditable || isPending}>
+                <Button disabled={!isEditable}>
                   <Pencil className="size-4" />
-                  {isPending ? "Cargando..." : "Editar"}
+                  Editar
                   <ChevronDown className="size-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -221,7 +220,7 @@ export const OrderDetailDialog = ({
                 <DropdownMenuItem
                   onClick={() => {
                     onClose();
-                    startTransition(() => navigate(`/orders/${order.id}/edit`));
+                    navigate(`/orders/${order.id}/edit`);
                   }}
                 >
                   <Pencil className="size-4" />
@@ -230,7 +229,7 @@ export const OrderDetailDialog = ({
                 <DropdownMenuItem
                   onClick={() => {
                     onClose();
-                    startTransition(() => navigate(`/orders/${order.id}/edit?mode=complete`));
+                    navigate(`/orders/${order.id}/edit?mode=complete`);
                   }}
                 >
                   <Package className="size-4" />
@@ -240,14 +239,14 @@ export const OrderDetailDialog = ({
             </DropdownMenu>
           ) : (
             <Button
-              disabled={!isEditable || isPending}
+              disabled={!isEditable}
               onClick={() => {
                 onClose();
-                startTransition(() => navigate(`/orders/${order.id}/edit`));
+                navigate(`/orders/${order.id}/edit`);
               }}
             >
               <Pencil className="size-4" />
-              {isPending ? "Cargando..." : "Editar"}
+              Editar
             </Button>
           )}
         </DialogFooter>

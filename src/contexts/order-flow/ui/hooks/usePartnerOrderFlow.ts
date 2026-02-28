@@ -22,17 +22,24 @@ interface UsePartnerOrderFlowOptions {
 
 export const usePartnerOrderFlow = ({ initialValues, orderId }: UsePartnerOrderFlowOptions = {}) => {
   const [step, setStep] = useState<PartnerOrderStep>("contact");
+  const { user } = useAuth();
+
+  // TODO: cambiar a CAN_SELECT_STORE cuando se cree el permiso
+  const canSelectStore = user?.role.permissions.includes("CAN_CREATE_HQ_ORDERS") ?? false;
+
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(user?.storeId);
 
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
   const { saveContacts, isSaving } = useContactSave({ form });
   const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues, enabled: step !== "contact" });
-  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId });
-  const { user } = useAuth();
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId });
+
+  const activeStoreId = selectedStoreId ?? user?.storeId;
 
   const { data: store } = useQuery({
-    queryKey: ["stores", user?.storeId],
-    queryFn: () => storeRepository.getById(user!.storeId),
-    enabled: !!user?.storeId,
+    queryKey: ["stores", activeStoreId],
+    queryFn: () => storeRepository.getById(activeStoreId!),
+    enabled: !!activeStoreId,
   });
 
   const destinationCountry = form.watch("recipient.address.country");
@@ -92,5 +99,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId }: UsePartnerOrderF
     isLoadingPrice,
     tariffError: priceError,
     refetchPrice,
+    canSelectStore,
+    selectedStoreId,
+    setSelectedStoreId,
   };
 };

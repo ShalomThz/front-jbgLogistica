@@ -12,11 +12,13 @@ interface UsePartnerOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<NewOrderFormValues, any, any>;
   initialOrderId?: string;
+  storeId?: string;
 }
 
 export const usePartnerOrderSubmission = ({
   form,
   initialOrderId,
+  storeId,
 }: UsePartnerOrderSubmissionOptions) => {
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
@@ -42,7 +44,7 @@ export const usePartnerOrderSubmission = ({
         return;
       }
       try {
-        const request = buildPartnerOrderRequest(form.getValues(), user.storeId);
+        const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.storeId);
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
         goToOrders();
