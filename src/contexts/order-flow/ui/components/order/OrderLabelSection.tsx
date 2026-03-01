@@ -1,75 +1,55 @@
-import { useEffect, useState } from "react";
-import { Download, FileWarning } from "lucide-react";
-import { Button, Skeleton } from "@contexts/shared/shadcn";
+import { useState } from "react";
+import { Download, ExternalLink } from "lucide-react";
+import { Button } from "@contexts/shared/shadcn";
+import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import type { ShippingLabelPrimitives } from "@contexts/shipping/domain/schemas/value-objects/ShippingLabel";
 
 interface OrderLabelSectionProps {
   label: ShippingLabelPrimitives;
+  shipmentId: string;
+  orderId?: string;
 }
 
-export const OrderLabelSection = ({ label }: OrderLabelSectionProps) => {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+export const OrderLabelSection = ({ label, shipmentId, orderId }: OrderLabelSectionProps) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const isLocalLabel = label.documentUrl.startsWith("/");
 
-  useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-
-    fetch(label.documentUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.blob();
-      })
-      .then((blob) => {
-        setBlobUrl(URL.createObjectURL(blob));
-      })
-      .catch(() => setError(true));
-
-    return () => {
-      setBlobUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-    };
-  }, [label.documentUrl]);
+  const handleLabel = async () => {
+    if (!isLocalLabel) {
+      window.open(label.documentUrl, "_blank");
+      return;
+    }
+    setIsDownloading(true);
+    try {
+      const blob = await shipmentRepository.getLabel(shipmentId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `etiqueta${orderId ? `-${orderId}` : ""}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold">Etiqueta de envío</h4>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => window.open(blobUrl ?? label.documentUrl, "_blank")}
-        >
-          <Download className="size-4" />
-          Descargar etiqueta
+        <Button size="sm" variant="outline" onClick={handleLabel} disabled={isDownloading}>
+          {isLocalLabel ? (
+            <>
+              <Download className="mr-1.5 size-4" />
+              {isDownloading ? "Descargando..." : "Descargar etiqueta"}
+            </>
+          ) : (
+            <>
+              <ExternalLink className="mr-1.5 size-4" />
+              Ver etiqueta
+            </>
+          )}
         </Button>
-      </div>
-
-      <div className="rounded-md border overflow-hidden">
-        {!blobUrl && !error && <Skeleton className="w-full h-[500px]" />}
-        {error && (
-          <div className="w-full h-[200px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-            <FileWarning className="size-8" />
-            <p className="text-sm">No se pudo cargar la vista previa</p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => window.open(label.documentUrl, "_blank")}
-            >
-              Abrir en nueva pestaña
-            </Button>
-          </div>
-        )}
-        {blobUrl && (
-          <iframe
-            src={blobUrl}
-            title="Etiqueta de envío"
-            className="w-full h-[500px]"
-          />
-        )}
       </div>
 
       <div className="rounded-md border p-3 space-y-1">

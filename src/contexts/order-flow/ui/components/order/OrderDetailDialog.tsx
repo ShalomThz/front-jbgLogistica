@@ -1,26 +1,24 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, FileText, Package, Pencil } from "lucide-react";
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import {
   Badge,
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-  Skeleton,
+  DropdownMenuTrigger
 } from "@contexts/shared/shadcn";
-import { useShipmentByOrderId } from "@contexts/shipping/infrastructure/hooks/shipments/useShipment";
-import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { ChevronDown, Download, Package, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { OrderShipmentSection } from "./OrderShipmentSection";
-import { OrderLabelSection } from "./OrderLabelSection";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -43,18 +41,33 @@ export const OrderDetailDialog = ({
   onClose,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
-  const [showLabel, setShowLabel] = useState(false);
+  const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const isCompleted = order?.status === "COMPLETED";
-  const {
-    data: shipment,
-    isLoading: isShipmentLoading,
-    isError,
-  } = useShipmentByOrderId(isCompleted ? order?.id : undefined);
 
   if (!order) return null;
 
-  const { origin, destination, financials, references } = order;
+  const { shipment, origin, destination, financials, references } = order;
   const isEditable = order.status !== "COMPLETED" && order.status !== "CANCELLED";
+
+  const downloadLabel = async () => {
+    if (!shipment?.label) return;
+    if (!shipment.label.documentUrl.startsWith("/")) {
+      window.open(shipment.label.documentUrl, "_blank");
+      return;
+    }
+    setIsDownloadingLabel(true);
+    try {
+      const blob = await shipmentRepository.getLabel(shipment.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `etiqueta-${order.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloadingLabel(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -170,43 +183,24 @@ export const OrderDetailDialog = ({
           </div>
         </div>
 
-        {isCompleted && isShipmentLoading && (
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        )}
-
-        {isCompleted && isError && (
-          <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4">
-            <p className="text-sm text-destructive">
-              No se pudo cargar la información de envío.
-            </p>
-          </div>
-        )}
-
-        {isCompleted && !isShipmentLoading && !isError && shipment && (
+        {isCompleted && shipment && (
           <div className="space-y-4">
             <OrderShipmentSection shipment={shipment} />
-            {shipment.label && !showLabel && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowLabel(true)}
-              >
-                <FileText className="size-4" />
-                Ver etiqueta de envío
-              </Button>
-            )}
-            {shipment.label && showLabel && (
-              <OrderLabelSection label={shipment.label} />
-            )}
           </div>
         )}
 
         <DialogFooter>
+          {shipment?.label && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadLabel}
+              disabled={isDownloadingLabel}
+            >
+              <Download className="mr-1.5 size-4" />
+              {isDownloadingLabel ? "Descargando..." : "Descargar etiqueta"}
+            </Button>
+          )}
           {order.type === "PARTNER" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -139,7 +139,10 @@ export function RateStep({
           <CardContent className="space-y-6">
             <OrderShipmentSection shipment={fulfilledShipment} />
             {fulfilledShipment.label && (
-              <OrderLabelSection label={fulfilledShipment.label} />
+              <OrderLabelSection
+                label={fulfilledShipment.label}
+                shipmentId={fulfilledShipment.id}
+              />
             )}
           </CardContent>
         </Card>

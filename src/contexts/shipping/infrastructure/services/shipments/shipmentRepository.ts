@@ -1,4 +1,4 @@
-import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
+import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http/httpClient";
 import {
   shipmentSchema,
   type ShipmentPrimitives,
@@ -69,5 +69,9 @@ export const shipmentRepository = {
       },
     );
     return shipmentSchema.parse(data);
+  },
+
+  getLabel: async (shipmentId: string): Promise<Blob> => {
+    return httpClientBlob(`/shipment/${shipmentId}/label`);
   },
 };

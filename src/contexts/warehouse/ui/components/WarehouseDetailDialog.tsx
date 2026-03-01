@@ -214,7 +214,7 @@ export const WarehouseDetailDialog = ({
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95"
+          className="fixed inset-0 z-200 flex items-center justify-center bg-black/95"
           onClick={(e) => {
             if (e.target === e.currentTarget) setLightboxIndex(null);
           }}
