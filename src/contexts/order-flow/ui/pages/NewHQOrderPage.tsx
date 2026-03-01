@@ -7,13 +7,15 @@ import { HQPackageStep } from "../components/package/HQPackageStep";
 import { RateStep } from "../components/rate/RateStep";
 import { StepIndicator } from "../components/StepIndicator";
 import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
 interface NewHQOrderPageProps {
   initialValues?: NewOrderFormValues;
   orderId?: string;
+  partnerPrice?: MoneyPrimitives | null;
 }
 
-export const NewHQOrderPage = ({ initialValues, orderId }: NewHQOrderPageProps = {}) => {
+export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice }: NewHQOrderPageProps = {}) => {
   const flow = useHQOrderFlow({ initialValues, orderId });
 
   return (
@@ -58,6 +60,7 @@ export const NewHQOrderPage = ({ initialValues, orderId }: NewHQOrderPageProps =
             isSubmitting={flow.isSelectingProvider}
             fulfilledShipment={flow.fulfilledShipment}
             onFinish={flow.goToOrders}
+            partnerPrice={partnerPrice}
           />
         )}
       </FormProvider>

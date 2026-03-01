@@ -1,10 +1,9 @@
 import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Search, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Package, Pencil, Plus, RefreshCw, Trash2, Users } from "lucide-react";
 import {
   Button,
-  Input,
   Badge,
   Dialog,
   DialogContent,
@@ -17,16 +16,14 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@contexts/shared/shadcn";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { useOrderFilters } from "../hooks/useOrderFilters";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
+import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
+import { OrderFilters } from "../components/order/OrderFilters";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -42,26 +39,22 @@ export const OrdersPage = () => {
     totalPages,
     isLoading,
     refetch,
+    deleteOrder,
+    isDeleting,
   } = useOrders({ page, limit });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { filters, setFilter, filtered, options } = useOrderFilters(orders);
+
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
 
-  const filtered = orders.filter((order) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      searchQuery === "" ||
-      order.destination.name.toLowerCase().includes(query) ||
-      order.id.toLowerCase().includes(query) ||
-      (order.references.orderNumber?.toLowerCase().includes(query) ?? false) ||
-      (order.references.partnerOrderNumber?.toLowerCase().includes(query) ?? false);
-
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
+  const handleDelete = async () => {
+    if (!orderToDelete) return;
+    await deleteOrder(orderToDelete.id);
+    setOrderToDelete(null);
+    setSelectedOrder(null);
+  };
 
   const from = pagination ? pagination.offset + 1 : 0;
   const to = pagination ? pagination.offset + orders.length : 0;
@@ -86,47 +79,17 @@ export const OrdersPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, ID o referencia..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="DRAFT">Borrador</SelectItem>
-            <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
-            <SelectItem value="COMPLETED">Completada</SelectItem>
-            <SelectItem value="CANCELLED">Cancelada</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-[130px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <OrderFilters
+        filters={filters}
+        options={options}
+        limit={limit}
+        limitOptions={LIMIT_OPTIONS}
+        setFilter={setFilter}
+        onLimitChange={(v) => {
+          setLimit(v);
+          setPage(1);
+        }}
+      />
 
       <div className="rounded-lg border">
         <Table>
@@ -137,12 +100,13 @@ export const OrdersPage = () => {
               <TableHead className="hidden sm:table-cell">Referencia</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   No se encontraron órdenes.
                 </TableCell>
               </TableRow>
@@ -150,7 +114,7 @@ export const OrdersPage = () => {
               filtered.map((order) => (
                 <TableRow
                   key={order.id}
-                  className="cursor-pointer"
+                  className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : ""}`}
                   onClick={() => setSelectedOrder(order)}
                 >
                   <TableCell>
@@ -174,6 +138,47 @@ export const OrdersPage = () => {
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-muted-foreground hover:text-primary"
+                        disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/orders/${order.id}/edit`);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      {order.type === "PARTNER" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-primary"
+                          disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/orders/${order.id}/edit?mode=complete`);
+                          }}
+                        >
+                          <Package className="size-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOrderToDelete(order);
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -217,6 +222,16 @@ export const OrdersPage = () => {
         order={selectedOrder}
         open={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onDelete={(order) => setOrderToDelete(order)}
+        isDeleting={isDeleting}
+      />
+
+      <OrderDeleteDialog
+        order={orderToDelete}
+        open={!!orderToDelete}
+        onClose={() => setOrderToDelete(null)}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
       />
 
       <Dialog open={showNewOrderDialog} onOpenChange={setShowNewOrderDialog}>

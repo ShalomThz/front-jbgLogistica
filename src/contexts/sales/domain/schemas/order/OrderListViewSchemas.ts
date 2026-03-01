@@ -6,7 +6,7 @@ import { shipmentSchema } from "@contexts/shipping/domain/schemas/shipment/Shipm
 export const orderListViewSchema = orderSchema.omit({ storeId: true }).extend({
   store: storeSchema,
   shipment: shipmentSchema.nullable(),
-  invoiceUrl: z.string().nullable(),
+  invoiceId: z.string().nullable(),
 });
 
 export type OrderListView = z.infer<typeof orderListViewSchema>;

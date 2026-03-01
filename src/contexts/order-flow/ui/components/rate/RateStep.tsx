@@ -22,6 +22,7 @@ import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { calculateTotal, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
 import { OrderShipmentSection } from "../order/OrderShipmentSection";
 import { OrderLabelSection } from "../order/OrderLabelSection";
@@ -78,6 +79,7 @@ interface RateStepProps {
   isSubmitting: boolean;
   fulfilledShipment: ShipmentPrimitives | null;
   onFinish: () => void;
+  partnerPrice?: MoneyPrimitives | null;
 }
 
 export function RateStep({
@@ -90,6 +92,7 @@ export function RateStep({
   isSubmitting,
   fulfilledShipment,
   onFinish,
+  partnerPrice,
 }: RateStepProps) {
   const { setValue, register, control } = useFormContext<NewOrderFormValues>();
 
@@ -283,6 +286,18 @@ export function RateStep({
 
       {/* Sidebar Summary */}
       <div className="space-y-4">
+        {/* Partner Price */}
+        {partnerPrice && (
+          <Card className="border-yellow-300 bg-yellow-50 dark:border-yellow-600 dark:bg-yellow-500/15">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Precio cobrado por el partner</span>
+                <span className="text-lg font-bold">${partnerPrice.amount.toFixed(2)} {partnerPrice.currency}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Shipment Summary: sender, recipient, package */}
         <Card>
           <CardHeader className="pb-3">

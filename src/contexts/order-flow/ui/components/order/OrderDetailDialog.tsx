@@ -1,5 +1,8 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_VARIANT,
+} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import {
   Badge,
@@ -13,9 +16,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@contexts/shared/shadcn";
-import { ChevronDown, Download, Package, Pencil } from "lucide-react";
+import { ChevronDown, Download, Package, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { OrderShipmentSection } from "./OrderShipmentSection";
@@ -33,12 +36,16 @@ interface OrderDetailDialogProps {
   order: OrderListView | null;
   open: boolean;
   onClose: () => void;
+  onDelete?: (order: OrderListView) => void;
+  isDeleting?: boolean;
 }
 
 export const OrderDetailDialog = ({
   order,
   open,
   onClose,
+  onDelete,
+  isDeleting,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
@@ -47,7 +54,8 @@ export const OrderDetailDialog = ({
   if (!order) return null;
 
   const { shipment, origin, destination, financials, references } = order;
-  const isEditable = order.status !== "COMPLETED" && order.status !== "CANCELLED";
+  const isEditable =
+    order.status !== "COMPLETED" && order.status !== "CANCELLED";
 
   const downloadLabel = async () => {
     if (!shipment?.label) return;
@@ -145,7 +153,14 @@ export const OrderDetailDialog = ({
                   label="Peso"
                   value={`${order.package.weight.value} ${order.package.weight.unit}`}
                 />
-                <DetailRow label="Propiedad" value={order.package.ownership === "STORE" ? "Caja de la tienda" : "Caja traída por el cliente"} />
+                <DetailRow
+                  label="Propiedad"
+                  value={
+                    order.package.ownership === "STORE"
+                      ? "Caja de la tienda"
+                      : "Caja traída por el cliente"
+                  }
+                />
               </div>
             </div>
 
@@ -189,7 +204,7 @@ export const OrderDetailDialog = ({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="flex justify-between sm:justify-between">
           {shipment?.label && (
             <Button
               variant="outline"
@@ -201,6 +216,14 @@ export const OrderDetailDialog = ({
               {isDownloadingLabel ? "Descargando..." : "Descargar etiqueta"}
             </Button>
           )}
+          <Button
+            variant="destructive"
+            onClick={() => onDelete?.(order)}
+            disabled={isDeleting}
+          >
+            <Trash2 className="size-4" />
+            Eliminar
+          </Button>
           {order.type === "PARTNER" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

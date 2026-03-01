@@ -80,4 +80,10 @@ export const orderRepository = {
     return parseOrder(data, "createPartner");
   },
 
+  delete: async (id: string): Promise<void> => {
+    await httpClient<unknown>(`/order/${id}`, {
+      method: "DELETE",
+    });
+  },
+
 };

@@ -51,6 +51,13 @@ export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOpt
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => orderRepository.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
   return {
     orders,
     pagination,
@@ -65,6 +72,10 @@ export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOpt
       await createPartnerMutation.mutateAsync(data),
     updateOrder: async (id: string, data: EditOrderRequest) =>
       await updateMutation.mutateAsync({ id, data }),
+    deleteOrder: async (id: string) =>
+      await deleteMutation.mutateAsync(id),
+    isDeleting: deleteMutation.isPending,
+
     isCreating:
       createHQMutation.isPending ||
       createPartnerMutation.isPending ||

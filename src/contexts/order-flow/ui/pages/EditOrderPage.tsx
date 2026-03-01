@@ -30,5 +30,10 @@ export const EditOrderPage = () => {
   if (order.type === "PARTNER" && mode !== "complete") {
     return <NewPartnerOrderPage initialValues={initialValues} orderId={order.id} />;
   }
-  return <NewHQOrderPage initialValues={initialValues} orderId={order.id} />;
+
+  const partnerPrice = order.type === "PARTNER" && order.status === "PENDING_HQ_PROCESS"
+    ? order.financials.totalPrice
+    : undefined;
+
+  return <NewHQOrderPage initialValues={initialValues} orderId={order.id} partnerPrice={partnerPrice} />;
 };
