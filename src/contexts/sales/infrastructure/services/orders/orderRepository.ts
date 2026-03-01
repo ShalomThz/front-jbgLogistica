@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
+import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http/httpClient";
 import { orderSchema, type OrderPrimitives } from "../../../domain/schemas/order/Order";
 import { orderListViewSchema, type OrderListView } from "../../../domain/schemas/order/OrderListViewSchemas";
 import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../application/order/FindOrderResponse";
@@ -80,4 +80,7 @@ export const orderRepository = {
     return parseOrder(data, "createPartner");
   },
 
+  getInvoicePdf: async (invoiceId: string): Promise<Blob> => {
+    return httpClientBlob(`/invoice/${invoiceId}/pdf`);
+  },
 };

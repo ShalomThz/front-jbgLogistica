@@ -1,5 +1,6 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import {
   Badge,
@@ -42,12 +43,30 @@ export const OrderDetailDialog = ({
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const isCompleted = order?.status === "COMPLETED";
 
   if (!order) return null;
 
   const { shipment, origin, destination, financials, references } = order;
   const isEditable = order.status !== "COMPLETED" && order.status !== "CANCELLED";
+
+  const downloadInvoice = async () => {
+    if (!order.invoiceId) return;
+    const invoiceId = order.invoiceId;
+    setIsDownloadingInvoice(true);
+    try {
+      const blob = await orderRepository.getInvoicePdf(invoiceId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `factura-${order.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  };
 
   const downloadLabel = async () => {
     if (!shipment?.label) return;
@@ -190,6 +209,17 @@ export const OrderDetailDialog = ({
         )}
 
         <DialogFooter>
+          {order.invoiceId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadInvoice}
+              disabled={isDownloadingInvoice}
+            >
+              <Download className="mr-1.5 size-4" />
+              {isDownloadingInvoice ? "Descargando..." : "Descargar factura"}
+            </Button>
+          )}
           {shipment?.label && (
             <Button
               variant="outline"
