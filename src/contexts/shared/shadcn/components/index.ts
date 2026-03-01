@@ -124,6 +124,7 @@ export {
   PopoverContent,
   PopoverAnchor,
 } from './popover'
+export { Calendar } from './calendar'
 export {
   Command,
   CommandDialog,
