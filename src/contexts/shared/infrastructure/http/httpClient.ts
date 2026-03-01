@@ -29,8 +29,9 @@ export const httpClient = async <T>(
     const error = await response
       .json()
       .catch(() => ({ message: "Error de servidor" }));
-    throw new Error(error.error || error.message || `HTTP ${response.status}`);
-  }
+
+      throw new Error(error.error || error.message || `HTTP ${response.status}`);
+    }
 
   return response.json();
 };

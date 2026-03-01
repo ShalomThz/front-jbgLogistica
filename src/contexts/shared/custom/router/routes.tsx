@@ -29,6 +29,9 @@ const ZonesPage = lazy(() => import("@contexts/pricing/ui/pages/ZonesPage").then
 const UsersPage = lazy(() => import("@contexts/iam/ui/pages/UsersPage").then(m => ({ default: m.UsersPage })));
 const StoresPage = lazy(() => import("@contexts/iam/ui/pages/StoresPage").then(m => ({ default: m.StoresPage })));
 
+// Settings
+const SettingsPage = lazy(() => import("@contexts/settings/ui/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
+
 export const routes: RouteObject[] = [
   // Dashboard - acceso general para usuarios autenticados
   { path: "/", element: <DashboardPage /> },
@@ -171,5 +174,17 @@ export const routes: RouteObject[] = [
         </Suspense>
       </ProtectedRoute>
     ),
-  }
+  },
+
+  // Configuración
+  {
+    path: "/settings",
+    element: (
+      <ProtectedRoute permissions={["CAN_SHIP"]}>
+        <Suspense fallback={<PageLoader />}>
+          <SettingsPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
 ];
