@@ -2,6 +2,7 @@ import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { usePartnerOrderFlow } from "../hooks/usePartnerOrderFlow";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/contact/PartnerContactStep";
 import { PartnerPackageStep } from "../components/package/PartnerPackageStep";
 import { PartnerPricingStep } from "../components/partner/PartnerPricingStep";
@@ -15,6 +16,7 @@ interface NewPartnerOrderPageProps {
 
 export const NewPartnerOrderPage = ({ initialValues, orderId }: NewPartnerOrderPageProps = {}) => {
   const flow = usePartnerOrderFlow({ initialValues, orderId });
+  const { stores } = useStores({ limit: 100 });
 
   return (
     <div className="space-y-6">
@@ -41,7 +43,15 @@ export const NewPartnerOrderPage = ({ initialValues, orderId }: NewPartnerOrderP
 
       {/* Form */}
       <FormProvider {...flow.form}>
-        {flow.step === "contact" && <PartnerContactStep />}
+        {flow.step === "contact" && (
+          <PartnerContactStep
+            {...(flow.canSelectStore && {
+              stores,
+              selectedStoreId: flow.selectedStoreId,
+              onStoreChange: flow.setSelectedStoreId,
+            })}
+          />
+        )}
 
         {flow.step === "package" && (
           <PartnerPackageStep onEditContacts={() => flow.setStep("contact")} />
