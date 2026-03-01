@@ -86,6 +86,14 @@ export const useShipmentActions = () => {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: (shipmentId: string) => shipmentRepository.cancel(shipmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SHIPMENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
   return {
     findByOrderId: shipmentRepository.findByOrderId,
 
@@ -98,6 +106,11 @@ export const useShipmentActions = () => {
       await selectProviderMutation.mutateAsync(data),
     isSelectingProvider: selectProviderMutation.isPending,
     selectProviderError: selectProviderMutation.error?.message ?? null,
+
+    cancelShipment: async (shipmentId: string) =>
+      await cancelMutation.mutateAsync(shipmentId),
+    isCancelling: cancelMutation.isPending,
+    cancelError: cancelMutation.error?.message ?? null,
   };
 };
 

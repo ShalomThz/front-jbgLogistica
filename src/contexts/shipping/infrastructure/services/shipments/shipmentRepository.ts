@@ -74,4 +74,10 @@ export const shipmentRepository = {
   getLabel: async (shipmentId: string): Promise<Blob> => {
     return httpClientBlob(`/shipment/${shipmentId}/label`);
   },
+
+  cancel: async (shipmentId: string): Promise<void> => {
+    await httpClient<unknown>(`/shipment/${shipmentId}/cancel`, {
+      method: "DELETE",
+    });
+  },
 };

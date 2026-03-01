@@ -20,6 +20,7 @@ import {
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
 import { useOrderFilters } from "../hooks/useOrderFilters";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
@@ -43,6 +44,8 @@ export const OrdersPage = () => {
     isDeleting,
   } = useOrders({ page, limit });
 
+  const { cancelShipment, isCancelling } = useShipmentActions();
+
   const { filters, setFilter, filtered, options } = useOrderFilters(orders);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
@@ -53,6 +56,11 @@ export const OrdersPage = () => {
     if (!orderToDelete) return;
     await deleteOrder(orderToDelete.id);
     setOrderToDelete(null);
+    setSelectedOrder(null);
+  };
+
+  const handleCancelShipment = async (shipmentId: string) => {
+    await cancelShipment(shipmentId);
     setSelectedOrder(null);
   };
 
@@ -224,6 +232,8 @@ export const OrdersPage = () => {
         onClose={() => setSelectedOrder(null)}
         onDelete={(order) => setOrderToDelete(order)}
         isDeleting={isDeleting}
+        onCancelShipment={handleCancelShipment}
+        isCancelling={isCancelling}
       />
 
       <OrderDeleteDialog
