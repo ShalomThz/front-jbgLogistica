@@ -1,4 +1,5 @@
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import {
   Avatar,
@@ -14,6 +15,8 @@ import {
 
 export const UserMenu = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const canAccessSettings = user?.role.permissions.includes("CAN_SHIP");
 
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
 
@@ -38,6 +41,12 @@ export const UserMenu = () => {
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {canAccessSettings && (
+          <DropdownMenuItem onClick={() => navigate("/settings")}>
+            <Settings className="mr-2 h-4 w-4" />
+            Configuración
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => logout()}>
           <LogOut className="mr-2 h-4 w-4" />
           Salir
