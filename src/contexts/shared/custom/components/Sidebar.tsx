@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Warehouse,
   Package,
+  Receipt,
   DollarSign,
   MapPin,
   Store,
@@ -48,6 +49,7 @@ const navigation: NavSection[] = [
     title: 'Inventario',
     items: [
       { label: 'Cajas', href: '/boxes', icon: Package, permissions: ['CAN_MANAGE_INVENTORY'] },
+      { label: 'Venta de Cajas', href: '/box-sales', icon: Receipt, permissions: ['CAN_SELL_BOXES'] },
     ],
   },
   {

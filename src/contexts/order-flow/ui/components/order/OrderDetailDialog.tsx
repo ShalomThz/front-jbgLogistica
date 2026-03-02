@@ -75,7 +75,7 @@ export const OrderDetailDialog = ({
   const navigate = useNavigate();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-  const { boxes } = useBoxes({ limit: 100, enabled: open });
+  const { boxes } = useBoxes({ enabled: open });
 
   if (!order) return null;
 

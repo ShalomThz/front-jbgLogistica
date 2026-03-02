@@ -12,7 +12,7 @@ interface UseBoxOperationsOptions {
 }
 
 export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBoxOperationsOptions) => {
-  const { boxes, createBox, updateBox, isCreating, isUpdating } = useBoxes({ limit: 100, enabled });
+  const { boxes, createBox, updateBox, isCreating, isUpdating } = useBoxes({ enabled });
 
   const boxSyncedRef = useRef(false);
 

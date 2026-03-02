@@ -87,7 +87,7 @@ type Props = {
 export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props) {
   const { user } = useAuth();
   const { customers, isLoading: isLoadingCustomers } = useCustomers({ page: 1, limit: 100 });
-  const { boxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes({ page: 1, limit: 100 });
+  const { boxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes();
 
   const [customerSearch, setCustomerSearch] = useState("");
   const [boxOpen, setBoxOpen] = useState(false);

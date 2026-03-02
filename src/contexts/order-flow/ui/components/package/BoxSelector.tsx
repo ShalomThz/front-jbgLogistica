@@ -24,7 +24,7 @@ export function BoxSelector() {
   const { setValue, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
   const [boxOpen, setBoxOpen] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
-  const { boxes, isLoading: isLoadingBoxes, updateBox, isUpdating } = useBoxes({ limit: 100 });
+  const { boxes, isLoading: isLoadingBoxes, updateBox, isUpdating } = useBoxes();
 
   const boxId = useWatch<NewOrderFormValues, "package.boxId">({ name: "package.boxId" });
   const packageType = useWatch<NewOrderFormValues, "package.packageType">({ name: "package.packageType" });

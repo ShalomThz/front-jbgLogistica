@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Minus, Plus, RefreshCw, Search } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -15,14 +16,22 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from "@contexts/shared/shadcn";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { BoxDetailDialog } from "../components/box/BoxDetailDialog";
 import { BoxFormDialog } from "../components/box/BoxFormDialog";
 import { BoxDeleteDialog } from "../components/box/BoxDeleteDialog";
 import { BoxStockDialog } from "../components/box/BoxStockDialog";
+import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
+import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 
 type StockOperation = "add" | "subtract";
@@ -30,6 +39,8 @@ type StockOperation = "add" | "subtract";
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const BoxPage = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("stock");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -47,6 +58,26 @@ export const BoxPage = () => {
     isDeleting,
   } = useBoxes({ page, limit });
 
+  const [salesPage, setSalesPage] = useState(1);
+  const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
+  const {
+    sales,
+    pagination: salesPagination,
+    totalPages: salesTotalPages,
+    isLoading: salesLoading,
+  } = useBoxSales({ page: salesPage, limit: salesLimit, enabled: activeTab === "sales" });
+
+  const { users } = useUsers({ limit: 100 });
+
+  const boxNames = useMemo(
+    () => Object.fromEntries(boxes.map((b) => [b.id, b.name])),
+    [boxes],
+  );
+  const userNames = useMemo(
+    () => Object.fromEntries(users.map((u) => [u.id, u.name])),
+    [users],
+  );
+
   const [searchQuery, setSearchQuery] = useState("");
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [selected, setSelected] = useState<BoxPrimitives | null>(null);
@@ -55,6 +86,8 @@ export const BoxPage = () => {
   const [deleteBoxDialog, setDeleteBoxDialog] = useState<BoxPrimitives | null>(null);
   const [stockBox, setStockBox] = useState<BoxPrimitives | null>(null);
   const [stockOperation, setStockOperation] = useState<StockOperation | null>(null);
+  const [selectedSale, setSelectedSale] = useState<BoxSalePrimitives | null>(null);
+
 
   const filtered = boxes.filter((b) => {
     const matchesSearch = searchQuery === "" || b.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -121,131 +154,237 @@ export const BoxPage = () => {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
           </Button>
+          <Button variant="outline" onClick={() => navigate("/box-sales")}>
+            <ShoppingCart className="size-4" />
+            Vender
+          </Button>
           <Button onClick={() => setFormOpen(true)}>
             <Plus className="size-4" />
             Crear Caja
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nombre..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={unitFilter} onValueChange={setUnitFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Unidad" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="cm">Centímetros</SelectItem>
-            <SelectItem value="in">Pulgadas</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-[130px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Dimensiones</TableHead>
-              <TableHead className="hidden sm:table-cell">Unidad</TableHead>
-              <TableHead className="hidden md:table-cell text-right">Precio</TableHead>
-              <TableHead className="text-center">Stock</TableHead>
-              <TableHead className="hidden lg:table-cell">Creación</TableHead>
-              <TableHead className="text-center">Inventario</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-48 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <img src={boxIsometricSvg} alt="Sin cajas" className="w-24 h-auto opacity-60" />
-                    <p className="text-muted-foreground">No se encontraron cajas.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((b) => (
-                <TableRow key={b.id} className={`cursor-pointer${b.stock === 0 ? " bg-destructive/5 hover:bg-destructive/10" : ""}`} onClick={() => setSelected(b)}>
-                  <TableCell className="font-medium">{b.name}</TableCell>
-                  <TableCell>{b.dimensions.length} x {b.dimensions.width} x {b.dimensions.height}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{UNIT_SHORT_LABELS[b.dimensions.unit]}</TableCell>
-                  <TableCell className="hidden md:table-cell text-right font-mono">${b.price.amount.toFixed(2)} {b.price.currency}</TableCell>
-                  <TableCell className={`text-center font-medium${b.stock === 0 ? " text-destructive" : ""}`}>{b.stock === 0 ? "Sin stock" : b.stock}</TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                    {new Date(b.createdAt).toLocaleDateString("es-MX")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <Button variant="outline" size="sm" className="h-7 px-2" onClick={(e) => { e.stopPropagation(); openStockDialog(b, "add"); }}>
-                        <Plus className="size-3 mr-1" />Agregar
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-7 px-2" onClick={(e) => { e.stopPropagation(); openStockDialog(b, "subtract"); }} disabled={b.stock === 0}>
-                        <Minus className="size-3 mr-1" />Descontar
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {pagination && total > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {from}-{to} de {total}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page <= 1}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="stock">Stock</TabsTrigger>
+          <TabsTrigger value="sales">Ventas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="stock" className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input placeholder="Buscar por nombre..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            </div>
+            <Select value={unitFilter} onValueChange={setUnitFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Unidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="cm">Centímetros</SelectItem>
+                <SelectItem value="in">Pulgadas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={String(limit)}
+              onValueChange={(v) => {
+                setLimit(Number(v));
+                setPage(1);
+              }}
             >
-              <ChevronLeft className="size-4" />
-              Anterior
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!pagination.hasMore}
-            >
-              Siguiente
-              <ChevronRight className="size-4" />
-            </Button>
+              <SelectTrigger className="w-full sm:w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIMIT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={String(opt)}>
+                    {opt} por página
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Dimensiones</TableHead>
+                  <TableHead className="hidden sm:table-cell">Unidad</TableHead>
+                  <TableHead className="hidden md:table-cell text-right">Precio venta unitario</TableHead>
+                  <TableHead className="text-center">Stock</TableHead>
+                  <TableHead className="hidden lg:table-cell">Creación</TableHead>
+                  <TableHead className="text-center">Inventario</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-48 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <img src={boxIsometricSvg} alt="Sin cajas" className="w-24 h-auto opacity-60" />
+                        <p className="text-muted-foreground">No se encontraron cajas.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((b) => (
+                    <TableRow key={b.id} className={`cursor-pointer${b.stock === 0 ? " bg-destructive/5 hover:bg-destructive/10" : ""}`} onClick={() => setSelected(b)}>
+                      <TableCell className="font-medium">{b.name}</TableCell>
+                      <TableCell>{b.dimensions.length} x {b.dimensions.width} x {b.dimensions.height}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{UNIT_SHORT_LABELS[b.dimensions.unit]}</TableCell>
+                      <TableCell className="hidden md:table-cell text-right font-mono">${b.price.amount.toFixed(2)} {b.price.currency}</TableCell>
+                      <TableCell className={`text-center font-medium${b.stock === 0 ? " text-destructive" : ""}`}>{b.stock === 0 ? "Sin stock" : b.stock}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                        {new Date(b.createdAt).toLocaleDateString("es-MX")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button variant="outline" size="sm" className="h-7 px-2" onClick={(e) => { e.stopPropagation(); openStockDialog(b, "add"); }}>
+                            <Plus className="size-3 mr-1" />Agregar
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-7 px-2" onClick={(e) => { e.stopPropagation(); openStockDialog(b, "subtract"); }} disabled={b.stock === 0}>
+                            <Minus className="size-3 mr-1" />Descontar
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {pagination && total > 0 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {from}-{to} de {total}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page <= 1}
+                >
+                  <ChevronLeft className="size-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={!pagination.hasMore}
+                >
+                  Siguiente
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="sales" className="space-y-4">
+          <div className="flex justify-end">
+            <Select
+              value={String(salesLimit)}
+              onValueChange={(v) => {
+                setSalesLimit(Number(v));
+                setSalesPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIMIT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={String(opt)}>
+                    {opt} por página
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead className="text-center">Items</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {salesLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-48 text-center">
+                      <p className="text-muted-foreground">Cargando ventas...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : sales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-48 text-center">
+                      <p className="text-muted-foreground">No hay ventas registradas.</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sales.map((sale) => (
+                    <TableRow key={sale.id} className="cursor-pointer" onClick={() => setSelectedSale(sale)}>
+                      <TableCell className="text-sm">
+                        {new Date(sale.createdAt).toLocaleString("es-MX")}
+                      </TableCell>
+                      <TableCell className="text-center">{sale.items.length}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        ${sale.totalAmount.amount.toFixed(2)} {sale.totalAmount.currency}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {salesPagination && salesPagination.total > 0 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {salesPagination.offset + 1}-{salesPagination.offset + sales.length} de {salesPagination.total}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSalesPage((p) => p - 1)}
+                  disabled={salesPage <= 1}
+                >
+                  <ChevronLeft className="size-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {salesPage} / {salesTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSalesPage((p) => p + 1)}
+                  disabled={!salesPagination.hasMore}
+                >
+                  Siguiente
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
       <BoxDetailDialog box={selected} open={!!selected} onClose={() => setSelected(null)} onEdit={handleEditFromDetail} onDelete={handleDeleteFromDetail} />
       <BoxFormDialog open={formOpen} onClose={() => setFormOpen(false)} onSave={handleCreate} isLoading={isCreating} />
       <BoxFormDialog open={!!editBox} onClose={() => setEditBox(null)} onSave={handleUpdate} box={editBox} isLoading={isUpdating} />
       <BoxDeleteDialog box={deleteBoxDialog} open={!!deleteBoxDialog} onClose={() => setDeleteBoxDialog(null)} onConfirm={handleDelete} isLoading={isDeleting} />
       <BoxStockDialog box={stockBox} operation={stockOperation} open={!!stockBox} onClose={closeStockDialog} onConfirm={handleStockConfirm} />
+      <BoxSaleDetailDialog sale={selectedSale} open={!!selectedSale} onClose={() => setSelectedSale(null)} boxNames={boxNames} userNames={userNames} />
     </div>
   );
 };

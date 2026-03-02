@@ -11,9 +11,9 @@ interface UseBoxesOptions {
   enabled?: boolean;
 }
 
-export const useBoxes = ({ page = 1, limit = 10, enabled = true }: UseBoxesOptions = {}) => {
+export const useBoxes = ({ page = 1, limit, enabled = true }: UseBoxesOptions = {}) => {
   const queryClient = useQueryClient();
-  const offset = (page - 1) * limit;
+  const offset = limit ? (page - 1) * limit : undefined;
 
   const {
     data,
@@ -28,7 +28,7 @@ export const useBoxes = ({ page = 1, limit = 10, enabled = true }: UseBoxesOptio
 
   const boxes = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages = pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateBoxRequestPrimitives) => boxRepository.create(data),

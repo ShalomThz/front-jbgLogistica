@@ -92,7 +92,7 @@ type Props = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Props) {
-  const { boxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes({ page: 1, limit: 100 });
+  const { boxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes();
   const [boxOpen, setBoxOpen] = useState(false);
   const [isProcessingBox, setIsProcessingBox] = useState(false);
 

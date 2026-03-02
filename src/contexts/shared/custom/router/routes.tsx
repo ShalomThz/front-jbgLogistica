@@ -16,6 +16,7 @@ const WarehousePage = lazy(() => import("@/contexts/warehouse/ui/pages/Warehouse
 
 // Inventory
 const BoxPage = lazy(() => import("@contexts/inventory/ui/pages/BoxPage").then(m => ({ default: m.BoxPage })));
+const BoxSalePage = lazy(() => import("@contexts/inventory/ui/pages/BoxSalePage").then(m => ({ default: m.BoxSalePage })));
 
 // Shipping
 const DeliveryRoutesPage = lazy(() => import("@contexts/shipping/ui/pages/DeliveryRoutesPage").then(m => ({ default: m.DeliveryRoutesPage })));
@@ -105,6 +106,17 @@ export const routes: RouteObject[] = [
       <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
         <Suspense fallback={<PageLoader />}>
           <BoxPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+
+  {
+    path: "/box-sales",
+    element: (
+      <ProtectedRoute permissions={["CAN_SELL_BOXES"]}>
+        <Suspense fallback={<PageLoader />}>
+          <BoxSalePage />
         </Suspense>
       </ProtectedRoute>
     ),
