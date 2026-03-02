@@ -136,3 +136,9 @@ export {
   CommandShortcut,
   CommandSeparator,
 } from './command'
+export {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from './tabs'
