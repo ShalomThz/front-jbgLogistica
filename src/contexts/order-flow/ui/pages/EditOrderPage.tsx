@@ -28,12 +28,22 @@ export const EditOrderPage = () => {
   const initialValues = mapOrderToFormValues(order);
 
   if (order.type === "PARTNER" && mode !== "complete") {
-    return <NewPartnerOrderPage initialValues={initialValues} orderId={order.id} />;
+    return <NewPartnerOrderPage initialValues={initialValues} orderId={order.id} storeName={order.store.name} />;
   }
 
   const partnerPrice = order.type === "PARTNER" && order.status === "PENDING_HQ_PROCESS"
     ? order.financials.totalPrice
     : undefined;
 
-  return <NewHQOrderPage initialValues={initialValues} orderId={order.id} partnerPrice={partnerPrice} />;
+  const isFromPartner = order.type === "PARTNER";
+
+  return (
+    <NewHQOrderPage
+      initialValues={initialValues}
+      orderId={order.id}
+      partnerPrice={partnerPrice}
+      storeName={isFromPartner ? order.store.name : undefined}
+      partnerOrderNumber={isFromPartner ? order.references.partnerOrderNumber ?? undefined : undefined}
+    />
+  );
 };

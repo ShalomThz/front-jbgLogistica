@@ -12,11 +12,19 @@ import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
 interface NewPartnerOrderPageProps {
   initialValues?: NewOrderFormValues;
   orderId?: string;
+  storeName?: string;
 }
 
-export const NewPartnerOrderPage = ({ initialValues, orderId }: NewPartnerOrderPageProps = {}) => {
+export const NewPartnerOrderPage = ({ initialValues, orderId, storeName }: NewPartnerOrderPageProps = {}) => {
   const flow = usePartnerOrderFlow({ initialValues, orderId });
   const { stores } = useStores({ limit: 100 });
+
+  const title = (() => {
+    const action = flow.isEditing ? "Editar Orden" : "Nueva Orden";
+    const name = storeName ?? stores?.find(s => s.id === flow.selectedStoreId)?.name;
+    if (name) return `${action} — ${name}`;
+    return `${action} Partner`;
+  })();
 
   return (
     <div className="space-y-6">
@@ -30,7 +38,7 @@ export const NewPartnerOrderPage = ({ initialValues, orderId }: NewPartnerOrderP
           <ArrowLeft className="size-5" />
         </Button>
         <h1 className="text-2xl font-bold">
-          {flow.isEditing ? "Editar Orden Partner" : "Nueva Orden Partner"}
+          {title}
         </h1>
       </div>
 
