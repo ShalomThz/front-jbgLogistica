@@ -1,12 +1,11 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import {
   ORDER_STATUS_LABELS,
-  ORDER_STATUS_VARIANT,
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
- import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
+import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import {
-  Badge,
   Button,
   Dialog,
   DialogContent,
@@ -18,11 +17,28 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import { Ban, ChevronDown, Download, Package, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
+import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { OrderShipmentSection } from "./OrderShipmentSection";
+
+const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
+  DRAFT: "bg-muted-foreground",
+  PENDING_HQ_PROCESS: "bg-yellow-500",
+  COMPLETED: "bg-blue-500",
+  CANCELLED: "bg-red-500",
+};
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -31,6 +47,10 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="col-span-2 text-sm">{value}</span>
     </div>
   );
+}
+
+function formatMoney(money: { amount: number; currency: string }) {
+  return `$${money.amount.toFixed(2)} ${money.currency}`;
 }
 
 interface OrderDetailDialogProps {
@@ -55,13 +75,14 @@ export const OrderDetailDialog = ({
   const navigate = useNavigate();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-  const isCompleted = order?.status === "COMPLETED";
+  const { boxes } = useBoxes({ limit: 100, enabled: open });
 
   if (!order) return null;
 
   const { shipment, origin, destination, financials, references } = order;
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
+  const isCompleted = order.status === "COMPLETED";
 
   const downloadInvoice = async () => {
     if (!order.invoiceId) return;
@@ -102,72 +123,149 @@ export const OrderDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto pt-8">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto pt-8">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Orden {order.id}</span>
-            <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
-              {ORDER_STATUS_LABELS[order.status]}
-            </Badge>
+          <DialogTitle>
+            Orden{" "}
+            {[references.orderNumber, references.partnerOrderNumber]
+              .filter(Boolean)
+              .map((n) => `#${n}`)
+              .join(" · ") || order.id}
           </DialogTitle>
-          <DialogDescription>Tienda {order.store.name}</DialogDescription>
+          <DialogDescription className="text-sm flex items-center justify-between">
+            <span>Tienda <span className="font-semibold text-foreground">{order.store.name}</span></span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-1.5 font-medium text-foreground cursor-default">
+                    <span className={cn("relative flex size-2.5 rounded-full", STATUS_DOT_STYLES[order.status])}>
+                      <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-75", STATUS_DOT_STYLES[order.status])} />
+                    </span>
+                    {ORDER_STATUS_LABELS[order.status]}
+                  </span>
+                </TooltipTrigger>
+                {order.status === "PENDING_HQ_PROCESS" && (
+                  <TooltipContent>
+                    La tienda completó su orden, JBG Logistics necesita completar la venta
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Origen</h4>
+        <Tabs defaultValue="resumen">
+          <TabsList variant="line" className="w-full justify-start">
+            <TabsTrigger value="resumen">Resumen</TabsTrigger>
+            <TabsTrigger value="contactos">Contactos</TabsTrigger>
+            <TabsTrigger value="paquete">Paquete</TabsTrigger>
+            {isCompleted && shipment && (
+              <TabsTrigger value="envio">Envío</TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* Resumen */}
+          <TabsContent value="resumen" className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Ruta */}
               <div className="rounded-md border p-3 space-y-1">
-                <DetailRow label="Nombre" value={origin.name} />
-                <DetailRow label="Empresa" value={origin.company || "—"} />
-                <DetailRow label="Teléfono" value={origin.phone} />
-                <DetailRow label="Email" value={origin.email || "—"} />
-                <DetailRow label="Dirección" value={origin.address.address1} />
-                {origin.address.address2 && (
-                  <DetailRow
-                    label="Dirección 2"
-                    value={origin.address.address2}
-                  />
-                )}
+                <h4 className="text-sm font-semibold mb-2">Ruta</h4>
+                <DetailRow label="Origen" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
+                <DetailRow label="Destino" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
+              </div>
+
+              {/* Paquete */}
+              <div className="rounded-md border p-3 space-y-1">
+                <h4 className="text-sm font-semibold mb-2">Paquete</h4>
                 <DetailRow
-                  label="Ciudad"
-                  value={`${origin.address.city}, ${origin.address.province}`}
+                  label="Dimensiones"
+                  value={`${order.package.dimensions.length}×${order.package.dimensions.width}×${order.package.dimensions.height} ${order.package.dimensions.unit}`}
                 />
-                <DetailRow label="C.P." value={origin.address.zip} />
+                <DetailRow
+                  label="Peso"
+                  value={`${order.package.weight.value} ${order.package.weight.unit}`}
+                />
+              </div>
+
+              {/* Financiero */}
+              <div className="rounded-md border p-3 space-y-1">
+                <h4 className="text-sm font-semibold mb-2">Financiero</h4>
+                <DetailRow
+                  label="Total"
+                  value={financials.totalPrice ? formatMoney(financials.totalPrice) : "—"}
+                />
+                <DetailRow label="Pagado" value={financials.isPaid ? "Sí" : "No"} />
+              </div>
+
+              {/* Referencias */}
+              <div className="rounded-md border p-3 space-y-1">
+                <h4 className="text-sm font-semibold mb-2">Referencias</h4>
+                <DetailRow label="N° Factura JBG" value={references.orderNumber ?? "—"} />
+                <DetailRow label="N° Factura Agente" value={references.partnerOrderNumber ?? "—"} />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Destino</h4>
+            {/* Guía rápida */}
+            {shipment?.label && (
               <div className="rounded-md border p-3 space-y-1">
-                <DetailRow label="Nombre" value={destination.name} />
-                <DetailRow label="Empresa" value={destination.company || "—"} />
-                <DetailRow label="Teléfono" value={destination.phone} />
-                <DetailRow label="Email" value={destination.email || "—"} />
-                <DetailRow
-                  label="Dirección"
-                  value={destination.address.address1}
-                />
-                {destination.address.address2 && (
-                  <DetailRow
-                    label="Dirección 2"
-                    value={destination.address.address2}
-                  />
+                <h4 className="text-sm font-semibold mb-2">Guía</h4>
+                <DetailRow label="N° Guía" value={shipment.label.trackingNumber} />
+                {shipment.provider && (
+                  <DetailRow label="Proveedor" value={shipment.provider.providerName} />
                 )}
-                <DetailRow
-                  label="Ciudad"
-                  value={`${destination.address.city}, ${destination.address.province}`}
-                />
-                <DetailRow label="C.P." value={destination.address.zip} />
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Contactos */}
+          <TabsContent value="contactos" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Origen</h4>
+                <div className="rounded-md border p-3 space-y-1">
+                  <DetailRow label="Nombre" value={origin.name} />
+                  <DetailRow label="Empresa" value={origin.company || "—"} />
+                  <DetailRow label="Teléfono" value={origin.phone} />
+                  <DetailRow label="Email" value={origin.email || "—"} />
+                  <DetailRow label="Dirección" value={origin.address.address1} />
+                  {origin.address.address2 && (
+                    <DetailRow label="Dirección 2" value={origin.address.address2} />
+                  )}
+                  <DetailRow
+                    label="Ciudad"
+                    value={`${origin.address.city}, ${origin.address.province}`}
+                  />
+                  <DetailRow label="C.P." value={origin.address.zip} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Destino</h4>
+                <div className="rounded-md border p-3 space-y-1">
+                  <DetailRow label="Nombre" value={destination.name} />
+                  <DetailRow label="Empresa" value={destination.company || "—"} />
+                  <DetailRow label="Teléfono" value={destination.phone} />
+                  <DetailRow label="Email" value={destination.email || "—"} />
+                  <DetailRow label="Dirección" value={destination.address.address1} />
+                  {destination.address.address2 && (
+                    <DetailRow label="Dirección 2" value={destination.address.address2} />
+                  )}
+                  <DetailRow
+                    label="Ciudad"
+                    value={`${destination.address.city}, ${destination.address.province}`}
+                  />
+                  <DetailRow label="C.P." value={destination.address.zip} />
+                </div>
               </div>
             </div>
-          </div>
+          </TabsContent>
 
-          <div className="space-y-4">
+          {/* Paquete */}
+          <TabsContent value="paquete" className="mt-4">
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Paquete</h4>
+              <h4 className="text-sm font-semibold">Detalle del paquete</h4>
               <div className="rounded-md border p-3 space-y-1">
-                <DetailRow label="Caja" value={order.package.boxId} />
+                <DetailRow label="Caja" value={boxes.find(b => b.id === order.package.boxId)?.name ?? order.package.boxId} />
                 <DetailRow
                   label="Dimensiones"
                   value={`${order.package.dimensions.length}×${order.package.dimensions.width}×${order.package.dimensions.height} ${order.package.dimensions.unit}`}
@@ -186,46 +284,15 @@ export const OrderDetailDialog = ({
                 />
               </div>
             </div>
+          </TabsContent>
 
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Financiero</h4>
-              <div className="rounded-md border p-3 space-y-1">
-                <DetailRow
-                  label="Total"
-                  value={
-                    financials.totalPrice
-                      ? `$${financials.totalPrice.amount.toFixed(2)} ${financials.totalPrice.currency}`
-                      : "—"
-                  }
-                />
-                <DetailRow
-                  label="Pagado"
-                  value={financials.isPaid ? "Sí" : "No"}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Referencias</h4>
-              <div className="rounded-md border p-3 space-y-1">
-                <DetailRow
-                  label="N° Factura JBG"
-                  value={references.orderNumber ?? "—"}
-                />
-                <DetailRow
-                  label="N° Factura Agente"
-                  value={references.partnerOrderNumber ?? "—"}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {isCompleted && shipment && (
-          <div className="space-y-4">
-            <OrderShipmentSection shipment={shipment} />
-          </div>
-        )}
+          {/* Envío */}
+          {isCompleted && shipment && (
+            <TabsContent value="envio" className="mt-4">
+              <OrderShipmentSection shipment={shipment} />
+            </TabsContent>
+          )}
+        </Tabs>
 
         <DialogFooter>
           {order.invoiceId && (
