@@ -16,6 +16,10 @@ import {
   TableHead,
   TableRow,
   TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
@@ -122,7 +126,7 @@ export const OrdersPage = () => {
               filtered.map((order) => (
                 <TableRow
                   key={order.id}
-                  className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : ""}`}
+                  className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
                   onClick={() => setSelectedOrder(order)}
                 >
                   <TableCell>
@@ -148,45 +152,62 @@ export const OrdersPage = () => {
                     ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-muted-foreground hover:text-primary"
-                        disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/orders/${order.id}/edit`);
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      {order.type === "PARTNER" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-primary"
-                          disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/orders/${order.id}/edit?mode=complete`);
-                          }}
-                        >
-                          <Package className="size-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOrderToDelete(order);
-                        }}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
+                    <TooltipProvider delayDuration={300}>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground hover:text-primary"
+                              disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/orders/${order.id}/edit`);
+                              }}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar orden</TooltipContent>
+                        </Tooltip>
+                        {order.type === "PARTNER" && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-primary"
+                                disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/orders/${order.id}/edit?mode=complete`);
+                                }}
+                              >
+                                <Package className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Completar venta</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOrderToDelete(order);
+                              }}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar orden</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                   </TableCell>
                 </TableRow>
               ))
@@ -265,7 +286,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Building2 className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">HQ (Matriz)</span>
+                <span className="font-semibold">Orden JBG</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden completa con cotización de envío, peso, producto y guía.
@@ -283,7 +304,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Users className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Partner (Socio)</span>
+                <span className="font-semibold">Orden Socio</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden simplificada: contactos, dimensiones y creación directa.

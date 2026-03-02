@@ -13,10 +13,21 @@ interface NewHQOrderPageProps {
   initialValues?: NewOrderFormValues;
   orderId?: string;
   partnerPrice?: MoneyPrimitives | null;
+  storeName?: string;
+  partnerOrderNumber?: string;
 }
 
-export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice }: NewHQOrderPageProps = {}) => {
+export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName, partnerOrderNumber }: NewHQOrderPageProps = {}) => {
   const flow = useHQOrderFlow({ initialValues, orderId });
+
+  const title = (() => {
+    const action = flow.isEditing ? "Editar Orden JBG" : "Nueva Orden JBG";
+    if (storeName) {
+      const partnerRef = partnerOrderNumber ? ` (#${partnerOrderNumber})` : "";
+      return `${action} — Partner: ${storeName}${partnerRef}`;
+    }
+    return action;
+  })();
 
   return (
     <div className="space-y-6">
@@ -30,7 +41,7 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice }: NewHQOr
           <ArrowLeft className="size-5" />
         </Button>
         <h1 className="text-2xl font-bold">
-          {flow.isEditing ? "Editar Orden HQ" : "Nueva Orden HQ"}
+          {title}
         </h1>
       </div>
 
