@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search, MapPin, KeyRound } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -16,10 +16,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialog";
 import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
+import { CustomerPortalAccessDialog } from "../components/customer/CustomerPortalAccessDialog";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
@@ -42,6 +46,8 @@ export const CustomersPage = () => {
     isUpdating,
     deleteCustomer,
     isDeleting,
+    provisionAccess,
+    isProvisioning,
   } = useCustomers({ page, limit });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +55,7 @@ export const CustomersPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState<CustomerListViewPrimitives | null>(null);
   const [deleteCustomerDialog, setDeleteCustomerDialog] = useState<CustomerListViewPrimitives | null>(null);
+  const [accessCustomer, setAccessCustomer] = useState<CustomerListViewPrimitives | null>(null);
 
   const filtered = customers.filter((c) => {
     const query = searchQuery.toLowerCase();
@@ -151,12 +158,13 @@ export const CustomersPage = () => {
               <TableHead className="hidden md:table-cell">Email</TableHead>
               <TableHead className="hidden lg:table-cell">Dirección</TableHead>
               <TableHead className="hidden lg:table-cell">Registro</TableHead>
+              <TableHead className="w-12 text-right">Portal</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   No se encontraron clientes.
                 </TableCell>
               </TableRow>
@@ -175,6 +183,26 @@ export const CustomersPage = () => {
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                     {new Date(c.createdAt).toLocaleDateString("es-MX")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={c.userId ? "text-primary" : "text-muted-foreground"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAccessCustomer(c);
+                          }}
+                        >
+                          <KeyRound className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {c.userId ? "Renovar acceso al portal" : "Configurar acceso al portal"}
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
@@ -238,6 +266,13 @@ export const CustomersPage = () => {
         onClose={() => setDeleteCustomerDialog(null)}
         onConfirm={handleDelete}
         isLoading={isDeleting}
+      />
+      <CustomerPortalAccessDialog
+        customer={accessCustomer}
+        open={!!accessCustomer}
+        onClose={() => setAccessCustomer(null)}
+        onProvision={provisionAccess}
+        isLoading={isProvisioning}
       />
     </div>
   );

@@ -20,6 +20,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_MANAGE_TARIFFS: "Gestionar tarifas",
   CAN_SHIP: "Enviar paquetes",
   CAN_MANAGE_WAREHOUSE: "Gestionar bodega",
+  CAN_VIEW_OWN_PACKAGES: "Ver mis paquetes",
 };
 
 

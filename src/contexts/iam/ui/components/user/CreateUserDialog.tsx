@@ -49,6 +49,7 @@ function getDefaults(): FormValues {
     password: "",
     storeId: "",
     isActive: true,
+    type: "EMPLOYEE",
     role: { name: "Vendedor", permissions: ["CAN_SELL", "CAN_MANAGE_CUSTOMERS"] },
   };
 }

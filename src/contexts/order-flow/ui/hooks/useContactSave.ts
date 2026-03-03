@@ -35,7 +35,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
 
     if (sender.save && !sender.id) {
       updates.push(
-        createCustomer({ name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address, registeredByStoreId: user.storeId })
+        createCustomer({ userId: null, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address, registeredByStoreId: user.storeId })
           .then((created) => {
             toast.success(`Remitente "${sender.name}" guardado`);
             form.setValue("sender.id", created.id);
@@ -64,7 +64,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
 
     if (recipient.save && !recipient.id) {
       updates.push(
-        createCustomer({ name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address, registeredByStoreId: user.storeId })
+        createCustomer({ userId: null, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address, registeredByStoreId: user.storeId })
           .then((created) => {
             toast.success(`Destinatario "${recipient.name}" guardado`);
             form.setValue("recipient.id", created.id);

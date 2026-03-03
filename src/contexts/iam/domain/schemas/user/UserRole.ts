@@ -13,6 +13,7 @@ export const PERMISSIONS = [
   "CAN_MANAGE_TARIFFS",
   "CAN_SHIP",
   "CAN_MANAGE_WAREHOUSE",
+  "CAN_VIEW_OWN_PACKAGES",
 ] as const;
 
 export const userRoleSchema = z.object({
