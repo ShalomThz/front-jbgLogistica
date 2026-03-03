@@ -136,7 +136,7 @@ export const CustomersPage = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[130px]">
+          <SelectTrigger className="w-full sm:w-32.5">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -190,7 +190,7 @@ export const CustomersPage = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={c.userId ? "text-primary" : "text-muted-foreground"}
+                          className={c.user ? "text-primary" : "text-muted-foreground"}
                           onClick={(e) => {
                             e.stopPropagation();
                             setAccessCustomer(c);
@@ -200,7 +200,7 @@ export const CustomersPage = () => {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {c.userId ? "Renovar acceso al portal" : "Configurar acceso al portal"}
+                        {c.user ? "Renovar acceso al portal" : "Configurar acceso al portal"}
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
