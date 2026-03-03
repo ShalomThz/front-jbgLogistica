@@ -47,7 +47,7 @@ export const CustomerPortalAccessDialog = ({
   const [password, setPassword] = useState(() => generatePassword());
   const [done, setDone] = useState(false);
 
-  const hasAccess = !!customer?.userId;
+  const hasAccess = !!customer?.user;
 
   const handleOpen = (v: boolean) => {
     if (!v) {

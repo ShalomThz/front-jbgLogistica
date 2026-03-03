@@ -22,7 +22,9 @@ export const useUsers = ({ page = 1, limit = 10 }: UseUsersOptions = {}) => {
     refetch,
   } = useQuery<FindUsersResponsePrimitives>({
     queryKey: [...USERS_QUERY_KEY, { page, limit }],
-    queryFn: () => userRepository.find({ filters: [], limit, offset }),
+    queryFn: () => userRepository.find({ filters: [
+      {field: "type", filterOperator: "=", value: "EMPLOYEE"}
+    ], limit, offset }),
   });
 
   const users = data?.data ?? [];

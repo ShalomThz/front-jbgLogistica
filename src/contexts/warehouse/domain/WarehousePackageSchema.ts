@@ -1,9 +1,6 @@
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { dimensionsSchema } from "@contexts/shared/domain/schemas/Dimensions";
 import { weightSchema } from "@contexts/shared/domain/schemas/Weight";
-import { customerSchema } from "@contexts/sales/domain/schemas/customer/Customer";
-import { userSchema } from "@contexts/iam/domain/schemas/user/User";
-import { storeSchema } from "@contexts/iam/domain/schemas/store/Store";
 import { z } from "zod";
 
 export const warehousePackageStatuses = [
@@ -19,12 +16,14 @@ export const providerSummarySchema = z.object({
   name: z.string(),
 });
 
+const entitySummarySchema = z.object({ id: z.string(), name: z.string() });
+
 export const packageListViewSchema = z.object({
   id: z.string(),
   provider: providerSummarySchema,
-  user: userSchema,
-  customer: customerSchema,
-  store: storeSchema,
+  user: entitySummarySchema,
+  customer: entitySummarySchema,
+  store: entitySummarySchema,
   boxId: z.string(),
   dimensions: dimensionsSchema,
   officialInvoice: z.string(),
