@@ -4,6 +4,13 @@ import { findCustomersResponseSchema, type FindCustomersResponsePrimitives } fro
 
 export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
 
+export interface ProvisionAccessResponse {
+  customerId: string;
+  userId: string;
+  email: string;
+  isNew: boolean;
+}
+
 export const customerRepository = {
   find: async (
     request: { filters: unknown[]; limit?: number; offset?: number },
@@ -35,5 +42,13 @@ export const customerRepository = {
     await httpClient<unknown>(`/customer/${id}`, {
       method: "DELETE",
     });
+  },
+
+  provisionAccess: async (id: string, password: string): Promise<ProvisionAccessResponse> => {
+    const data = await httpClient<unknown>(`/customer/${id}/provision-access`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+    return data as ProvisionAccessResponse;
   },
 };

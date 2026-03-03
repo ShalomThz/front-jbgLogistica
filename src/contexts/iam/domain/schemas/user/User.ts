@@ -5,6 +5,9 @@ import { userRoleSchema } from "./UserRole";
 import { storeSchema } from "../store/Store";
 import { zoneSchema } from "../../../../pricing/domain/schemas/zone/Zone";
 
+export const USER_TYPES = ["EMPLOYEE", "CUSTOMER", "DRIVER"] as const;
+export type UserType = (typeof USER_TYPES)[number];
+
 export const nameSchema = z.string()
 .min(2, "El nombre debe tener al menos 2 caracteres")
 .max(100, "El nombre no puede exceder los 100 caracteres");
@@ -17,6 +20,7 @@ export const userSchema = z.object({
   role: userRoleSchema,
   storeId: z.string(),
   isActive: z.boolean(),
+  type: z.enum(USER_TYPES),
   ...aggregateRootSchema.shape,
 });
 

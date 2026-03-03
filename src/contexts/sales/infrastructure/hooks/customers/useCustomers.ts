@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
-import { customerRepository, type UpdateCustomerRequest } from "../../services/customers/customerRepository";
 import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
+import { customerRepository, type UpdateCustomerRequest } from "../../services/customers/customerRepository";
 
 const CUSTOMERS_QUERY_KEY = ["customers"];
 
@@ -57,6 +57,15 @@ export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true
     },
   });
 
+  const provisionMutation = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      await customerRepository.provisionAccess(id, password)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS_QUERY_KEY });
+    },
+  });
+
   return {
     customers,
     pagination,
@@ -78,5 +87,10 @@ export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true
     deleteCustomer: (id: string) => deleteMutation.mutateAsync(id),
     isDeleting: deleteMutation.isPending,
     deleteError: deleteMutation.error?.message ?? null,
+
+    provisionAccess: (id: string, password: string) =>
+      provisionMutation.mutateAsync({ id, password }),
+    isProvisioning: provisionMutation.isPending,
+    provisionError: provisionMutation.error?.message ?? null,
   };
 };

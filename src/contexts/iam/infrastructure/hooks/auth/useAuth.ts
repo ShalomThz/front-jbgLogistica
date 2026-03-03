@@ -45,10 +45,15 @@ export const useAuth = () => {
     },
   });
 
+  const userType = user?.type ?? "EMPLOYEE";
+  const isCustomer = userType === "CUSTOMER";
+
   return {
     user: user ?? null,
     isLoading,
     isAuthenticated: !!user,
+    userType,
+    isCustomer,
     login: (credentials: LoginRequestPrimitives) =>
       loginMutation.mutateAsync(credentials).then(() => {}),
     logout: () => logoutMutation.mutateAsync().then(() => {}),

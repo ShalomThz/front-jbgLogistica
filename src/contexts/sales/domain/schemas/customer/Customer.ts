@@ -11,6 +11,7 @@ export const customerSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
   registeredByStoreId: z.string(),
   address: addressSchema,
+  userId: z.string().nullable(),
   ...aggregateRootSchema.shape,
 });
 

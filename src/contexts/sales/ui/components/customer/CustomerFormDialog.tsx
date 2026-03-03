@@ -38,6 +38,7 @@ interface Props {
 
 function getDefaults(customer?: CustomerListViewPrimitives | null): CreateCustomerRequest {
   return {
+    userId: customer?.userId ?? null,
     name: customer?.name ?? "",
     company: customer?.company ?? "",
     email: customer?.email ?? "",
