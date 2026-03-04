@@ -7,11 +7,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Separator,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from "@contexts/shared/shadcn";
-import { Pencil, Trash2 } from "lucide-react";
+import { Check, Pencil, Trash2 } from "lucide-react";
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
-import { PERMISSION_LABELS } from "./constants";
+import { PERMISSION_LABELS, PERMISSION_GROUPS } from "./constants";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -35,8 +38,8 @@ interface Props {
   user: UserListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  onEdit?: (user:UserListViewPrimitives) => void;
-  onDelete?: (user:UserListViewPrimitives) => void;
+  onEdit?: (user: UserListViewPrimitives) => void;
+  onDelete?: (user: UserListViewPrimitives) => void;
 }
 
 export const UserDetailDialog = ({
@@ -46,48 +49,100 @@ export const UserDetailDialog = ({
   onEdit,
   onDelete,
 }: Props) => {
-
   if (!user) return null;
+
+  const permissionSet = new Set(user.role.permissions);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg pt-8">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto pt-8">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>{user.email}</span>
+            <span>{user.name}</span>
             <Badge variant={user.isActive ? "default" : "outline"}>
               {user.isActive ? "Activo" : "Inactivo"}
             </Badge>
           </DialogTitle>
-          <DialogDescription>{user.name}</DialogDescription>
+          <DialogDescription>{user.email}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Cuenta</h4>
+
+        <Tabs defaultValue="account">
+          <TabsList className="w-full">
+            <TabsTrigger value="account">Cuenta</TabsTrigger>
+            <TabsTrigger value="permissions">
+              Permisos
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                {user.role.permissions.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="audit">Auditoría</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="account" className="space-y-3 mt-3">
             <div className="rounded-md border p-3 space-y-1">
+              <DetailRow label="Nombre" value={user.name} />
               <DetailRow label="Email" value={user.email} />
               <DetailRow
                 label="Estado"
                 value={user.isActive ? "Activo" : "Inactivo"}
               />
               <DetailRow label="Tienda" value={user.store.name} />
+              <DetailRow label="Rol" value={user.role.name} />
             </div>
-          </div>
-          <Separator />
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Rol: {user.role.name}</h4>
-            <div className="rounded-md border p-3">
-              <div className="flex flex-wrap gap-1.5">
-                {user.role.permissions.map((p) => (
-                  <Badge key={p} variant="secondary" className="text-xs">
-                    {PERMISSION_LABELS[p] ?? p}
-                  </Badge>
-                ))}
-              </div>
+          </TabsContent>
+
+          <TabsContent value="permissions" className="mt-3">
+            <div className="rounded-md border divide-y">
+              {PERMISSION_GROUPS.map((group) => {
+                const groupPerms = group.permissions.filter((p) =>
+                  permissionSet.has(p),
+                );
+                if (groupPerms.length === 0) return null;
+                const Icon = group.icon;
+                const allSelected =
+                  groupPerms.length === group.permissions.length;
+
+                return (
+                  <div key={group.label} className="px-3 py-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Icon className="size-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium flex-1">
+                        {group.label}
+                      </span>
+                      {allSelected ? (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0"
+                        >
+                          Todos
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {groupPerms.length}/{group.permissions.length}
+                        </span>
+                      )}
+                    </div>
+                    {!allSelected && (
+                      <div className="flex flex-wrap gap-1 pl-6">
+                        {groupPerms.map((p) => (
+                          <Badge
+                            key={p}
+                            variant="outline"
+                            className="text-xs font-normal gap-1"
+                          >
+                            <Check className="size-3" />
+                            {PERMISSION_LABELS[p]}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          <Separator />
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Auditoría</h4>
+          </TabsContent>
+
+          <TabsContent value="audit" className="mt-3">
             <div className="rounded-md border p-3 space-y-1">
               <DetailRow
                 label="Creado"
@@ -98,8 +153,9 @@ export const UserDetailDialog = ({
                 value={formatDateTime(user.updatedAt)}
               />
             </div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
+
         {(onEdit || onDelete) && (
           <DialogFooter>
             {onDelete && (

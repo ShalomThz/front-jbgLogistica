@@ -12,11 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@contexts/shared/shadcn/components";
+import { settingsPolicies } from "@contexts/shared/custom/policies/settings.policy";
 
 export const UserMenu = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const canAccessSettings = user?.role.permissions.includes("CAN_SHIP");
+  const canAccessSettings = user && settingsPolicies.view(user);
 
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
 

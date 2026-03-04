@@ -10,7 +10,13 @@ import {
   SidebarMenuItem,
 } from '@contexts/shared/shadcn/components';
 import { useAuth } from '@contexts/iam/infrastructure/hooks/auth/useAuth';
-import type { Permission } from '@/contexts/iam/domain/schemas/user/UserRole';
+import type { Policy } from '@contexts/shared/custom/policies/Policy';
+import { customerPolicies } from '@contexts/shared/custom/policies/customer.policy';
+import { orderPolicies } from '@contexts/shared/custom/policies/order.policy';
+import { warehousePolicies } from '@contexts/shared/custom/policies/warehouse.policy';
+import { boxPolicies } from '@contexts/shared/custom/policies/box.policy';
+import { pricingPolicies } from '@contexts/shared/custom/policies/pricing.policy';
+import { iamPolicies } from '@contexts/shared/custom/policies/iam.policy';
 import type { LucideIcon } from 'lucide-react';
 import {
   Users,
@@ -28,7 +34,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  permissions?: Permission[];
+  policy?: Policy;
 }
 
 interface NavSection {
@@ -40,30 +46,30 @@ const navigation: NavSection[] = [
   {
     title: 'Ventas',
     items: [
-      { label: 'Clientes', href: '/customers', icon: Users, permissions: ['CAN_MANAGE_CUSTOMERS'] },
-      { label: 'Órdenes', href: '/orders', icon: ShoppingCart, permissions: ['CAN_SELL'] },
-      { label: 'Bodega', href: '/warehouse', icon: Warehouse, permissions: ['CAN_MANAGE_INVENTORY'] },
+      { label: 'Clientes', href: '/customers', icon: Users, policy: customerPolicies.manage },
+      { label: 'Órdenes', href: '/orders', icon: ShoppingCart, policy: orderPolicies.list },
+      { label: 'Bodega', href: '/warehouse', icon: Warehouse, policy: warehousePolicies.manage },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { label: 'Cajas', href: '/boxes', icon: Package, permissions: ['CAN_MANAGE_INVENTORY'] },
-      { label: 'Venta de Cajas', href: '/box-sales', icon: Receipt, permissions: ['CAN_SELL_BOXES'] },
+      { label: 'Cajas', href: '/boxes', icon: Package, policy: boxPolicies.manage },
+      { label: 'Venta de Cajas', href: '/box-sales', icon: Receipt, policy: boxPolicies.sell },
     ],
   },
   {
     title: 'Operaciones',
     items: [
-      { label: 'Tarifas', href: '/tariffs', icon: DollarSign, permissions: ['CAN_MANAGE_TARIFFS'] },
-      { label: 'Zonas', href: '/zones', icon: MapPin, permissions: ['CAN_MANAGE_ZONES'] },
+      { label: 'Tarifas', href: '/tariffs', icon: DollarSign, policy: pricingPolicies.manageTariffs },
+      { label: 'Zonas', href: '/zones', icon: MapPin, policy: pricingPolicies.manageZones },
     ],
   },
   {
     title: 'Administración',
     items: [
-      { label: 'Tiendas', href: '/stores', icon: Store, permissions: ['CAN_MANAGE_STORES'] },
-      { label: 'Usuarios', href: '/users', icon: UserCog, permissions: ['CAN_MANAGE_USERS'] },
+      { label: 'Tiendas', href: '/stores', icon: Store, policy: iamPolicies.manageStores },
+      { label: 'Usuarios', href: '/users', icon: UserCog, policy: iamPolicies.manageUsers },
     ],
   },
 ];
@@ -72,17 +78,12 @@ export const AppSidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const userPermissions = user?.role.permissions ?? [];
-
-  const hasPermission = (requiredPermissions?: Permission[]) => {
-    if (!requiredPermissions || requiredPermissions.length === 0) return true;
-    return requiredPermissions.some((p) => userPermissions.includes(p));
-  };
-
   const filteredNavigation = navigation
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => hasPermission(item.permissions)),
+      items: section.items.filter((item) =>
+        !item.policy || (user && item.policy(user)),
+      ),
     }))
     .filter((section) => section.items.length > 0);
 

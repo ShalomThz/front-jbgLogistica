@@ -2,6 +2,14 @@ import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
 import { ProtectedRoute } from "@contexts/shared/custom/components";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
+import { customerPolicies } from "@contexts/shared/custom/policies/customer.policy";
+import { boxPolicies } from "@contexts/shared/custom/policies/box.policy";
+import { iamPolicies } from "@contexts/shared/custom/policies/iam.policy";
+import { warehousePolicies } from "@contexts/shared/custom/policies/warehouse.policy";
+import { shippingPolicies } from "@contexts/shared/custom/policies/shipping.policy";
+import { pricingPolicies } from "@contexts/shared/custom/policies/pricing.policy";
+import { settingsPolicies } from "@contexts/shared/custom/policies/settings.policy";
 
 // Dashboard (static — initial page)
 import { DashboardPage } from "@contexts/shared/custom/pages";
@@ -41,7 +49,7 @@ export const routes: RouteObject[] = [
   {
     path: "/customers",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_CUSTOMERS"]}>
+      <ProtectedRoute policy={customerPolicies.manage}>
         <Suspense fallback={<PageLoader />}>
           <CustomersPage />
         </Suspense>
@@ -51,7 +59,7 @@ export const routes: RouteObject[] = [
   {
     path: "/orders",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL"]}>
+      <ProtectedRoute policy={orderPolicies.list}>
         <Suspense fallback={<PageLoader />}>
           <OrdersPage />
         </Suspense>
@@ -61,7 +69,7 @@ export const routes: RouteObject[] = [
   {
     path: "/orders/new/hq",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL"]}>
+      <ProtectedRoute policy={orderPolicies.createHQ}>
         <Suspense fallback={<PageLoader />}>
           <NewHQOrderPage />
         </Suspense>
@@ -71,7 +79,7 @@ export const routes: RouteObject[] = [
   {
     path: "/orders/new/partner",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL"]}>
+      <ProtectedRoute policy={orderPolicies.createPartner}>
         <Suspense fallback={<PageLoader />}>
           <NewPartnerOrderPage />
         </Suspense>
@@ -81,7 +89,7 @@ export const routes: RouteObject[] = [
   {
     path: "/orders/:id/edit",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL"]}>
+      <ProtectedRoute policy={orderPolicies.edit}>
         <Suspense fallback={<PageLoader />}>
           <EditOrderPage />
         </Suspense>
@@ -91,7 +99,7 @@ export const routes: RouteObject[] = [
   {
     path: "/warehouse",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
+      <ProtectedRoute policy={warehousePolicies.manage}>
         <Suspense fallback={<PageLoader />}>
           <WarehousePage />
         </Suspense>
@@ -103,7 +111,7 @@ export const routes: RouteObject[] = [
   {
     path: "/boxes",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_INVENTORY"]}>
+      <ProtectedRoute policy={boxPolicies.manage}>
         <Suspense fallback={<PageLoader />}>
           <BoxPage />
         </Suspense>
@@ -114,7 +122,7 @@ export const routes: RouteObject[] = [
   {
     path: "/box-sales",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL_BOXES"]}>
+      <ProtectedRoute policy={boxPolicies.sell}>
         <Suspense fallback={<PageLoader />}>
           <BoxSalePage />
         </Suspense>
@@ -126,7 +134,7 @@ export const routes: RouteObject[] = [
   {
     path: "/delivery-routes",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL"]}>
+      <ProtectedRoute policy={shippingPolicies.list}>
         <Suspense fallback={<PageLoader />}>
           <DeliveryRoutesPage />
         </Suspense>
@@ -136,7 +144,7 @@ export const routes: RouteObject[] = [
   {
     path: "/drivers",
     element: (
-      <ProtectedRoute permissions={["CAN_SELL"]}>
+      <ProtectedRoute policy={shippingPolicies.list}>
         <Suspense fallback={<PageLoader />}>
           <DriversPage />
         </Suspense>
@@ -148,7 +156,7 @@ export const routes: RouteObject[] = [
   {
     path: "/tariffs",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_TARIFFS"]}>
+      <ProtectedRoute policy={pricingPolicies.manageTariffs}>
         <Suspense fallback={<PageLoader />}>
           <TariffsPage />
         </Suspense>
@@ -158,7 +166,7 @@ export const routes: RouteObject[] = [
   {
     path: "/stores",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_STORES"]}>
+      <ProtectedRoute policy={iamPolicies.manageStores}>
         <Suspense fallback={<PageLoader />}>
           <StoresPage />
         </Suspense>
@@ -168,7 +176,7 @@ export const routes: RouteObject[] = [
   {
     path: "/zones",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_ZONES"]}>
+      <ProtectedRoute policy={pricingPolicies.manageZones}>
         <Suspense fallback={<PageLoader />}>
           <ZonesPage />
         </Suspense>
@@ -180,7 +188,7 @@ export const routes: RouteObject[] = [
   {
     path: "/users",
     element: (
-      <ProtectedRoute permissions={["CAN_MANAGE_USERS"]}>
+      <ProtectedRoute policy={iamPolicies.manageUsers}>
         <Suspense fallback={<PageLoader />}>
           <UsersPage />
         </Suspense>
@@ -192,7 +200,7 @@ export const routes: RouteObject[] = [
   {
     path: "/settings",
     element: (
-      <ProtectedRoute permissions={["CAN_SHIP"]}>
+      <ProtectedRoute policy={settingsPolicies.manage}>
         <Suspense fallback={<PageLoader />}>
           <SettingsPage />
         </Suspense>

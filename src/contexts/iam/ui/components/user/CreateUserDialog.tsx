@@ -19,15 +19,17 @@ import {
   SelectValue,
   Checkbox,
 } from "@contexts/shared/shadcn";
-import { PERMISSIONS, type Permission } from "../../../domain/schemas/user/UserRole";
+
+import { type Permission } from "../../../domain/schemas/user/UserRole";
 import {
   registerUserRequestSchema,
   type RegisterUserRequestPrimitives,
 } from "../../../application/user/RegisterUserRequest";
 import { useStores } from "../../../infrastructure/hooks/stores/useStores";
-import { ROLE_PRESETS, PERMISSION_LABELS } from "./constants";
+import { ROLE_PRESETS } from "./constants";
 import { FormField } from "./FormField";
 import { PasswordToggle } from "./PasswordToggle";
+import { PermissionPicker } from "./PermissionPicker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +52,20 @@ function getDefaults(): FormValues {
     storeId: "",
     isActive: true,
     type: "EMPLOYEE",
-    role: { name: "Vendedor", permissions: ["CAN_SELL", "CAN_MANAGE_CUSTOMERS"] },
+    role: {
+      name: "Vendedor",
+      permissions: [
+        "CAN_LIST_PARTNER_ORDERS",
+        "CAN_VIEW_PARTNER_ORDERS",
+        "CAN_CREATE_PARTNER_ORDERS",
+        "CAN_EDIT_PARTNER_ORDERS",
+        "CAN_DELETE_PARTNER_ORDERS",
+        "CAN_LIST_CUSTOMERS",
+        "CAN_VIEW_CUSTOMERS",
+        "CAN_CREATE_CUSTOMERS",
+        "CAN_EDIT_CUSTOMERS",
+      ],
+    },
   };
 }
 
@@ -103,11 +118,8 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
     setValue("role", { name, permissions: preset?.permissions ?? [] }, { shouldValidate: true });
   };
 
-  const togglePermission = (permission: Permission) => {
-    const next = watchedPermissions.includes(permission)
-      ? watchedPermissions.filter((p) => p !== permission)
-      : [...watchedPermissions, permission];
-    setValue("role", { name: watchedRole?.name ?? "", permissions: next }, { shouldValidate: true });
+  const handlePermissionsChange = (permissions: Permission[]) => {
+    setValue("role", { name: watchedRole?.name ?? "", permissions }, { shouldValidate: true });
   };
 
   const onSubmit = handleSubmit((values) => onSave(values));
@@ -245,23 +257,11 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
 
           {/* ── Permissions ── */}
           <FormField label="Permisos" error={permissionsError}>
-            <div className="rounded-md border p-3 space-y-2">
-              {PERMISSIONS.map((permission) => (
-                <div key={permission} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`create-${permission}`}
-                    checked={watchedPermissions.includes(permission)}
-                    onCheckedChange={() => togglePermission(permission)}
-                  />
-                  <Label
-                    htmlFor={`create-${permission}`}
-                    className="cursor-pointer text-sm font-normal"
-                  >
-                    {PERMISSION_LABELS[permission]}
-                  </Label>
-                </div>
-              ))}
-            </div>
+            <PermissionPicker
+              selected={watchedPermissions}
+              onChange={handlePermissionsChange}
+              idPrefix="create"
+            />
           </FormField>
 
           {/* ── Active ── */}

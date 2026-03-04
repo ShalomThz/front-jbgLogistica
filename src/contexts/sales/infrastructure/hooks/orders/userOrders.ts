@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -15,12 +17,18 @@ interface UseOrdersOptions {
 
 export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const offset = (page - 1) * limit;
+
+  const filters: unknown[] = [];
+  if (user && !orderPolicies.listAllPartner(user)) {
+    filters.push({ field: "storeId", filterOperator: "=", value: user.storeId });
+  }
 
   const { data, isLoading, error, refetch } =
     useQuery<FindOrdersResponse>({
-      queryKey: [...ORDERS_QUERY_KEY, { page, limit }],
-      queryFn: () => orderRepository.find({ filters: [], limit, offset }),
+      queryKey: [...ORDERS_QUERY_KEY, { page, limit, storeId: user?.storeId }],
+      queryFn: () => orderRepository.find({ filters, limit, offset }),
       enabled,
     });
 

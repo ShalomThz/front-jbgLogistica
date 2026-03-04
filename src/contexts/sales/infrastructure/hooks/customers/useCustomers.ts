@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { customerPolicies } from "@contexts/shared/custom/policies/customer.policy";
 import type { FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
 import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 import { customerRepository, type UpdateCustomerRequest } from "../../services/customers/customerRepository";
@@ -14,11 +16,16 @@ interface UseCustomersOptions {
 
 export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true }: UseCustomersOptions = {}) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const offset = (page - 1) * limit;
 
-  const filters = search
-    ? [{ field: "name", filterOperator: "LIKE", value: search }]
-    : [];
+  const filters: unknown[] = [];
+  if (search) {
+    filters.push({ field: "name", filterOperator: "LIKE", value: search });
+  }
+  if (user && !customerPolicies.listAll(user)) {
+    filters.push({ field: "storeId", filterOperator: "=", value: user.storeId });
+  }
 
   const {
     data,
@@ -26,7 +33,7 @@ export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true
     error,
     refetch,
   } = useQuery<FindCustomersResponsePrimitives>({
-    queryKey: [...CUSTOMERS_QUERY_KEY, { page, limit, search }],
+    queryKey: [...CUSTOMERS_QUERY_KEY, { page, limit, search, storeId: user?.storeId }],
     queryFn: () => customerRepository.find({ filters, limit, offset }),
     enabled: enabled && (search === "" || search.length >= 2),
   });

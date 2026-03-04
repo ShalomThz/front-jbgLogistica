@@ -21,11 +21,12 @@ import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { editUserRequestSchema, type EditUserRequest } from "../../../application/user/EditUserRequest";
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
-import { PERMISSIONS, type Permission } from "../../../domain/schemas/user/UserRole";
+import { type Permission } from "../../../domain/schemas/user/UserRole";
 import { useStores } from "../../../infrastructure/hooks/stores/useStores";
-import { PERMISSION_LABELS, ROLE_PRESETS } from "./constants";
+import { ROLE_PRESETS } from "./constants";
 import { FormField } from "./FormField";
 import { PasswordToggle } from "./PasswordToggle";
+import { PermissionPicker } from "./PermissionPicker";
 
 type Props = {
   open: boolean;
@@ -94,11 +95,8 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
     setValue("role", { name, permissions: preset?.permissions ?? [] }, { shouldDirty: true, shouldValidate: true });
   };
 
-  const togglePermission = (permission: Permission) => {
-    const next = watchedPermissions.includes(permission)
-      ? watchedPermissions.filter((p) => p !== permission)
-      : [...watchedPermissions, permission];
-    setValue("role", { name: watchedRole?.name ?? "", permissions: next }, { shouldDirty: true, shouldValidate: true });
+  const handlePermissionsChange = (permissions: Permission[]) => {
+    setValue("role", { name: watchedRole?.name ?? "", permissions }, { shouldDirty: true, shouldValidate: true });
   };
 
   const onSubmit = handleSubmit((data) => {
@@ -256,23 +254,11 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
 
           {/* ── Permissions ── */}
           <FormField label="Permisos" error={permissionsError}>
-            <div className="rounded-md border p-3 space-y-2">
-              {PERMISSIONS.map((permission) => (
-                <div key={permission} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`edit-${permission}`}
-                    checked={watchedPermissions.includes(permission)}
-                    onCheckedChange={() => togglePermission(permission)}
-                  />
-                  <Label
-                    htmlFor={`edit-${permission}`}
-                    className="cursor-pointer text-sm font-normal"
-                  >
-                    {PERMISSION_LABELS[permission]}
-                  </Label>
-                </div>
-              ))}
-            </div>
+            <PermissionPicker
+              selected={watchedPermissions}
+              onChange={handlePermissionsChange}
+              idPrefix="edit"
+            />
           </FormField>
 
           {/* ── Active ── */}

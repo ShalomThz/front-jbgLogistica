@@ -25,6 +25,8 @@ import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderLi
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { useOrderFilters } from "../hooks/useOrderFilters";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
@@ -49,12 +51,28 @@ export const OrdersPage = () => {
   } = useOrders({ page, limit });
 
   const { cancelShipment, isCancelling } = useShipmentActions();
+  const { user } = useAuth();
 
   const { filters, setFilter, filtered, options } = useOrderFilters(orders);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
+
+  const canSell = user ? orderPolicies.createPartner(user) : false;
+  const canCreateHQ = user ? orderPolicies.createHQ(user) : false;
+
+  const handleCreateOrder = () => {
+    if (canSell && canCreateHQ) {
+      setShowNewOrderDialog(true);
+      return;
+    }
+    if (canCreateHQ) {
+      startTransition(() => navigate("/orders/new/hq"));
+      return;
+    }
+    startTransition(() => navigate("/orders/new/partner"));
+  };
 
   const handleDelete = async () => {
     if (!orderToDelete) return;
@@ -84,7 +102,7 @@ export const OrdersPage = () => {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button onClick={() => setShowNewOrderDialog(true)}>
+          <Button onClick={handleCreateOrder}>
             <Plus className="size-4" />
             Crear Orden
           </Button>

@@ -1,22 +1,20 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import type { Permission } from "@/contexts/iam/domain/schemas/user/UserRole";
+import type { Policy } from "@contexts/shared/custom/policies/Policy";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   fallback?: ReactNode;
-  roles?: string[];
-  permissions?: Permission[];
+  policy?: Policy;
   redirectTo?: string;
 }
 
 export const ProtectedRoute = ({
   children,
   fallback,
-  roles,
-  permissions,
+  policy,
   redirectTo = "/",
 }: ProtectedRouteProps) => {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -29,15 +27,7 @@ export const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && user && !roles.includes(user.role.name)) {
-    return <Navigate to={redirectTo} replace />;
-  }
-
-  if (
-    permissions &&
-    user &&
-    !permissions.some((p) => user.role.permissions.includes(p))
-  ) {
+  if (policy && user && !policy(user)) {
     return <Navigate to={redirectTo} replace />;
   }
 

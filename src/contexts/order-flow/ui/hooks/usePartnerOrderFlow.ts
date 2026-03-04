@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
@@ -25,7 +26,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId }: UsePartnerOrderF
   const { user } = useAuth();
 
   // TODO: cambiar a CAN_SELECT_STORE cuando se cree el permiso
-  const canSelectStore = user?.role.permissions.includes("CAN_CREATE_HQ_ORDERS") ?? false;
+  const canSelectStore = user ? orderPolicies.createHQ(user) : false;
 
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(user?.storeId);
 
