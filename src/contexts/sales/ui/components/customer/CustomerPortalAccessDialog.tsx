@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Dialog,
@@ -10,7 +10,7 @@ import {
   Input,
   Label,
 } from "@contexts/shared/shadcn";
-import { Copy, KeyRound, RefreshCw } from "lucide-react";
+import { AlertCircle, Copy, KeyRound, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 
@@ -34,6 +34,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onProvision: (id: string, password: string) => Promise<void>;
+  onUpdateEmail: (id: string, email: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -42,10 +43,19 @@ export const CustomerPortalAccessDialog = ({
   open,
   onClose,
   onProvision,
+  onUpdateEmail,
   isLoading,
 }: Props) => {
   const [password, setPassword] = useState(() => generatePassword());
   const [done, setDone] = useState(false);
+  const [email, setEmail] = useState(customer?.email ?? "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
+
+  // Sync email when the customer changes (different customer opened without unmounting)
+  useEffect(() => {
+    if (customer) setEmail(customer.email);
+  }, [customer?.id]);
 
   const hasAccess = !!customer?.user;
 
@@ -56,14 +66,36 @@ export const CustomerPortalAccessDialog = ({
       setTimeout(() => {
         setDone(false);
         setPassword(generatePassword());
+        setProvisionError(null);
+        setEmail(customer?.email ?? "");
       }, 200);
     }
   };
 
   const handleProvision = async () => {
     if (!customer) return;
-    await onProvision(customer.id, password);
-    setDone(true);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setProvisionError("Por favor ingresa un correo electrónico válido.");
+      return;
+    }
+
+    setProvisionError(null);
+    setIsSubmitting(true);
+    try {
+      if (trimmedEmail !== customer.email) {
+        await onUpdateEmail(customer.id, trimmedEmail);
+      }
+      await onProvision(customer.id, password);
+      setDone(true);
+    } catch (error) {
+      setProvisionError(
+        error instanceof Error ? error.message : "Error al configurar el acceso",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -93,7 +125,20 @@ export const CustomerPortalAccessDialog = ({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Correo electrónico</Label>
-              <Input value={customer.email} readOnly className="bg-muted text-muted-foreground" />
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setProvisionError(null);
+                }}
+                placeholder="correo@ejemplo.com"
+              />
+              {email.trim() !== customer.email && email.trim() !== "" && (
+                <p className="text-xs text-muted-foreground">
+                  El correo del cliente se actualizará al confirmar.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -127,6 +172,12 @@ export const CustomerPortalAccessDialog = ({
                 Esta contraseña es generada automáticamente. Puedes regenerarla antes de confirmar.
               </p>
             </div>
+            {provisionError && (
+              <p className="flex items-center gap-1.5 text-sm text-destructive">
+                <AlertCircle className="size-4 shrink-0" />
+                {provisionError}
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -136,9 +187,9 @@ export const CustomerPortalAccessDialog = ({
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-xs text-muted-foreground">Email</p>
-                    <p className="text-sm font-mono">{customer.email}</p>
+                    <p className="text-sm font-mono">{email}</p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(customer.email)}>
+                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(email)}>
                     <Copy className="size-4" />
                   </Button>
                 </div>
@@ -156,7 +207,7 @@ export const CustomerPortalAccessDialog = ({
                 variant="outline"
                 size="sm"
                 className="w-full"
-                onClick={() => copyToClipboard(`Email: ${customer.email}\nContraseña: ${password}`)}
+                onClick={() => copyToClipboard(`Email: ${email}\nContraseña: ${password}`)}
               >
                 <Copy className="mr-2 size-4" />
                 Copiar todo
@@ -176,8 +227,8 @@ export const CustomerPortalAccessDialog = ({
               <Button variant="outline" onClick={() => handleOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleProvision} disabled={isLoading}>
-                {isLoading
+              <Button onClick={handleProvision} disabled={isLoading || isSubmitting}>
+                {isLoading || isSubmitting
                   ? "Configurando..."
                   : hasAccess
                   ? "Renovar contraseña"

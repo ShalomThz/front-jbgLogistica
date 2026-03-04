@@ -272,6 +272,9 @@ export const CustomersPage = () => {
         open={!!accessCustomer}
         onClose={() => setAccessCustomer(null)}
         onProvision={provisionAccess}
+        onUpdateEmail={async (id, email) => {
+          await updateCustomer(id, { email })
+        }}
         isLoading={isProvisioning}
       />
     </div>
