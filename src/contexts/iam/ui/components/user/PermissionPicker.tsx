@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
-import { Checkbox, Label } from "@contexts/shared/shadcn";
+import { ChevronRight, Info } from "lucide-react";
+import { Checkbox, Label, Popover, PopoverContent, PopoverTrigger } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { Permission } from "../../../domain/schemas/user/UserRole";
-import { PERMISSION_LABELS, PERMISSION_GROUPS } from "./constants";
+import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, PERMISSION_GROUPS } from "./constants";
+import { addWithDeps, removeWithDependents, isImplied } from "./permissionDeps";
 
 interface Props {
   selected: Permission[];
@@ -24,11 +25,11 @@ export function PermissionPicker({ selected, onChange, idPrefix }: Props) {
   });
 
   const toggle = (permission: Permission) => {
-    onChange(
-      selected.includes(permission)
-        ? selected.filter((p) => p !== permission)
-        : [...selected, permission],
-    );
+    if (selected.includes(permission)) {
+      onChange(removeWithDependents(selected, permission));
+    } else {
+      onChange(addWithDeps(selected, permission));
+    }
   };
 
   const toggleGroup = (groupPermissions: Permission[]) => {
@@ -51,7 +52,7 @@ export function PermissionPicker({ selected, onChange, idPrefix }: Props) {
   };
 
   return (
-    <div className="rounded-md border divide-y">
+    <div className="rounded-md border divide-y max-h-[50vh] overflow-y-auto">
       {PERMISSION_GROUPS.map((group) => {
         const isOpen = expanded.has(group.label);
         const selectedCount = group.permissions.filter((p) =>
@@ -88,22 +89,44 @@ export function PermissionPicker({ selected, onChange, idPrefix }: Props) {
 
             {isOpen && (
               <div className="pb-2 px-3 pl-[3.25rem] grid grid-cols-2 gap-x-2 gap-y-1">
-                {group.permissions.map((permission) => (
-                  <div key={permission} className="flex items-center gap-1.5">
-                    <Checkbox
-                      id={`${idPrefix}-${permission}`}
-                      checked={selected.includes(permission)}
-                      onCheckedChange={() => toggle(permission)}
-                      className="shrink-0"
-                    />
-                    <Label
-                      htmlFor={`${idPrefix}-${permission}`}
-                      className="cursor-pointer text-sm font-normal truncate"
-                    >
-                      {PERMISSION_LABELS[permission]}
-                    </Label>
-                  </div>
-                ))}
+                {group.permissions.map((permission) => {
+                  const implied = isImplied(selected, permission);
+                  return (
+                    <div key={permission} className="flex items-center gap-1.5">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="size-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent side="top" className="w-64 text-sm p-3">
+                          <p className="font-medium mb-1">{PERMISSION_LABELS[permission]}</p>
+                          <p className="text-muted-foreground text-xs">{PERMISSION_DESCRIPTIONS[permission]}</p>
+                        </PopoverContent>
+                      </Popover>
+                      <Checkbox
+                        id={`${idPrefix}-${permission}`}
+                        checked={selected.includes(permission)}
+                        onCheckedChange={() => toggle(permission)}
+                        disabled={implied}
+                        className="shrink-0"
+                      />
+                      <Label
+                        htmlFor={`${idPrefix}-${permission}`}
+                        className={cn(
+                          "cursor-pointer text-sm font-normal truncate flex-1",
+                          implied && "text-muted-foreground cursor-not-allowed",
+                        )}
+                      >
+                        {PERMISSION_LABELS[permission]}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

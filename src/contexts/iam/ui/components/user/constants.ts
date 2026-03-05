@@ -129,6 +129,90 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_VIEW_REPORTS: "Ver reportes",
 };
 
+export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
+  // Orders
+  CAN_LIST_ORDERS: "Ver la lista de órdenes de su propia tienda.",
+  CAN_LIST_ALL_ORDERS: "Ver la lista de órdenes de todas las tiendas. Requiere listar órdenes.",
+  CAN_VIEW_PARTNER_ORDERS: "Abrir el detalle de una orden de socio (partner).",
+  CAN_CREATE_PARTNER_ORDERS: "Crear nuevas órdenes de socio con datos básicos de contacto y paquete.",
+  CAN_EDIT_PARTNER_ORDERS: "Modificar los datos de una orden de socio existente.",
+  CAN_DELETE_PARTNER_ORDERS: "Eliminar permanentemente una orden de socio.",
+  CAN_VIEW_HQ_ORDERS: "Abrir el detalle de una orden JBG.",
+  CAN_CREATE_HQ_ORDERS: "Crear nuevas órdenes JBG con cotización de envío completa.",
+  CAN_EDIT_HQ_ORDERS: "Modificar los datos de una orden JBG y completar ventas de socios.",
+  CAN_DELETE_HQ_ORDERS: "Eliminar permanentemente una orden JBG.",
+
+  // Customers
+  CAN_LIST_CUSTOMERS: "Ver la lista de clientes de su propia tienda.",
+  CAN_LIST_ALL_CUSTOMERS: "Ver la lista de clientes de todas las tiendas.",
+  CAN_VIEW_CUSTOMERS: "Abrir el detalle de un cliente.",
+  CAN_CREATE_CUSTOMERS: "Registrar nuevos clientes en el sistema.",
+  CAN_EDIT_CUSTOMERS: "Modificar los datos de un cliente existente.",
+  CAN_DELETE_CUSTOMERS: "Eliminar permanentemente un cliente.",
+  CAN_PROVISION_CUSTOMER_ACCESS: "Crear credenciales de acceso al sistema de bodega para un cliente.",
+
+  // Users
+  CAN_LIST_USERS: "Ver la lista de usuarios del sistema.",
+  CAN_VIEW_USERS: "Abrir el detalle de un usuario.",
+  CAN_CREATE_USERS: "Registrar nuevos usuarios en el sistema.",
+  CAN_EDIT_USERS: "Modificar los datos y permisos de un usuario existente.",
+  CAN_DELETE_USERS: "Eliminar permanentemente un usuario.",
+
+  // Stores
+  CAN_LIST_STORES: "Ver la lista de tiendas registradas.",
+  CAN_VIEW_STORES: "Abrir el detalle de una tienda.",
+  CAN_CREATE_STORES: "Registrar nuevas tiendas en el sistema.",
+  CAN_EDIT_STORES: "Modificar los datos de una tienda existente.",
+  CAN_DELETE_STORES: "Eliminar permanentemente una tienda.",
+
+  // Boxes
+  CAN_LIST_BOXES: "Ver el inventario de cajas disponibles.",
+  CAN_VIEW_BOXES: "Abrir el detalle de una caja.",
+  CAN_CREATE_BOXES: "Registrar nuevos tipos de cajas en el inventario.",
+  CAN_EDIT_BOXES: "Modificar los datos de una caja existente.",
+  CAN_DELETE_BOXES: "Eliminar permanentemente un tipo de caja.",
+  CAN_SELL_BOXES: "Registrar la venta de una caja a un cliente.",
+  CAN_LIST_BOX_SALES: "Ver el historial de ventas de cajas.",
+
+  // Warehouse
+  CAN_LIST_PACKAGES: "Ver la lista de paquetes en bodega.",
+  CAN_VIEW_PACKAGES: "Abrir el detalle de un paquete.",
+  CAN_VIEW_PACKAGE_RECEIPT: "Ver e imprimir el recibo de ingreso de un paquete.",
+  CAN_CREATE_PACKAGES: "Registrar nuevos paquetes en bodega.",
+  CAN_EDIT_PACKAGES: "Modificar los datos de un paquete existente.",
+  CAN_DELETE_PACKAGES: "Eliminar permanentemente un paquete de bodega.",
+  CAN_VIEW_OWN_PACKAGES: "Permite a un cliente ver solo sus propios paquetes en bodega.",
+
+  // Shipping
+  CAN_LIST_SHIPMENTS: "Ver la lista de envíos.",
+  CAN_FULFILL_SHIPMENTS: "Marcar envíos como completados/despachados.",
+  CAN_VIEW_SHIPMENT_RATES: "Consultar tarifas y cotizaciones de proveedores de envío.",
+  CAN_SELECT_SHIPMENT_PROVIDER: "Elegir el proveedor de envío para una orden.",
+  CAN_VIEW_SHIPMENT_LABEL: "Ver y descargar la etiqueta/guía de envío.",
+  CAN_CANCEL_SHIPMENTS: "Cancelar un envío activo.",
+
+  // Tariffs
+  CAN_LIST_TARIFFS: "Ver la lista de tarifas configuradas.",
+  CAN_VIEW_TARIFFS: "Abrir el detalle de una tarifa.",
+  CAN_CREATE_TARIFFS: "Crear nuevas tarifas de envío.",
+  CAN_EDIT_TARIFFS: "Modificar tarifas existentes.",
+  CAN_DELETE_TARIFFS: "Eliminar permanentemente una tarifa.",
+
+  // Zones
+  CAN_LIST_ZONES: "Ver la lista de zonas geográficas.",
+  CAN_VIEW_ZONES: "Abrir el detalle de una zona.",
+  CAN_CREATE_ZONES: "Crear nuevas zonas geográficas.",
+  CAN_EDIT_ZONES: "Modificar zonas existentes.",
+  CAN_DELETE_ZONES: "Eliminar permanentemente una zona.",
+
+  // Settings
+  CAN_VIEW_SETTINGS: "Ver la configuración general del sistema.",
+  CAN_EDIT_SETTINGS: "Modificar la configuración general del sistema.",
+
+  // Reports
+  CAN_VIEW_REPORTS: "Acceder a los reportes y estadísticas del sistema.",
+};
+
 export const PERMISSION_GROUPS: {
   label: string;
   icon: LucideIcon;
