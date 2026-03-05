@@ -98,17 +98,6 @@ export function DimensionsForm() {
           />
         </div>
       </div>
-
-      {/* Quantity */}
-      <div>
-        <Label htmlFor="quantity">Cantidad de paquetes</Label>
-        <Input
-          id="quantity"
-          type="number"
-          min="1"
-          {...register("package.quantity")}
-        />
-      </div>
     </div>
   );
 }

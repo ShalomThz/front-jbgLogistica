@@ -38,7 +38,6 @@ export const newOrderDefaultValues: NewOrderFormValues = {
     dimensionUnit: "cm",
     weight: "",
     weightUnit: "kg",
-    quantity: "1",
     productType: "",
     savePackage: false,
     skydropxCategoryId: "",

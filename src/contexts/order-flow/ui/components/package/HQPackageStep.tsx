@@ -34,7 +34,7 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left column */}
-      <Card className="flex-[3] shadow-md shadow-primary/20">
+      <Card className="flex-3 shadow-md shadow-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Dimensiones y tipo de producto</CardTitle>
           <p className="text-sm text-muted-foreground">

@@ -31,7 +31,6 @@ const packageFormDataSchema = z.object({
   dimensionUnit: z.enum(dimensionUnits),
   weight: z.string().refine((v) => parseFloat(v) > 0, "El peso debe ser mayor a 0"),
   weightUnit: z.enum(weightUnits),
-  quantity: z.string(),
   productType: z.string(),
   savePackage: z.boolean(),
   skydropxCategoryId: z.string(),

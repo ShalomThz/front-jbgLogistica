@@ -23,6 +23,16 @@ import {
 } from "@/contexts/order-flow/infrastructure/hooks/useSkydropx";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
+function normalize(str: string) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+const accentInsensitiveFilter = (value: string, search: string) =>
+  normalize(value).includes(normalize(search)) ? 1 : 0;
+
 export function ProductTypeSelector() {
   const { setValue, formState: { errors } } = useFormContext<NewOrderFormValues>();
 
@@ -107,7 +117,7 @@ export function ProductTypeSelector() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-              <Command>
+              <Command filter={accentInsensitiveFilter}>
                 <CommandInput placeholder="Buscar categoría..." />
                 <CommandList>
                   <CommandEmpty>Sin resultados.</CommandEmpty>
@@ -160,7 +170,7 @@ export function ProductTypeSelector() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-              <Command>
+              <Command filter={accentInsensitiveFilter}>
                 <CommandInput placeholder="Buscar subcategoría..." />
                 <CommandList>
                   <CommandEmpty>Sin resultados.</CommandEmpty>
@@ -205,7 +215,7 @@ export function ProductTypeSelector() {
                     Cargando...
                   </span>
                 ) : selectedClass ? (
-                  <span className="truncate">{selectedClass.attributes.code} — {selectedClass.attributes.name}</span>
+                  <span className="truncate">{selectedClass.attributes.name} - {selectedClass.attributes.code}</span>
                 ) : (
                   <span className="text-muted-foreground">Buscar clase...</span>
                 )}
@@ -213,7 +223,7 @@ export function ProductTypeSelector() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-              <Command>
+              <Command filter={accentInsensitiveFilter}>
                 <CommandInput placeholder="Buscar por código o nombre..." />
                 <CommandList>
                   <CommandEmpty>Sin resultados.</CommandEmpty>
@@ -229,8 +239,8 @@ export function ProductTypeSelector() {
                       >
                         <Check className={cn("mr-2 size-4", consignmentNoteClassCode === cls.attributes.code ? "opacity-100" : "opacity-0")} />
                         <div>
-                          <div className="font-medium">{cls.attributes.code}</div>
-                          <div className="text-xs text-muted-foreground">{cls.attributes.name}</div>
+                          <div className="font-medium">{cls.attributes.name}</div>
+                          <div className="text-xs text-muted-foreground">{cls.attributes.code}</div>
                         </div>
                       </CommandItem>
                     ))}
@@ -260,7 +270,7 @@ export function ProductTypeSelector() {
                     Cargando...
                   </span>
                 ) : selectedPackaging ? (
-                  <span className="truncate">{selectedPackaging.attributes.code} — {selectedPackaging.attributes.name}</span>
+                  <span className="truncate">{selectedPackaging.attributes.name} - {selectedPackaging.attributes.code}</span>
                 ) : (
                   <span className="text-muted-foreground">Buscar empaque...</span>
                 )}
@@ -268,7 +278,7 @@ export function ProductTypeSelector() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-              <Command>
+              <Command filter={accentInsensitiveFilter}>
                 <CommandInput placeholder="Buscar por código o nombre..." />
                 <CommandList>
                   <CommandEmpty>Sin resultados.</CommandEmpty>
@@ -284,8 +294,8 @@ export function ProductTypeSelector() {
                       >
                         <Check className={cn("mr-2 size-4", consignmentNotePackagingCode === pkg.attributes.code ? "opacity-100" : "opacity-0")} />
                         <div>
-                          <div className="font-medium">{pkg.attributes.code}</div>
-                          <div className="text-xs text-muted-foreground">{pkg.attributes.name}</div>
+                          <div className="font-medium">{pkg.attributes.name}</div>
+                          <div className="text-xs text-muted-foreground">{pkg.attributes.code}</div>
                         </div>
                       </CommandItem>
                     ))}

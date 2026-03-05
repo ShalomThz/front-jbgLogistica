@@ -364,9 +364,6 @@ export function RateStep({
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <div>{pkg.length} x {pkg.width} x {pkg.height} {pkg.dimensionUnit}</div>
                 <div>Peso a cotizar: {calculateBillableWeight(pkg).toFixed(2)} kg</div>
-                {pkg.quantity && Number(pkg.quantity) > 1 && (
-                  <div>Cantidad: {pkg.quantity}</div>
-                )}
               </div>
             </div>
 
