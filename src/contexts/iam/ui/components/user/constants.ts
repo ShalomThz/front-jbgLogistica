@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ShoppingCart,
-  Building2,
   Users,
   Package,
   Warehouse,
@@ -22,7 +21,7 @@ export const ROLE_PRESETS: { name: string; permissions: Permission[] }[] = [
   {
     name: "Vendedor",
     permissions: [
-      "CAN_LIST_PARTNER_ORDERS",
+      "CAN_LIST_ORDERS",
       "CAN_VIEW_PARTNER_ORDERS",
       "CAN_CREATE_PARTNER_ORDERS",
       "CAN_EDIT_PARTNER_ORDERS",
@@ -47,17 +46,13 @@ export const ROLE_PRESETS: { name: string; permissions: Permission[] }[] = [
 ];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
-  // Partner Orders
-  CAN_LIST_PARTNER_ORDERS: "Listar órdenes partner",
-  CAN_LIST_ALL_PARTNER_ORDERS: "Listar todas las órdenes partner",
+  // Orders
+  CAN_LIST_ORDERS: "Listar órdenes",
+  CAN_LIST_ALL_ORDERS: "Listar todas las órdenes",
   CAN_VIEW_PARTNER_ORDERS: "Ver órdenes partner",
   CAN_CREATE_PARTNER_ORDERS: "Crear órdenes partner",
   CAN_EDIT_PARTNER_ORDERS: "Editar órdenes partner",
   CAN_DELETE_PARTNER_ORDERS: "Eliminar órdenes partner",
-
-  // HQ Orders
-  CAN_LIST_HQ_ORDERS: "Listar órdenes JBG",
-  CAN_LIST_ALL_HQ_ORDERS: "Listar todas las órdenes JBG",
   CAN_VIEW_HQ_ORDERS: "Ver órdenes JBG",
   CAN_CREATE_HQ_ORDERS: "Crear órdenes JBG",
   CAN_EDIT_HQ_ORDERS: "Editar órdenes JBG",
@@ -140,23 +135,15 @@ export const PERMISSION_GROUPS: {
   permissions: Permission[];
 }[] = [
     {
-      label: "Órdenes Partner",
+      label: "Órdenes",
       icon: ShoppingCart,
       permissions: [
-        "CAN_LIST_PARTNER_ORDERS",
-        "CAN_LIST_ALL_PARTNER_ORDERS",
+        "CAN_LIST_ORDERS",
+        "CAN_LIST_ALL_ORDERS",
         "CAN_VIEW_PARTNER_ORDERS",
         "CAN_CREATE_PARTNER_ORDERS",
         "CAN_EDIT_PARTNER_ORDERS",
         "CAN_DELETE_PARTNER_ORDERS",
-      ],
-    },
-    {
-      label: "Órdenes JBG",
-      icon: Building2,
-      permissions: [
-        "CAN_LIST_HQ_ORDERS",
-        "CAN_LIST_ALL_HQ_ORDERS",
         "CAN_VIEW_HQ_ORDERS",
         "CAN_CREATE_HQ_ORDERS",
         "CAN_EDIT_HQ_ORDERS",

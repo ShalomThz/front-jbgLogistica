@@ -59,11 +59,20 @@ export const OrdersPage = () => {
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
 
-  const canSell = user ? orderPolicies.createPartner(user) : false;
+  const canCreatePartner = user ? orderPolicies.createPartner(user) : false;
   const canCreateHQ = user ? orderPolicies.createHQ(user) : false;
+  const canEditPartner = user ? orderPolicies.editPartner(user) : false;
+  const canEditHQ = user ? orderPolicies.editHQ(user) : false;
+  const canDeletePartner = user ? orderPolicies.deletePartner(user) : false;
+  const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
+
+  const canEdit = (order: OrderListView) =>
+    order.type === "PARTNER" ? canEditPartner : canEditHQ;
+  const canDelete = (order: OrderListView) =>
+    order.type === "PARTNER" ? canDeletePartner : canDeleteHQ;
 
   const handleCreateOrder = () => {
-    if (canSell && canCreateHQ) {
+    if (canCreatePartner && canCreateHQ) {
       setShowNewOrderDialog(true);
       return;
     }
@@ -102,10 +111,12 @@ export const OrdersPage = () => {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button onClick={handleCreateOrder}>
-            <Plus className="size-4" />
-            Crear Orden
-          </Button>
+          {(canCreatePartner || canCreateHQ) && (
+            <Button onClick={handleCreateOrder}>
+              <Plus className="size-4" />
+              Crear Orden
+            </Button>
+          )}
         </div>
       </div>
 
@@ -172,24 +183,26 @@ export const OrdersPage = () => {
                   <TableCell>
                     <TooltipProvider delayDuration={300}>
                       <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 text-muted-foreground hover:text-primary"
-                              disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/orders/${order.id}/edit`);
-                              }}
-                            >
-                              <Pencil className="size-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Editar orden</TooltipContent>
-                        </Tooltip>
-                        {order.type === "PARTNER" && (
+                        {canEdit(order) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-primary"
+                                disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/orders/${order.id}/edit`);
+                                }}
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Editar orden</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {order.type === "PARTNER" && canEditHQ && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -208,22 +221,24 @@ export const OrdersPage = () => {
                             <TooltipContent>Completar venta</TooltipContent>
                           </Tooltip>
                         )}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 text-muted-foreground hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOrderToDelete(order);
-                              }}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Eliminar orden</TooltipContent>
-                        </Tooltip>
+                        {canDelete(order) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOrderToDelete(order);
+                                }}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Eliminar orden</TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </TooltipProvider>
                   </TableCell>

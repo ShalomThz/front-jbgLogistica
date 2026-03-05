@@ -24,7 +24,7 @@ export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true
     filters.push({ field: "name", filterOperator: "LIKE", value: search });
   }
   if (user && !customerPolicies.listAll(user)) {
-    filters.push({ field: "storeId", filterOperator: "=", value: user.storeId });
+    filters.push({ field: "store.id", filterOperator: "=", value: user.storeId });
   }
 
   const {

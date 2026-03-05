@@ -55,7 +55,7 @@ function getDefaults(): FormValues {
     role: {
       name: "Vendedor",
       permissions: [
-        "CAN_LIST_PARTNER_ORDERS",
+        "CAN_LIST_ORDERS",
         "CAN_VIEW_PARTNER_ORDERS",
         "CAN_CREATE_PARTNER_ORDERS",
         "CAN_EDIT_PARTNER_ORDERS",

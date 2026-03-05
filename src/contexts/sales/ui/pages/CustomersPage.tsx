@@ -153,7 +153,7 @@ export const CustomersPage = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
-              <TableHead>Empresa</TableHead>
+              <TableHead>Tienda</TableHead>
               <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
               <TableHead className="hidden lg:table-cell">Dirección</TableHead>
@@ -172,7 +172,7 @@ export const CustomersPage = () => {
               filtered.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c)}>
                   <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>{c.company}</TableCell>
+                  <TableCell>{c.store.name}</TableCell>
                   <TableCell className="hidden sm:table-cell">{c.phone}</TableCell>
                   <TableCell className="hidden md:table-cell text-sm">{c.email}</TableCell>
                   <TableCell className="hidden lg:table-cell">

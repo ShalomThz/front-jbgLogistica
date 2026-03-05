@@ -21,8 +21,8 @@ export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOpt
   const offset = (page - 1) * limit;
 
   const filters: unknown[] = [];
-  if (user && !orderPolicies.listAllPartner(user)) {
-    filters.push({ field: "storeId", filterOperator: "=", value: user.storeId });
+  if (user && !orderPolicies.listAll(user)) {
+    filters.push({ field: "store.id", filterOperator: "=", value: user.storeId });
   }
 
   const { data, isLoading, error, refetch } =

@@ -31,6 +31,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 
 const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
@@ -73,6 +75,7 @@ export const OrderDetailDialog = ({
   isCancelling,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const { boxes } = useBoxes({ enabled: open });
@@ -83,6 +86,13 @@ export const OrderDetailDialog = ({
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const isCompleted = order.status === "COMPLETED";
+
+  const canEditPartner = user ? orderPolicies.editPartner(user) : false;
+  const canEditHQ = user ? orderPolicies.editHQ(user) : false;
+  const userCanEdit = order.type === "PARTNER" ? (canEditPartner || canEditHQ) : canEditHQ;
+  const userCanDelete = user
+    ? order.type === "PARTNER" ? orderPolicies.deletePartner(user) : orderPolicies.deleteHQ(user)
+    : false;
 
   const downloadInvoice = async () => {
     if (!order.invoiceId) return;
@@ -328,55 +338,63 @@ export const OrderDetailDialog = ({
               {isCancelling ? "Cancelando..." : "Cancelar envío"}
             </Button>
           )}
-          <Button
-            variant="destructive"
-            onClick={() => onDelete?.(order)}
-            disabled={isDeleting}
-          >
-            <Trash2 className="size-4" />
-            Eliminar
-          </Button>
-          {order.type === "PARTNER" ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button disabled={!isEditable}>
-                  <Pencil className="size-4" />
-                  Editar
-                  <ChevronDown className="size-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onClose();
-                    navigate(`/orders/${order.id}/edit`);
-                  }}
-                >
-                  <Pencil className="size-4" />
-                  Editar orden
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onClose();
-                    navigate(`/orders/${order.id}/edit?mode=complete`);
-                  }}
-                >
-                  <Package className="size-4" />
-                  Completar venta
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
+          {userCanDelete && (
             <Button
-              disabled={!isEditable}
-              onClick={() => {
-                onClose();
-                navigate(`/orders/${order.id}/edit`);
-              }}
+              variant="destructive"
+              onClick={() => onDelete?.(order)}
+              disabled={isDeleting}
             >
-              <Pencil className="size-4" />
-              Editar
+              <Trash2 className="size-4" />
+              Eliminar
             </Button>
+          )}
+          {userCanEdit && (
+            order.type === "PARTNER" ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button disabled={!isEditable}>
+                    <Pencil className="size-4" />
+                    Editar
+                    <ChevronDown className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {canEditPartner && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onClose();
+                        navigate(`/orders/${order.id}/edit`);
+                      }}
+                    >
+                      <Pencil className="size-4" />
+                      Editar orden
+                    </DropdownMenuItem>
+                  )}
+                  {canEditHQ && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onClose();
+                        navigate(`/orders/${order.id}/edit?mode=complete`);
+                      }}
+                    >
+                      <Package className="size-4" />
+                      Completar venta
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                disabled={!isEditable}
+                onClick={() => {
+                  onClose();
+                  navigate(`/orders/${order.id}/edit`);
+                }}
+              >
+                <Pencil className="size-4" />
+                Editar
+              </Button>
+            )
           )}
         </DialogFooter>
       </DialogContent>
