@@ -27,7 +27,7 @@ export const sharedRepository = {
   placeDetails: async (placeId: string): Promise<PlaceDetailsResponse> => {
     const data = await httpClient<unknown>("/address/place-details", {
       method: "POST",
-      body: JSON.stringify({ place_id: placeId }),
+      body: JSON.stringify({ placeId }),
     });
     return placeDetailsResponseSchema.parse(data);
   },
