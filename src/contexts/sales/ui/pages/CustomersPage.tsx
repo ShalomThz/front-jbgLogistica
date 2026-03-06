@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search, MapPin, KeyRound } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, MapPin, KeyRound } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
-  Input,
   Badge,
   Button,
   Table,
@@ -11,11 +10,6 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -24,8 +18,12 @@ import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialo
 import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
 import { CustomerPortalAccessDialog } from "../components/customer/CustomerPortalAccessDialog";
+import { CustomerFilters } from "../components/customer/CustomerFilters";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
+import { useCustomerFilters } from "../hooks/useCustomerFilters";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { customerPolicies } from "@contexts/shared/custom/policies/customer.policy";
 import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
 
 const LIMIT_OPTIONS = [10, 20, 50];
@@ -50,23 +48,16 @@ export const CustomersPage = () => {
     isProvisioning,
   } = useCustomers({ page, limit });
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const canListAll = user ? customerPolicies.listAll(user) : false;
+
+  const { filters, setFilter, filtered, options } = useCustomerFilters(customers);
+
   const [selected, setSelected] = useState<CustomerListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState<CustomerListViewPrimitives | null>(null);
   const [deleteCustomerDialog, setDeleteCustomerDialog] = useState<CustomerListViewPrimitives | null>(null);
   const [accessCustomer, setAccessCustomer] = useState<CustomerListViewPrimitives | null>(null);
-
-  const filtered = customers.filter((c) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      searchQuery === "" ||
-      c.name.toLowerCase().includes(query) ||
-      c.company.toLowerCase().includes(query) ||
-      c.phone.includes(searchQuery) ||
-      c.email.toLowerCase().includes(query)
-    );
-  });
 
   const handleCreate = async (data: CreateCustomerRequest) => {
     await createCustomer(data);
@@ -119,44 +110,29 @@ export const CustomersPage = () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, empresa, teléfono o email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-32.5">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+
+      <CustomerFilters
+        filters={filters}
+        options={options}
+        limit={limit}
+        limitOptions={LIMIT_OPTIONS}
+        showStoreFilter={canListAll}
+        setFilter={setFilter}
+        onLimitChange={(v) => {
+          setLimit(v);
+          setPage(1);
+        }}
+      />
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Tienda</TableHead>
-              <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
+              <TableHead className="hidden sm:table-cell">Telefono</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
-              <TableHead className="hidden lg:table-cell">Dirección</TableHead>
+              <TableHead className="hidden lg:table-cell">Direccion</TableHead>
               <TableHead className="hidden lg:table-cell">Registro</TableHead>
               <TableHead className="w-12 text-right">Portal</TableHead>
             </TableRow>

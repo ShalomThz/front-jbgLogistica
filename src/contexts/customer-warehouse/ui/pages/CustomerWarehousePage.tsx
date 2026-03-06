@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
-import { ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, RefreshCw, Search } from "lucide-react";
 import { useState } from "react";
 import type {
   PackageListViewPrimitives,
@@ -49,17 +49,26 @@ export const CustomerWarehousePage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
 
-  const filtered = packages.filter((p) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      searchQuery === "" ||
-      p.officialInvoice.toLowerCase().includes(query) ||
-      p.provider.name.toLowerCase().includes(query);
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = (() => {
+    const result = packages.filter((p) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        searchQuery === "" ||
+        p.officialInvoice.toLowerCase().includes(query) ||
+        p.provider.name.toLowerCase().includes(query);
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+    if (nameSort === "asc") result.sort((a, b) => a.officialInvoice.localeCompare(b.officialInvoice));
+    else if (nameSort === "desc") result.sort((a, b) => b.officialInvoice.localeCompare(a.officialInvoice));
+    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return result;
+  })();
 
   const from = pagination ? pagination.offset + 1 : 0;
   const to = pagination ? pagination.offset + packages.length : 0;
@@ -126,6 +135,28 @@ export const CustomerWarehousePage = () => {
                 {opt} por página
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={nameSort} onValueChange={(v) => { setNameSort(v as "none" | "asc" | "desc"); if (v !== "none") setDateSort("none"); }}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <ArrowDownAZ className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nombre</SelectItem>
+            <SelectItem value="asc">Nombre A-Z</SelectItem>
+            <SelectItem value="desc">Nombre Z-A</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dateSort} onValueChange={(v) => { setDateSort(v as "none" | "asc" | "desc"); if (v !== "none") setNameSort("none"); }}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Clock className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Creacion</SelectItem>
+            <SelectItem value="desc">Mas reciente</SelectItem>
+            <SelectItem value="asc">Mas antiguo</SelectItem>
           </SelectContent>
         </Select>
       </div>

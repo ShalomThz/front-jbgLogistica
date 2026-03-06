@@ -1,4 +1,4 @@
-import { ArrowDownAZ, Box, CalendarDays, Clock, CreditCard, Filter, Package, Search, Store, Truck } from "lucide-react";
+import { ArrowDownAZ, CalendarDays, Clock, Filter, KeyRound, MapPin, Search, Store } from "lucide-react";
 import {
   Button,
   Calendar,
@@ -19,14 +19,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@contexts/shared/shadcn";
-import type { OrderFiltersState, OrderFilterOptions, DatePreset, NameSort, DateSort } from "../../hooks/useOrderFilters";
+import type { CustomerFiltersState, CustomerFilterOptions, DatePreset, NameSort, DateSort } from "../../hooks/useCustomerFilters";
 
-interface OrderFiltersProps {
-  filters: OrderFiltersState;
-  options: OrderFilterOptions;
+interface CustomerFiltersProps {
+  filters: CustomerFiltersState;
+  options: CustomerFilterOptions;
   limit: number;
   limitOptions: number[];
-  setFilter: <K extends keyof OrderFiltersState>(key: K, value: OrderFiltersState[K]) => void;
+  showStoreFilter: boolean;
+  setFilter: <K extends keyof CustomerFiltersState>(key: K, value: CustomerFiltersState[K]) => void;
   onLimitChange: (value: number) => void;
 }
 
@@ -85,33 +86,31 @@ function DatePickerField({
   );
 }
 
-const countActiveFilters = (filters: OrderFiltersState): number =>
+const countActiveFilters = (filters: CustomerFiltersState, showStoreFilter: boolean): number =>
   [
-    filters.statusFilter,
-    filters.storeFilter,
-    filters.paymentFilter,
-    filters.customerFilter,
-    filters.providerFilter,
-    filters.boxFilter,
+    showStoreFilter ? filters.storeFilter : "all",
+    filters.cityFilter,
+    filters.portalFilter,
     filters.dateFilter,
   ].filter((v) => v !== "all").length;
 
-export const OrderFilters = ({
+export const CustomerFilters = ({
   filters,
   options,
   limit,
   limitOptions,
+  showStoreFilter,
   setFilter,
   onLimitChange,
-}: OrderFiltersProps) => {
-  const activeCount = countActiveFilters(filters);
+}: CustomerFiltersProps) => {
+  const activeCount = countActiveFilters(filters, showStoreFilter);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nombre, ID o referencia..."
+          placeholder="Buscar por nombre, empresa, telefono o email..."
           value={filters.searchQuery}
           onChange={(e) => setFilter("searchQuery", e.target.value)}
           className="pl-9"
@@ -127,7 +126,7 @@ export const OrderFilters = ({
         <SelectContent>
           {limitOptions.map((opt) => (
             <SelectItem key={opt} value={String(opt)}>
-              {opt} por página
+              {opt} por pagina
             </SelectItem>
           ))}
         </SelectContent>
@@ -188,43 +187,46 @@ export const OrderFilters = ({
         <SheetContent side="right" className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Filtros</SheetTitle>
-            <SheetDescription>Filtra las órdenes por diferentes criterios</SheetDescription>
+            <SheetDescription>Filtra los clientes por diferentes criterios</SheetDescription>
           </SheetHeader>
 
           <div className="space-y-5 px-4">
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Filter className="size-3.5" />
-                Estado
-              </Label>
-              <Select value={filters.statusFilter} onValueChange={(v) => setFilter("statusFilter", v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="DRAFT">Borrador</SelectItem>
-                  <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
-                  <SelectItem value="COMPLETED">Completada</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {showStoreFilter && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Store className="size-3.5" />
+                  Tienda
+                </Label>
+                <Select value={filters.storeFilter} onValueChange={(v) => setFilter("storeFilter", v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las tiendas</SelectItem>
+                    {options.stores.map((store) => (
+                      <SelectItem key={store.id} value={store.id}>
+                        {store.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Store className="size-3.5" />
-                Tienda
+                <MapPin className="size-3.5" />
+                Ciudad
               </Label>
-              <Select value={filters.storeFilter} onValueChange={(v) => setFilter("storeFilter", v)}>
+              <Select value={filters.cityFilter} onValueChange={(v) => setFilter("cityFilter", v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las tiendas</SelectItem>
-                  {options.stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name}
+                  <SelectItem value="all">Todas las ciudades</SelectItem>
+                  {options.cities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -233,77 +235,17 @@ export const OrderFilters = ({
 
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <CreditCard className="size-3.5" />
-                Pago
+                <KeyRound className="size-3.5" />
+                Acceso al portal
               </Label>
-              <Select value={filters.paymentFilter} onValueChange={(v) => setFilter("paymentFilter", v)}>
+              <Select value={filters.portalFilter} onValueChange={(v) => setFilter("portalFilter", v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los pagos</SelectItem>
-                  <SelectItem value="paid">Pagado</SelectItem>
-                  <SelectItem value="unpaid">No pagado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Package className="size-3.5" />
-                Cliente
-              </Label>
-              <Select value={filters.customerFilter} onValueChange={(v) => setFilter("customerFilter", v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los clientes</SelectItem>
-                  {options.customers.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Truck className="size-3.5" />
-                Proveedor
-              </Label>
-              <Select value={filters.providerFilter} onValueChange={(v) => setFilter("providerFilter", v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los proveedores</SelectItem>
-                  {options.providers.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Box className="size-3.5" />
-                Caja
-              </Label>
-              <Select value={filters.boxFilter} onValueChange={(v) => setFilter("boxFilter", v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las cajas</SelectItem>
-                  {options.boxes.map((boxId) => (
-                    <SelectItem key={boxId} value={boxId}>
-                      {boxId}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="with">Con acceso</SelectItem>
+                  <SelectItem value="without">Sin acceso</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -311,7 +253,7 @@ export const OrderFilters = ({
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <CalendarDays className="size-3.5" />
-                Fecha
+                Fecha de registro
               </Label>
               <Select value={filters.dateFilter} onValueChange={(v) => setFilter("dateFilter", v as DatePreset)}>
                 <SelectTrigger>
@@ -320,9 +262,9 @@ export const OrderFilters = ({
                 <SelectContent>
                   <SelectItem value="all">Todas las fechas</SelectItem>
                   <SelectItem value="today">Hoy</SelectItem>
-                  <SelectItem value="week">Última semana</SelectItem>
-                  <SelectItem value="month">Último mes</SelectItem>
-                  <SelectItem value="3months">Últimos 3 meses</SelectItem>
+                  <SelectItem value="week">Ultima semana</SelectItem>
+                  <SelectItem value="month">Ultimo mes</SelectItem>
+                  <SelectItem value="3months">Ultimos 3 meses</SelectItem>
                   <SelectItem value="custom">Rango personalizado</SelectItem>
                 </SelectContent>
               </Select>

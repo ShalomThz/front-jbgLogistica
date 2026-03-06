@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, Search } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -44,18 +44,27 @@ export const StoresPage = () => {
   } = useStores({ page, limit });
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<StoreListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editStore, setEditStore] = useState<StoreListViewPrimitives | null>(null);
   const [deleteStoreDialog, setDeleteStoreDialog] = useState<StoreListViewPrimitives | null>(null);
 
-  const filtered = stores.filter(
-    (s) =>
-      searchQuery === "" ||
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filtered = (() => {
+    const result = stores.filter(
+      (s) =>
+        searchQuery === "" ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
+    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
+    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return result;
+  })();
 
   const handleCreate = async (data: CreateStoreRequestPrimitives) => {
     await createStore(data);
@@ -134,6 +143,28 @@ export const StoresPage = () => {
                 {opt} por página
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={nameSort} onValueChange={(v) => { setNameSort(v as "none" | "asc" | "desc"); if (v !== "none") setDateSort("none"); }}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <ArrowDownAZ className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nombre</SelectItem>
+            <SelectItem value="asc">Nombre A-Z</SelectItem>
+            <SelectItem value="desc">Nombre Z-A</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dateSort} onValueChange={(v) => { setDateSort(v as "none" | "asc" | "desc"); if (v !== "none") setNameSort("none"); }}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Clock className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Creacion</SelectItem>
+            <SelectItem value="desc">Mas reciente</SelectItem>
+            <SelectItem value="asc">Mas antiguo</SelectItem>
           </SelectContent>
         </Select>
       </div>

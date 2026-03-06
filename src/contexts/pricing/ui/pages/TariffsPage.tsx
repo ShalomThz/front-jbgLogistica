@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, Search } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -51,19 +51,28 @@ export const TariffsPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<TariffListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editTariff, setEditTariff] = useState<TariffListViewPrimitives | null>(null);
   const [deleteTariffDialog, setDeleteTariffDialog] = useState<TariffListViewPrimitives | null>(null);
 
-  const filtered = tariffs.filter((t) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      t.zone.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (countryNames[t.destinationCountry] ?? t.destinationCountry).toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCountry = countryFilter === "all" || t.destinationCountry === countryFilter;
-    return matchesSearch && matchesCountry;
-  });
+  const filtered = (() => {
+    const result = tariffs.filter((t) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        t.zone.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (countryNames[t.destinationCountry] ?? t.destinationCountry).toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCountry = countryFilter === "all" || t.destinationCountry === countryFilter;
+      return matchesSearch && matchesCountry;
+    });
+    if (nameSort === "asc") result.sort((a, b) => a.zone.name.localeCompare(b.zone.name));
+    else if (nameSort === "desc") result.sort((a, b) => b.zone.name.localeCompare(a.zone.name));
+    else if (dateSort === "asc") result.sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return result;
+  })();
 
   const handleCreate = async (data: CreateTariffRequestPrimitives) => {
     await createTariff(data);
@@ -153,6 +162,28 @@ export const TariffsPage = () => {
                 {opt} por página
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={nameSort} onValueChange={(v) => { setNameSort(v as "none" | "asc" | "desc"); if (v !== "none") setDateSort("none"); }}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <ArrowDownAZ className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nombre</SelectItem>
+            <SelectItem value="asc">Nombre A-Z</SelectItem>
+            <SelectItem value="desc">Nombre Z-A</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dateSort} onValueChange={(v) => { setDateSort(v as "none" | "asc" | "desc"); if (v !== "none") setNameSort("none"); }}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Clock className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Creacion</SelectItem>
+            <SelectItem value="desc">Mas reciente</SelectItem>
+            <SelectItem value="asc">Mas antiguo</SelectItem>
           </SelectContent>
         </Select>
       </div>

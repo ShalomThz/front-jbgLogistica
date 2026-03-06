@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 
-export type DatePreset = "all" | "today" | "week" | "month" | "3months" | "custom";
+export type DatePreset =
+  | "all"
+  | "today"
+  | "week"
+  | "month"
+  | "3months"
+  | "custom";
+
+export type NameSort = "none" | "asc" | "desc";
+export type DateSort = "none" | "asc" | "desc";
 
 export interface OrderFiltersState {
   searchQuery: string;
@@ -11,6 +20,8 @@ export interface OrderFiltersState {
   customerFilter: string;
   providerFilter: string;
   boxFilter: string;
+  nameSort: NameSort;
+  dateSort: DateSort;
   dateFilter: DatePreset;
   dateFrom: string;
   dateTo: string;
@@ -31,6 +42,8 @@ export function useOrderFilters(orders: OrderListView[]) {
   const [customerFilter, setCustomerFilter] = useState("all");
   const [providerFilter, setProviderFilter] = useState("all");
   const [boxFilter, setBoxFilter] = useState("all");
+  const [nameSort, setNameSort] = useState<NameSort>("none");
+  const [dateSort, setDateSort] = useState<DateSort>("none");
   const [dateFilter, setDateFilter] = useState<DatePreset>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -53,8 +66,8 @@ export function useOrderFilters(orders: OrderListView[]) {
     }
 
     return {
-      stores: Array.from(storeMap, ([id, name]) => ({ id, name })).sort((a, b) =>
-        a.name.localeCompare(b.name),
+      stores: Array.from(storeMap, ([id, name]) => ({ id, name })).sort(
+        (a, b) => a.name.localeCompare(b.name),
       ),
       customers: Array.from(customerSet).sort(),
       providers: Array.from(providerSet).sort(),
@@ -63,27 +76,38 @@ export function useOrderFilters(orders: OrderListView[]) {
   }, [orders]);
 
   const filtered = useMemo(() => {
-    return orders.filter((order) => {
+    const result = orders.filter((order) => {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
         searchQuery === "" ||
         order.destination.name.toLowerCase().includes(query) ||
         order.id.toLowerCase().includes(query) ||
-        (order.references.orderNumber?.toLowerCase().includes(query) ?? false) ||
-        (order.references.partnerOrderNumber?.toLowerCase().includes(query) ?? false);
+        (order.references.orderNumber?.toLowerCase().includes(query) ??
+          false) ||
+        (order.references.partnerOrderNumber?.toLowerCase().includes(query) ??
+          false);
 
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-      const matchesStore = storeFilter === "all" || order.store.id === storeFilter;
+      const matchesStatus =
+        statusFilter === "all" || order.status === statusFilter;
+      const matchesStore =
+        storeFilter === "all" || order.store.id === storeFilter;
       const matchesPayment =
         paymentFilter === "all" ||
         (paymentFilter === "paid" && order.financials.isPaid) ||
         (paymentFilter === "unpaid" && !order.financials.isPaid);
-      const matchesCustomer = customerFilter === "all" || order.destination.name === customerFilter;
+      const matchesCustomer =
+        customerFilter === "all" || order.destination.name === customerFilter;
       const matchesProvider =
         providerFilter === "all" ||
         order.shipment?.provider?.providerName === providerFilter;
-      const matchesBox = boxFilter === "all" || order.package.boxId === boxFilter;
-      const matchesDate = checkDateFilter(order.createdAt, dateFilter, dateFrom, dateTo);
+      const matchesBox =
+        boxFilter === "all" || order.package.boxId === boxFilter;
+      const matchesDate = checkDateFilter(
+        order.createdAt,
+        dateFilter,
+        dateFrom,
+        dateTo,
+      );
 
       return (
         matchesSearch &&
@@ -96,6 +120,13 @@ export function useOrderFilters(orders: OrderListView[]) {
         matchesDate
       );
     });
+
+    if (nameSort === "asc") result.sort((a, b) => a.destination.name.localeCompare(b.destination.name));
+    else if (nameSort === "desc") result.sort((a, b) => b.destination.name.localeCompare(a.destination.name));
+    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return result;
   }, [
     orders,
     searchQuery,
@@ -105,6 +136,8 @@ export function useOrderFilters(orders: OrderListView[]) {
     customerFilter,
     providerFilter,
     boxFilter,
+    nameSort,
+    dateSort,
     dateFilter,
     dateFrom,
     dateTo,
@@ -118,12 +151,17 @@ export function useOrderFilters(orders: OrderListView[]) {
     customerFilter,
     providerFilter,
     boxFilter,
+    nameSort,
+    dateSort,
     dateFilter,
     dateFrom,
     dateTo,
   };
 
-  const setFilter = <K extends keyof OrderFiltersState>(key: K, value: OrderFiltersState[K]) => {
+  const setFilter = <K extends keyof OrderFiltersState>(
+    key: K,
+    value: OrderFiltersState[K],
+  ) => {
     const map = {
       searchQuery: setSearchQuery,
       statusFilter: setStatusFilter,
@@ -132,6 +170,8 @@ export function useOrderFilters(orders: OrderListView[]) {
       customerFilter: setCustomerFilter,
       providerFilter: setProviderFilter,
       boxFilter: setBoxFilter,
+      nameSort: setNameSort,
+      dateSort: setDateSort,
       dateFilter: setDateFilter,
       dateFrom: setDateFrom,
       dateTo: setDateTo,
