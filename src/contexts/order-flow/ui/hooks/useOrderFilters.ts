@@ -121,10 +121,10 @@ export function useOrderFilters(orders: OrderListView[]) {
       );
     });
 
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     if (nameSort === "asc") result.sort((a, b) => a.destination.name.localeCompare(b.destination.name));
     else if (nameSort === "desc") result.sort((a, b) => b.destination.name.localeCompare(a.destination.name));
-    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return result;
   }, [
@@ -180,7 +180,22 @@ export function useOrderFilters(orders: OrderListView[]) {
     (map[key] as any)(value);
   };
 
-  return { filters, setFilter, filtered, options };
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setStoreFilter("all");
+    setPaymentFilter("all");
+    setCustomerFilter("all");
+    setProviderFilter("all");
+    setBoxFilter("all");
+    setNameSort("none");
+    setDateSort("none");
+    setDateFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  return { filters, setFilter, resetFilters, filtered, options };
 }
 
 function checkDateFilter(

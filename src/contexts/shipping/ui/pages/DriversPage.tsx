@@ -65,10 +65,10 @@ export const DriversPage = () => {
       const matchesStatus = statusFilter === "all" || d.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     if (nameSort === "asc") result.sort((a, b) => a.id.localeCompare(b.id));
     else if (nameSort === "desc") result.sort((a, b) => b.id.localeCompare(a.id));
-    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
   })();
 
@@ -149,7 +149,7 @@ export const DriversPage = () => {
             <SelectItem value="OFF_DUTY">Fuera de servicio</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={nameSort} onValueChange={(v) => { setNameSort(v as "none" | "asc" | "desc"); if (v !== "none") setDateSort("none"); }}>
+        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
           <SelectTrigger className="w-full sm:w-[150px]">
             <ArrowDownAZ className="size-4 text-muted-foreground" />
             <SelectValue />
@@ -160,7 +160,7 @@ export const DriversPage = () => {
             <SelectItem value="desc">Nombre Z-A</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={dateSort} onValueChange={(v) => { setDateSort(v as "none" | "asc" | "desc"); if (v !== "none") setNameSort("none"); }}>
+        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
           <SelectTrigger className="w-full sm:w-[160px]">
             <Clock className="size-4 text-muted-foreground" />
             <SelectValue />

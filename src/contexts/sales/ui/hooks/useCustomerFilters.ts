@@ -71,10 +71,10 @@ export function useCustomerFilters(customers: CustomerListViewPrimitives[]) {
       return matchesSearch && matchesStore && matchesCity && matchesPortal && matchesDate;
     });
 
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
     else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return result;
   }, [customers, searchQuery, storeFilter, cityFilter, portalFilter, nameSort, dateSort, dateFilter, dateFrom, dateTo]);
@@ -107,7 +107,19 @@ export function useCustomerFilters(customers: CustomerListViewPrimitives[]) {
     (map[key] as any)(value);
   };
 
-  return { filters, setFilter, filtered, options };
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStoreFilter("all");
+    setCityFilter("all");
+    setPortalFilter("all");
+    setNameSort("none");
+    setDateSort("none");
+    setDateFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  return { filters, setFilter, resetFilters, filtered, options };
 }
 
 function checkDateFilter(

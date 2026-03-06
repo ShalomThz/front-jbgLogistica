@@ -59,10 +59,10 @@ export const StoresPage = () => {
         s.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()),
     );
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
     else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-    else if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
   })();
 
@@ -108,7 +108,7 @@ export const StoresPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tiendas</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setNameSort("none"); setDateSort("none"); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setFormOpen(true)}>
@@ -145,7 +145,7 @@ export const StoresPage = () => {
             ))}
           </SelectContent>
         </Select>
-        <Select value={nameSort} onValueChange={(v) => { setNameSort(v as "none" | "asc" | "desc"); if (v !== "none") setDateSort("none"); }}>
+        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
           <SelectTrigger className="w-full sm:w-[150px]">
             <ArrowDownAZ className="size-4 text-muted-foreground" />
             <SelectValue />
@@ -156,7 +156,7 @@ export const StoresPage = () => {
             <SelectItem value="desc">Nombre Z-A</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={dateSort} onValueChange={(v) => { setDateSort(v as "none" | "asc" | "desc"); if (v !== "none") setNameSort("none"); }}>
+        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
           <SelectTrigger className="w-full sm:w-[160px]">
             <Clock className="size-4 text-muted-foreground" />
             <SelectValue />

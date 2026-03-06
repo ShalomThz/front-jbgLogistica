@@ -51,7 +51,7 @@ export const CustomersPage = () => {
   const { user } = useAuth();
   const canListAll = user ? customerPolicies.listAll(user) : false;
 
-  const { filters, setFilter, filtered, options } = useCustomerFilters(customers);
+  const { filters, setFilter, resetFilters, filtered, options } = useCustomerFilters(customers);
 
   const [selected, setSelected] = useState<CustomerListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -101,7 +101,7 @@ export const CustomersPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Clientes</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setFormOpen(true)}>

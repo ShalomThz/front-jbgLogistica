@@ -53,7 +53,7 @@ export const OrdersPage = () => {
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
 
-  const { filters, setFilter, filtered, options } = useOrderFilters(orders);
+  const { filters, setFilter, resetFilters, filtered, options } = useOrderFilters(orders);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
@@ -108,7 +108,7 @@ export const OrdersPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Órdenes</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           {(canCreatePartner || canCreateHQ) && (

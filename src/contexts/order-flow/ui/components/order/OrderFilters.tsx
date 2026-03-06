@@ -137,7 +137,6 @@ export const OrderFilters = ({
         value={filters.nameSort}
         onValueChange={(v) => {
           setFilter("nameSort", v as NameSort);
-          if (v !== "none") setFilter("dateSort", "none");
         }}
       >
         <SelectTrigger className="w-full sm:w-[150px]">
@@ -155,7 +154,6 @@ export const OrderFilters = ({
         value={filters.dateSort}
         onValueChange={(v) => {
           setFilter("dateSort", v as DateSort);
-          if (v !== "none") setFilter("nameSort", "none");
         }}
       >
         <SelectTrigger className="w-full sm:w-[160px]">
