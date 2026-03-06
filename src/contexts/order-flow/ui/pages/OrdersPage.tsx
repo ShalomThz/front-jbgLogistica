@@ -53,7 +53,7 @@ export const OrdersPage = () => {
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
 
-  const { filters, setFilter, filtered, options } = useOrderFilters(orders);
+  const { filters, setFilter, resetFilters, filtered, options } = useOrderFilters(orders);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
@@ -108,7 +108,7 @@ export const OrdersPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Órdenes</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           {(canCreatePartner || canCreateHQ) && (
@@ -138,8 +138,10 @@ export const OrdersPage = () => {
             <TableRow>
               <TableHead>Destinatario</TableHead>
               <TableHead className="hidden md:table-cell">Destino</TableHead>
-              <TableHead className="hidden sm:table-cell">Referencia</TableHead>
+              <TableHead className="hidden sm:table-cell">Ref. JBG</TableHead>
+              <TableHead className="hidden lg:table-cell">Ref. Agente</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead className="hidden lg:table-cell">Creacion</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="w-[80px]" />
             </TableRow>
@@ -147,7 +149,7 @@ export const OrdersPage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No se encontraron órdenes.
                 </TableCell>
               </TableRow>
@@ -170,12 +172,18 @@ export const OrdersPage = () => {
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell text-xs">
-                    {order.references.orderNumber ?? order.references.partnerOrderNumber ?? "—"}
+                    {order.references.orderNumber ?? "—"}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-xs">
+                    {order.references.partnerOrderNumber ?? "—"}
                   </TableCell>
                   <TableCell>
                     <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
                       {ORDER_STATUS_LABELS[order.status]}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                    {new Date(order.createdAt).toLocaleDateString("es-MX")}
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}

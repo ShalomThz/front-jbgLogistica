@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -80,6 +80,8 @@ export const BoxPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<BoxPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editBox, setEditBox] = useState<BoxPrimitives | null>(null);
@@ -89,11 +91,18 @@ export const BoxPage = () => {
   const [selectedSale, setSelectedSale] = useState<BoxSalePrimitives | null>(null);
 
 
-  const filtered = boxes.filter((b) => {
-    const matchesSearch = searchQuery === "" || b.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesUnit = unitFilter === "all" || b.dimensions.unit === unitFilter;
-    return matchesSearch && matchesUnit;
-  });
+  const filtered = (() => {
+    const result = boxes.filter((b) => {
+      const matchesSearch = searchQuery === "" || b.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesUnit = unitFilter === "all" || b.dimensions.unit === unitFilter;
+      return matchesSearch && matchesUnit;
+    });
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
+    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
+    return result;
+  })();
 
   const handleCreate = async (data: CreateBoxRequestPrimitives) => {
     await createBox(data);
@@ -151,7 +160,7 @@ export const BoxPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Cajas</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setUnitFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button variant="outline" onClick={() => navigate("/box-sales")}>
@@ -202,6 +211,28 @@ export const BoxPage = () => {
                     {opt} por página
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <ArrowDownAZ className="size-4 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nombre</SelectItem>
+                <SelectItem value="asc">Nombre A-Z</SelectItem>
+                <SelectItem value="desc">Nombre Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <Clock className="size-4 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Creacion</SelectItem>
+                <SelectItem value="desc">Mas reciente</SelectItem>
+                <SelectItem value="asc">Mas antiguo</SelectItem>
               </SelectContent>
             </Select>
           </div>

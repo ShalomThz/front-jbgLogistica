@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, Search } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -59,22 +59,31 @@ export const UsersPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<UserListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserListViewPrimitives | null>(null);
   const [deleteUserDialog, setDeleteUserDialog] = useState<UserListViewPrimitives | null>(null);
 
-  const filtered = users.filter((u) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.role.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" ? u.isActive : !u.isActive);
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = (() => {
+    const result = users.filter((u) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.role.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" ? u.isActive : !u.isActive);
+      return matchesSearch && matchesStatus;
+    });
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
+    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
+    return result;
+  })();
 
   const handleCreate = async (data: RegisterUserRequestPrimitives) => {
     try {
@@ -127,7 +136,7 @@ export const UsersPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setFormOpen(true)}>
@@ -172,6 +181,28 @@ export const UsersPage = () => {
                 {opt} por página
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <ArrowDownAZ className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nombre</SelectItem>
+            <SelectItem value="asc">Nombre A-Z</SelectItem>
+            <SelectItem value="desc">Nombre Z-A</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Clock className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Creacion</SelectItem>
+            <SelectItem value="desc">Mas reciente</SelectItem>
+            <SelectItem value="asc">Mas antiguo</SelectItem>
           </SelectContent>
         </Select>
       </div>

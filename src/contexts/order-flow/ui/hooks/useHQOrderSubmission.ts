@@ -13,6 +13,7 @@ import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/servic
 import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
+import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import type { HQOrderStep } from "./useHQOrderFlowForm";
 
 interface UseHQOrderSubmissionOptions {
@@ -78,7 +79,7 @@ export const useHQOrderSubmission = ({
         setStep("rate");
       } catch (error) {
         console.error("Error updating order:", error);
-        toast.error("Error al actualizar la orden. Intenta de nuevo.", { id: "order-flow" });
+        toast.error(parseApiError(error), { id: "order-flow" });
       }
     } else {
       if (!user) {
@@ -98,7 +99,7 @@ export const useHQOrderSubmission = ({
         setStep("rate");
       } catch (error) {
         console.error("Error creating order:", error);
-        toast.error("Error al crear la orden. Intenta de nuevo.", { id: "order-flow" });
+        toast.error(parseApiError(error), { id: "order-flow" });
       }
     }
   };

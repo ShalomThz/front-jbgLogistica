@@ -17,8 +17,10 @@ import {
 } from "@contexts/shared/shadcn";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
+  ArrowDownAZ,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Plus,
   RefreshCw,
   Search
@@ -80,23 +82,32 @@ export const WarehousePage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPkg, setEditPkg] = useState<PackageListViewPrimitives | null>(null);
   const [deletePkg, setDeletePkg] = useState<PackageListViewPrimitives | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
-  const filtered = packages.filter((p) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      searchQuery === "" ||
-      p.id.toLowerCase().includes(query) ||
-      p.officialInvoice.toLowerCase().includes(query) ||
-      p.provider.name.toLowerCase().includes(query) ||
-      p.customer.name.toLowerCase().includes(query);
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = (() => {
+    const result = packages.filter((p) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        searchQuery === "" ||
+        p.id.toLowerCase().includes(query) ||
+        p.officialInvoice.toLowerCase().includes(query) ||
+        p.provider.name.toLowerCase().includes(query) ||
+        p.customer.name.toLowerCase().includes(query);
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (nameSort === "asc") result.sort((a, b) => a.officialInvoice.localeCompare(b.officialInvoice));
+    else if (nameSort === "desc") result.sort((a, b) => b.officialInvoice.localeCompare(a.officialInvoice));
+    return result;
+  })();
 
   const handleCreate = async (data: CreatePackageRequest) => {
     await createPackage(data);
@@ -162,7 +173,7 @@ export const WarehousePage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setCreateOpen(true)}>
@@ -212,6 +223,28 @@ export const WarehousePage = () => {
                 {opt} por página
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <ArrowDownAZ className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nombre</SelectItem>
+            <SelectItem value="asc">Nombre A-Z</SelectItem>
+            <SelectItem value="desc">Nombre Z-A</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Clock className="size-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Creacion</SelectItem>
+            <SelectItem value="desc">Mas reciente</SelectItem>
+            <SelectItem value="asc">Mas antiguo</SelectItem>
           </SelectContent>
         </Select>
       </div>

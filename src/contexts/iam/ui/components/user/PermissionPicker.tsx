@@ -4,7 +4,7 @@ import { Checkbox, Label, Popover, PopoverContent, PopoverTrigger } from "@conte
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { Permission } from "../../../domain/schemas/user/UserRole";
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, PERMISSION_GROUPS } from "./constants";
-import { addWithDeps, removeWithDependents, isImplied } from "./permissionDeps";
+import { addWithDeps, removeWithDependents, isImplied } from "../../../domain/schemas/user/PermissionDeps";
 
 interface Props {
   selected: Permission[];
