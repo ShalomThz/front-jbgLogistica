@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { skydropxSettingsRepository } from "@contexts/settings/infrastructure/services/skydropxSettingsRepository";
-import type { SkydropxAddressFromPrimitives } from "@contexts/settings/domain/schemas/SkydropxAddressSchema";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { SaveSkydropxAddressRequest } from "../../domain/schemas/SkydropxAddressSchema";
 
 const SKYDROPX_ADDRESS_QUERY_KEY = ["settings", "skydropx-address"];
 
-export const useSkydropxSettings = () => {
+export const useHQSettings = () => {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -13,7 +13,7 @@ export const useSkydropxSettings = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (address: SkydropxAddressFromPrimitives) =>
+    mutationFn: (address: SaveSkydropxAddressRequest) =>
       skydropxSettingsRepository.saveAddress(address),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SKYDROPX_ADDRESS_QUERY_KEY });
@@ -21,7 +21,7 @@ export const useSkydropxSettings = () => {
   });
 
   return {
-    skydropxAddress: data?.skydropxAddressFrom ?? null,
+    skydropxAddress: data ?? null,
     isLoading,
     error: error?.message ?? null,
     saveAddress: saveMutation.mutateAsync,

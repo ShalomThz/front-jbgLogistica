@@ -27,6 +27,7 @@ export const newOrderDefaultValues: NewOrderFormValues = {
   },
   sender: { ...emptyContactWithAddress },
   recipient: { ...emptyContactWithAddress },
+  pickupAtAddress: false,
   package: {
     productSearch: "",
     boxId: null,

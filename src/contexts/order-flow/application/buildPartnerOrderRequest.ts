@@ -41,5 +41,6 @@ export const buildPartnerOrderRequest = (formValues: NewOrderFormValues, storeId
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     ...(hasCosts && { costBreakdown }),
+    pickupAtAddress: formValues.pickupAtAddress,
   });
 };

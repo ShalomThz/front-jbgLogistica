@@ -14,5 +14,6 @@ export const buildEditOrderRequest = (formValues: NewOrderFormValues) => {
     package: buildPackagePayload(formValues.package),
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
+    pickupAtAddress: formValues.pickupAtAddress,
   });
 };

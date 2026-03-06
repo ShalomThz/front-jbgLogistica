@@ -15,5 +15,6 @@ export const buildHQOrderRequest = (formValues: NewOrderFormValues, storeId: str
     package: buildPackagePayload(formValues.package),
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
+    pickupAtAddress: formValues.pickupAtAddress,
   });
 };

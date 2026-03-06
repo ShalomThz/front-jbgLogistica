@@ -3,15 +3,16 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   Input,
   Label,
 } from "@contexts/shared/shadcn";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { ContactColumn } from "./ContactColumn";
 
 export function HQContactStep() {
-  const { register, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
 
   return (
     <>
@@ -31,6 +32,22 @@ export function HQContactStep() {
             {errors.orderData?.orderNumber && (
               <p className="text-sm text-destructive">{errors.orderData.orderNumber.message}</p>
             )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Controller
+              control={control}
+              name="pickupAtAddress"
+              render={({ field }) => (
+                <Checkbox
+                  id="pickup-at-address"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            <Label htmlFor="pickup-at-address" className="cursor-pointer font-normal">
+              Recoger en domicilio del remitente
+            </Label>
           </div>
         </CardContent>
       </Card>

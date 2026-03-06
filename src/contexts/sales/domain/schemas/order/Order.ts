@@ -17,6 +17,7 @@ export const orderSchema = z.object({
   status: z.enum(orderStatuses),
   package: packageSchema,
   type: z.enum(orderTypes),
+  pickupAtAddress: z.boolean().default(false),
   ...aggregateRootSchema.shape,
 });
 

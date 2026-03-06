@@ -39,6 +39,7 @@ export function mapOrderToFormValues(
     },
     sender: mapContact(order.origin),
     recipient: mapContact(order.destination),
+    pickupAtAddress: order.pickupAtAddress,
     package: {
       ...newOrderDefaultValues.package,
       boxId: order.package.boxId,

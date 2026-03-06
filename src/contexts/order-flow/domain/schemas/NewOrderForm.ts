@@ -66,6 +66,7 @@ export const newOrderFormSchema = z
     recipient: contactWithAddressSchema,
     package: packageFormDataSchema,
     shippingService: shippingServiceSchema,
+    pickupAtAddress: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (data.orderType === "HQ" && !data.orderData.orderNumber.trim()) {

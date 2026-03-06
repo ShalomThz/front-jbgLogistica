@@ -182,6 +182,7 @@ export const OrderDetailDialog = ({
                 <h4 className="text-sm font-semibold mb-2">Ruta</h4>
                 <DetailRow label="Origen" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
                 <DetailRow label="Destino" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
+                <DetailRow label="Recolección" value={order.pickupAtAddress ? "Recolección a domicilio" : "Entregado en sucursal"} />
               </div>
 
               {/* Paquete */}

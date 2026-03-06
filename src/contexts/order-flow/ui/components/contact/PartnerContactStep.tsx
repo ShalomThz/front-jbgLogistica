@@ -3,6 +3,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   Input,
   Label,
   Select,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 import { ContactColumn } from "./ContactColumn";
@@ -23,7 +24,7 @@ interface PartnerContactStepProps {
 }
 
 export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
-  const { register, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
 
   return (
     <>
@@ -60,6 +61,22 @@ export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: P
             {errors.orderData?.partnerOrderNumber && (
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>
             )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Controller
+              control={control}
+              name="pickupAtAddress"
+              render={({ field }) => (
+                <Checkbox
+                  id="pickup-at-address"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            <Label htmlFor="pickup-at-address" className="cursor-pointer font-normal">
+              Recoger en domicilio del remitente
+            </Label>
           </div>
         </CardContent>
       </Card>

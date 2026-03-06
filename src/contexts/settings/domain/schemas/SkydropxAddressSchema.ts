@@ -1,22 +1,27 @@
-import { z } from "zod";
+import z from "zod";
+import { addressSchema } from "../../../shared/domain/schemas/address/Address";
+import { emailSchema } from "../../../shared/domain/schemas/Email";
 
-export const skydropxAddressFromSchema = z.object({
-  name: z.string().min(1, "Nombre requerido"),
-  company: z.string(),
-  email: z.email("Email inválido"),
-  phone: z.string().min(1, "Teléfono requerido"),
-  address1: z.string().min(1, "Dirección requerida"),
-  address2: z.string(),
-  city: z.string().min(1, "Ciudad requerida"),
-  province: z.string().min(1, "Estado requerido"),
-  zip: z.string().min(1, "Código postal requerido"),
-  country: z.string().min(1, "País requerido"),
+export const hqSkydropxAddressSchema = z.object({
+  address: addressSchema,
+  name: z.string().min(1, "Name is required"),
+  company: z.string().min(1, "Company is required"),
+  email: emailSchema,
+  phone: z.string().min(1, "Phone is required"),
 });
 
-export type SkydropxAddressFromPrimitives = z.infer<typeof skydropxAddressFromSchema>;
+export type HQSkydropxAddressPrimitives = z.infer<
+  typeof hqSkydropxAddressSchema
+>;
 
-export const getSkydropxAddressResponseSchema = z.object({
-  skydropxAddressFrom: skydropxAddressFromSchema.nullable(),
+export const hqSettingsSchema = z.object({
+  skydropxAddress: hqSkydropxAddressSchema,
 });
 
-export type GetSkydropxAddressResponse = z.infer<typeof getSkydropxAddressResponseSchema>;
+export type HQSettingsPrimitives = z.infer<typeof hqSettingsSchema>;
+
+export const saveSkydropxAddressSchema = hqSkydropxAddressSchema;
+
+export type SaveSkydropxAddressRequest = z.infer<
+  typeof saveSkydropxAddressSchema
+>;
