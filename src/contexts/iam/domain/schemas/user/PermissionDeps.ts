@@ -1,4 +1,4 @@
-import type { Permission } from "../../../domain/schemas/user/UserRole";
+import type { Permission } from "./UserRole";
 
 // Dependencias: al activar la key, se auto-activan los values
 export const PERMISSION_DEPS: Partial<Record<Permission, Permission[]>> = {

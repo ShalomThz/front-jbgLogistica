@@ -26,6 +26,11 @@ const errorTranslations: Record<string, Record<Lang, string>> = {
         en: 'A box with that name already exists',
         pt: 'Já existe uma caixa com esse nome',
     },
+    ORDER_DUPLICATE_REFERENCES: {
+        es: 'Ya existe una orden con las mismas referencias',
+        en: 'An order with the same references already exists',
+        pt: 'Já existe um pedido com as mesmas referências',
+    },
     BOX_NOT_FOUND: {
         es: 'Caja no encontrada',
         en: 'Box not found',
@@ -46,6 +51,7 @@ const errorTranslations: Record<string, Record<Lang, string>> = {
 // ─── Interim: map English prose → code while backend returns strings ──────────
 const messageFallbacks: Array<{ pattern: RegExp; code: string }> = [
     { pattern: /email.*already.*taken|already.*taken.*email/i, code: 'EMAIL_ALREADY_TAKEN' },
+    { pattern: /order.*same references.*already exists/i, code: 'ORDER_DUPLICATE_REFERENCES' },
     { pattern: /already exists/i, code: 'BOX_NAME_ALREADY_EXISTS' },
     { pattern: /box not found/i, code: 'BOX_NOT_FOUND' },
     { pattern: /package not found/i, code: 'PACKAGE_NOT_FOUND' },

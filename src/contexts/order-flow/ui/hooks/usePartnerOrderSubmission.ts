@@ -7,6 +7,7 @@ import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrder
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
+import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 
 interface UsePartnerOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,8 +36,7 @@ export const usePartnerOrderSubmission = ({
         goToOrders();
       } catch (error) {
         console.error("Error updating partner order:", error);
-        const message = error instanceof Error ? error.message : "Error al actualizar la orden. Intenta de nuevo.";
-        toast.error(message, { id: "order-flow" });
+        toast.error(parseApiError(error), { id: "order-flow" });
       }
     } else {
       if (!user) {
@@ -50,8 +50,7 @@ export const usePartnerOrderSubmission = ({
         goToOrders();
       } catch (error) {
         console.error("Error creating partner order:", error);
-        const message = error instanceof Error ? error.message : "Error al crear la orden. Intenta de nuevo.";
-        toast.error(message, { id: "order-flow" });
+        toast.error(parseApiError(error), { id: "order-flow" });
       }
     }
   };
