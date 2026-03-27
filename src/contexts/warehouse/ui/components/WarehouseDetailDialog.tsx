@@ -35,7 +35,7 @@ const STATUS_VARIANT: Record<
   AUTHORIZED: "default",
 };
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       <span className="text-sm text-muted-foreground">{label}</span>

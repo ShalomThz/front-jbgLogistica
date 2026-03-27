@@ -58,15 +58,13 @@ export const CustomerWarehousePage = () => {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
         searchQuery === "" ||
-        p.officialInvoice.toLowerCase().includes(query) ||
+        p.officialInvoice?.toLowerCase().includes(query) ||
         p.provider.name.toLowerCase().includes(query);
       const matchesStatus = statusFilter === "all" || p.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
     if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.officialInvoice.localeCompare(b.officialInvoice));
-    else if (nameSort === "desc") result.sort((a, b) => b.officialInvoice.localeCompare(a.officialInvoice));
     return result;
   })();
 

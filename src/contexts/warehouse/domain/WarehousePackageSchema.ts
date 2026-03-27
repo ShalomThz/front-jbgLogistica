@@ -26,7 +26,7 @@ export const packageListViewSchema = z.object({
   store: entitySummarySchema,
   boxId: z.string(),
   dimensions: dimensionsSchema,
-  officialInvoice: z.string(),
+  officialInvoice: z.string().optional(),
   providerDeliveryPerson: z.string(),
   weight: weightSchema,
   status: z.enum(warehousePackageStatuses),
@@ -47,7 +47,7 @@ export const createPackageRequestSchema = z.object({
   providerName: z.string().min(1, "Proveedor requerido"),
   boxId: z.string().min(1, "Caja requerida"),
   dimensions: dimensionsSchema,
-  officialInvoice: z.string().min(1, "Factura requerida"),
+  officialInvoice: z.string().optional(),
   providerDeliveryPerson: z.string().min(1, "Repartidor requerido"),
   weight: weightSchema,
   photos: z.array(z.string()).max(4).default([]),
@@ -77,7 +77,7 @@ export const warehousePackageSchema = z.object({
   providerId: z.string(),
   boxId: z.string(),
   dimensions: dimensionsSchema,
-  officialInvoice: z.string(),
+  officialInvoice: z.string().optional(),
   providerDeliveryPerson: z
     .string()
     .min(1, "Repartidor del proveedor es requerido"),

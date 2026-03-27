@@ -53,7 +53,7 @@ const editFormSchema = z.object({
   providerName: z.string().min(1, "Nombre del proveedor requerido"),
   boxId: z.string().nullable(),
   boxName: z.string().min(1, "Nombre de la caja requerido"),
-  officialInvoice: z.string().min(1, "Factura requerida"),
+  officialInvoice: z.string().optional(),
   providerDeliveryPerson: z.string().min(1, "Nombre del repartidor requerido"),
   dimensions: dimensionsSchema.extend({ unit: z.enum(dimensionUnits) }),
   weight: weightSchema.extend({ unit: z.enum(weightUnits) }),
