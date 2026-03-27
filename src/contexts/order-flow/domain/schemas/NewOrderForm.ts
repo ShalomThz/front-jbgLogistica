@@ -60,7 +60,7 @@ export const newOrderFormSchema = z
     orderType: z.enum(orderTypes),
     orderData: z.object({
       orderNumber: z.string(),
-      partnerOrderNumber: z.string().optional().default(""),
+      partnerOrderNumber: z.string(),
     }),
     sender: contactWithAddressSchema,
     recipient: contactWithAddressSchema,

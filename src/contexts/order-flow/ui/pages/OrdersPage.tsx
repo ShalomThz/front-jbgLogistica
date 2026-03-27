@@ -1,7 +1,7 @@
 import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, Download, FileText, Package, Pencil, Plus, RefreshCw, Tag, Trash2, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, FileText, Package, Pencil, Plus, RefreshCw, Tag, Trash2, Users } from "lucide-react";
 import {
   Button,
   Badge,
