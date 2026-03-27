@@ -1,7 +1,7 @@
 import { useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, Package, Pencil, Plus, RefreshCw, Trash2, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Download, FileText, Package, Pencil, Plus, RefreshCw, Tag, Trash2, Users } from "lucide-react";
 import {
   Button,
   Badge,
@@ -25,6 +25,8 @@ import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderLi
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
+import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
+import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { useOrderFilters } from "../hooks/useOrderFilters";
@@ -58,6 +60,46 @@ export const OrdersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
+  const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
+
+  const handleDownloadLabel = async (order: OrderListView) => {
+    const shipment = order.shipment;
+    if (!shipment?.label) return;
+    setDownloadingLabel(order.id);
+    try {
+      const label = shipment.label;
+      if (!label.documentUrl.startsWith("/")) {
+        window.open(label.documentUrl, "_blank");
+        return;
+      }
+      const blob = await shipmentRepository.getLabel(shipment.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `etiqueta-${order.references.orderNumber ?? order.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingLabel(null);
+    }
+  };
+
+  const handleDownloadInvoice = async (order: OrderListView) => {
+    if (!order.invoiceId) return;
+    setDownloadingInvoice(order.id);
+    try {
+      const blob = await orderRepository.getInvoicePdf(order.invoiceId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `factura-${order.references.orderNumber ?? order.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingInvoice(null);
+    }
+  };
 
   const canCreatePartner = user ? orderPolicies.createPartner(user) : false;
   const canCreateHQ = user ? orderPolicies.createHQ(user) : false;
@@ -197,7 +239,7 @@ export const OrdersPage = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-8 text-muted-foreground hover:text-primary"
+                                className="size-8 text-blue-500 hover:text-blue-700"
                                 disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -216,7 +258,7 @@ export const OrdersPage = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-8 text-muted-foreground hover:text-primary"
+                                className="size-8 text-purple-500 hover:text-purple-700"
                                 disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -229,13 +271,51 @@ export const OrdersPage = () => {
                             <TooltipContent>Completar venta</TooltipContent>
                           </Tooltip>
                         )}
+                        {order.shipment?.label && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-orange-500 hover:text-orange-700"
+                                disabled={downloadingLabel === order.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadLabel(order);
+                                }}
+                              >
+                                <Tag className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Descargar etiqueta</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {order.invoiceId && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-green-600 hover:text-green-800"
+                                disabled={downloadingInvoice === order.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadInvoice(order);
+                                }}
+                              >
+                                <FileText className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Descargar factura</TooltipContent>
+                          </Tooltip>
+                        )}
                         {canDelete(order) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-8 text-muted-foreground hover:text-destructive"
+                                className="size-8 text-red-500 hover:text-red-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOrderToDelete(order);

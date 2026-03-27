@@ -291,7 +291,7 @@ export function RateStep({
           <Card className="border-yellow-300 bg-yellow-50 dark:border-yellow-600 dark:bg-yellow-500/15">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Precio cobrado por el partner</span>
+                <span className="text-sm font-medium">Precio cobrado por el Agente</span>
                 <span className="text-lg font-bold">${partnerPrice.amount.toFixed(2)} {partnerPrice.currency}</span>
               </div>
             </CardContent>
