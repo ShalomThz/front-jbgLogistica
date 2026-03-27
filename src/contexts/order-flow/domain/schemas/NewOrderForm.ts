@@ -60,7 +60,7 @@ export const newOrderFormSchema = z
     orderType: z.enum(orderTypes),
     orderData: z.object({
       orderNumber: z.string(),
-      partnerOrderNumber: z.string(),
+      partnerOrderNumber: z.string().optional().default(""),
     }),
     sender: contactWithAddressSchema,
     recipient: contactWithAddressSchema,
@@ -74,13 +74,6 @@ export const newOrderFormSchema = z
         code: "custom",
         message: "El número de orden es requerido",
         path: ["orderData", "orderNumber"],
-      });
-    }
-    if (data.orderType === "PARTNER" && !data.orderData.partnerOrderNumber.trim()) {
-      ctx.addIssue({
-        code: "custom",
-        message: "El número de agente es requerido para órdenes Partner",
-        path: ["orderData", "partnerOrderNumber"],
       });
     }
   });

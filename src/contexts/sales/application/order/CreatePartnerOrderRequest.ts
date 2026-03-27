@@ -8,7 +8,7 @@ const partnerCreatePackageSchema = packageSchema.partial({ weight: true });
 
 export const createPartnerOrderSchema = z.object({
   storeId: z.string(),
-  partnerOrderNumber: z.string(),
+  partnerOrderNumber: z.string().optional().default(""),
   package: partnerCreatePackageSchema,
   origin: z.object({
     ...customerProfileSchema.shape,

@@ -51,7 +51,7 @@ export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: P
             </div>
           )}
           <div className="space-y-1">
-            <Label htmlFor="partner-number">Número de Agente *</Label>
+            <Label htmlFor="partner-number">Número de Agente </Label>
             <Input
               id="partner-number"
               aria-invalid={!!errors.orderData?.partnerOrderNumber}

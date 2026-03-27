@@ -22,15 +22,6 @@ export const usePartnerOrderFlowForm = ({ initialValues }: UsePartnerOrderFlowFo
     if (currentStep === "contact") {
       const isValid = await form.trigger(["sender", "recipient", "orderData", "orderType"]);
       if (!isValid) return false;
-
-      const partnerOrderNumber = form.getValues("orderData.partnerOrderNumber");
-      if (!partnerOrderNumber?.trim()) {
-        form.setError("orderData.partnerOrderNumber", {
-          type: "manual",
-          message: "El número de agente es requerido",
-        });
-        return false;
-      }
       return true;
     }
     if (currentStep === "package") {

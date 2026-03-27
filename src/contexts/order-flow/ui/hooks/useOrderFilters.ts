@@ -42,8 +42,8 @@ export function useOrderFilters(orders: OrderListView[]) {
   const [customerFilter, setCustomerFilter] = useState("all");
   const [providerFilter, setProviderFilter] = useState("all");
   const [boxFilter, setBoxFilter] = useState("all");
-  const [nameSort, setNameSort] = useState<NameSort>("none");
-  const [dateSort, setDateSort] = useState<DateSort>("none");
+  const [nameSort, setNameSort] = useState<NameSort>("asc");
+  const [dateSort, setDateSort] = useState<DateSort>("desc");
   const [dateFilter, setDateFilter] = useState<DatePreset>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -188,8 +188,8 @@ export function useOrderFilters(orders: OrderListView[]) {
     setCustomerFilter("all");
     setProviderFilter("all");
     setBoxFilter("all");
-    setNameSort("none");
-    setDateSort("none");
+    setNameSort("asc");
+    setDateSort("desc");
     setDateFilter("all");
     setDateFrom("");
     setDateTo("");

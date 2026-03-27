@@ -132,14 +132,14 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="sm:max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">Crear Usuario</DialogTitle>
           <DialogDescription>Completa la información del usuario y asigna los permisos correspondientes.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} noValidate>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-0 md:gap-0 md:divide-x">
+        <form onSubmit={onSubmit} noValidate className="flex flex-col overflow-hidden flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-0 md:gap-0 md:divide-x overflow-y-auto flex-1 pr-1">
             {/* ── Columna izquierda: datos del usuario ── */}
             <div className="space-y-4 md:pr-6 pb-4 md:pb-0">
               <div className="flex items-center gap-2 mb-1">
@@ -312,9 +312,9 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
             </div>
           </div>
 
-          <Separator className="my-4" />
+          <Separator className="my-4 shrink-0" />
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
               Cancelar
             </Button>
