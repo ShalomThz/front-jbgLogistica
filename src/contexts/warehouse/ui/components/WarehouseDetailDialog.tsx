@@ -49,6 +49,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onEdit?: (pkg: PackageListViewPrimitives) => void;
+  onEditGroup?: (pkg: PackageListViewPrimitives) => void;
   onDelete?: (pkg: PackageListViewPrimitives) => void;
   onDownloadReceipt?: (id: string) => void;
   isDownloadingReceipt?: boolean;
@@ -59,6 +60,7 @@ export const WarehouseDetailDialog = ({
   open,
   onClose,
   onEdit,
+  onEditGroup,
   onDelete,
   onDownloadReceipt,
   isDownloadingReceipt,
@@ -149,6 +151,7 @@ export const WarehouseDetailDialog = ({
               <h4 className="text-sm font-semibold">Información del paquete</h4>
               <div className="rounded-md border p-3 space-y-1">
                 <DetailRow label="Factura oficial" value={pkg.officialInvoice} />
+                <DetailRow label="ID de grupo" value={pkg.groupId ?? "Sin grupo"} />
                 <DetailRow label="Dimensiones" value={dimStr} />
                 <DetailRow label="Peso" value={weightStr} />
               </div>
@@ -205,6 +208,11 @@ export const WarehouseDetailDialog = ({
               <Button size="sm" onClick={() => onEdit(pkg)}>
                 <Pencil className="mr-1.5 size-4" />
                 Editar
+              </Button>
+            )}
+            {onEditGroup && pkg.groupId && (
+              <Button variant="secondary" size="sm" onClick={() => onEditGroup(pkg)}>
+                Editar grupo
               </Button>
             )}
           </DialogFooter>

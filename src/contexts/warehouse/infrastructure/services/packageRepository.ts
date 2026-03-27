@@ -7,6 +7,12 @@ import type {
   WarehousePackage,
 } from "@/contexts/warehouse/domain/WarehousePackageSchema";
 import { packageListViewSchema, warehousePackageSchema } from "@/contexts/warehouse/domain/WarehousePackageSchema";
+import type {
+  CreatePackageGroupRequest,
+  EditPackageGroupRequest,
+  PackageGroupPrimitives,
+} from "@/contexts/warehouse/domain/PackageGroupSchema";
+import { packageGroupSchema } from "@/contexts/warehouse/domain/PackageGroupSchema";
 import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http";
 
 export const packageRepository = {
@@ -39,6 +45,25 @@ export const packageRepository = {
       body: JSON.stringify(pkg),
     });
     return warehousePackageSchema.parse(data);
+  },
+
+  createPackageGroup: async (payload: CreatePackageGroupRequest): Promise<PackageGroupPrimitives> => {
+    const data = await httpClient<unknown>("/package-group", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return packageGroupSchema.parse(data);
+  },
+
+  editPackageGroup: async (
+    packageGroupId: string,
+    payload: EditPackageGroupRequest,
+  ): Promise<PackageGroupPrimitives> => {
+    const data = await httpClient<unknown>(`/package-group/${packageGroupId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return packageGroupSchema.parse(data);
   },
 
   delete: async (id: string): Promise<void> => {

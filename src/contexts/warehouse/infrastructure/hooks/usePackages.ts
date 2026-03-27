@@ -2,6 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { packageRepository } from "@/contexts/warehouse/infrastructure/services/packageRepository";
 import type { CreatePackageRequest, UpdatePackageRequest } from "@/contexts/warehouse/domain/WarehousePackageSchema";
 import type { FindPackagesResponsePrimitives } from "@/contexts/warehouse/application/FindPackagesResponse";
+import type {
+  CreatePackageGroupRequest,
+  EditPackageGroupRequest,
+} from "@/contexts/warehouse/domain/PackageGroupSchema";
 
 const PACKAGES_QUERY_KEY = ["packages"];
 
@@ -45,6 +49,21 @@ export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) =
     },
   });
 
+  const createPackageGroupMutation = useMutation({
+    mutationFn: (payload: CreatePackageGroupRequest) => packageRepository.createPackageGroup(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PACKAGES_QUERY_KEY });
+    },
+  });
+
+  const editPackageGroupMutation = useMutation({
+    mutationFn: ({ packageGroupId, payload }: { packageGroupId: string; payload: EditPackageGroupRequest }) =>
+      packageRepository.editPackageGroup(packageGroupId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PACKAGES_QUERY_KEY });
+    },
+  });
+
   const receiptMutation = useMutation({
     mutationFn: async (id: string) => {
       const blob = await packageRepository.getReceipt(id);
@@ -77,6 +96,16 @@ export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) =
     deletePackage: (id: string) => deleteMutation.mutateAsync(id),
     isDeleting: deleteMutation.isPending,
     deleteError: deleteMutation.error?.message ?? null,
+
+    createPackageGroup: (payload: CreatePackageGroupRequest) =>
+      createPackageGroupMutation.mutateAsync(payload),
+    isCreatingPackageGroup: createPackageGroupMutation.isPending,
+    createPackageGroupError: createPackageGroupMutation.error?.message ?? null,
+
+    editPackageGroup: (packageGroupId: string, payload: EditPackageGroupRequest) =>
+      editPackageGroupMutation.mutateAsync({ packageGroupId, payload }),
+    isEditingPackageGroup: editPackageGroupMutation.isPending,
+    editPackageGroupError: editPackageGroupMutation.error?.message ?? null,
 
     downloadReceipt: (id: string) => receiptMutation.mutateAsync(id),
     isDownloadingReceipt: receiptMutation.isPending,

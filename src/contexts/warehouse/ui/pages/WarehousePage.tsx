@@ -2,6 +2,7 @@ import { usePackages } from "@/contexts/warehouse/infrastructure/hooks/usePackag
 import {
   Badge,
   Button,
+  Checkbox,
   Input,
   Select,
   SelectContent,
@@ -25,7 +26,7 @@ import {
   RefreshCw,
   Search
 } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type {
   CreatePackageRequest,
@@ -33,7 +34,10 @@ import type {
   UpdatePackageRequest,
   WarehousePackageStatus,
 } from "../../domain/WarehousePackageSchema";
+import type { EditPackageGroupRequest } from "../../domain/PackageGroupSchema";
 import { CreatePackageDialog } from "../components/CreatePackageDialog";
+import { CreatePackageGroupDialog } from "../components/CreatePackageGroupDialog";
+import { EditPackageGroupDialog } from "../components/EditPackageGroupDialog";
 import { EditPackageDialog } from "../components/EditPackageDialog";
 import { WarehouseDeleteDialog } from "../components/WarehouseDeleteDialog";
 import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
@@ -76,6 +80,10 @@ export const WarehousePage = () => {
     isUpdating,
     deletePackage,
     isDeleting,
+    createPackageGroup,
+    isCreatingPackageGroup,
+    editPackageGroup,
+    isEditingPackageGroup,
     downloadReceipt,
     isDownloadingReceipt,
   } = usePackages({ page, limit });
@@ -89,6 +97,13 @@ export const WarehousePage = () => {
   const [editPkg, setEditPkg] = useState<PackageListViewPrimitives | null>(null);
   const [deletePkg, setDeletePkg] = useState<PackageListViewPrimitives | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [editGroupTarget, setEditGroupTarget] = useState<{
+    groupId: string;
+    status: WarehousePackageStatus;
+  } | null>(null);
+  const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
 
   const filtered = (() => {
     const result = packages.filter((p) => {
@@ -137,6 +152,79 @@ export const WarehousePage = () => {
     setPage(1);
   };
 
+  useEffect(() => {
+    setSelectedPackageIds((prev) => prev.filter((id) => packages.some((pkg) => pkg.id === id)));
+
+    // Populate group invoice map from loaded packages
+    const newMap: Record<string, string | undefined> = {};
+    packages.forEach((pkg) => {
+      if (pkg.groupId && pkg.groupInvoiceNumber) {
+        newMap[pkg.groupId] = pkg.groupInvoiceNumber;
+      }
+    });
+    setGroupInvoiceMap((prev) => ({ ...prev, ...newMap }));
+  }, [packages]);
+
+  const selectionAnchor = selectedPackageIds.length > 0
+    ? packages.find((pkg) => pkg.id === selectedPackageIds[0])
+    : null;
+
+  const isSelectableForGrouping = (pkg: PackageListViewPrimitives) => {
+    if (pkg.status !== "WAREHOUSE") return false;
+    if (pkg.groupId) return false;
+    if (!selectionAnchor) return true;
+    return (
+      pkg.customer.id === selectionAnchor.customer.id &&
+      pkg.store.id === selectionAnchor.store.id
+    );
+  };
+
+  const handleSelectForGroup = (pkg: PackageListViewPrimitives, checked: boolean) => {
+    if (!isSelectableForGrouping(pkg)) return;
+
+    setSelectedPackageIds((prev) => {
+      if (checked) {
+        if (prev.includes(pkg.id)) return prev;
+        return [...prev, pkg.id];
+      }
+      return prev.filter((id) => id !== pkg.id);
+    });
+  };
+
+  const handleCreateGroup = async (invoiceNumber?: string) => {
+    try {
+      const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
+      setGroupInvoiceMap((prev) => ({
+        ...prev,
+        [group.id]: group.invoiceNumber,
+      }));
+      setCreateGroupOpen(false);
+      setSelectedPackageIds([]);
+      toast.success("Grupo creado correctamente");
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
+  };
+
+  const openEditGroup = (pkg: PackageListViewPrimitives) => {
+    if (!pkg.groupId) return;
+    setEditGroupTarget({ groupId: pkg.groupId, status: pkg.status });
+  };
+
+  const handleEditGroup = async (groupId: string, payload: EditPackageGroupRequest) => {
+    try {
+      const group = await editPackageGroup(groupId, payload);
+      setGroupInvoiceMap((prev) => ({
+        ...prev,
+        [group.id]: group.invoiceNumber,
+      }));
+      setEditGroupTarget(null);
+      toast.success("Grupo actualizado");
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
+  };
+
   const handleEditFromDetail = (pkg: PackageListViewPrimitives) => {
     setSelected(null);
     setEditPkg(pkg);
@@ -146,6 +234,19 @@ export const WarehousePage = () => {
     setSelected(null);
     setDeletePkg(pkg);
   };
+
+  const groupedPackages = (() => {
+    const grouped = new Map<string, PackageListViewPrimitives[]>();
+
+    filtered.forEach((pkg) => {
+      const key = pkg.groupId ?? "__ungrouped__";
+      const current = grouped.get(key) ?? [];
+      current.push(pkg);
+      grouped.set(key, current);
+    });
+
+    return Array.from(grouped.entries());
+  })();
 
   const from = pagination ? pagination.offset + 1 : 0;
   const to = pagination ? pagination.offset + packages.length : 0;
@@ -173,6 +274,13 @@ export const WarehousePage = () => {
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
             <RefreshCw className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCreateGroupOpen(true)}
+            disabled={selectedPackageIds.length < 1 || isCreatingPackageGroup}
+          >
+            Agrupar paquetes seleccionados ({selectedPackageIds.length})
           </Button>
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
@@ -252,6 +360,7 @@ export const WarehousePage = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10" />
               <TableHead>Factura</TableHead>
               <TableHead className="hidden sm:table-cell">Tienda</TableHead>
               <TableHead className="hidden md:table-cell">Proveedor</TableHead>
@@ -263,56 +372,117 @@ export const WarehousePage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   No se encontraron paquetes.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((p) => (
-                <TableRow
-                  key={p.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelected(p)}
-                >
-                  <TableCell>
-                    <span className="font-mono text-sm">{p.officialInvoice}</span>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm">
-                    {p.store.name}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm">
-                    {p.provider.name}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm">
-                    {p.customer.name}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell font-mono text-sm">
-                    {p.weight.value} {p.weight.unit}
-                  </TableCell>
-                  <TableCell>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Select
-                        value={p.status}
-                        onValueChange={(v) => handleStatusChange(p.id, v as WarehousePackageStatus)}
-                        disabled={updatingStatusId === p.id}
-                      >
-                        <SelectTrigger className="h-7 w-36 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(STATUS_LABELS) as WarehousePackageStatus[]).map((s) => (
-                            <SelectItem key={s} value={s} className="text-xs">
-                              <Badge variant={STATUS_VARIANT[s]} className="text-xs">
-                                {STATUS_LABELS[s]}
+              groupedPackages.map(([groupKey, groupItems]) => {
+                const isUngrouped = groupKey === "__ungrouped__";
+                const groupStatus = groupItems.every((item) => item.status === groupItems[0].status)
+                  ? groupItems[0].status
+                  : null;
+                const samplePkg = groupItems[0];
+
+                return (
+                  <Fragment key={groupKey}>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableCell colSpan={7}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
+                              {isUngrouped
+                                ? "Sin grupo"
+                                : groupInvoiceMap[groupKey]
+                                  ? groupInvoiceMap[groupKey]
+                                  : `Grupo ${groupKey.slice(0, 5)}`
+                              }
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              {groupItems.length} paquete{groupItems.length === 1 ? "" : "s"}
+                            </span>
+                            <span className="text-muted-foreground hidden sm:inline">
+                              {samplePkg.customer.name} · {samplePkg.store.name}
+                            </span>
+                            {groupStatus && (
+                              <Badge variant={STATUS_VARIANT[groupStatus]} className="text-xs">
+                                {STATUS_LABELS[groupStatus]}
                               </Badge>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                            )}
+                          </div>
+
+                          {!isUngrouped && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={() => openEditGroup(samplePkg)}
+                            >
+                              Editar grupo
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+
+                    {groupItems.map((p) => (
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer"
+                        onClick={() => setSelected(p)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {p.status === "WAREHOUSE" && !p.groupId ? (
+                            <Checkbox
+                              checked={selectedPackageIds.includes(p.id)}
+                              onCheckedChange={(value) => handleSelectForGroup(p, value === true)}
+                              disabled={!isSelectableForGrouping(p) || isCreatingPackageGroup}
+                              aria-label={`Seleccionar paquete ${p.id}`}
+                            />
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{p.officialInvoice || p.id.slice(0, 8)}</span>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm">
+                          {p.store.name}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">
+                          {p.provider.name}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">
+                          {p.customer.name}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell font-mono text-sm">
+                          {p.weight.value} {p.weight.unit}
+                        </TableCell>
+                        <TableCell>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={p.status}
+                              onValueChange={(v) => handleStatusChange(p.id, v as WarehousePackageStatus)}
+                              disabled={updatingStatusId === p.id}
+                            >
+                              <SelectTrigger className="h-7 w-36 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(Object.keys(STATUS_LABELS) as WarehousePackageStatus[]).map((s) => (
+                                  <SelectItem key={s} value={s} className="text-xs">
+                                    <Badge variant={STATUS_VARIANT[s]} className="text-xs">
+                                      {STATUS_LABELS[s]}
+                                    </Badge>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -356,9 +526,17 @@ export const WarehousePage = () => {
         open={!!selected}
         onClose={() => setSelected(null)}
         onEdit={handleEditFromDetail}
+        onEditGroup={openEditGroup}
         onDelete={handleDeleteFromDetail}
         onDownloadReceipt={downloadReceipt}
         isDownloadingReceipt={isDownloadingReceipt}
+      />
+      <CreatePackageGroupDialog
+        open={createGroupOpen}
+        selectedCount={selectedPackageIds.length}
+        isLoading={isCreatingPackageGroup}
+        onClose={() => setCreateGroupOpen(false)}
+        onConfirm={handleCreateGroup}
       />
       <CreatePackageDialog
         open={createOpen}
@@ -381,6 +559,14 @@ export const WarehousePage = () => {
         onClose={() => setDeletePkg(null)}
         onConfirm={handleDelete}
         isLoading={isDeleting}
+      />
+      <EditPackageGroupDialog
+        open={!!editGroupTarget}
+        groupId={editGroupTarget?.groupId ?? null}
+        initialStatus={editGroupTarget?.status ?? "WAREHOUSE"}
+        isLoading={isEditingPackageGroup}
+        onClose={() => setEditGroupTarget(null)}
+        onSave={handleEditGroup}
       />
     </div>
   );

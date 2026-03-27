@@ -2,6 +2,7 @@ import { useCustomerPackages } from "@/contexts/customer-warehouse/infrastructur
 import {
   Badge,
   Button,
+  Checkbox,
   Input,
   Select,
   SelectContent,
@@ -16,12 +17,17 @@ import {
   TableRow,
 } from "@contexts/shared/shadcn";
 import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, RefreshCw, Search } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import type {
   PackageListViewPrimitives,
   WarehousePackageStatus,
 } from "@/contexts/warehouse/domain/WarehousePackageSchema";
+import type { EditPackageGroupRequest } from "@/contexts/warehouse/domain/PackageGroupSchema";
 import { CustomerPackageDetailDialog } from "../components/CustomerPackageDetailDialog";
+import { CreatePackageGroupDialog } from "@/contexts/warehouse/ui/components/CreatePackageGroupDialog";
+import { EditPackageGroupDialog } from "@/contexts/warehouse/ui/components/EditPackageGroupDialog";
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",
@@ -45,13 +51,40 @@ export const CustomerWarehousePage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
-  const { packages, pagination, totalPages, isLoading, refetch } = useCustomerPackages({ page, limit });
+  const {
+    packages,
+    pagination,
+    totalPages,
+    isLoading,
+    refetch,
+    createPackageGroup,
+    isCreatingPackageGroup,
+    editPackageGroup,
+    isEditingPackageGroup,
+  } = useCustomerPackages({ page, limit });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
   const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [editGroupTarget, setEditGroupTarget] = useState<{
+    groupId: string;
+    status: WarehousePackageStatus;
+  } | null>(null);
+  const [optimisticGroupInvoices, setOptimisticGroupInvoices] = useState<Record<string, string | undefined>>({});
+
+  const groupInvoiceMap = useMemo(() => {
+    const derived: Record<string, string | undefined> = {};
+    packages.forEach((pkg) => {
+      if (pkg.groupId && pkg.groupInvoiceNumber) {
+        derived[pkg.groupId] = pkg.groupInvoiceNumber;
+      }
+    });
+    return { ...derived, ...optimisticGroupInvoices };
+  }, [packages, optimisticGroupInvoices]);
 
   const filtered = (() => {
     const result = packages.filter((p) => {
@@ -66,6 +99,80 @@ export const CustomerWarehousePage = () => {
     if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
+  })();
+
+  const selectionAnchor = selectedPackageIds.length > 0
+    ? packages.find((pkg) => pkg.id === selectedPackageIds[0])
+    : null;
+
+  const isSelectableForGrouping = (pkg: PackageListViewPrimitives) => {
+    if (pkg.status !== "WAREHOUSE") return false;
+    if (pkg.groupId) return false;
+    if (!selectionAnchor) return true;
+    return pkg.store.id === selectionAnchor.store.id;
+  };
+
+  const handleSelectForGroup = (pkg: PackageListViewPrimitives, checked: boolean) => {
+    if (!isSelectableForGrouping(pkg)) return;
+
+    setSelectedPackageIds((prev) => {
+      if (checked) {
+        if (prev.includes(pkg.id)) return prev;
+        return [...prev, pkg.id];
+      }
+      return prev.filter((id) => id !== pkg.id);
+    });
+  };
+
+  const handleCreateGroup = async (invoiceNumber?: string) => {
+    try {
+      const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
+      setOptimisticGroupInvoices((prev) => (
+        {
+          ...prev,
+          [group.id]: group.invoiceNumber,
+        }
+      ));
+      setCreateGroupOpen(false);
+      setSelectedPackageIds([]);
+      toast.success("Grupo creado correctamente");
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
+  };
+
+  const openEditGroup = (pkg: PackageListViewPrimitives) => {
+    if (!pkg.groupId) return;
+    setEditGroupTarget({ groupId: pkg.groupId, status: pkg.status });
+  };
+
+  const handleEditGroup = async (groupId: string, payload: EditPackageGroupRequest) => {
+    try {
+      const group = await editPackageGroup(groupId, payload);
+      setOptimisticGroupInvoices((prev) => (
+        {
+          ...prev,
+          [group.id]: group.invoiceNumber,
+        }
+      ));
+      setEditGroupTarget(null);
+      toast.success("Grupo actualizado");
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
+  };
+
+  const groupedPackages = (() => {
+    const grouped = new Map<string, PackageListViewPrimitives[]>();
+
+    filtered.forEach((pkg) => {
+      const key = pkg.groupId ?? "__ungrouped__";
+      const current = grouped.get(key) ?? [];
+      current.push(pkg);
+      grouped.set(key, current);
+    });
+
+    return Array.from(grouped.entries());
   })();
 
   const from = pagination ? pagination.offset + 1 : 0;
@@ -83,14 +190,23 @@ export const CustomerWarehousePage = () => {
   return (
     <div className="space-y-4">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold">Mis Paquetes</h1>
           <p className="text-sm text-muted-foreground">{total} paquetes registrados</p>
         </div>
-        <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
-          <RefreshCw className="size-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
+            <RefreshCw className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCreateGroupOpen(true)}
+            disabled={selectedPackageIds.length < 1 || isCreatingPackageGroup}
+          >
+            Agrupar ({selectedPackageIds.length})
+          </Button>
+        </div>
       </div>
 
       {/* ── Filters ── */}
@@ -164,6 +280,7 @@ export const CustomerWarehousePage = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10" />
               <TableHead>Factura</TableHead>
               <TableHead className="hidden md:table-cell">Proveedor</TableHead>
               <TableHead className="hidden md:table-cell">Peso</TableHead>
@@ -174,40 +291,98 @@ export const CustomerWarehousePage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   No se encontraron paquetes.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((p) => (
-                <TableRow
-                  key={p.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelected(p)}
-                >
-                  <TableCell>
-                    <span className="font-mono text-sm">{p.officialInvoice}</span>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm">
-                    {p.provider.name}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell font-mono text-sm">
-                    {p.weight.value} {p.weight.unit}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[p.status]}>
-                      {STATUS_LABELS[p.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                    {new Date(p.createdAt).toLocaleDateString("es-MX", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))
+              groupedPackages.map(([groupKey, groupItems]) => {
+                const isUngrouped = groupKey === "__ungrouped__";
+                const groupStatus = groupItems.every((item) => item.status === groupItems[0].status)
+                  ? groupItems[0].status
+                  : null;
+                const samplePkg = groupItems[0];
+
+                return (
+                  <Fragment key={groupKey}>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableCell colSpan={6}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
+                              {isUngrouped
+                                ? "Sin grupo"
+                                : groupInvoiceMap[groupKey]
+                                  ? groupInvoiceMap[groupKey]
+                                  : `Grupo ${groupKey.slice(0, 5)}`
+                              }
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              {groupItems.length} paquete{groupItems.length === 1 ? "" : "s"}
+                            </span>
+                            {groupStatus && (
+                              <Badge variant={STATUS_VARIANT[groupStatus]} className="text-xs">
+                                {STATUS_LABELS[groupStatus]}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {!isUngrouped && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={() => openEditGroup(samplePkg)}
+                            >
+                              Editar grupo
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+
+                    {groupItems.map((p) => (
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer"
+                        onClick={() => setSelected(p)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {p.status === "WAREHOUSE" && !p.groupId ? (
+                            <Checkbox
+                              checked={selectedPackageIds.includes(p.id)}
+                              onCheckedChange={(value) => handleSelectForGroup(p, value === true)}
+                              disabled={!isSelectableForGrouping(p) || isCreatingPackageGroup}
+                              aria-label={`Seleccionar paquete ${p.id}`}
+                            />
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{p.officialInvoice || p.id.slice(0, 8)}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">
+                          {p.provider.name}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell font-mono text-sm">
+                          {p.weight.value} {p.weight.unit}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={STATUS_VARIANT[p.status]}>
+                            {STATUS_LABELS[p.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                          {new Date(p.createdAt).toLocaleDateString("es-MX", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -249,6 +424,21 @@ export const CustomerWarehousePage = () => {
         pkg={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
+      />
+      <CreatePackageGroupDialog
+        open={createGroupOpen}
+        selectedCount={selectedPackageIds.length}
+        isLoading={isCreatingPackageGroup}
+        onClose={() => setCreateGroupOpen(false)}
+        onConfirm={handleCreateGroup}
+      />
+      <EditPackageGroupDialog
+        open={!!editGroupTarget}
+        groupId={editGroupTarget?.groupId ?? null}
+        initialStatus={editGroupTarget?.status ?? "WAREHOUSE"}
+        isLoading={isEditingPackageGroup}
+        onClose={() => setEditGroupTarget(null)}
+        onSave={handleEditGroup}
       />
     </div>
   );
