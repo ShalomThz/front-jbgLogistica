@@ -345,7 +345,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Users className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Orden Socio</span>
+                <span className="font-semibold">Orden Agente</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden simplificada: contactos, dimensiones y creación directa.

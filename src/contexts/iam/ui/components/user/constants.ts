@@ -133,13 +133,13 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   // Orders
   CAN_LIST_ORDERS: "Ver la lista de órdenes de su propia tienda.",
   CAN_LIST_ALL_ORDERS: "Ver la lista de órdenes de todas las tiendas. Requiere listar órdenes.",
-  CAN_VIEW_PARTNER_ORDERS: "Abrir el detalle de una orden de socio (partner).",
-  CAN_CREATE_PARTNER_ORDERS: "Crear nuevas órdenes de socio con datos básicos de contacto y paquete.",
-  CAN_EDIT_PARTNER_ORDERS: "Modificar los datos de una orden de socio existente.",
-  CAN_DELETE_PARTNER_ORDERS: "Eliminar permanentemente una orden de socio.",
+  CAN_VIEW_PARTNER_ORDERS: "Abrir el detalle de una orden de agente.",
+  CAN_CREATE_PARTNER_ORDERS: "Crear nuevas órdenes de agente con datos básicos de contacto y paquete.",
+  CAN_EDIT_PARTNER_ORDERS: "Modificar los datos de una orden de agente existente.",
+  CAN_DELETE_PARTNER_ORDERS: "Eliminar permanentemente una orden de agente.",
   CAN_VIEW_HQ_ORDERS: "Abrir el detalle de una orden JBG.",
   CAN_CREATE_HQ_ORDERS: "Crear nuevas órdenes JBG con cotización de envío completa.",
-  CAN_EDIT_HQ_ORDERS: "Modificar los datos de una orden JBG y completar ventas de socios.",
+  CAN_EDIT_HQ_ORDERS: "Modificar los datos de una orden JBG y completar ventas de agentes.",
   CAN_DELETE_HQ_ORDERS: "Eliminar permanentemente una orden JBG.",
 
   // Customers

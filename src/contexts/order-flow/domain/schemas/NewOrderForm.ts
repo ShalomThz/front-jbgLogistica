@@ -71,15 +71,15 @@ export const newOrderFormSchema = z
   .superRefine((data, ctx) => {
     if (data.orderType === "HQ" && !data.orderData.orderNumber.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "El número de orden es requerido",
         path: ["orderData", "orderNumber"],
       });
     }
     if (data.orderType === "PARTNER" && !data.orderData.partnerOrderNumber.trim()) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "El número de socio es requerido para órdenes Partner",
+        code: "custom",
+        message: "El número de agente es requerido para órdenes Partner",
         path: ["orderData", "partnerOrderNumber"],
       });
     }

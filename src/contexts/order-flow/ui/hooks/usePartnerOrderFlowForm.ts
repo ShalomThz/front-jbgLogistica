@@ -27,7 +27,7 @@ export const usePartnerOrderFlowForm = ({ initialValues }: UsePartnerOrderFlowFo
       if (!partnerOrderNumber?.trim()) {
         form.setError("orderData.partnerOrderNumber", {
           type: "manual",
-          message: "El número de socio/partner es requerido",
+          message: "El número de agente es requerido",
         });
         return false;
       }
