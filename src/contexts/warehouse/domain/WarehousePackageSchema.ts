@@ -22,7 +22,11 @@ export const packageListViewSchema = z.object({
   id: z.string(),
   provider: providerSummarySchema,
   user: entitySummarySchema,
-  customer: entitySummarySchema,
+  customer: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+  }),
   store: entitySummarySchema,
   groupId: z.string().nullable().optional(),
   groupInvoiceNumber: z.string().nullable().optional(),

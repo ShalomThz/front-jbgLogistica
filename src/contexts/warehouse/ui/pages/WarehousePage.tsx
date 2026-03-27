@@ -113,7 +113,8 @@ export const WarehousePage = () => {
         p.id.toLowerCase().includes(query) ||
         p.officialInvoice?.toLowerCase().includes(query) ||
         p.provider.name.toLowerCase().includes(query) ||
-        p.customer.name.toLowerCase().includes(query);
+        p.customer.name.toLowerCase().includes(query) ||
+        p.customer.email.toLowerCase().includes(query);
       const matchesStatus = statusFilter === "all" || p.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -294,7 +295,7 @@ export const WarehousePage = () => {
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por ID, factura, proveedor o cliente..."
+            placeholder="Buscar por ID, factura, proveedor, cliente o email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -365,6 +366,7 @@ export const WarehousePage = () => {
               <TableHead className="hidden sm:table-cell">Tienda</TableHead>
               <TableHead className="hidden md:table-cell">Proveedor</TableHead>
               <TableHead className="hidden lg:table-cell">Cliente</TableHead>
+              <TableHead className="hidden xl:table-cell">Email cliente</TableHead>
               <TableHead className="hidden md:table-cell">Peso</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
@@ -372,7 +374,7 @@ export const WarehousePage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No se encontraron paquetes.
                 </TableCell>
               </TableRow>
@@ -387,7 +389,7 @@ export const WarehousePage = () => {
                 return (
                   <Fragment key={groupKey}>
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={8}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-sm">
                             <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
@@ -452,6 +454,9 @@ export const WarehousePage = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
                           {p.customer.name}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-sm">
+                          {p.customer.email}
                         </TableCell>
                         <TableCell className="hidden md:table-cell font-mono text-sm">
                           {p.weight.value} {p.weight.unit}
