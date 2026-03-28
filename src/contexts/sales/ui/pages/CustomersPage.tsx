@@ -122,6 +122,7 @@ export const CustomersPage = () => {
           setLimit(v);
           setPage(1);
         }}
+        onResetAndRefetch={() => { resetFilters(); refetch(); }}
       />
 
       <div className="rounded-lg border">

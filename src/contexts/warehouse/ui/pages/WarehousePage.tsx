@@ -3,7 +3,6 @@ import {
   Badge,
   Button,
   Checkbox,
-  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -18,13 +17,10 @@ import {
 } from "@contexts/shared/shadcn";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
-  ArrowDownAZ,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Plus,
   RefreshCw,
-  Search
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -41,6 +37,8 @@ import { EditPackageGroupDialog } from "../components/EditPackageGroupDialog";
 import { EditPackageDialog } from "../components/EditPackageDialog";
 import { WarehouseDeleteDialog } from "../components/WarehouseDeleteDialog";
 import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
+import { WarehouseFilters } from "../components/WarehouseFilters";
+import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -88,10 +86,8 @@ export const WarehousePage = () => {
     isDownloadingReceipt,
   } = usePackages({ page, limit });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
+  const { filters, setFilter, resetFilters, filtered } = useWarehouseFilters(packages);
+
   const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPkg, setEditPkg] = useState<PackageListViewPrimitives | null>(null);
@@ -104,24 +100,6 @@ export const WarehousePage = () => {
     status: WarehousePackageStatus;
   } | null>(null);
   const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
-
-  const filtered = (() => {
-    const result = packages.filter((p) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        p.id.toLowerCase().includes(query) ||
-        p.officialInvoice?.toLowerCase().includes(query) ||
-        p.provider.name.toLowerCase().includes(query) ||
-        p.customer.name.toLowerCase().includes(query) ||
-        p.customer.email.toLowerCase().includes(query);
-      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return result;
-  })();
 
   const handleCreate = async (data: CreatePackageRequest) => {
     await createPackage(data);
@@ -273,7 +251,7 @@ export const WarehousePage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button
@@ -291,70 +269,14 @@ export const WarehousePage = () => {
       </div>
 
       {/* ── Filters ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por ID, factura, proveedor, cliente o email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-45">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="WAREHOUSE">En bodega</SelectItem>
-            <SelectItem value="AUTHORIZED">Autorizado</SelectItem>
-            <SelectItem value="SHIPPED">Enviado</SelectItem>
-            <SelectItem value="DELIVERED">Entregado</SelectItem>
-            <SelectItem value="REPACKED">Reempacado</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-32.5">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <ArrowDownAZ className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nombre</SelectItem>
-            <SelectItem value="asc">Nombre A-Z</SelectItem>
-            <SelectItem value="desc">Nombre Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <Clock className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Creacion</SelectItem>
-            <SelectItem value="desc">Mas reciente</SelectItem>
-            <SelectItem value="asc">Mas antiguo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <WarehouseFilters
+        filters={filters}
+        limit={limit}
+        limitOptions={LIMIT_OPTIONS}
+        setFilter={setFilter}
+        onLimitChange={(v) => { setLimit(v); setPage(1); }}
+        onResetAndRefetch={() => { resetFilters(); refetch(); }}
+      />
 
       {/* ── Table ── */}
       <div className="rounded-lg border">

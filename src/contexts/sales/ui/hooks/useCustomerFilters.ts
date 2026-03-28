@@ -28,7 +28,7 @@ export function useCustomerFilters(customers: CustomerListViewPrimitives[]) {
   const [cityFilter, setCityFilter] = useState("all");
   const [portalFilter, setPortalFilter] = useState("all");
   const [nameSort, setNameSort] = useState<NameSort>("none");
-  const [dateSort, setDateSort] = useState<DateSort>("none");
+  const [dateSort, setDateSort] = useState<DateSort>("desc");
   const [dateFilter, setDateFilter] = useState<DatePreset>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -92,6 +92,9 @@ export function useCustomerFilters(customers: CustomerListViewPrimitives[]) {
   };
 
   const setFilter = <K extends keyof CustomerFiltersState>(key: K, value: CustomerFiltersState[K]) => {
+    if (key === "nameSort" && value !== "none") setDateSort("none");
+    if (key === "dateSort" && value !== "none") setNameSort("none");
+
     const map = {
       searchQuery: setSearchQuery,
       storeFilter: setStoreFilter,
@@ -113,7 +116,7 @@ export function useCustomerFilters(customers: CustomerListViewPrimitives[]) {
     setCityFilter("all");
     setPortalFilter("all");
     setNameSort("none");
-    setDateSort("none");
+    setDateSort("desc");
     setDateFilter("all");
     setDateFrom("");
     setDateTo("");

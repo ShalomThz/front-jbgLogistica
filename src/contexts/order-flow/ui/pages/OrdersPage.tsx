@@ -1,4 +1,4 @@
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { Building2, ChevronLeft, ChevronRight, FileText, Package, Pencil, Plus, RefreshCw, Tag, Trash2, Users } from "lucide-react";
@@ -28,6 +28,7 @@ import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/ship
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { useOrderFilters } from "../hooks/useOrderFilters";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
@@ -40,7 +41,7 @@ export const OrdersPage = () => {
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
+  const [limit, setLimit] = useState(50);
 
   const {
     orders,
@@ -54,8 +55,14 @@ export const OrdersPage = () => {
 
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
+  const { boxes: allBoxes } = useBoxes();
 
-  const { filters, setFilter, resetFilters, filtered, options } = useOrderFilters(orders);
+  const boxNames = useMemo(
+    () => new Map(allBoxes.map((b) => [b.id, b.name])),
+    [allBoxes],
+  );
+
+  const { filters, setFilter, resetFilters, filtered, options } = useOrderFilters(orders, { boxNames });
 
   const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
@@ -172,6 +179,7 @@ export const OrdersPage = () => {
           setLimit(v);
           setPage(1);
         }}
+        onResetAndRefetch={() => { resetFilters(); refetch(); }}
       />
 
       <div className="rounded-lg border">

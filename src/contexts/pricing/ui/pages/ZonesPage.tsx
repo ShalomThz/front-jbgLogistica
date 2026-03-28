@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
-  Input,
   Button,
   Table,
   TableHeader,
@@ -10,16 +9,13 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@contexts/shared/shadcn";
 import { ZoneDetailDialog } from "../components/zone/ZoneDetailDialog";
 import { ZoneFormDialog } from "../components/zone/ZoneFormDialog";
 import { ZoneDeleteDialog } from "../components/zone/ZoneDeleteDialog";
+import { ZoneFilters } from "../components/zone/ZoneFilters";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
+import { useZoneFilters } from "../hooks/useZoneFilters";
 import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 import type { CreateZoneRequestPrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 
@@ -43,27 +39,12 @@ export const ZonesPage = () => {
     isDeleting,
   } = useZones({ page, limit });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
+  const { filters, setFilter, resetFilters, filtered } = useZoneFilters(zones);
+
   const [selected, setSelected] = useState<ZonePrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editZone, setEditZone] = useState<ZonePrimitives | null>(null);
   const [deleteZoneDialog, setDeleteZoneDialog] = useState<ZonePrimitives | null>(null);
-
-  const filtered = (() => {
-    const result = zones.filter(
-      (z) =>
-        searchQuery === "" ||
-        z.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        z.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-    return result;
-  })();
 
   const handleCreate = async (data: CreateZoneRequestPrimitives) => {
     await createZone(data);
@@ -107,7 +88,7 @@ export const ZonesPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Zonas</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setNameSort("none"); setDateSort("none"); refetch(); }}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setFormOpen(true)}>
@@ -116,57 +97,14 @@ export const ZonesPage = () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre o descripción..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-[130px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <ArrowDownAZ className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nombre</SelectItem>
-            <SelectItem value="asc">Nombre A-Z</SelectItem>
-            <SelectItem value="desc">Nombre Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <Clock className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Creacion</SelectItem>
-            <SelectItem value="desc">Mas reciente</SelectItem>
-            <SelectItem value="asc">Mas antiguo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <ZoneFilters
+        filters={filters}
+        limit={limit}
+        limitOptions={LIMIT_OPTIONS}
+        setFilter={setFilter}
+        onLimitChange={(v) => { setLimit(v); setPage(1); }}
+        onResetAndRefetch={() => { resetFilters(); refetch(); }}
+      />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>

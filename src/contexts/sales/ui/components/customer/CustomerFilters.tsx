@@ -1,4 +1,4 @@
-import { ArrowDownAZ, CalendarDays, Clock, Filter, KeyRound, MapPin, Search, Store } from "lucide-react";
+import { ArrowDownAZ, CalendarDays, Clock, Filter, KeyRound, MapPin, RefreshCw, Search, Store } from "lucide-react";
 import {
   Button,
   Calendar,
@@ -29,6 +29,7 @@ interface CustomerFiltersProps {
   showStoreFilter: boolean;
   setFilter: <K extends keyof CustomerFiltersState>(key: K, value: CustomerFiltersState[K]) => void;
   onLimitChange: (value: number) => void;
+  onResetAndRefetch: () => void;
 }
 
 function formatDate(date: Date): string {
@@ -92,7 +93,15 @@ const countActiveFilters = (filters: CustomerFiltersState, showStoreFilter: bool
     filters.cityFilter,
     filters.portalFilter,
     filters.dateFilter,
-  ].filter((v) => v !== "all").length;
+  ].filter((v) => v !== "all").length +
+  (filters.nameSort !== "none" ? 1 : 0) +
+  (filters.dateSort !== "none" ? 1 : 0);
+
+const activeSelectClass = (value: string, defaultValue = "all") =>
+  value !== defaultValue ? "ring-2 ring-primary/50" : "";
+
+const activeSortClass = (value: string) =>
+  value !== "none" ? "ring-2 ring-primary/50" : "";
 
 export const CustomerFilters = ({
   filters,
@@ -102,6 +111,7 @@ export const CustomerFilters = ({
   showStoreFilter,
   setFilter,
   onLimitChange,
+  onResetAndRefetch,
 }: CustomerFiltersProps) => {
   const activeCount = countActiveFilters(filters, showStoreFilter);
 
@@ -132,40 +142,6 @@ export const CustomerFilters = ({
         </SelectContent>
       </Select>
 
-      <Select
-        value={filters.nameSort}
-        onValueChange={(v) => {
-          setFilter("nameSort", v as NameSort);
-        }}
-      >
-        <SelectTrigger className="w-full sm:w-[150px]">
-          <ArrowDownAZ className="size-4 text-muted-foreground" />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">Nombre</SelectItem>
-          <SelectItem value="asc">Nombre A-Z</SelectItem>
-          <SelectItem value="desc">Nombre Z-A</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={filters.dateSort}
-        onValueChange={(v) => {
-          setFilter("dateSort", v as DateSort);
-        }}
-      >
-        <SelectTrigger className="w-full sm:w-[160px]">
-          <Clock className="size-4 text-muted-foreground" />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">Creacion</SelectItem>
-          <SelectItem value="desc">Mas reciente</SelectItem>
-          <SelectItem value="asc">Mas antiguo</SelectItem>
-        </SelectContent>
-      </Select>
-
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -184,11 +160,55 @@ export const CustomerFilters = ({
         </SheetTrigger>
         <SheetContent side="right" className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Filtros</SheetTitle>
-            <SheetDescription>Filtra los clientes por diferentes criterios</SheetDescription>
+            <SheetTitle>Filtros y orden</SheetTitle>
+            <SheetDescription>Filtra y ordena los clientes por diferentes criterios</SheetDescription>
           </SheetHeader>
 
           <div className="space-y-5 px-4">
+            {/* Sorts */}
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ArrowDownAZ className="size-3.5" />
+                Ordenar por nombre
+              </Label>
+              <Select
+                value={filters.nameSort}
+                onValueChange={(v) => setFilter("nameSort", v as NameSort)}
+              >
+                <SelectTrigger className={activeSortClass(filters.nameSort)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin orden</SelectItem>
+                  <SelectItem value="asc">A-Z</SelectItem>
+                  <SelectItem value="desc">Z-A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="size-3.5" />
+                Ordenar por fecha
+              </Label>
+              <Select
+                value={filters.dateSort}
+                onValueChange={(v) => setFilter("dateSort", v as DateSort)}
+              >
+                <SelectTrigger className={activeSortClass(filters.dateSort)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin orden</SelectItem>
+                  <SelectItem value="desc">Mas reciente</SelectItem>
+                  <SelectItem value="asc">Mas antiguo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <hr />
+
+            {/* Filters */}
             {showStoreFilter && (
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -196,7 +216,7 @@ export const CustomerFilters = ({
                   Tienda
                 </Label>
                 <Select value={filters.storeFilter} onValueChange={(v) => setFilter("storeFilter", v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={activeSelectClass(filters.storeFilter)}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -217,7 +237,7 @@ export const CustomerFilters = ({
                 Ciudad
               </Label>
               <Select value={filters.cityFilter} onValueChange={(v) => setFilter("cityFilter", v)}>
-                <SelectTrigger>
+                <SelectTrigger className={activeSelectClass(filters.cityFilter)}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +257,7 @@ export const CustomerFilters = ({
                 Acceso al portal
               </Label>
               <Select value={filters.portalFilter} onValueChange={(v) => setFilter("portalFilter", v)}>
-                <SelectTrigger>
+                <SelectTrigger className={activeSelectClass(filters.portalFilter)}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -254,7 +274,7 @@ export const CustomerFilters = ({
                 Fecha de registro
               </Label>
               <Select value={filters.dateFilter} onValueChange={(v) => setFilter("dateFilter", v as DatePreset)}>
-                <SelectTrigger>
+                <SelectTrigger className={activeSelectClass(filters.dateFilter)}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -282,6 +302,15 @@ export const CustomerFilters = ({
                 />
               </div>
             )}
+
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={onResetAndRefetch}
+            >
+              <RefreshCw className="size-4" />
+              Limpiar filtros y actualizar
+            </Button>
           </div>
         </SheetContent>
       </Sheet>

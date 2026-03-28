@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
-  Input,
   Badge,
   Button,
   Table,
@@ -12,19 +11,16 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@contexts/shared/shadcn";
 import { UserDetailDialog } from "../components/user/UserDetailDialog";
 import { CreateUserDialog } from "../components/user/CreateUserDialog";
 import { EditUserDialog } from "../components/user/EditUserDialog";
-import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import { UserDeleteDialog } from "../components/user/UserDeleteDialog";
+import { UserFilters } from "../components/user/UserFilters";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
+import { useUserFilters } from "../hooks/useUserFilters";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { EditUserRequest } from "../../application/user/EditUserRequest";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
@@ -57,33 +53,12 @@ export const UsersPage = () => {
     isDeleting,
   } = useUsers({ page, limit });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
+  const { filters, setFilter, resetFilters, filtered } = useUserFilters(users);
+
   const [selected, setSelected] = useState<UserListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserListViewPrimitives | null>(null);
   const [deleteUserDialog, setDeleteUserDialog] = useState<UserListViewPrimitives | null>(null);
-
-  const filtered = (() => {
-    const result = users.filter((u) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.role.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" ? u.isActive : !u.isActive);
-      return matchesSearch && matchesStatus;
-    });
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-    return result;
-  })();
 
   const handleCreate = async (data: RegisterUserRequestPrimitives) => {
     try {
@@ -136,7 +111,7 @@ export const UsersPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setFormOpen(true)}>
@@ -145,67 +120,14 @@ export const UsersPage = () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, email o rol..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-45">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Activo</SelectItem>
-            <SelectItem value="inactive">Inactivo</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-32.5">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <ArrowDownAZ className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nombre</SelectItem>
-            <SelectItem value="asc">Nombre A-Z</SelectItem>
-            <SelectItem value="desc">Nombre Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <Clock className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Creacion</SelectItem>
-            <SelectItem value="desc">Mas reciente</SelectItem>
-            <SelectItem value="asc">Mas antiguo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <UserFilters
+        filters={filters}
+        limit={limit}
+        limitOptions={LIMIT_OPTIONS}
+        setFilter={setFilter}
+        onLimitChange={(v) => { setLimit(v); setPage(1); }}
+        onResetAndRefetch={() => { resetFilters(); refetch(); }}
+      />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>

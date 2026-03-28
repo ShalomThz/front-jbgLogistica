@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Plus, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
-  Input,
   Button,
   Table,
   TableHeader,
@@ -10,16 +9,13 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@contexts/shared/shadcn";
 import { StoreDetailDialog } from "../components/store/StoreDetailDialog";
 import { StoreFormDialog } from "../components/store/StoreFormDialog";
 import { StoreDeleteDialog } from "../components/store/StoreDeleteDialog";
+import { StoreFilters } from "../components/store/StoreFilters";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { useStoreFilters } from "../hooks/useStoreFilters";
 import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 
@@ -43,28 +39,12 @@ export const StoresPage = () => {
     isDeleting,
   } = useStores({ page, limit });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
+  const { filters, setFilter, resetFilters, filtered } = useStoreFilters(stores);
+
   const [selected, setSelected] = useState<StoreListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editStore, setEditStore] = useState<StoreListViewPrimitives | null>(null);
   const [deleteStoreDialog, setDeleteStoreDialog] = useState<StoreListViewPrimitives | null>(null);
-
-  const filtered = (() => {
-    const result = stores.filter(
-      (s) =>
-        searchQuery === "" ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-    return result;
-  })();
 
   const handleCreate = async (data: CreateStoreRequestPrimitives) => {
     await createStore(data);
@@ -108,7 +88,7 @@ export const StoresPage = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tiendas</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setNameSort("none"); setDateSort("none"); refetch(); }}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button onClick={() => setFormOpen(true)}>
@@ -117,57 +97,14 @@ export const StoresPage = () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, ciudad o email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select
-          value={String(limit)}
-          onValueChange={(v) => {
-            setLimit(Number(v));
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-32.5">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <ArrowDownAZ className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nombre</SelectItem>
-            <SelectItem value="asc">Nombre A-Z</SelectItem>
-            <SelectItem value="desc">Nombre Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <Clock className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Creacion</SelectItem>
-            <SelectItem value="desc">Mas reciente</SelectItem>
-            <SelectItem value="asc">Mas antiguo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <StoreFilters
+        filters={filters}
+        limit={limit}
+        limitOptions={LIMIT_OPTIONS}
+        setFilter={setFilter}
+        onLimitChange={(v) => { setLimit(v); setPage(1); }}
+        onResetAndRefetch={() => { resetFilters(); refetch(); }}
+      />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>

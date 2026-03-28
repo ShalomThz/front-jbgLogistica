@@ -4,11 +4,18 @@ import {
   Button,
   Checkbox,
   Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
   Table,
   TableBody,
   TableCell,
@@ -16,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Filter, RefreshCw, Search } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
@@ -66,7 +73,27 @@ export const CustomerWarehousePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
+  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("desc");
+
+  const handleNameSort = (v: "none" | "asc" | "desc") => {
+    setNameSort(v);
+    if (v !== "none") setDateSort("none");
+  };
+  const handleDateSort = (v: "none" | "asc" | "desc") => {
+    setDateSort(v);
+    if (v !== "none") setNameSort("none");
+  };
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setNameSort("none");
+    setDateSort("desc");
+  };
+  const activeFilterCount =
+    (statusFilter !== "all" ? 1 : 0) +
+    (nameSort !== "none" ? 1 : 0) +
+    (dateSort !== "none" ? 1 : 0);
+
   const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
@@ -196,7 +223,7 @@ export const CustomerWarehousePage = () => {
           <p className="text-sm text-muted-foreground">{total} paquetes registrados</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { setSearchQuery(""); setStatusFilter("all"); setNameSort("none"); setDateSort("none"); refetch(); }}>
+          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
           <Button
@@ -220,19 +247,6 @@ export const CustomerWarehousePage = () => {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-45">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="WAREHOUSE">En bodega</SelectItem>
-            <SelectItem value="AUTHORIZED">Autorizado</SelectItem>
-            <SelectItem value="SHIPPED">Enviado</SelectItem>
-            <SelectItem value="DELIVERED">Entregado</SelectItem>
-            <SelectItem value="REPACKED">Reempacado</SelectItem>
-          </SelectContent>
-        </Select>
         <Select
           value={String(limit)}
           onValueChange={(v) => {
@@ -240,39 +254,94 @@ export const CustomerWarehousePage = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-full sm:w-32.5">
+          <SelectTrigger className="w-full sm:w-[130px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {LIMIT_OPTIONS.map((opt) => (
               <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
+                {opt} por pagina
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <ArrowDownAZ className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nombre</SelectItem>
-            <SelectItem value="asc">Nombre A-Z</SelectItem>
-            <SelectItem value="desc">Nombre Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <Clock className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Creacion</SelectItem>
-            <SelectItem value="desc">Mas reciente</SelectItem>
-            <SelectItem value="asc">Mas antiguo</SelectItem>
-          </SelectContent>
-        </Select>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant={activeFilterCount > 0 ? "secondary" : "outline"} size="sm" className="gap-1.5">
+              <Filter className="size-4" />
+              Filtros
+              {activeFilterCount > 0 && (
+                <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Filtros y orden</SheetTitle>
+              <SheetDescription>Filtra y ordena los paquetes por diferentes criterios</SheetDescription>
+            </SheetHeader>
+            <div className="space-y-5 px-4">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ArrowDownAZ className="size-3.5" />
+                  Ordenar por nombre
+                </Label>
+                <Select value={nameSort} onValueChange={(v) => handleNameSort(v as "none" | "asc" | "desc")}>
+                  <SelectTrigger className={nameSort !== "none" ? "ring-2 ring-primary/50" : ""}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin orden</SelectItem>
+                    <SelectItem value="asc">A-Z</SelectItem>
+                    <SelectItem value="desc">Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="size-3.5" />
+                  Ordenar por fecha
+                </Label>
+                <Select value={dateSort} onValueChange={(v) => handleDateSort(v as "none" | "asc" | "desc")}>
+                  <SelectTrigger className={dateSort !== "none" ? "ring-2 ring-primary/50" : ""}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin orden</SelectItem>
+                    <SelectItem value="desc">Mas reciente</SelectItem>
+                    <SelectItem value="asc">Mas antiguo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <hr />
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Filter className="size-3.5" />
+                  Estado
+                </Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className={statusFilter !== "all" ? "ring-2 ring-primary/50" : ""}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="WAREHOUSE">En bodega</SelectItem>
+                    <SelectItem value="AUTHORIZED">Autorizado</SelectItem>
+                    <SelectItem value="SHIPPED">Enviado</SelectItem>
+                    <SelectItem value="DELIVERED">Entregado</SelectItem>
+                    <SelectItem value="REPACKED">Reempacado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" className="w-full gap-2" onClick={() => { resetFilters(); refetch(); }}>
+                <RefreshCw className="size-4" />
+                Limpiar filtros y actualizar
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* ── Table ── */}

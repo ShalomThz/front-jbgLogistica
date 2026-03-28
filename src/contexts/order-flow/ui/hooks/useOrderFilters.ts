@@ -31,10 +31,15 @@ export interface OrderFilterOptions {
   stores: { id: string; name: string }[];
   customers: string[];
   providers: string[];
-  boxes: string[];
+  boxes: { id: string; name: string }[];
 }
 
-export function useOrderFilters(orders: OrderListView[]) {
+interface UseOrderFiltersOptions {
+  boxNames?: Map<string, string>;
+}
+
+export function useOrderFilters(orders: OrderListView[], options?: UseOrderFiltersOptions) {
+  const boxNames = options?.boxNames;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [storeFilter, setStoreFilter] = useState("all");
@@ -42,17 +47,17 @@ export function useOrderFilters(orders: OrderListView[]) {
   const [customerFilter, setCustomerFilter] = useState("all");
   const [providerFilter, setProviderFilter] = useState("all");
   const [boxFilter, setBoxFilter] = useState("all");
-  const [nameSort, setNameSort] = useState<NameSort>("asc");
+  const [nameSort, setNameSort] = useState<NameSort>("none");
   const [dateSort, setDateSort] = useState<DateSort>("desc");
   const [dateFilter, setDateFilter] = useState<DatePreset>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const options = useMemo<OrderFilterOptions>(() => {
+  const filterOptions = useMemo<OrderFilterOptions>(() => {
     const storeMap = new Map<string, string>();
     const customerSet = new Set<string>();
     const providerSet = new Set<string>();
-    const boxSet = new Set<string>();
+    const boxMap = new Map<string, string>();
 
     for (const order of orders) {
       storeMap.set(order.store.id, order.store.name);
@@ -61,7 +66,7 @@ export function useOrderFilters(orders: OrderListView[]) {
         providerSet.add(order.shipment.provider.providerName);
       }
       if (order.package.boxId) {
-        boxSet.add(order.package.boxId);
+        boxMap.set(order.package.boxId, boxNames?.get(order.package.boxId) ?? order.package.boxId);
       }
     }
 
@@ -71,9 +76,11 @@ export function useOrderFilters(orders: OrderListView[]) {
       ),
       customers: Array.from(customerSet).sort(),
       providers: Array.from(providerSet).sort(),
-      boxes: Array.from(boxSet).sort(),
+      boxes: Array.from(boxMap, ([id, name]) => ({ id, name })).sort(
+        (a, b) => a.name.localeCompare(b.name),
+      ),
     };
-  }, [orders]);
+  }, [orders, boxNames]);
 
   const filtered = useMemo(() => {
     const result = orders.filter((order) => {
@@ -81,6 +88,9 @@ export function useOrderFilters(orders: OrderListView[]) {
       const matchesSearch =
         searchQuery === "" ||
         order.destination.name.toLowerCase().includes(query) ||
+        order.destination.phone?.toLowerCase().includes(query) ||
+        order.destination.address.city?.toLowerCase().includes(query) ||
+        order.destination.address.province?.toLowerCase().includes(query) ||
         order.id.toLowerCase().includes(query) ||
         (order.references.orderNumber?.toLowerCase().includes(query) ??
           false) ||
@@ -162,6 +172,9 @@ export function useOrderFilters(orders: OrderListView[]) {
     key: K,
     value: OrderFiltersState[K],
   ) => {
+    if (key === "nameSort" && value !== "none") setDateSort("none");
+    if (key === "dateSort" && value !== "none") setNameSort("none");
+
     const map = {
       searchQuery: setSearchQuery,
       statusFilter: setStatusFilter,
@@ -188,14 +201,14 @@ export function useOrderFilters(orders: OrderListView[]) {
     setCustomerFilter("all");
     setProviderFilter("all");
     setBoxFilter("all");
-    setNameSort("asc");
+    setNameSort("none");
     setDateSort("desc");
     setDateFilter("all");
     setDateFrom("");
     setDateTo("");
   };
 
-  return { filters, setFilter, resetFilters, filtered, options };
+  return { filters, setFilter, resetFilters, filtered, options: filterOptions };
 }
 
 function checkDateFilter(

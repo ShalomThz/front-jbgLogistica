@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ArrowDownAZ, Clock, Plus, Search, User } from "lucide-react";
+import { Plus, RefreshCw, User } from "lucide-react";
 import {
-  Input,
   Badge,
   Button,
   Table,
@@ -10,16 +9,16 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@contexts/shared/shadcn";
 import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
 import { DriverFormDialog } from "../components/driver/DriverFormDialog";
 import { DriverDeleteDialog } from "../components/driver/DriverDeleteDialog";
-import type { DriverPrimitives, DriverStatus } from "../../domain/schemas/driver/Driver";
+import { DriverFilters } from "../components/driver/DriverFilters";
+import { useDriverFilters } from "../hooks/useDriverFilters";
+import type {
+  DriverPrimitives,
+  DriverStatus,
+} from "../../domain/schemas/driver/Driver";
 
 const STATUS_LABELS: Record<DriverStatus, string> = {
   AVAILABLE: "Disponible",
@@ -27,7 +26,10 @@ const STATUS_LABELS: Record<DriverStatus, string> = {
   OFF_DUTY: "Fuera de servicio",
 };
 
-const STATUS_VARIANT: Record<DriverStatus, "default" | "secondary" | "outline"> = {
+const STATUS_VARIANT: Record<
+  DriverStatus,
+  "default" | "secondary" | "outline"
+> = {
   AVAILABLE: "default",
   ON_ROUTE: "secondary",
   OFF_DUTY: "outline",
@@ -36,43 +38,63 @@ const STATUS_VARIANT: Record<DriverStatus, "default" | "secondary" | "outline"> 
 const now = new Date().toISOString();
 
 const INITIAL_DATA: DriverPrimitives[] = [
-  { id: "DRV-001", userId: "USR-001", licenseNumber: "LIC-A-12345", status: "AVAILABLE", createdAt: now, updatedAt: now },
-  { id: "DRV-002", userId: "USR-002", licenseNumber: "LIC-B-67890", status: "ON_ROUTE", createdAt: now, updatedAt: now },
-  { id: "DRV-003", userId: "USR-003", licenseNumber: "LIC-A-11111", status: "AVAILABLE", createdAt: now, updatedAt: now },
-  { id: "DRV-004", userId: "USR-004", licenseNumber: "LIC-B-22222", status: "OFF_DUTY", createdAt: now, updatedAt: now },
-  { id: "DRV-005", userId: "USR-005", licenseNumber: "LIC-A-33333", status: "ON_ROUTE", createdAt: now, updatedAt: now },
+  {
+    id: "DRV-001",
+    userId: "USR-001",
+    licenseNumber: "LIC-A-12345",
+    status: "AVAILABLE",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "DRV-002",
+    userId: "USR-002",
+    licenseNumber: "LIC-B-67890",
+    status: "ON_ROUTE",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "DRV-003",
+    userId: "USR-003",
+    licenseNumber: "LIC-A-11111",
+    status: "AVAILABLE",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "DRV-004",
+    userId: "USR-004",
+    licenseNumber: "LIC-B-22222",
+    status: "OFF_DUTY",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "DRV-005",
+    userId: "USR-005",
+    licenseNumber: "LIC-A-33333",
+    status: "ON_ROUTE",
+    createdAt: now,
+    updatedAt: now,
+  },
 ];
 
 export const DriversPage = () => {
   const [drivers, setDrivers] = useState<DriverPrimitives[]>(INITIAL_DATA);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("none");
+  const { filters, setFilter, resetFilters, filtered } =
+    useDriverFilters(drivers);
+
   const [selected, setSelected] = useState<DriverPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editDriver, setEditDriver] = useState<DriverPrimitives | null>(null);
-  const [deleteDriver, setDeleteDriver] = useState<DriverPrimitives | null>(null);
+  const [deleteDriver, setDeleteDriver] = useState<DriverPrimitives | null>(
+    null,
+  );
 
-  const filtered = (() => {
-    const result = drivers.filter((d) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        d.id.toLowerCase().includes(query) ||
-        d.userId.toLowerCase().includes(query) ||
-        d.licenseNumber.toLowerCase().includes(query);
-      const matchesStatus = statusFilter === "all" || d.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.id.localeCompare(b.id));
-    else if (nameSort === "desc") result.sort((a, b) => b.id.localeCompare(a.id));
-    return result;
-  })();
-
-  const handleCreate = (data: Omit<DriverPrimitives, "id" | "createdAt" | "updatedAt">) => {
+  const handleCreate = (
+    data: Omit<DriverPrimitives, "id" | "createdAt" | "updatedAt">,
+  ) => {
     const now = new Date().toISOString();
     const newDriver: DriverPrimitives = {
       ...data,
@@ -84,12 +106,16 @@ export const DriversPage = () => {
     setFormOpen(false);
   };
 
-  const handleUpdate = (data: Omit<DriverPrimitives, "id" | "createdAt" | "updatedAt">) => {
+  const handleUpdate = (
+    data: Omit<DriverPrimitives, "id" | "createdAt" | "updatedAt">,
+  ) => {
     if (!editDriver) return;
     setDrivers((prev) =>
       prev.map((d) =>
-        d.id === editDriver.id ? { ...d, ...data, updatedAt: new Date().toISOString() } : d
-      )
+        d.id === editDriver.id
+          ? { ...d, ...data, updatedAt: new Date().toISOString() }
+          : d,
+      ),
     );
     setEditDriver(null);
   };
@@ -122,56 +148,22 @@ export const DriversPage = () => {
             {available} disponibles · {onRoute} en ruta
           </p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="size-4" />
-          Crear Conductor
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={() => resetFilters()}>
+            <RefreshCw className="size-4" />
+          </Button>
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="size-4" />
+            Crear Conductor
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por ID, usuario o licencia..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="AVAILABLE">Disponible</SelectItem>
-            <SelectItem value="ON_ROUTE">En ruta</SelectItem>
-            <SelectItem value="OFF_DUTY">Fuera de servicio</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={nameSort} onValueChange={(v) => setNameSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <ArrowDownAZ className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Nombre</SelectItem>
-            <SelectItem value="asc">Nombre A-Z</SelectItem>
-            <SelectItem value="desc">Nombre Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateSort} onValueChange={(v) => setDateSort(v as "none" | "asc" | "desc")}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <Clock className="size-4 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Creacion</SelectItem>
-            <SelectItem value="desc">Mas reciente</SelectItem>
-            <SelectItem value="asc">Mas antiguo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <DriverFilters
+        filters={filters}
+        setFilter={setFilter}
+        onReset={resetFilters}
+      />
 
       <div className="rounded-lg border">
         <Table>
@@ -186,23 +178,36 @@ export const DriversPage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   No se encontraron conductores.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((d) => (
-                <TableRow key={d.id} className="cursor-pointer" onClick={() => setSelected(d)}>
+                <TableRow
+                  key={d.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelected(d)}
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <User className="size-4 text-muted-foreground" />
                       <span className="font-medium">{d.id}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm">{d.userId}</TableCell>
-                  <TableCell className="hidden md:table-cell font-mono text-sm">{d.licenseNumber}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-sm">
+                    {d.userId}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell font-mono text-sm">
+                    {d.licenseNumber}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[d.status]}>{STATUS_LABELS[d.status]}</Badge>
+                    <Badge variant={STATUS_VARIANT[d.status]}>
+                      {STATUS_LABELS[d.status]}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               ))
@@ -218,7 +223,11 @@ export const DriversPage = () => {
         onEdit={handleEditFromDetail}
         onDelete={handleDeleteFromDetail}
       />
-      <DriverFormDialog open={formOpen} onClose={() => setFormOpen(false)} onSave={handleCreate} />
+      <DriverFormDialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSave={handleCreate}
+      />
       <DriverFormDialog
         open={!!editDriver}
         onClose={() => setEditDriver(null)}

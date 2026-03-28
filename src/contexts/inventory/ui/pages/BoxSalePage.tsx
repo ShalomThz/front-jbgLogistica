@@ -76,15 +76,19 @@ export const BoxSalePage = () => {
     (item) => item.box.price.currency !== displayCurrency,
   );
 
-  const total = useMemo(
-    () =>
-      cartItems.reduce(
-        (sum, item) =>
-          sum + convertPrice(item.box.price.amount, item.box.price.currency) * item.quantity,
-        0,
-      ),
-    [cartItems, displayCurrency, exchangeRate],
-  );
+  const total = useMemo(() => {
+    const convert = (amount: number, fromCurrency: string) => {
+      if (fromCurrency === displayCurrency) return amount;
+      if (fromCurrency === "USD" && displayCurrency === "MXN") return amount * exchangeRate;
+      if (fromCurrency === "MXN" && displayCurrency === "USD") return amount / exchangeRate;
+      return amount;
+    };
+    return cartItems.reduce(
+      (sum, item) =>
+        sum + convert(item.box.price.amount, item.box.price.currency) * item.quantity,
+      0,
+    );
+  }, [cartItems, displayCurrency, exchangeRate]);
 
   const handleConfirmSale = async () => {
     if (!user || cartItems.length === 0) return;
