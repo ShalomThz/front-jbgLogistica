@@ -1,10 +1,12 @@
 import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft } from "lucide-react";
 import { FormProvider } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { useHQOrderFlow } from "../hooks/useHQOrderFlow";
 import { HQContactStep } from "../components/contact/HQContactStep";
 import { HQPackageStep } from "../components/package/HQPackageStep";
 import { RateStep } from "../components/rate/RateStep";
+import { OrderSuccessView } from "../components/order/OrderSuccessView";
 import { StepIndicator } from "../components/StepIndicator";
 import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
@@ -18,6 +20,7 @@ interface NewHQOrderPageProps {
 }
 
 export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName, partnerOrderNumber }: NewHQOrderPageProps = {}) => {
+  const navigate = useNavigate();
   const flow = useHQOrderFlow({ initialValues, orderId });
 
   const title = (() => {
@@ -32,18 +35,20 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}
-        >
-          <ArrowLeft className="size-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">
-          {title}
-        </h1>
-      </div>
+      {flow.step !== "success" && (
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {title}
+          </h1>
+        </div>
+      )}
 
       {/* Step Indicator */}
       <StepIndicator
@@ -71,13 +76,23 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName
             isSubmitting={flow.isSelectingProvider}
             fulfilledShipment={flow.fulfilledShipment}
             onFinish={flow.goToOrders}
+            onCreateAnother={() => navigate("/orders/new/hq")}
             partnerPrice={partnerPrice}
+          />
+        )}
+
+        {flow.step === "success" && flow.fulfilledShipment && (
+          <OrderSuccessView
+            shipment={flow.fulfilledShipment}
+            invoiceId={flow.invoiceId}
+            onFinish={flow.goToOrders}
+            onCreateAnother={() => navigate("/orders/new/hq")}
           />
         )}
       </FormProvider>
 
       {/* Bottom Navigation */}
-      {flow.step !== "rate" && (
+      {flow.step !== "rate" && flow.step !== "success" && (
         <div className="flex justify-between">
           <Button variant="outline" onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}>
             {flow.step === "contact" ? "Cancelar" : "Anterior"}

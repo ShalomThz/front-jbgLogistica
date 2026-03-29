@@ -16,7 +16,7 @@ import {
   Separator,
   Skeleton,
 } from "@contexts/shared/shadcn";
-import { CheckCircle2, Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
+import { Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
@@ -24,8 +24,7 @@ import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipm
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { calculateTotal, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
-import { OrderShipmentSection } from "../order/OrderShipmentSection";
-import { OrderLabelSection } from "../order/OrderLabelSection";
+import { OrderSuccessView } from "../order/OrderSuccessView";
 
 import ampmLogo from "@/assets/carriers/ampm.png";
 import dhlLogo from "@/assets/carriers/dhl.png";
@@ -79,6 +78,7 @@ interface RateStepProps {
   isSubmitting: boolean;
   fulfilledShipment: ShipmentPrimitives | null;
   onFinish: () => void;
+  onCreateAnother?: () => void;
   partnerPrice?: MoneyPrimitives | null;
 }
 
@@ -92,6 +92,7 @@ export function RateStep({
   isSubmitting,
   fulfilledShipment,
   onFinish,
+  onCreateAnother,
   partnerPrice,
 }: RateStepProps) {
   const { setValue, register, control } = useFormContext<NewOrderFormValues>();
@@ -131,29 +132,11 @@ export function RateStep({
 
   if (fulfilledShipment) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base text-green-600">
-              <CheckCircle2 className="size-5" />
-              Envío creado exitosamente
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <OrderShipmentSection shipment={fulfilledShipment} />
-            {fulfilledShipment.label && (
-              <OrderLabelSection
-                label={fulfilledShipment.label}
-                shipmentId={fulfilledShipment.id}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button onClick={onFinish}>Ir a órdenes</Button>
-        </div>
-      </div>
+      <OrderSuccessView
+        shipment={fulfilledShipment}
+        onFinish={onFinish}
+        onCreateAnother={onCreateAnother}
+      />
     );
   }
 

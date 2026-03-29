@@ -9,6 +9,7 @@ const STEPS: { key: HQOrderStep; label: string }[] = [
   { key: "contact", label: "Contactos" },
   { key: "package", label: "Paquete" },
   { key: "rate", label: "Cotización" },
+  { key: "success", label: "Listo" },
 ];
 
 interface UseHQOrderFlowOptions {
@@ -75,5 +76,6 @@ export const useHQOrderFlow = ({ initialValues, orderId }: UseHQOrderFlowOptions
     selectAndFulfill: submission.selectAndFulfill,
     isSelectingProvider: submission.isSelectingProvider,
     fulfilledShipment: submission.fulfilledShipment,
+    invoiceId: submission.invoiceId,
   };
 };

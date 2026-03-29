@@ -6,7 +6,7 @@ import {
 } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { hqOrderDefaultValues } from "../constants/newOrder.constants";
 
-export type HQOrderStep = "contact" | "package" | "rate";
+export type HQOrderStep = "contact" | "package" | "rate" | "success";
 
 interface UseHQOrderFlowFormOptions {
   initialValues?: NewOrderFormValues;

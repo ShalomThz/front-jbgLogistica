@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { useShipmentActions, useShipmentRates } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
@@ -42,6 +43,7 @@ export const useHQOrderSubmission = ({
   const { user } = useAuth();
   const { createHQOrder, updateOrder, isCreating } = useOrders({ enabled: false });
   const { findByOrderId, fulfillShipment, selectProvider, isSelectingProvider } = useShipmentActions();
+  const { data: orderData } = useOrder(step === "success" ? orderId : undefined);
 
   const consignmentNoteClassCode = useWatch({ control: form.control, name: "package.consignmentNoteClassCode" });
   const consignmentNotePackagingCode = useWatch({ control: form.control, name: "package.consignmentNotePackagingCode" });
@@ -113,6 +115,7 @@ export const useHQOrderSubmission = ({
       await selectProvider(request);
       const result = await fulfillShipment(shipmentId);
       setFulfilledShipment(result);
+      setStep("success");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
 
       const pkg = form.getValues("package");
@@ -146,5 +149,6 @@ export const useHQOrderSubmission = ({
     isCreating,
     isSelectingProvider,
     fulfilledShipment,
+    invoiceId: orderData?.invoiceId ?? null,
   };
 };
