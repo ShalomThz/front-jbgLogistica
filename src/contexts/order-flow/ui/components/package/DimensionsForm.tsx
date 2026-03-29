@@ -9,6 +9,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { useFormContext, Controller } from "react-hook-form";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import { PackagingSelector } from "./PackagingSelector";
 
 export function DimensionsForm() {
   const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
@@ -98,6 +99,9 @@ export function DimensionsForm() {
           />
         </div>
       </div>
+
+      {/* Packaging */}
+      <PackagingSelector />
     </div>
   );
 }

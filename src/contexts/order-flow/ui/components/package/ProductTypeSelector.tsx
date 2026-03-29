@@ -19,7 +19,6 @@ import {
   useSkydropxCategories,
   useSkydropxSubcategories,
   useSkydropxClasses,
-  useSkydropxPackagings,
 } from "@/contexts/order-flow/infrastructure/hooks/useSkydropx";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
@@ -39,13 +38,9 @@ export function ProductTypeSelector() {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [subcategoryOpen, setSubcategoryOpen] = useState(false);
   const [classOpen, setClassOpen] = useState(false);
-  const [packagingOpen, setPackagingOpen] = useState(false);
-
   const skydropxCategoryId = useWatch<NewOrderFormValues, "package.skydropxCategoryId">({ name: "package.skydropxCategoryId" });
   const skydropxSubcategoryId = useWatch<NewOrderFormValues, "package.skydropxSubcategoryId">({ name: "package.skydropxSubcategoryId" });
   const consignmentNoteClassCode = useWatch<NewOrderFormValues, "package.consignmentNoteClassCode">({ name: "package.consignmentNoteClassCode" });
-  const consignmentNotePackagingCode = useWatch<NewOrderFormValues, "package.consignmentNotePackagingCode">({ name: "package.consignmentNotePackagingCode" });
-
   const { categories, isLoading: isLoadingCategories, refetch: refetchCategories } = useSkydropxCategories();
   const { subcategories, isLoading: isLoadingSubcategories, refetch: refetchSubcategories } = useSkydropxSubcategories(
     skydropxCategoryId || null,
@@ -53,22 +48,17 @@ export function ProductTypeSelector() {
   const { classes, isLoading: isLoadingClasses, refetch: refetchClasses } = useSkydropxClasses(
     skydropxSubcategoryId || null,
   );
-  const { packagings, isLoading: isLoadingPackagings, refetch: refetchPackagings } = useSkydropxPackagings();
-
-  const isRefetching = isLoadingCategories || isLoadingSubcategories || isLoadingClasses || isLoadingPackagings;
+  const isRefetching = isLoadingCategories || isLoadingSubcategories || isLoadingClasses;
 
   function handleRetry() {
     refetchCategories();
     if (skydropxCategoryId) refetchSubcategories();
     if (skydropxSubcategoryId) refetchClasses();
-    refetchPackagings();
   }
 
   const selectedCategory = categories.find((c) => c.id === skydropxCategoryId);
   const selectedSubcategory = subcategories.find((s) => s.id === skydropxSubcategoryId);
   const selectedClass = classes.find((c) => c.attributes.code === consignmentNoteClassCode);
-  const selectedPackaging = packagings.find((p) => p.attributes.code === consignmentNotePackagingCode);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -91,7 +81,7 @@ export function ProductTypeSelector() {
         Selecciona la clasificación de tu producto para la carta porte
       </p>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {/* Categoría */}
         <div>
           <Label>Categoría *</Label>
@@ -250,61 +240,6 @@ export function ProductTypeSelector() {
             </PopoverContent>
           </Popover>
           {errors.package?.consignmentNoteClassCode && <p className="text-sm text-destructive">{errors.package.consignmentNoteClassCode.message}</p>}
-        </div>
-
-        {/* Empaque */}
-        <div>
-          <Label>Empaque *</Label>
-          <Popover open={packagingOpen} onOpenChange={setPackagingOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={packagingOpen}
-                aria-invalid={!!errors.package?.consignmentNotePackagingCode}
-                className="w-full justify-between font-normal"
-              >
-                {isLoadingPackagings ? (
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" />
-                    Cargando...
-                  </span>
-                ) : selectedPackaging ? (
-                  <span className="truncate">{selectedPackaging.attributes.name} - {selectedPackaging.attributes.code}</span>
-                ) : (
-                  <span className="text-muted-foreground">Buscar empaque...</span>
-                )}
-                <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-              <Command filter={accentInsensitiveFilter}>
-                <CommandInput placeholder="Buscar por código o nombre..." />
-                <CommandList>
-                  <CommandEmpty>Sin resultados.</CommandEmpty>
-                  <CommandGroup>
-                    {packagings.map((pkg) => (
-                      <CommandItem
-                        key={pkg.id}
-                        value={`${pkg.attributes.code} ${pkg.attributes.name}`}
-                        onSelect={() => {
-                          setValue("package.consignmentNotePackagingCode", pkg.attributes.code, { shouldValidate: true });
-                          setPackagingOpen(false);
-                        }}
-                      >
-                        <Check className={cn("mr-2 size-4", consignmentNotePackagingCode === pkg.attributes.code ? "opacity-100" : "opacity-0")} />
-                        <div>
-                          <div className="font-medium">{pkg.attributes.name}</div>
-                          <div className="text-xs text-muted-foreground">{pkg.attributes.code}</div>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          {errors.package?.consignmentNotePackagingCode && <p className="text-sm text-destructive">{errors.package.consignmentNotePackagingCode.message}</p>}
         </div>
       </div>
     </div>
