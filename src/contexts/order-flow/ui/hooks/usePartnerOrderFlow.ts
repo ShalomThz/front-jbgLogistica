@@ -14,6 +14,7 @@ const STEPS: { key: PartnerOrderStep; label: string }[] = [
   { key: "contact", label: "Contactos" },
   { key: "package", label: "Paquete" },
   { key: "pricing", label: "Costos" },
+  { key: "success", label: "Listo" },
 ];
 
 interface UsePartnerOrderFlowOptions {
@@ -33,7 +34,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId }: UsePartnerOrderF
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
   const { saveContacts, isSaving } = useContactSave({ form });
   const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues, enabled: step !== "contact" });
-  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId });
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, onSuccess: () => setStep("success") });
 
   const activeStoreId = selectedStoreId ?? user?.storeId;
 

@@ -6,7 +6,7 @@ import {
 } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { partnerOrderDefaultValues } from "../constants/newOrder.constants";
 
-export type PartnerOrderStep = "contact" | "package" | "pricing";
+export type PartnerOrderStep = "contact" | "package" | "pricing" | "success";
 
 interface UsePartnerOrderFlowFormOptions {
   initialValues?: NewOrderFormValues;

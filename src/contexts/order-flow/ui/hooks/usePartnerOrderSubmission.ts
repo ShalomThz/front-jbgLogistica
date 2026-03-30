@@ -14,15 +14,18 @@ interface UsePartnerOrderSubmissionOptions {
   form: UseFormReturn<NewOrderFormValues, any, any>;
   initialOrderId?: string;
   storeId?: string;
+  onSuccess: () => void;
 }
 
 export const usePartnerOrderSubmission = ({
   form,
   initialOrderId,
   storeId,
+  onSuccess,
 }: UsePartnerOrderSubmissionOptions) => {
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { user } = useAuth();
   const { createPartnerOrder, updateOrder, isCreating } = useOrders({ enabled: false });
 
@@ -33,7 +36,8 @@ export const usePartnerOrderSubmission = ({
       try {
         const request = buildEditOrderRequest(form.getValues());
         await updateOrder(orderId, request);
-        goToOrders();
+        setIsSubmitted(true);
+        onSuccess();
       } catch (error) {
         console.error("Error updating partner order:", error);
         toast.error(parseApiError(error), { id: "order-flow" });
@@ -47,7 +51,8 @@ export const usePartnerOrderSubmission = ({
         const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.storeId);
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
-        goToOrders();
+        setIsSubmitted(true);
+        onSuccess();
       } catch (error) {
         console.error("Error creating partner order:", error);
         toast.error(parseApiError(error), { id: "order-flow" });
@@ -57,6 +62,7 @@ export const usePartnerOrderSubmission = ({
 
   return {
     orderId,
+    isSubmitted,
     goToOrders,
     submitPartnerOrder,
     isCreating,

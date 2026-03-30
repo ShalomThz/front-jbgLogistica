@@ -1,6 +1,7 @@
 import { Button } from "@contexts/shared/shadcn";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
 import { FormProvider } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { usePartnerOrderFlow } from "../hooks/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/contact/PartnerContactStep";
@@ -16,6 +17,7 @@ interface NewPartnerOrderPageProps {
 }
 
 export const NewPartnerOrderPage = ({ initialValues, orderId, storeName }: NewPartnerOrderPageProps = {}) => {
+  const navigate = useNavigate();
   const flow = usePartnerOrderFlow({ initialValues, orderId });
   const { stores } = useStores({ limit: 100 });
 
@@ -29,18 +31,20 @@ export const NewPartnerOrderPage = ({ initialValues, orderId, storeName }: NewPa
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}
-        >
-          <ArrowLeft className="size-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">
-          {title}
-        </h1>
-      </div>
+      {flow.step !== "success" && (
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {title}
+          </h1>
+        </div>
+      )}
 
       {/* Step Indicator */}
       <StepIndicator
@@ -73,17 +77,42 @@ export const NewPartnerOrderPage = ({ initialValues, orderId, storeName }: NewPa
             refetchPrice={flow.refetchPrice}
           />
         )}
+
+        {flow.step === "success" && (
+          <div className="mx-auto max-w-2xl space-y-6">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-950/30">
+              <CheckCircle2 className="mx-auto size-12 text-green-600" />
+              <h2 className="mt-3 text-xl font-bold text-green-700 dark:text-green-400">
+                Orden creada exitosamente
+              </h2>
+              <p className="mt-1 text-sm text-green-600/80 dark:text-green-400/70">
+                La orden ha sido registrada y está pendiente de procesamiento
+              </p>
+            </div>
+            <div className="flex justify-between gap-3">
+              <Button variant="outline" className="gap-2" onClick={() => navigate("/orders/new/partner")}>
+                <Plus className="size-4" />
+                Crear otra orden
+              </Button>
+              <Button onClick={flow.goToOrders}>
+                Ir a órdenes
+              </Button>
+            </div>
+          </div>
+        )}
       </FormProvider>
 
       {/* Bottom Navigation */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}>
-          {flow.step === "contact" ? "Cancelar" : "Anterior"}
-        </Button>
-        <Button disabled={flow.isNextDisabled} onClick={flow.handleNext}>
-          {flow.nextButtonLabel}
-        </Button>
-      </div>
+      {flow.step !== "success" && (
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}>
+            {flow.step === "contact" ? "Cancelar" : "Anterior"}
+          </Button>
+          <Button disabled={flow.isNextDisabled} onClick={flow.handleNext}>
+            {flow.nextButtonLabel}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
