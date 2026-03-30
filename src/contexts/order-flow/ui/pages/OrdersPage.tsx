@@ -1,7 +1,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, FileText, Package, Pencil, Plus, RefreshCw, Tag, Trash2, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, MoreHorizontal, Package, Pencil, Plus, Printer, RefreshCw, Trash2, Users } from "lucide-react";
 import {
   Button,
   Badge,
@@ -10,16 +10,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Table,
   TableHeader,
   TableBody,
   TableHead,
   TableRow,
   TableCell,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
@@ -70,39 +71,34 @@ export const OrdersPage = () => {
   const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
-  const handleDownloadLabel = async (order: OrderListView) => {
+  const handlePrintLabel = async (order: OrderListView) => {
     const shipment = order.shipment;
     if (!shipment?.label) return;
     setDownloadingLabel(order.id);
     try {
       const label = shipment.label;
       if (!label.documentUrl.startsWith("/")) {
-        window.open(label.documentUrl, "_blank");
+        const printWindow = window.open(label.documentUrl, "_blank");
+        printWindow?.print();
         return;
       }
       const blob = await shipmentRepository.getLabel(shipment.id);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `etiqueta-${order.references.orderNumber ?? order.id}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const printWindow = window.open(url, "_blank");
+      printWindow?.addEventListener("load", () => printWindow.print());
     } finally {
       setDownloadingLabel(null);
     }
   };
 
-  const handleDownloadInvoice = async (order: OrderListView) => {
+  const handlePrintInvoice = async (order: OrderListView) => {
     if (!order.invoiceId) return;
     setDownloadingInvoice(order.id);
     try {
       const blob = await orderRepository.getInvoicePdf(order.invoiceId);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `factura-${order.references.orderNumber ?? order.id}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const printWindow = window.open(url, "_blank");
+      printWindow?.addEventListener("load", () => printWindow.print());
     } finally {
       setDownloadingInvoice(null);
     }
@@ -193,7 +189,7 @@ export const OrdersPage = () => {
               <TableHead>Estado</TableHead>
               <TableHead className="hidden lg:table-cell">Creacion</TableHead>
               <TableHead className="text-right">Total</TableHead>
-              <TableHead className="w-[80px]" />
+              <TableHead className="w-[50px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -239,104 +235,75 @@ export const OrdersPage = () => {
                     ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
                   </TableCell>
                   <TableCell>
-                    <TooltipProvider delayDuration={300}>
-                      <div className="flex items-center gap-1">
-                        {canEdit(order) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 text-blue-500 hover:text-blue-700"
-                                disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/orders/${order.id}/edit`);
-                                }}
-                              >
-                                <Pencil className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Editar orden</TooltipContent>
-                          </Tooltip>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {canEdit(order) && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
+                          <DropdownMenuItem
+                            className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                            onClick={() => navigate(`/orders/${order.id}/edit`)}
+                          >
+                            <Pencil className="size-4" />
+                            Editar orden
+                          </DropdownMenuItem>
                         )}
-                        {order.type === "PARTNER" && canEditHQ && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 text-purple-500 hover:text-purple-700"
-                                disabled={order.status === "COMPLETED" || order.status === "CANCELLED"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/orders/${order.id}/edit?mode=complete`);
-                                }}
-                              >
-                                <Package className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Completar venta</TooltipContent>
-                          </Tooltip>
+                        {order.type === "PARTNER" && canEditHQ && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
+                          <DropdownMenuItem
+                            className="bg-purple-50 text-purple-700 focus:bg-purple-100 focus:text-purple-800 dark:bg-purple-950/30 dark:text-purple-400 dark:focus:bg-purple-950/50"
+                            onClick={() => navigate(`/orders/${order.id}/edit?mode=complete`)}
+                          >
+                            <Package className="size-4" />
+                            Completar venta
+                          </DropdownMenuItem>
                         )}
-                        {order.shipment?.label && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 text-orange-500 hover:text-orange-700"
+                        {(order.shipment?.label || order.invoiceId) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            {order.shipment?.label && (
+                              <DropdownMenuItem
+                                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
                                 disabled={downloadingLabel === order.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadLabel(order);
-                                }}
+                                onClick={() => handlePrintLabel(order)}
                               >
-                                <Tag className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Descargar etiqueta</TooltipContent>
-                          </Tooltip>
-                        )}
-                        {order.invoiceId && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 text-green-600 hover:text-green-800"
+                                <Printer className="size-4" />
+                                Imprimir etiqueta
+                              </DropdownMenuItem>
+                            )}
+                            {order.invoiceId && (
+                              <DropdownMenuItem
+                                className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
                                 disabled={downloadingInvoice === order.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadInvoice(order);
-                                }}
+                                onClick={() => handlePrintInvoice(order)}
                               >
-                                <FileText className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Descargar factura</TooltipContent>
-                          </Tooltip>
+                                <Printer className="size-4" />
+                                Imprimir factura
+                              </DropdownMenuItem>
+                            )}
+                          </>
                         )}
                         {canDelete(order) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 text-red-500 hover:text-red-700"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOrderToDelete(order);
-                                }}
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Eliminar orden</TooltipContent>
-                          </Tooltip>
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="bg-red-50 text-red-700 focus:bg-red-100 focus:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:focus:bg-red-950/50"
+                              onClick={() => setOrderToDelete(order)}
+                            >
+                              <Trash2 className="size-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </>
                         )}
-                      </div>
-                    </TooltipProvider>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))

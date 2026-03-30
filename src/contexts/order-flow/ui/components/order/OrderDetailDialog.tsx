@@ -26,7 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, Download, Package, Pencil, Trash2 } from "lucide-react";
+import { Ban, ChevronDown, Download, FileText, Package, Pencil, Printer, Tag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
@@ -126,6 +126,37 @@ export const OrderDetailDialog = ({
       a.download = `etiqueta-${order.id}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloadingLabel(false);
+    }
+  };
+
+  const printInvoice = async () => {
+    if (!order.invoiceId) return;
+    setIsDownloadingInvoice(true);
+    try {
+      const blob = await orderRepository.getInvoicePdf(order.invoiceId);
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, "_blank");
+      printWindow?.addEventListener("load", () => printWindow.print());
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  };
+
+  const printLabel = async () => {
+    if (!shipment?.label) return;
+    if (!shipment.label.documentUrl.startsWith("/")) {
+      const printWindow = window.open(shipment.label.documentUrl, "_blank");
+      printWindow?.print();
+      return;
+    }
+    setIsDownloadingLabel(true);
+    try {
+      const blob = await shipmentRepository.getLabel(shipment.id);
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, "_blank");
+      printWindow?.addEventListener("load", () => printWindow.print());
     } finally {
       setIsDownloadingLabel(false);
     }
@@ -306,27 +337,47 @@ export const OrderDetailDialog = ({
         </Tabs>
 
         <DialogFooter>
-          {order.invoiceId && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadInvoice}
-              disabled={isDownloadingInvoice}
-            >
-              <Download className="mr-1.5 size-4" />
-              {isDownloadingInvoice ? "Descargando..." : "Descargar factura"}
-            </Button>
-          )}
           {shipment?.label && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadLabel}
-              disabled={isDownloadingLabel}
-            >
-              <Download className="mr-1.5 size-4" />
-              {isDownloadingLabel ? "Descargando..." : "Descargar etiqueta"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isDownloadingLabel}>
+                  <Tag className="mr-1.5 size-4" />
+                  Etiqueta
+                  <ChevronDown className="ml-1 size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={downloadLabel}>
+                  <Download className="size-4" />
+                  Descargar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={printLabel}>
+                  <Printer className="size-4" />
+                  Imprimir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {order.invoiceId && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isDownloadingInvoice}>
+                  <FileText className="mr-1.5 size-4" />
+                  Factura
+                  <ChevronDown className="ml-1 size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={downloadInvoice}>
+                  <Download className="size-4" />
+                  Descargar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={printInvoice}>
+                  <Printer className="size-4" />
+                  Imprimir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {shipment && order.status !== "CANCELLED" && (
             <Button
