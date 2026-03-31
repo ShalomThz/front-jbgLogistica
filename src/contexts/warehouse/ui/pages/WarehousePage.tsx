@@ -132,7 +132,11 @@ export const WarehousePage = () => {
   };
 
   useEffect(() => {
-    setSelectedPackageIds((prev) => prev.filter((id) => packages.some((pkg) => pkg.id === id)));
+    setSelectedPackageIds((prev) => {
+      const next = prev.filter((id) => packages.some((pkg) => pkg.id === id));
+      if (next.length === prev.length) return prev;
+      return next;
+    });
 
     // Populate group invoice map from loaded packages
     const newMap: Record<string, string | undefined> = {};
@@ -141,7 +145,17 @@ export const WarehousePage = () => {
         newMap[pkg.groupId] = pkg.groupInvoiceNumber;
       }
     });
-    setGroupInvoiceMap((prev) => ({ ...prev, ...newMap }));
+
+    setGroupInvoiceMap((prev) => {
+      let hasChanges = false;
+      for (const key in newMap) {
+        if (prev[key] !== newMap[key]) {
+          hasChanges = true;
+          break;
+        }
+      }
+      return hasChanges ? { ...prev, ...newMap } : prev;
+    });
   }, [packages]);
 
   const selectionAnchor = selectedPackageIds.length > 0
