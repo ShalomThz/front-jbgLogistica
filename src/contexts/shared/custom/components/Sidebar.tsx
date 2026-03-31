@@ -90,7 +90,7 @@ export const AppSidebar = () => {
   return (
     <>
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-border">
-        <Link to="/" className="px-2 text-xl font-bold">JBG</Link>
+        <Link to="/" className="px-2 text-xl font-bold">JBG Cargo Corp</Link>
       </SidebarHeader>
       <SidebarContent>
         {filteredNavigation.map((section) => (

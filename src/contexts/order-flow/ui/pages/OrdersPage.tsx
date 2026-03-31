@@ -382,7 +382,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Building2 className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Orden JBG</span>
+                <span className="font-semibold">Oficina JBG Cargo</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden completa con cotización de envío, peso, producto y guía.
@@ -400,7 +400,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Users className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Orden Agente</span>
+                <span className="font-semibold">Agentes Autorizados</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden simplificada: contactos, dimensiones y creación directa.
