@@ -32,6 +32,7 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { useOrderFilters } from "../hooks/useOrderFilters";
+import { useOrderDialog } from "../hooks/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
@@ -65,7 +66,13 @@ export const OrdersPage = () => {
 
   const { filters, setFilter, resetFilters, filtered, options } = useOrderFilters(orders, { boxNames });
 
-  const [selectedOrder, setSelectedOrder] = useState<OrderListView | null>(null);
+  const {
+    selectedOrderId,
+    selectedOrder,
+    handleOpenDialog,
+    handleCloseDialog,
+  } = useOrderDialog(orders);
+
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
   const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
@@ -132,12 +139,12 @@ export const OrdersPage = () => {
     if (!orderToDelete) return;
     await deleteOrder(orderToDelete.id);
     setOrderToDelete(null);
-    setSelectedOrder(null);
+    handleCloseDialog();
   };
 
   const handleCancelShipment = async (shipmentId: string) => {
     await cancelShipment(shipmentId);
-    setSelectedOrder(null);
+    handleCloseDialog();
   };
 
   const from = pagination ? pagination.offset + 1 : 0;
@@ -204,7 +211,7 @@ export const OrdersPage = () => {
                 <TableRow
                   key={order.id}
                   className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
-                  onClick={() => setSelectedOrder(order)}
+                  onClick={() => handleOpenDialog(order)}
                 >
                   <TableCell>
                     <div>
@@ -345,8 +352,8 @@ export const OrdersPage = () => {
 
       <OrderDetailDialog
         order={selectedOrder}
-        open={!!selectedOrder}
-        onClose={() => setSelectedOrder(null)}
+        open={!!selectedOrderId}
+        onClose={handleCloseDialog}
         onDelete={(order) => setOrderToDelete(order)}
         isDeleting={isDeleting}
         onCancelShipment={handleCancelShipment}
