@@ -20,6 +20,7 @@ export const createPartnerOrderSchema = z.object({
   }),
   costBreakdown: costBreakdownSchema.optional(),
   pickupAtAddress: z.boolean().optional(),
+  customerSignature: z.string().nullish(),
 });
 
 export type CreatePartnerOrderRequest = z.infer<

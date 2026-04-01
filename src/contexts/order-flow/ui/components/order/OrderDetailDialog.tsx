@@ -34,6 +34,7 @@ import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxe
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { OrderShipmentSection } from "./OrderShipmentSection";
+import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 
 const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
   DRAFT: "bg-muted-foreground",
@@ -79,6 +80,7 @@ export const OrderDetailDialog = ({
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const { boxes } = useBoxes({ enabled: open });
+  const { data: signatureData, isLoading: isLoadingSignature } = useMedia(order?.customerSignature);
 
   if (!order) return null;
 
@@ -245,6 +247,22 @@ export const OrderDetailDialog = ({
                 <DetailRow label="N° Factura JBG" value={references.orderNumber ?? "—"} />
                 <DetailRow label="N° Factura Agente" value={references.partnerOrderNumber ?? "—"} />
               </div>
+
+              {/* Firma */}
+              {order.customerSignature && (
+                <div className="rounded-md border p-3 space-y-2 col-span-1 sm:col-span-2">
+                  <h4 className="text-sm font-semibold">Evidencia de Cliente</h4>
+                  {isLoadingSignature ? (
+                    <div className="text-sm text-muted-foreground animate-pulse">Cargando firma...</div>
+                  ) : signatureData?.url ? (
+                    <div className="bg-white rounded-md flex justify-center py-2 px-4 shadow-sm border border-black/10">
+                      <img src={signatureData.url} alt="Firma del cliente" className="h-24 w-auto object-contain" />
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Firma no disponible</div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Guía rápida */}

@@ -31,4 +31,11 @@ export const sharedRepository = {
     });
     return placeDetailsResponseSchema.parse(data);
   },
+
+  getMediaUrl: async (id: string): Promise<{ url: string }> => {
+    const data = await httpClient<{ url: string }>(`/media/${id}`, {
+      method: "GET",
+    });
+    return data;
+  },
 };
