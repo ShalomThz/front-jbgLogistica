@@ -18,6 +18,7 @@ export const orderSchema = z.object({
   package: packageSchema,
   type: z.enum(orderTypes),
   pickupAtAddress: z.boolean().default(false),
+  customerSignature: z.string().nullish(),
   ...aggregateRootSchema.shape,
 });
 

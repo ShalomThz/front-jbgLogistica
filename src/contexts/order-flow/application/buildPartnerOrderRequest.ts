@@ -42,5 +42,6 @@ export const buildPartnerOrderRequest = (formValues: NewOrderFormValues, storeId
     destination: { ...recipientContact, address: recipientAddress },
     ...(hasCosts && { costBreakdown }),
     pickupAtAddress: formValues.pickupAtAddress,
+    customerSignature: formValues.customerSignature,
   });
 };

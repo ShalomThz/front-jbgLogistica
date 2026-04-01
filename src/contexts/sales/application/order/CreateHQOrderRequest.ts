@@ -17,6 +17,7 @@ export const createHQOrderSchema = z.object({
     address: createAddressSchema,
   }),
   pickupAtAddress: z.boolean(),
+  customerSignature: z.string().nullish(),
 });
 
 export type CreateHQOrderRequest = z.infer<typeof createHQOrderSchema>;

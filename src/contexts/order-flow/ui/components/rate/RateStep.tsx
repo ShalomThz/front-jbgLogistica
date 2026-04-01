@@ -19,6 +19,7 @@ import {
 import { Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
+import { SignaturePad } from "@contexts/shared/ui/components/SignaturePad";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
@@ -481,6 +482,16 @@ export function RateStep({
                       <div className="text-xs text-muted-foreground">(Incluye IVA)</div>
                     </div>
                   </div>
+
+                  <Separator />
+
+                  <Controller
+                    control={control}
+                    name="customerSignature"
+                    render={({ field }) => (
+                      <SignaturePad onSignatureChange={field.onChange} />
+                    )}
+                  />
 
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-700"

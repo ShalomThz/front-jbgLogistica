@@ -15,6 +15,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { AlertTriangle, Loader2, MapPin, Package, RefreshCw, User } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
+import { SignaturePad } from "@contexts/shared/ui/components/SignaturePad";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
@@ -120,6 +121,24 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md shadow-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Firma de conformidad</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Firma opcional del cliente aceptando las condiciones del envío.
+            </p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Controller
+              control={control}
+              name="customerSignature"
+              render={({ field }) => (
+                <SignaturePad onSignatureChange={field.onChange} />
+              )}
+            />
           </CardContent>
         </Card>
       </div>
