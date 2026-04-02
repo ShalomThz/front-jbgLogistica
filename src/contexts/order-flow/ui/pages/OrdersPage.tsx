@@ -265,7 +265,7 @@ export const OrdersPage = () => {
                         )}
                         {order.type === "PARTNER" && canEditHQ && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
                           <DropdownMenuItem
-                            className="bg-purple-50 text-purple-700 focus:bg-purple-100 focus:text-purple-800 dark:bg-purple-950/30 dark:text-purple-400 dark:focus:bg-purple-950/50"
+                            className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
                             onClick={() => navigate(`/orders/${order.id}/edit?mode=complete`)}
                           >
                             <Package className="size-4" />
@@ -277,7 +277,6 @@ export const OrdersPage = () => {
                             <DropdownMenuSeparator />
                             {order.shipment?.label && (
                               <DropdownMenuItem
-                                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
                                 disabled={downloadingLabel === order.id}
                                 onClick={() => handlePrintLabel(order)}
                               >
@@ -287,7 +286,6 @@ export const OrdersPage = () => {
                             )}
                             {order.invoiceId && (
                               <DropdownMenuItem
-                                className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
                                 disabled={downloadingInvoice === order.id}
                                 onClick={() => handlePrintInvoice(order)}
                               >
