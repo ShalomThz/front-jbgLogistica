@@ -15,5 +15,6 @@ export const buildEditOrderRequest = (formValues: NewOrderFormValues) => {
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     pickupAtAddress: formValues.pickupAtAddress,
+    customerSignature: formValues.customerSignature,
   });
 };

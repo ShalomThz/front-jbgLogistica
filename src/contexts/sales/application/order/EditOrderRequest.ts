@@ -16,6 +16,7 @@ export const editOrderRequestSchema = z.object({
   references: orderReferencesSchema.optional(),
   package: packageSchema.optional(),
   pickupAtAddress: z.boolean().optional(),
+  customerSignature: z.string().nullish(),
 });
 
 export type EditOrderRequest = z.infer<typeof editOrderRequestSchema>;

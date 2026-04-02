@@ -111,9 +111,17 @@ export const useHQOrderSubmission = ({
     if (!shipmentId || !shippingService.selectedRate) return;
 
     try {
+      // First select provider and fulfill
       const request = buildSelectProviderRequest(shipmentId, shippingService);
       await selectProvider(request);
       const result = await fulfillShipment(shipmentId);
+
+      // Then if we have an orderId, update the order to save the signature
+      if (orderId) {
+        const orderRequest = buildEditOrderRequest(form.getValues());
+        await updateOrder(orderId, orderRequest);
+      }
+
       setFulfilledShipment(result);
       setStep("success");
       queryClient.invalidateQueries({ queryKey: ["orders"] });

@@ -16,6 +16,6 @@ export const buildHQOrderRequest = (formValues: NewOrderFormValues, storeId: str
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     pickupAtAddress: formValues.pickupAtAddress,
-    customerSignature: formValues.customerSignature,
+    customerSignature: formValues.customerSignature ?? null,
   });
 };
