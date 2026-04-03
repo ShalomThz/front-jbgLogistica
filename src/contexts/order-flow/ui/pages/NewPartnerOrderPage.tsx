@@ -2,7 +2,7 @@ import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { usePartnerOrderFlow } from "../hooks/usePartnerOrderFlow";
+import { usePartnerOrderFlow } from "../hooks/partner/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/contact/PartnerContactStep";
 import { PartnerPackageStep } from "../components/package/PartnerPackageStep";

@@ -37,6 +37,14 @@ const packageFormDataSchema = z.object({
   skydropxSubcategoryId: z.string(),
   consignmentNoteClassCode: z.string().min(1, "La clase es requerida"),
   consignmentNotePackagingCode: z.string().min(1, "El empaque es requerido"),
+}).superRefine((data, ctx) => {
+  if (data.weightUnit === "lb" && parseFloat(data.weight) <2) {
+    ctx.addIssue({
+      code: "custom",
+      message: "El peso debe ser mayor a 1 lb",
+      path: ["weight"],
+    });
+  }
 });
 
 // --- Shipping service ---

@@ -31,8 +31,8 @@ import { orderRepository } from "@contexts/sales/infrastructure/services/orders/
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
-import { useOrderFilters } from "../hooks/useOrderFilters";
-import { useOrderDialog } from "../hooks/useOrderDialog";
+import { useOrderFilters } from "../hooks/orders/useOrderFilters";
+import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";

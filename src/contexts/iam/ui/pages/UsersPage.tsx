@@ -22,7 +22,7 @@ import { useUserFilters } from "../hooks/useUserFilters";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { EditUserRequest } from "../../application/user/EditUserRequest";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 
 const LIMIT_OPTIONS = [10, 20, 50];

@@ -24,7 +24,7 @@ interface PartnerContactStepProps {
 }
 
 export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
-  const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, clearErrors, formState: { errors } } = useFormContext<NewOrderFormValues>();
 
   return (
     <>
@@ -56,7 +56,9 @@ export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: P
               id="partner-number"
               aria-invalid={!!errors.orderData?.partnerOrderNumber}
               placeholder="Ej: PART-567890"
-              {...register("orderData.partnerOrderNumber")}
+              {...register("orderData.partnerOrderNumber", {
+                onChange: () => clearErrors("orderData.partnerOrderNumber"),
+              })}
             />
             {errors.orderData?.partnerOrderNumber && (
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>

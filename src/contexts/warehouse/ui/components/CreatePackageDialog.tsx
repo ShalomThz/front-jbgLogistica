@@ -1,7 +1,7 @@
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Button,
   Command,

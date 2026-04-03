@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useHQOrderFlowForm, type HQOrderStep } from "./useHQOrderFlowForm";
-import { useContactSave } from "./useContactSave";
-import { useBoxOperations } from "./useBoxOperations";
+import { useContactSave } from "../shared/useContactSave";
+import { useBoxOperations } from "../shared/useBoxOperations";
 import { useHQOrderSubmission } from "./useHQOrderSubmission";
 
 const STEPS: { key: HQOrderStep; label: string }[] = [
@@ -40,6 +40,7 @@ export const useHQOrderFlow = ({ initialValues, orderId }: UseHQOrderFlowOptions
       setStep("package");
     } else if (step === "package") {
       if (!(await validateStep("package"))) return;
+      if (!(await form.trigger())) return;
       if (!(await processBox())) return;
       await submission.submitHQOrder();
     }

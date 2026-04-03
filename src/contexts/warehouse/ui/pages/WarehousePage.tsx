@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   ChevronLeft,
   ChevronRight,

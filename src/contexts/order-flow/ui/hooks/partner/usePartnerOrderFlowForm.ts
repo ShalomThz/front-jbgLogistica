@@ -4,7 +4,7 @@ import {
   newOrderFormSchema,
   type NewOrderFormValues,
 } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { partnerOrderDefaultValues } from "../constants/newOrder.constants";
+import { partnerOrderDefaultValues } from "../../constants/newOrder.constants";
 
 export type PartnerOrderStep = "contact" | "package" | "pricing" | "success";
 

@@ -7,7 +7,7 @@ import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrder
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
 
 interface UsePartnerOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +31,8 @@ export const usePartnerOrderSubmission = ({
 
   const goToOrders = () => navigate("/orders");
 
+  const onError = (error: unknown) => handleOrderError(error, { form });
+
   const submitPartnerOrder = async () => {
     if (orderId) {
       try {
@@ -40,7 +42,7 @@ export const usePartnerOrderSubmission = ({
         onSuccess();
       } catch (error) {
         console.error("Error updating partner order:", error);
-        toast.error(parseApiError(error), { id: "order-flow" });
+        onError(error);
       }
     } else {
       if (!user) {
@@ -55,7 +57,7 @@ export const usePartnerOrderSubmission = ({
         onSuccess();
       } catch (error) {
         console.error("Error creating partner order:", error);
-        toast.error(parseApiError(error), { id: "order-flow" });
+        onError(error);
       }
     }
   };

@@ -31,7 +31,7 @@ import { useEffect, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { z } from "zod";
 import { dimensionsSchema, dimensionUnits } from "../../../shared/domain/schemas/Dimensions";
 import { weightSchema, weightUnits } from "../../../shared/domain/schemas/Weight";

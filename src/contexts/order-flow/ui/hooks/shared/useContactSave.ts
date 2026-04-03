@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 
 interface UseContactSaveOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +44,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
           })
           .catch((err) => {
             hasError = true;
-            toast.error(err?.message ?? `No se pudo guardar el remitente "${sender.name}"`);
+            toast.error(parseApiError(err));
           }),
       );
     }
@@ -57,7 +58,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
           })
           .catch((err) => {
             hasError = true;
-            toast.error(err?.message ?? `No se pudo actualizar el remitente "${sender.name}"`);
+            toast.error(parseApiError(err));
           }),
       );
     }
@@ -72,7 +73,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
           })
           .catch((err) => {
             hasError = true;
-            toast.error(err?.message ?? `No se pudo guardar el destinatario "${recipient.name}"`);
+            toast.error(parseApiError(err));
           }),
       );
     }
@@ -86,7 +87,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
           })
           .catch((err) => {
             hasError = true;
-            toast.error(err?.message ?? `No se pudo actualizar el destinatario "${recipient.name}"`);
+            toast.error(parseApiError(err));
           }),
       );
     }

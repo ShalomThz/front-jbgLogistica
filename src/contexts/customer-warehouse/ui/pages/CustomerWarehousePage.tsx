@@ -26,7 +26,7 @@ import {
 import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Filter, RefreshCw, Search } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import type {
   PackageListViewPrimitives,
   WarehousePackageStatus,

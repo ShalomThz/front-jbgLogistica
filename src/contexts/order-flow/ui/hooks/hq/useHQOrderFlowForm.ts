@@ -4,7 +4,7 @@ import {
   newOrderFormSchema,
   type NewOrderFormValues,
 } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { hqOrderDefaultValues } from "../constants/newOrder.constants";
+import { hqOrderDefaultValues } from "../../constants/newOrder.constants";
 
 export type HQOrderStep = "contact" | "package" | "rate" | "success";
 

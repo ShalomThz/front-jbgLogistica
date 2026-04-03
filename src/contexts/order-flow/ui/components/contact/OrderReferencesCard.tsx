@@ -11,7 +11,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 export function OrderReferencesCard() {
-  const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, clearErrors, formState: { errors } } = useFormContext<NewOrderFormValues>();
 
   return (
     <Card className="mb-6 shadow-md shadow-primary/20">
@@ -26,7 +26,9 @@ export function OrderReferencesCard() {
               id="order-number"
               aria-invalid={!!errors.orderData?.orderNumber}
               placeholder="Ej: ORD-001234"
-              {...register("orderData.orderNumber")}
+              {...register("orderData.orderNumber", {
+                onChange: () => clearErrors("orderData.orderNumber"),
+              })}
             />
             {errors.orderData?.orderNumber && (
               <p className="text-sm text-destructive">{errors.orderData.orderNumber.message}</p>
@@ -38,7 +40,9 @@ export function OrderReferencesCard() {
               id="partner-order-number"
               aria-invalid={!!errors.orderData?.partnerOrderNumber}
               placeholder="Ej: PART-567890"
-              {...register("orderData.partnerOrderNumber")}
+              {...register("orderData.partnerOrderNumber", {
+                onChange: () => clearErrors("orderData.partnerOrderNumber"),
+              })}
             />
             {errors.orderData?.partnerOrderNumber && (
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>

@@ -6,8 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
 import { usePartnerOrderFlowForm, type PartnerOrderStep } from "./usePartnerOrderFlowForm";
-import { useContactSave } from "./useContactSave";
-import { useBoxOperations } from "./useBoxOperations";
+import { useContactSave } from "../shared/useContactSave";
+import { useBoxOperations } from "../shared/useBoxOperations";
 import { usePartnerOrderSubmission } from "./usePartnerOrderSubmission";
 
 const STEPS: { key: PartnerOrderStep; label: string }[] = [

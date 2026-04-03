@@ -3,6 +3,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 
 interface UseBoxOperationsOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,9 +63,9 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
         try {
           await updateBox(pkg.boxId, { name: pkg.packageType, dimensions });
           toast.success(`Caja "${pkg.packageType}" actualizada`, { id: "order-flow" });
-        } catch {
+        } catch (error) {
           hasError = true;
-          toast.error("No se pudo actualizar la caja", { id: "order-flow" });
+          toast.error(parseApiError(error), { id: "order-flow" });
         }
       }
     } else if (pkg.packageType) {
@@ -77,9 +78,9 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
           const created = await createBox({ name: pkg.packageType, dimensions, stock: 1, price: { amount: 0, currency: "USD" } });
           toast.success(`Caja "${pkg.packageType}" guardada`, { id: "order-flow" });
           form.setValue("package.boxId", created.id, { shouldValidate: true });
-        } catch {
+        } catch (error) {
           hasError = true;
-          toast.error("No se pudo guardar la caja", { id: "order-flow" });
+          toast.error(parseApiError(error), { id: "order-flow" });
         }
       }
     }

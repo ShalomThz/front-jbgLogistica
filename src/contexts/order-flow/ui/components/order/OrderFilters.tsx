@@ -37,7 +37,7 @@ import type {
   DatePreset,
   NameSort,
   DateSort,
-} from "../../hooks/useOrderFilters";
+} from "../../hooks/orders/useOrderFilters";
 
 interface OrderFiltersProps {
   filters: OrderFiltersState;

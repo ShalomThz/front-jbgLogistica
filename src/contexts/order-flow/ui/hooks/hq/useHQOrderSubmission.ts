@@ -14,7 +14,8 @@ import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/servic
 import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
 import type { HQOrderStep } from "./useHQOrderFlowForm";
 
 interface UseHQOrderSubmissionOptions {
@@ -58,6 +59,11 @@ export const useHQOrderSubmission = ({
 
   const goToOrders = () => navigate("/orders");
 
+  const onError = (error: unknown) => handleOrderError(error, {
+    form,
+    setStep: (step) => setStep(step as HQOrderStep),
+  });
+
   const clearRateData = () => {
     form.setValue("shippingService.selectedRate", null);
     setFulfilledShipment(null);
@@ -81,7 +87,7 @@ export const useHQOrderSubmission = ({
         setStep("rate");
       } catch (error) {
         console.error("Error updating order:", error);
-        toast.error(parseApiError(error), { id: "order-flow" });
+        onError(error);
       }
     } else {
       if (!user) {
@@ -101,7 +107,7 @@ export const useHQOrderSubmission = ({
         setStep("rate");
       } catch (error) {
         console.error("Error creating order:", error);
-        toast.error(parseApiError(error), { id: "order-flow" });
+        onError(error);
       }
     }
   };
@@ -133,14 +139,14 @@ export const useHQOrderSubmission = ({
           try {
             await updateBox(pkg.boxId, { stock: box.stock - 1 });
             toast.success(`Se descontó 1 unidad de "${box.name}" del inventario`, { id: "order-flow" });
-          } catch {
-            toast.error("No se pudo descontar el stock de la caja", { id: "order-flow" });
+          } catch (error) {
+            toast.error(parseApiError(error), { id: "order-flow" });
           }
         }
       }
     } catch (error) {
       console.error("Error selecting provider:", error);
-      toast.error("Error al crear el envío. Intenta de nuevo.", { id: "order-flow" });
+      toast.error(parseApiError(error), { id: "order-flow" });
     }
   };
 

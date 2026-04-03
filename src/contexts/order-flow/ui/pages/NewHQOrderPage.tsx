@@ -2,7 +2,7 @@ import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useHQOrderFlow } from "../hooks/useHQOrderFlow";
+import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
 import { HQContactStep } from "../components/contact/HQContactStep";
 import { HQPackageStep } from "../components/package/HQPackageStep";
 import { RateStep } from "../components/rate/RateStep";
