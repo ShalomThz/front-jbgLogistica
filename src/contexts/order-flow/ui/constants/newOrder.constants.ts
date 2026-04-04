@@ -30,7 +30,7 @@ const baseDefaults = {
   pickupAtAddress: false,
   customerSignature: null,
   shippingService: {
-    currency: "MXN",
+    currency: "USD",
     costBreakdown: {
       insurance: "",
       tools: "",

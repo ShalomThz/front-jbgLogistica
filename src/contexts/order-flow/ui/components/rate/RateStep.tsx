@@ -25,6 +25,7 @@ import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipm
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { calculateTotal, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
+import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { OrderSuccessView } from "../order/OrderSuccessView";
 
 import ampmLogo from "@/assets/carriers/ampm.png";
@@ -479,6 +480,7 @@ export function RateStep({
                     <span>Monto total:</span>
                     <div className="text-right">
                       <div className="text-blue-600">${calculateTotal(shippingService).toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency}</div>
+                      <CurrencyConversion amount={calculateTotal(shippingService)} from={isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency} />
                       <div className="text-xs text-muted-foreground">(Incluye IVA)</div>
                     </div>
                   </div>
