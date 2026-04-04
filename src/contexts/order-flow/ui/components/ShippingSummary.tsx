@@ -8,15 +8,15 @@ import {
 } from "@contexts/shared/shadcn";
 import { Edit } from "lucide-react";
 import { useWatch } from "react-hook-form";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 interface ShippingSummaryProps {
   onEditContacts: () => void;
 }
 
 export function ShippingSummary({ onEditContacts }: ShippingSummaryProps) {
-  const sender = useWatch<NewOrderFormValues, "sender">({ name: "sender" });
-  const recipient = useWatch<NewOrderFormValues, "recipient">({ name: "recipient" });
+  const sender = useWatch<BaseOrderFormValues, "sender">({ name: "sender" });
+  const recipient = useWatch<BaseOrderFormValues, "recipient">({ name: "recipient" });
 
   return (
     <Card>

@@ -7,7 +7,7 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { useShipmentActions, useShipmentRates } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
@@ -20,7 +20,7 @@ import type { HQOrderStep } from "./useHQOrderFlowForm";
 
 interface UseHQOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<NewOrderFormValues, any, any>;
+  form: UseFormReturn<HQOrderFormValues, any, any>;
   step: HQOrderStep;
   setStep: (step: HQOrderStep) => void;
   initialOrderId?: string;

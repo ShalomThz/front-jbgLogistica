@@ -1,4 +1,5 @@
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/HQOrderForm";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/PartnerOrderForm";
 
 const emptyContactWithAddress = {
   id: null,
@@ -17,10 +18,9 @@ const emptyContactWithAddress = {
     geolocation: { latitude: 0, longitude: 0, placeId: null },
   },
   save: false,
-} as const satisfies NewOrderFormValues["sender"];
+} as const;
 
-export const newOrderDefaultValues: NewOrderFormValues = {
-  orderType: "HQ",
+const baseDefaults = {
   orderData: {
     orderNumber: "",
     partnerOrderNumber: "",
@@ -29,6 +29,21 @@ export const newOrderDefaultValues: NewOrderFormValues = {
   recipient: { ...emptyContactWithAddress },
   pickupAtAddress: false,
   customerSignature: null,
+  shippingService: {
+    currency: "MXN",
+    costBreakdown: {
+      insurance: "",
+      tools: "",
+      additionalCost: "",
+      wrap: "",
+      tape: "",
+    },
+  },
+} as const;
+
+export const hqOrderDefaultValues: HQOrderFormValues = {
+  ...baseDefaults,
+  orderType: "HQ",
   package: {
     productSearch: "",
     boxId: null,
@@ -48,24 +63,21 @@ export const newOrderDefaultValues: NewOrderFormValues = {
     consignmentNotePackagingCode: "",
   },
   shippingService: {
+    ...baseDefaults.shippingService,
     selectedRate: null,
-    currency: "MXN",
-    costBreakdown: {
-      insurance: "",
-      tools: "",
-      additionalCost: "",
-      wrap: "",
-      tape: "",
-    },
   },
 };
 
-export const hqOrderDefaultValues: NewOrderFormValues = {
-  ...newOrderDefaultValues,
-  orderType: "HQ",
-};
-
-export const partnerOrderDefaultValues: NewOrderFormValues = {
-  ...newOrderDefaultValues,
+export const partnerOrderDefaultValues: PartnerOrderFormValues = {
+  ...baseDefaults,
   orderType: "PARTNER",
+  package: {
+    boxId: null,
+    ownership: "CUSTOMER",
+    packageType: "",
+    length: "",
+    width: "",
+    height: "",
+    dimensionUnit: "in",
+  },
 };

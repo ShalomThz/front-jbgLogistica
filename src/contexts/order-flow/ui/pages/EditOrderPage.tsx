@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { mapOrderToFormValues } from "../../application/mapOrderToFormValues";
+import { mapOrderToHQFormValues, mapOrderToPartnerFormValues } from "../../application/mapOrderToFormValues";
 import { NewHQOrderPage } from "./NewHQOrderPage";
 import { NewPartnerOrderPage } from "./NewPartnerOrderPage";
 
@@ -25,10 +25,8 @@ export const EditOrderPage = () => {
     );
   }
 
-  const initialValues = mapOrderToFormValues(order);
-
   if (order.type === "PARTNER" && mode !== "complete") {
-    return <NewPartnerOrderPage initialValues={initialValues} orderId={order.id} storeName={order.store.name} />;
+    return <NewPartnerOrderPage initialValues={mapOrderToPartnerFormValues(order)} orderId={order.id} storeName={order.store.name} />;
   }
 
   const partnerPrice = order.type === "PARTNER" && order.status === "PENDING_HQ_PROCESS"
@@ -39,7 +37,7 @@ export const EditOrderPage = () => {
 
   return (
     <NewHQOrderPage
-      initialValues={initialValues}
+      initialValues={mapOrderToHQFormValues(order)}
       orderId={order.id}
       partnerPrice={partnerPrice}
       storeName={isFromPartner ? order.store.name : undefined}

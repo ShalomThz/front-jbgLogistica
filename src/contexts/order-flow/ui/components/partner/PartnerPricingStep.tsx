@@ -16,7 +16,7 @@ import {
 import { AlertTriangle, Loader2, MapPin, Package, RefreshCw, User } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { SignaturePad } from "@contexts/shared/ui/components/SignaturePad";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
 const COST_BREAKDOWN_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
@@ -38,12 +38,12 @@ interface PartnerPricingStepProps {
 }
 
 export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice }: PartnerPricingStepProps) {
-  const { register, control } = useFormContext<NewOrderFormValues>();
+  const { register, control } = useFormContext<PartnerOrderFormValues>();
 
-  const shippingService = useWatch<NewOrderFormValues, "shippingService">({ name: "shippingService" });
-  const sender = useWatch<NewOrderFormValues, "sender">({ name: "sender" });
-  const recipient = useWatch<NewOrderFormValues, "recipient">({ name: "recipient" });
-  const pkg = useWatch<NewOrderFormValues, "package">({ name: "package" });
+  const shippingService = useWatch<PartnerOrderFormValues, "shippingService">({ name: "shippingService" });
+  const sender = useWatch<PartnerOrderFormValues, "sender">({ name: "sender" });
+  const recipient = useWatch<PartnerOrderFormValues, "recipient">({ name: "recipient" });
+  const pkg = useWatch<PartnerOrderFormValues, "package">({ name: "package" });
 
   const currency = shippingService.currency;
 

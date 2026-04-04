@@ -1,13 +1,13 @@
 import { createPartnerOrderSchema } from "@contexts/sales/application/order/CreatePartnerOrderRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import type { NewOrderFormValues } from "../domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "../domain/schemas/NewOrderForm";
 
 const parseMoney = (amount: string, currency: string): MoneyPrimitives | null => {
   const parsed = parseFloat(amount);
   return parsed > 0 ? { amount: parsed, currency } : null;
 };
 
-export const buildPartnerOrderRequest = (formValues: NewOrderFormValues, storeId: string) => {
+export const buildPartnerOrderRequest = (formValues: PartnerOrderFormValues, storeId: string) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 

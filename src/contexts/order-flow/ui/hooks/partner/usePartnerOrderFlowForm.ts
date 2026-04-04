@@ -1,33 +1,30 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  newOrderFormSchema,
-  type NewOrderFormValues,
-} from "@contexts/order-flow/domain/schemas/NewOrderForm";
+  partnerOrderFormSchema,
+  type PartnerOrderFormValues,
+} from "@contexts/order-flow/domain/schemas/PartnerOrderForm";
 import { partnerOrderDefaultValues } from "../../constants/newOrder.constants";
 
 export type PartnerOrderStep = "contact" | "package" | "pricing" | "success";
 
 interface UsePartnerOrderFlowFormOptions {
-  initialValues?: NewOrderFormValues;
+  initialValues?: PartnerOrderFormValues;
 }
 
 export const usePartnerOrderFlowForm = ({ initialValues }: UsePartnerOrderFlowFormOptions = {}) => {
-  const form = useForm<NewOrderFormValues>({
-    resolver: zodResolver(newOrderFormSchema),
+  const form = useForm<PartnerOrderFormValues>({
+    resolver: zodResolver(partnerOrderFormSchema),
     defaultValues: initialValues ?? partnerOrderDefaultValues,
   });
 
   const validateStep = async (currentStep: "contact" | "package" | "pricing") => {
     if (currentStep === "contact") {
-      const isValid = await form.trigger(["sender", "recipient", "orderData", "orderType"]);
-      if (!isValid) return false;
-      return true;
+      return form.trigger(["sender", "recipient", "orderData", "orderType"]);
     }
     if (currentStep === "package") {
       return form.trigger(["package.length", "package.width", "package.height"]);
     }
-    // pricing step: no validation needed
     return true;
   };
 

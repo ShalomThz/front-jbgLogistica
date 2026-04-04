@@ -20,7 +20,7 @@ import {
   useSkydropxSubcategories,
   useSkydropxClasses,
 } from "@/contexts/order-flow/infrastructure/hooks/useSkydropx";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 function normalize(str: string) {
   return str
@@ -33,14 +33,14 @@ const accentInsensitiveFilter = (value: string, search: string) =>
   normalize(value).includes(normalize(search)) ? 1 : 0;
 
 export function ProductTypeSelector() {
-  const { setValue, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { setValue, formState: { errors } } = useFormContext<HQOrderFormValues>();
 
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [subcategoryOpen, setSubcategoryOpen] = useState(false);
   const [classOpen, setClassOpen] = useState(false);
-  const skydropxCategoryId = useWatch<NewOrderFormValues, "package.skydropxCategoryId">({ name: "package.skydropxCategoryId" });
-  const skydropxSubcategoryId = useWatch<NewOrderFormValues, "package.skydropxSubcategoryId">({ name: "package.skydropxSubcategoryId" });
-  const consignmentNoteClassCode = useWatch<NewOrderFormValues, "package.consignmentNoteClassCode">({ name: "package.consignmentNoteClassCode" });
+  const skydropxCategoryId = useWatch<HQOrderFormValues, "package.skydropxCategoryId">({ name: "package.skydropxCategoryId" });
+  const skydropxSubcategoryId = useWatch<HQOrderFormValues, "package.skydropxSubcategoryId">({ name: "package.skydropxSubcategoryId" });
+  const consignmentNoteClassCode = useWatch<HQOrderFormValues, "package.consignmentNoteClassCode">({ name: "package.consignmentNoteClassCode" });
   const { categories, isLoading: isLoadingCategories, refetch: refetchCategories } = useSkydropxCategories();
   const { subcategories, isLoading: isLoadingSubcategories, refetch: refetchSubcategories } = useSkydropxSubcategories(
     skydropxCategoryId || null,

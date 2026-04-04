@@ -14,7 +14,7 @@ import {
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { Building2, Info, User } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { calculateVolumetricWeight, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
 import { BoxSelector } from "./BoxSelector";
 import { DimensionsForm } from "./DimensionsForm";
@@ -26,8 +26,8 @@ interface HQPackageStepProps {
 }
 
 export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
-  const { control } = useFormContext<NewOrderFormValues>();
-  const pkg = useWatch<NewOrderFormValues, "package">({ name: "package" });
+  const { control } = useFormContext<HQOrderFormValues>();
+  const pkg = useWatch<HQOrderFormValues, "package">({ name: "package" });
 
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
 

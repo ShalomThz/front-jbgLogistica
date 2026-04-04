@@ -1,11 +1,13 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import type { CustomerProfilePrimitives } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
-import type { NewOrderFormValues } from "../domain/schemas/NewOrderForm";
-import { newOrderDefaultValues } from "../ui/constants/newOrder.constants";
+import type { BaseOrderFormValues } from "../domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "../domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "../domain/schemas/NewOrderForm";
+import { hqOrderDefaultValues } from "../ui/constants/newOrder.constants";
 
 function mapContact(
   profile: CustomerProfilePrimitives,
-): NewOrderFormValues["sender"] {
+): BaseOrderFormValues["sender"] {
   const addr = profile.address;
 
   return {
@@ -28,21 +30,24 @@ function mapContact(
   };
 }
 
-export function mapOrderToFormValues(
-  order: OrderListView,
-): NewOrderFormValues {
+const mapBaseFields = (order: OrderListView) => ({
+  orderData: {
+    orderNumber: order.references.orderNumber ?? "",
+    partnerOrderNumber: order.references.partnerOrderNumber ?? "",
+  },
+  sender: mapContact(order.origin),
+  recipient: mapContact(order.destination),
+  pickupAtAddress: order.pickupAtAddress,
+  customerSignature: order.customerSignature ?? null,
+  shippingService: { ...hqOrderDefaultValues.shippingService },
+});
+
+export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues {
   return {
-    orderType: order.type,
-    orderData: {
-      orderNumber: order.references.orderNumber ?? "",
-      partnerOrderNumber: order.references.partnerOrderNumber ?? "",
-    },
-    sender: mapContact(order.origin),
-    recipient: mapContact(order.destination),
-    pickupAtAddress: order.pickupAtAddress,
-    customerSignature: order.customerSignature ?? null,
+    ...mapBaseFields(order),
+    orderType: "HQ",
     package: {
-      ...newOrderDefaultValues.package,
+      ...hqOrderDefaultValues.package,
       boxId: order.package.boxId,
       ownership: order.package.ownership,
       length: String(order.package.dimensions.length),
@@ -51,6 +56,21 @@ export function mapOrderToFormValues(
       dimensionUnit: order.package.dimensions.unit,
       weight: String(order.package.weight.value),
     },
-    shippingService: { ...newOrderDefaultValues.shippingService },
+  };
+}
+
+export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderFormValues {
+  return {
+    ...mapBaseFields(order),
+    orderType: "PARTNER",
+    package: {
+      boxId: order.package.boxId,
+      ownership: order.package.ownership,
+      packageType: "",
+      length: String(order.package.dimensions.length),
+      width: String(order.package.dimensions.width),
+      height: String(order.package.dimensions.height),
+      dimensionUnit: order.package.dimensions.unit,
+    },
   };
 }

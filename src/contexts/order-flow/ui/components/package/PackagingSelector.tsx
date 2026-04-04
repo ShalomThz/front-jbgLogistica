@@ -16,7 +16,7 @@ import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useSkydropxPackagings } from "@/contexts/order-flow/infrastructure/hooks/useSkydropx";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 function normalize(str: string) {
   return str
@@ -29,10 +29,10 @@ const accentInsensitiveFilter = (value: string, search: string) =>
   normalize(value).includes(normalize(search)) ? 1 : 0;
 
 export function PackagingSelector() {
-  const { setValue, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { setValue, formState: { errors } } = useFormContext<HQOrderFormValues>();
   const [open, setOpen] = useState(false);
 
-  const consignmentNotePackagingCode = useWatch<NewOrderFormValues, "package.consignmentNotePackagingCode">({
+  const consignmentNotePackagingCode = useWatch<HQOrderFormValues, "package.consignmentNotePackagingCode">({
     name: "package.consignmentNotePackagingCode",
   });
 

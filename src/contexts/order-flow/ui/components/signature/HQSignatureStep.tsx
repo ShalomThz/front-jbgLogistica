@@ -1,11 +1,11 @@
 import type { UseFormReturn } from "react-hook-form";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { SignaturePad } from "@contexts/shared/ui/components/SignaturePad";
 import { Button } from "../../../../shared/shadcn";
  
 interface HQSignatureStepProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    form: UseFormReturn<NewOrderFormValues, any, undefined>;
+    form: UseFormReturn<HQOrderFormValues, any, undefined>;
     onComplete: () => Promise<void>;
     isCompleting: boolean;
     onBack: () => void;

@@ -4,14 +4,14 @@ import { toast } from "sonner";
 import type { UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
-import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
+import { buildPartnerEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
 
 interface UsePartnerOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<NewOrderFormValues, any, any>;
+  form: UseFormReturn<PartnerOrderFormValues, any, any>;
   initialOrderId?: string;
   storeId?: string;
   onSuccess: () => void;
@@ -36,7 +36,7 @@ export const usePartnerOrderSubmission = ({
   const submitPartnerOrder = async () => {
     if (orderId) {
       try {
-        const request = buildEditOrderRequest(form.getValues());
+        const request = buildPartnerEditOrderRequest(form.getValues());
         await updateOrder(orderId, request);
         setIsSubmitted(true);
         onSuccess();

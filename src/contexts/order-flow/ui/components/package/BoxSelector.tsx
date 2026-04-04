@@ -18,21 +18,21 @@ import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { BoxStockDialog } from "@contexts/inventory/ui/components/box/BoxStockDialog";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 export function BoxSelector() {
-  const { setValue, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { setValue, control, formState: { errors } } = useFormContext<BaseOrderFormValues>();
   const [boxOpen, setBoxOpen] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const { boxes, isLoading: isLoadingBoxes, updateBox, isUpdating } = useBoxes();
 
-  const boxId = useWatch<NewOrderFormValues, "package.boxId">({ name: "package.boxId" });
-  const packageType = useWatch<NewOrderFormValues, "package.packageType">({ name: "package.packageType" });
-  const length = useWatch<NewOrderFormValues, "package.length">({ name: "package.length" });
-  const width = useWatch<NewOrderFormValues, "package.width">({ name: "package.width" });
-  const height = useWatch<NewOrderFormValues, "package.height">({ name: "package.height" });
-  const dimensionUnit = useWatch<NewOrderFormValues, "package.dimensionUnit">({ name: "package.dimensionUnit" });
-  const ownership = useWatch<NewOrderFormValues, "package.ownership">({ name: "package.ownership" });
+  const boxId = useWatch<BaseOrderFormValues, "package.boxId">({ name: "package.boxId" });
+  const packageType = useWatch<BaseOrderFormValues, "package.packageType">({ name: "package.packageType" });
+  const length = useWatch<BaseOrderFormValues, "package.length">({ name: "package.length" });
+  const width = useWatch<BaseOrderFormValues, "package.width">({ name: "package.width" });
+  const height = useWatch<BaseOrderFormValues, "package.height">({ name: "package.height" });
+  const dimensionUnit = useWatch<BaseOrderFormValues, "package.dimensionUnit">({ name: "package.dimensionUnit" });
+  const ownership = useWatch<BaseOrderFormValues, "package.ownership">({ name: "package.ownership" });
 
   const selectedBox = boxes.find((b) => b.id === boxId);
   const isStoreBox = ownership === "STORE";

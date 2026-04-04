@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import { Controller, useFormContext } from "react-hook-form";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 import { ContactColumn } from "./ContactColumn";
 
@@ -24,7 +24,7 @@ interface PartnerContactStepProps {
 }
 
 export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
-  const { register, control, clearErrors, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, clearErrors, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
 
   return (
     <>

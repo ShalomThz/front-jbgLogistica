@@ -8,10 +8,10 @@ import {
   Label,
 } from "@contexts/shared/shadcn";
 import { Controller, useFormContext } from "react-hook-form";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 export function OrderReferencesCard() {
-  const { register, control, clearErrors, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, clearErrors, formState: { errors } } = useFormContext<BaseOrderFormValues>();
 
   return (
     <Card className="mb-6 shadow-md shadow-primary/20">

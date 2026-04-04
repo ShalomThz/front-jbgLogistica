@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useHQOrderFlowForm, type HQOrderStep } from "./useHQOrderFlowForm";
 import { useContactSave } from "../shared/useContactSave";
 import { useBoxOperations } from "../shared/useBoxOperations";
@@ -13,7 +14,7 @@ const STEPS: { key: HQOrderStep; label: string }[] = [
 ];
 
 interface UseHQOrderFlowOptions {
-  initialValues?: NewOrderFormValues;
+  initialValues?: HQOrderFormValues;
   orderId?: string;
 }
 
@@ -21,8 +22,9 @@ export const useHQOrderFlow = ({ initialValues, orderId }: UseHQOrderFlowOptions
   const [step, setStep] = useState<HQOrderStep>("contact");
 
   const { form, validateStep } = useHQOrderFlowForm({ initialValues });
-  const { saveContacts, isSaving } = useContactSave({ form });
-  const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues, enabled: step !== "contact" });
+  const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
+  const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
+  const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
   const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox });
 
   const isEditing = !!submission.orderId;

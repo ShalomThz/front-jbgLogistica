@@ -27,12 +27,13 @@ import {
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import { Ban, ChevronDown, Download, FileText, Package, Pencil, Printer, Tag, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 
@@ -79,8 +80,16 @@ export const OrderDetailDialog = ({
   const { user } = useAuth();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
   const { boxes } = useBoxes({ enabled: open });
   const { data: signatureData, isLoading: isLoadingSignature } = useMedia(order?.customerSignature);
+
+  useEffect(() => {
+    if (!open && pendingRoute) {
+      navigate(pendingRoute);
+      setPendingRoute(null);
+    }
+  }, [open, pendingRoute, navigate]);
 
   if (!order) return null;
 
@@ -167,6 +176,9 @@ export const OrderDetailDialog = ({
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto pt-8">
+        {pendingRoute ? (
+          <PageLoader text="Redirigiendo..." />
+        ) : (<>
         <DialogHeader>
           <DialogTitle>
             Orden{" "}
@@ -432,8 +444,8 @@ export const OrderDetailDialog = ({
                   {canEditPartner && (
                     <DropdownMenuItem
                       onClick={() => {
+                        setPendingRoute(`/orders/${order.id}/edit`);
                         onClose();
-                        navigate(`/orders/${order.id}/edit`);
                       }}
                     >
                       <Pencil className="size-4" />
@@ -443,8 +455,8 @@ export const OrderDetailDialog = ({
                   {canEditHQ && (
                     <DropdownMenuItem
                       onClick={() => {
+                        setPendingRoute(`/orders/${order.id}/edit?mode=complete`);
                         onClose();
-                        navigate(`/orders/${order.id}/edit?mode=complete`);
                       }}
                     >
                       <Package className="size-4" />
@@ -457,8 +469,8 @@ export const OrderDetailDialog = ({
               <Button
                 disabled={!isEditable}
                 onClick={() => {
+                  setPendingRoute(`/orders/${order.id}/edit`);
                   onClose();
-                  navigate(`/orders/${order.id}/edit`);
                 }}
               >
                 <Pencil className="size-4" />
@@ -467,6 +479,7 @@ export const OrderDetailDialog = ({
             )
           )}
         </DialogFooter>
+        </>)}
       </DialogContent>
     </Dialog>
   );

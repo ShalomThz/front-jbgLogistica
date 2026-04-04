@@ -1,13 +1,12 @@
-import type { UseFormReturn } from "react-hook-form";
+import type { UseFormReturn, FieldValues } from "react-hook-form";
 import { toast } from "sonner";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 
 interface UseContactSaveOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<NewOrderFormValues, any, any>;
+  form: UseFormReturn<FieldValues, any, any>;
 }
 
 export const useContactSave = ({ form }: UseContactSaveOptions) => {

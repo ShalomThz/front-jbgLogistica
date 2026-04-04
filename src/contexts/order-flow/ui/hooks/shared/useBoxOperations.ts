@@ -1,14 +1,13 @@
 import { useRef, useEffect } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import type { UseFormReturn, FieldValues } from "react-hook-form";
 import { toast } from "sonner";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 
 interface UseBoxOperationsOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<NewOrderFormValues, any, any>;
-  initialValues?: NewOrderFormValues;
+  form: UseFormReturn<FieldValues, any, any>;
+  initialValues?: FieldValues;
   enabled?: boolean;
 }
 

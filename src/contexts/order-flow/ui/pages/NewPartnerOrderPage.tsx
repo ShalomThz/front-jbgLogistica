@@ -8,10 +8,10 @@ import { PartnerContactStep } from "../components/contact/PartnerContactStep";
 import { PartnerPackageStep } from "../components/package/PartnerPackageStep";
 import { PartnerPricingStep } from "../components/partner/PartnerPricingStep";
 import { StepIndicator } from "../components/StepIndicator";
-import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "../../domain/schemas/NewOrderForm";
 
 interface NewPartnerOrderPageProps {
-  initialValues?: NewOrderFormValues;
+  initialValues?: PartnerOrderFormValues;
   orderId?: string;
   storeName?: string;
 }

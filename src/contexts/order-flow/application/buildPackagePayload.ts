@@ -1,6 +1,6 @@
-import type { PackageFormData } from "../domain/schemas/NewOrderForm";
+import type { HQPackageFormData } from "../domain/schemas/NewOrderForm";
 
-export const buildPackagePayload = (packageData: PackageFormData) => ({
+export const buildPackagePayload = (packageData: HQPackageFormData) => ({
   boxId: packageData.boxId,
   ownership: packageData.ownership,
   weight: {

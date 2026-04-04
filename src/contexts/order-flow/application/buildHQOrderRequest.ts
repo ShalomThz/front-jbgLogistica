@@ -1,8 +1,8 @@
 import { createHQOrderSchema } from "@contexts/sales/application/order/CreateHQOrderRequest";
-import type { NewOrderFormValues } from "../domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "../domain/schemas/NewOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
 
-export const buildHQOrderRequest = (formValues: NewOrderFormValues, storeId: string) => {
+export const buildHQOrderRequest = (formValues: HQOrderFormValues, storeId: string) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 

@@ -23,7 +23,7 @@ import { useState } from "react";
 import { useFormContext, useWatch, Controller, type FieldErrors } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
 
@@ -34,7 +34,7 @@ interface ContactColumnProps {
   title: string;
 }
 
-function getNestedError(errors: FieldErrors<NewOrderFormValues>, prefix: ContactPrefix, field: string) {
+function getNestedError(errors: FieldErrors<BaseOrderFormValues>, prefix: ContactPrefix, field: string) {
   const contact = errors[prefix];
   if (!contact) return undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +43,7 @@ function getNestedError(errors: FieldErrors<NewOrderFormValues>, prefix: Contact
 }
 
 export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps) {
-  const form = useFormContext<NewOrderFormValues>();
+  const form = useFormContext<BaseOrderFormValues>();
   const { register, setValue, control, formState: { errors } } = form;
 
   const [open, setOpen] = useState(false);

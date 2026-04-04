@@ -8,11 +8,11 @@ import { HQPackageStep } from "../components/package/HQPackageStep";
 import { RateStep } from "../components/rate/RateStep";
 import { OrderSuccessView } from "../components/order/OrderSuccessView";
 import { StepIndicator } from "../components/StepIndicator";
-import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
 interface NewHQOrderPageProps {
-  initialValues?: NewOrderFormValues;
+  initialValues?: HQOrderFormValues;
   orderId?: string;
   partnerPrice?: MoneyPrimitives | null;
   storeName?: string;

@@ -1,4 +1,4 @@
-import type { ShippingServiceState } from "../domain/schemas/NewOrderForm";
+import type { HQShippingServiceState } from "../domain/schemas/NewOrderForm";
 import type { CarrierType } from "@contexts/shipping/domain/schemas/value-objects/Carrier";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
@@ -12,7 +12,7 @@ const parseMoney = (amount: string, currency: string): MoneyPrimitives | null =>
   return parsed > 0 ? { amount: parsed, currency } : null;
 };
 
-export const buildSelectProviderRequest = (shipmentId: string, shippingService: ShippingServiceState) => {
+export const buildSelectProviderRequest = (shipmentId: string, shippingService: HQShippingServiceState) => {
   const rate = shippingService.selectedRate!;
   const cb = shippingService.costBreakdown;
   const isJBG = rate.serviceName === JBG_SERVICE_NAME;

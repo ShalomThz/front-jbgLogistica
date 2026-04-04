@@ -8,11 +8,11 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import { useFormContext, Controller } from "react-hook-form";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { PackagingSelector } from "./PackagingSelector";
 
 export function DimensionsForm() {
-  const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
+  const { register, control, formState: { errors } } = useFormContext<HQOrderFormValues>();
 
   return (
     <div className="space-y-4">

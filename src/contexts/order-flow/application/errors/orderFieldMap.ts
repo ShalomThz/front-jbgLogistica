@@ -1,8 +1,5 @@
-import type { FieldPath } from "react-hook-form";
-import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
-
 export type OrderErrorTarget = {
-  field: FieldPath<NewOrderFormValues>;
+  field: string;
   step?: string;
 };
 

@@ -22,7 +22,7 @@ import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { SignaturePad } from "@contexts/shared/ui/components/SignaturePad";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { calculateTotal, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
 import { OrderSuccessView } from "../order/OrderSuccessView";
@@ -96,12 +96,12 @@ export function RateStep({
   onCreateAnother,
   partnerPrice,
 }: RateStepProps) {
-  const { setValue, register, control } = useFormContext<NewOrderFormValues>();
+  const { setValue, register, control } = useFormContext<HQOrderFormValues>();
 
-  const shippingService = useWatch<NewOrderFormValues, "shippingService">({ name: "shippingService" });
-  const sender = useWatch<NewOrderFormValues, "sender">({ name: "sender" });
-  const recipient = useWatch<NewOrderFormValues, "recipient">({ name: "recipient" });
-  const pkg = useWatch<NewOrderFormValues, "package">({ name: "package" });
+  const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
+  const sender = useWatch<HQOrderFormValues, "sender">({ name: "sender" });
+  const recipient = useWatch<HQOrderFormValues, "recipient">({ name: "recipient" });
+  const pkg = useWatch<HQOrderFormValues, "package">({ name: "package" });
 
   const isJBGRate = shippingService.selectedRate?.serviceName === JBG_SERVICE_NAME;
 

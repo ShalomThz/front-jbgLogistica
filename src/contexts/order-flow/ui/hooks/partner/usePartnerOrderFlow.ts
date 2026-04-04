@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +19,7 @@ const STEPS: { key: PartnerOrderStep; label: string }[] = [
 ];
 
 interface UsePartnerOrderFlowOptions {
-  initialValues?: NewOrderFormValues;
+  initialValues?: PartnerOrderFormValues;
   orderId?: string;
 }
 
@@ -32,8 +33,9 @@ export const usePartnerOrderFlow = ({ initialValues, orderId }: UsePartnerOrderF
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(user?.storeId);
 
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
-  const { saveContacts, isSaving } = useContactSave({ form });
-  const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form, initialValues, enabled: step !== "contact" });
+  const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
+  const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
+  const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
   const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, onSuccess: () => setStep("success") });
 
   const activeStoreId = selectedStoreId ?? user?.storeId;

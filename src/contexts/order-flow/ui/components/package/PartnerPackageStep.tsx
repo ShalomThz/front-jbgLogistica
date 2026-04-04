@@ -14,7 +14,7 @@ import {
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { Building2, Info, User } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { BoxSelector } from "./BoxSelector";
 import { ShippingSummary } from "../ShippingSummary";
 
@@ -23,8 +23,8 @@ interface PartnerPackageStepProps {
 }
 
 export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) {
-  const { register, control, formState: { errors } } = useFormContext<NewOrderFormValues>();
-  const pkg = useWatch<NewOrderFormValues, "package">({ name: "package" });
+  const { register, control, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
+  const pkg = useWatch<PartnerOrderFormValues, "package">({ name: "package" });
 
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
 
