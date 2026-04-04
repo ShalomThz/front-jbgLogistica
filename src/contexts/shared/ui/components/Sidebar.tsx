@@ -10,13 +10,13 @@ import {
   SidebarMenuItem,
 } from '@contexts/shared/shadcn/components';
 import { useAuth } from '@contexts/iam/infrastructure/hooks/auth/useAuth';
-import type { Policy } from '@contexts/shared/custom/policies/Policy';
-import { customerPolicies } from '@contexts/shared/custom/policies/customer.policy';
-import { orderPolicies } from '@contexts/shared/custom/policies/order.policy';
-import { warehousePolicies } from '@contexts/shared/custom/policies/warehouse.policy';
-import { boxPolicies } from '@contexts/shared/custom/policies/box.policy';
-import { pricingPolicies } from '@contexts/shared/custom/policies/pricing.policy';
-import { iamPolicies } from '@contexts/shared/custom/policies/iam.policy';
+import type { Policy } from '@contexts/shared/domain/policies/Policy';
+import { customerPolicies } from '@contexts/shared/domain/policies/customer.policy';
+import { orderPolicies } from '@contexts/shared/domain/policies/order.policy';
+import { warehousePolicies } from '@contexts/shared/domain/policies/warehouse.policy';
+import { boxPolicies } from '@contexts/shared/domain/policies/box.policy';
+import { pricingPolicies } from '@contexts/shared/domain/policies/pricing.policy';
+import { iamPolicies } from '@contexts/shared/domain/policies/iam.policy';
 import type { LucideIcon } from 'lucide-react';
 import {
   Users,

@@ -23,7 +23,7 @@ import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers"
 import { useCustomerFilters } from "../hooks/useCustomerFilters";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { customerPolicies } from "@contexts/shared/custom/policies/customer.policy";
+import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
 
 const LIMIT_OPTIONS = [10, 20, 50];

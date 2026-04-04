@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";

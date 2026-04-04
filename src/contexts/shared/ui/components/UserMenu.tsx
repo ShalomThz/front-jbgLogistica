@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@contexts/shared/shadcn/components";
-import { settingsPolicies } from "@contexts/shared/custom/policies/settings.policy";
+import { settingsPolicies } from "@contexts/shared/domain/policies/settings.policy";
 
 export const UserMenu = () => {
   const { user, logout } = useAuth();

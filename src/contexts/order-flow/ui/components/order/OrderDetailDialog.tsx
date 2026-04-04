@@ -32,7 +32,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";

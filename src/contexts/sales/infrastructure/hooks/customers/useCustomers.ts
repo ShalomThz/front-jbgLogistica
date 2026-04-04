@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { customerPolicies } from "@contexts/shared/custom/policies/customer.policy";
+import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import type { FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
 import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 import { customerRepository, type UpdateCustomerRequest } from "../../services/customers/customerRepository";

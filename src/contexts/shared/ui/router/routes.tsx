@@ -1,18 +1,18 @@
 import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
-import { ProtectedRoute } from "@contexts/shared/custom/components";
+import { ProtectedRoute } from "@contexts/shared/ui/components";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
-import { customerPolicies } from "@contexts/shared/custom/policies/customer.policy";
-import { boxPolicies } from "@contexts/shared/custom/policies/box.policy";
-import { iamPolicies } from "@contexts/shared/custom/policies/iam.policy";
-import { warehousePolicies } from "@contexts/shared/custom/policies/warehouse.policy";
-import { shippingPolicies } from "@contexts/shared/custom/policies/shipping.policy";
-import { pricingPolicies } from "@contexts/shared/custom/policies/pricing.policy";
-import { settingsPolicies } from "@contexts/shared/custom/policies/settings.policy";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
+import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
+import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
+import { warehousePolicies } from "@contexts/shared/domain/policies/warehouse.policy";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
+import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
+import { settingsPolicies } from "@contexts/shared/domain/policies/settings.policy";
 
 // Dashboard (static — initial page)
-import { DashboardPage } from "@contexts/shared/custom/pages";
+import { DashboardPage } from "@contexts/shared/ui/pages";
 
 // Sales
 const OrdersPage = lazy(() => import("@contexts/order-flow/ui/pages/OrdersPage").then(m => ({ default: m.OrdersPage })));

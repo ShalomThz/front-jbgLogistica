@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";

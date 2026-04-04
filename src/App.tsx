@@ -1,8 +1,8 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useRoutes } from "react-router-dom";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { CustomerLayout, DashboardLayout } from "@contexts/shared/custom";
-import { routes } from "@contexts/shared/custom/router";
+import { CustomerLayout, DashboardLayout } from "@contexts/shared/ui/layouts";
+import { routes } from "@contexts/shared/ui/router";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 
 const LoginPage = lazy(() => import("@contexts/iam/ui/pages/LoginPage").then(m => ({ default: m.LoginPage })));

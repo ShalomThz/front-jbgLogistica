@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import type { Policy } from "@contexts/shared/custom/policies/Policy";
+import type { Policy } from "@contexts/shared/domain/policies/Policy";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 

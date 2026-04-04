@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { UserMenu } from "../components/UserMenu";
+import { UserMenu } from "@contexts/shared/ui/components/UserMenu";
 import { AnimatedThemeToggler } from "@contexts/shared/shadcn/components";
 
 interface CustomerLayoutProps {

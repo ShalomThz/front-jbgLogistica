@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Header } from '../components';
-import { AppSidebar } from '../components';
+import { Header } from "@contexts/shared/ui/components";
+import { AppSidebar } from "@contexts/shared/ui/components";
 import {
   Sidebar,
   SidebarProvider,
