@@ -30,6 +30,17 @@ function mapContact(
   };
 }
 
+const mapCostBreakdown = (order: OrderListView) => {
+  const cb = order.financials.costBreakdown;
+  return {
+    insurance: cb.insurance?.amount ? String(cb.insurance.amount) : "",
+    tools: cb.tools?.amount ? String(cb.tools.amount) : "",
+    additionalCost: cb.additionalCost?.amount ? String(cb.additionalCost.amount) : "",
+    wrap: cb.wrap?.amount ? String(cb.wrap.amount) : "",
+    tape: cb.tape?.amount ? String(cb.tape.amount) : "",
+  };
+};
+
 const mapBaseFields = (order: OrderListView) => ({
   orderData: {
     orderNumber: order.references.orderNumber ?? "",
@@ -39,7 +50,10 @@ const mapBaseFields = (order: OrderListView) => ({
   recipient: mapContact(order.destination),
   pickupAtAddress: order.pickupAtAddress,
   customerSignature: order.customerSignature ?? null,
-  shippingService: { ...hqOrderDefaultValues.shippingService },
+  shippingService: {
+    ...hqOrderDefaultValues.shippingService,
+    costBreakdown: mapCostBreakdown(order),
+  },
 });
 
 export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues {

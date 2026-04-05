@@ -8,15 +8,10 @@ import {
   Input,
   Label,
   Progress,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
   Skeleton,
 } from "@contexts/shared/shadcn";
-import { Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
+import { ChevronDown, Edit, MapPin, Package, RefreshCw, Truck, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { SignaturePad } from "@contexts/shared/ui/components/SignaturePad";
@@ -24,8 +19,9 @@ import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-obj
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import { calculateTotal, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
-import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
+import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
+import { calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
+import { OrderTotalCard } from "./OrderTotalCard";
 import { OrderSuccessView } from "../order/OrderSuccessView";
 
 import ampmLogo from "@/assets/carriers/ampm.png";
@@ -82,6 +78,7 @@ interface RateStepProps {
   onFinish: () => void;
   onCreateAnother?: () => void;
   partnerPrice?: MoneyPrimitives | null;
+  partnerCostBreakdown?: CostBreakdownPrimitives;
 }
 
 export function RateStep({
@@ -96,6 +93,7 @@ export function RateStep({
   onFinish,
   onCreateAnother,
   partnerPrice,
+  partnerCostBreakdown,
 }: RateStepProps) {
   const { setValue, register, control } = useFormContext<HQOrderFormValues>();
 
@@ -104,7 +102,13 @@ export function RateStep({
   const recipient = useWatch<HQOrderFormValues, "recipient">({ name: "recipient" });
   const pkg = useWatch<HQOrderFormValues, "package">({ name: "package" });
 
-  const isJBGRate = shippingService.selectedRate?.serviceName === JBG_SERVICE_NAME;
+  const [costsOpen, setCostsOpen] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(true);
+  const extraCostsTotal = COST_BREAKDOWN_FIELDS.reduce((sum, field) => {
+    const val = parseFloat(shippingService.costBreakdown[field]);
+    return sum + (val > 0 ? val : 0);
+  }, 0);
 
   const [loadingProgress, setLoadingProgress] = useState(0);
   useEffect(() => {
@@ -121,15 +125,6 @@ export function RateStep({
 
   const handleRateSelection = (rate: RatePrimitives) => {
     setValue("shippingService.selectedRate", rate);
-  };
-
-  const handleCustomPriceChange = (value: string) => {
-    if (!shippingService.selectedRate) return;
-    const amount = parseFloat(value) || 0;
-    setValue("shippingService.selectedRate", {
-      ...shippingService.selectedRate,
-      price: { ...shippingService.selectedRate.price, amount },
-    });
   };
 
   if (fulfilledShipment) {
@@ -267,252 +262,221 @@ export function RateStep({
             )}
           </CardContent>
         </Card>
+
+        {/* Costos adicionales — Collapsible, debajo de la tabla */}
+        <Card>
+          <button
+            type="button"
+            onClick={() => setCostsOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4 text-left"
+          >
+            <span className="text-sm font-semibold">Costos adicionales</span>
+            <div className="flex items-center gap-2">
+              {extraCostsTotal > 0 && (
+                <span className="text-xs font-medium text-muted-foreground">${extraCostsTotal.toFixed(2)}</span>
+              )}
+              <ChevronDown className={`size-4 text-muted-foreground transition-transform ${costsOpen ? "rotate-180" : ""}`} />
+            </div>
+          </button>
+          {costsOpen && (
+            <CardContent className="pt-0 pb-4">
+              <div className="grid grid-cols-2 gap-3">
+                {COST_BREAKDOWN_FIELDS.map((field) => (
+                  <div key={field} className="space-y-1">
+                    <Label className="text-xs">{COST_LABELS[field]}</Label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        {...register(`shippingService.costBreakdown.${field}`)}
+                        className="pl-6 text-xs"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Firma — Collapsible */}
+        {shippingService.selectedRate && (
+          <Card>
+            <button
+              type="button"
+              onClick={() => setSignatureOpen((v) => !v)}
+              className="flex w-full items-center justify-between px-6 py-4 text-left"
+            >
+              <span className="text-sm font-semibold">Firma del cliente</span>
+              <ChevronDown className={`size-4 text-muted-foreground transition-transform ${signatureOpen ? "rotate-180" : ""}`} />
+            </button>
+            {signatureOpen && (
+              <CardContent className="pt-0 pb-4">
+                <Controller
+                  control={control}
+                  name="customerSignature"
+                  render={({ field }) => (
+                    <SignaturePad onSignatureChange={field.onChange} />
+                  )}
+                />
+              </CardContent>
+            )}
+          </Card>
+        )}
       </div>
 
       {/* Sidebar Summary */}
       <div className="space-y-4">
-        {/* Partner Price */}
+        {/* Partner Breakdown + Margin */}
         {partnerPrice && (
           <Card className="border-yellow-300 bg-yellow-50 dark:border-yellow-600 dark:bg-yellow-500/15">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Precio cobrado por el Agente</span>
-                <span className="text-lg font-bold">${partnerPrice.amount.toFixed(2)} {partnerPrice.currency}</span>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Cobro del Agente</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div className="flex justify-between text-sm">
+                <span>Tarifa cobrada por el agente</span>
+                <span>${partnerPrice.amount.toFixed(2)} {partnerPrice.currency}</span>
               </div>
+
+              {partnerCostBreakdown && (() => {
+                const extrasCost = COST_BREAKDOWN_FIELDS.reduce((sum, field) => {
+                  const money = partnerCostBreakdown[field];
+                  return sum + (money?.amount ?? 0);
+                }, 0);
+                const partnerTotal = partnerPrice.amount + extrasCost;
+                return (
+                  <>
+                    {COST_BREAKDOWN_FIELDS.map((field) => {
+                      const money = partnerCostBreakdown[field];
+                      if (!money || money.amount <= 0) return null;
+                      return (
+                        <div key={field} className="flex justify-between text-sm text-muted-foreground">
+                          <span>{COST_LABELS[field]}</span>
+                          <span>${money.amount.toFixed(2)}</span>
+                        </div>
+                      );
+                    })}
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Total cobrado</span>
+                      <span className="text-lg font-bold">${partnerTotal.toFixed(2)} {partnerPrice.currency}</span>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {!partnerCostBreakdown && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Total cobrado</span>
+                  <span className="text-lg font-bold">${partnerPrice.amount.toFixed(2)} {partnerPrice.currency}</span>
+                </div>
+              )}
+
             </CardContent>
           </Card>
         )}
 
-        {/* Shipment Summary: sender, recipient, package */}
+        {/* Shipment Summary — Collapsible */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Resumen de envío</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="h-auto p-0 text-xs text-primary hover:text-primary/80"
+          <button
+            type="button"
+            onClick={() => setSummaryOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">Resumen de envío</span>
+              <span
+                role="button"
+                onClick={(e) => { e.stopPropagation(); onBack(); }}
+                className="inline-flex items-center text-xs text-primary hover:text-primary/80 cursor-pointer"
               >
                 <Edit className="size-3 mr-1" />
                 Editar
-              </Button>
+              </span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-0">
-            {/* Sender */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <User className="size-3" />
-                Remitente
-              </div>
-              <div className="text-sm font-medium">{sender.name || "Sin nombre"}</div>
-              <div className="text-xs text-muted-foreground">{sender.phone}</div>
-              {sender.address.address1 && (
-                <div className="flex items-start gap-1 text-xs text-muted-foreground">
-                  <MapPin className="size-3 mt-0.5 shrink-0" />
-                  <span>
-                    {sender.address.address1}, {sender.address.city}, {sender.address.province} {sender.address.zip}
-                  </span>
+            <ChevronDown className={`size-4 text-muted-foreground transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
+          </button>
+          {summaryOpen && (
+            <CardContent className="space-y-4 pt-0">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <User className="size-3" />
+                  Remitente
                 </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Recipient */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <User className="size-3" />
-                Destinatario
-              </div>
-              <div className="text-sm font-medium">{recipient.name || "Sin nombre"}</div>
-              <div className="text-xs text-muted-foreground">{recipient.phone}</div>
-              {recipient.address.address1 && (
-                <div className="flex items-start gap-1 text-xs text-muted-foreground">
-                  <MapPin className="size-3 mt-0.5 shrink-0" />
-                  <span>
-                    {recipient.address.address1}, {recipient.address.city}, {recipient.address.province} {recipient.address.zip}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Package */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <Package className="size-3" />
-                Paquete
-              </div>
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                <div>{pkg.length} x {pkg.width} x {pkg.height} {pkg.dimensionUnit}</div>
-                <div>Peso a cotizar: {calculateBillableWeight(pkg).toFixed(2)} kg</div>
-              </div>
-            </div>
-
-            {/* Selected service */}
-            {shippingService.selectedRate && (
-              <>
-                <Separator />
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                    <Truck className="size-3" />
-                    Servicio seleccionado
+                <div className="text-sm font-medium">{sender.name || "Sin nombre"}</div>
+                <div className="text-xs text-muted-foreground">{sender.phone}</div>
+                {sender.address.address1 && (
+                  <div className="flex items-start gap-1 text-xs text-muted-foreground">
+                    <MapPin className="size-3 mt-0.5 shrink-0" />
+                    <span>
+                      {sender.address.address1}, {sender.address.city}, {sender.address.province} {sender.address.zip}
+                    </span>
                   </div>
-                  <div className="text-sm font-medium">{shippingService.selectedRate.serviceName}</div>
-                  {shippingService.selectedRate.estimatedDays != null && (
-                    <div className="text-xs text-muted-foreground">
-                      {shippingService.selectedRate.estimatedDays} día{shippingService.selectedRate.estimatedDays !== 1 ? "s" : ""} hábil{shippingService.selectedRate.estimatedDays !== 1 ? "es" : ""}
-                    </div>
-                  )}
-                  {shippingService.selectedRate.isOcurre && (
-                    <Badge variant="secondary" className="text-xs">Ocurre</Badge>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </div>
 
-        {/* JBG Custom Price */}
-        {isJBGRate && (
-          <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
-            <CardContent className="pt-6">
-              <div className="space-y-3">
-                <div className="font-medium text-sm">Precio personalizado</div>
-                <p className="text-xs text-muted-foreground">
-                  Puedes ajustar el precio de envío para JBG Logistics.
-                </p>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-2.5 text-sm text-muted-foreground">$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={shippingService.selectedRate?.price.amount ?? ""}
-                    onChange={(e) => handleCustomPriceChange(e.target.value)}
-                    className="pl-6"
-                    placeholder="0.00"
-                  />
-                  <span className="absolute right-2.5 top-2.5 text-sm text-muted-foreground">{shippingService.currency}</span>
+              <Separator />
+
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <User className="size-3" />
+                  Destinatario
+                </div>
+                <div className="text-sm font-medium">{recipient.name || "Sin nombre"}</div>
+                <div className="text-xs text-muted-foreground">{recipient.phone}</div>
+                {recipient.address.address1 && (
+                  <div className="flex items-start gap-1 text-xs text-muted-foreground">
+                    <MapPin className="size-3 mt-0.5 shrink-0" />
+                    <span>
+                      {recipient.address.address1}, {recipient.address.city}, {recipient.address.province} {recipient.address.zip}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <Package className="size-3" />
+                  Paquete
+                </div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div>{pkg.length} x {pkg.width} x {pkg.height} {pkg.dimensionUnit}</div>
+                  <div>Peso a cotizar: {calculateBillableWeight(pkg).toFixed(2)} kg</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Costos adicionales */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Costos adicionales</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
-            {COST_BREAKDOWN_FIELDS.map((field) => (
-              <div key={field} className="space-y-1">
-                <Label className="text-xs">{COST_LABELS[field]}</Label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...register(`shippingService.costBreakdown.${field}`)}
-                    className="pl-6 text-xs"
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Total */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
               {shippingService.selectedRate && (
                 <>
-                  <div className="flex justify-between text-sm">
-                    <span>Precio del envío</span>
-                    <span>${shippingService.selectedRate.price.amount.toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency}</span>
-                  </div>
-
-                  {COST_BREAKDOWN_FIELDS.map((field) => {
-                    const val = parseFloat(shippingService.costBreakdown[field]);
-                    if (!val || val <= 0) return null;
-                    return (
-                      <div key={field} className="flex justify-between text-sm">
-                        <span>{COST_LABELS[field]}</span>
-                        <span>${val.toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate!.price.currency}</span>
-                      </div>
-                    );
-                  })}
-
                   <Separator />
-
-                  {isJBGRate && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Moneda</Label>
-                        <Controller
-                          control={control}
-                          name="shippingService.currency"
-                          render={({ field }) => (
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="MXN">MXN - Peso mexicano</SelectItem>
-                                <SelectItem value="USD">USD - Dólar americano</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-
-                  <div className="flex justify-between font-bold">
-                    <span>Monto total:</span>
-                    <div className="text-right">
-                      <div className="text-blue-600">${calculateTotal(shippingService).toFixed(2)} {isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency}</div>
-                      <CurrencyConversion amount={calculateTotal(shippingService)} from={isJBGRate ? shippingService.currency : shippingService.selectedRate.price.currency} />
-                      <div className="text-xs text-muted-foreground">(Incluye IVA)</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <Truck className="size-3" />
+                      Servicio seleccionado
                     </div>
-                  </div>
-
-                  <Separator />
-
-                  <Controller
-                    control={control}
-                    name="customerSignature"
-                    render={({ field }) => (
-                      <SignaturePad onSignatureChange={field.onChange} />
+                    <div className="text-sm font-medium">{shippingService.selectedRate.serviceName}</div>
+                    {shippingService.selectedRate.estimatedDays != null && (
+                      <div className="text-xs text-muted-foreground">
+                        {shippingService.selectedRate.estimatedDays} día{shippingService.selectedRate.estimatedDays !== 1 ? "s" : ""} hábil{shippingService.selectedRate.estimatedDays !== 1 ? "es" : ""}
+                      </div>
                     )}
-                  />
-
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={onSubmit}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Creando envío..." : "Crear envío"}
-                  </Button>
+                    {shippingService.selectedRate.isOcurre && (
+                      <Badge variant="secondary" className="text-xs">Ocurre</Badge>
+                    )}
+                  </div>
                 </>
               )}
-
-              {!shippingService.selectedRate && (
-                <div className="text-center py-4 text-muted-foreground text-sm">
-                  Selecciona un servicio para ver el total
-                </div>
-              )}
-            </div>
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
+
+        {/* Total + Button */}
+        <OrderTotalCard onSubmit={onSubmit} isSubmitting={isSubmitting} />
       </div>
     </div>
   );

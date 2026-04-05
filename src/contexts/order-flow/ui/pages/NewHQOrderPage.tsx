@@ -10,16 +10,18 @@ import { OrderSuccessView } from "../components/order/OrderSuccessView";
 import { StepIndicator } from "../components/StepIndicator";
 import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 
 interface NewHQOrderPageProps {
   initialValues?: HQOrderFormValues;
   orderId?: string;
   partnerPrice?: MoneyPrimitives | null;
+  partnerCostBreakdown?: CostBreakdownPrimitives;
   storeName?: string;
   partnerOrderNumber?: string;
 }
 
-export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName, partnerOrderNumber }: NewHQOrderPageProps = {}) => {
+export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber }: NewHQOrderPageProps = {}) => {
   const navigate = useNavigate();
   const flow = useHQOrderFlow({ initialValues, orderId });
 
@@ -78,6 +80,7 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName
             onFinish={flow.goToOrders}
             onCreateAnother={() => navigate("/orders/new/hq")}
             partnerPrice={partnerPrice}
+            partnerCostBreakdown={partnerCostBreakdown}
           />
         )}
 

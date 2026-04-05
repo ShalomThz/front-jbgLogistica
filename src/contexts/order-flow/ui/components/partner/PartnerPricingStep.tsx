@@ -52,6 +52,8 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
     return sum + (val > 0 ? val : 0);
   }, 0);
 
+  const grandTotal = (tariffPrice?.amount ?? 0) + totalCosts;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Cost Breakdown Inputs */}
@@ -245,36 +247,36 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
           </CardContent>
         </Card>
 
-        {/* Total costs */}
+        {/* Total */}
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-3">
+              {tariffPrice && (
+                <div className="flex justify-between text-sm">
+                  <span>Precio del servicio</span>
+                  <span>${tariffPrice.amount.toFixed(2)} {tariffPrice.currency}</span>
+                </div>
+              )}
+
               {COST_BREAKDOWN_FIELDS.map((field) => {
                 const val = parseFloat(shippingService.costBreakdown[field]);
                 if (!val || val <= 0) return null;
                 return (
-                  <div key={field} className="flex justify-between text-sm">
+                  <div key={field} className="flex justify-between text-sm text-muted-foreground">
                     <span>{COST_LABELS[field]}</span>
-                    <span>${val.toFixed(2)} {currency}</span>
+                    <span>${val.toFixed(2)}</span>
                   </div>
                 );
               })}
 
-              {totalCosts > 0 && (
-                <>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Costos adicionales:</span>
-                    <span className="text-blue-600">${totalCosts.toFixed(2)} {currency}</span>
-                  </div>
-                </>
-              )}
+              <Separator />
 
-              {totalCosts === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-2">
-                  Sin costos adicionales
-                </p>
-              )}
+              <div className="rounded-lg bg-muted/50 p-4 space-y-1">
+                <span className="text-sm font-medium text-muted-foreground">Total a cobrar</span>
+                <div className="text-2xl font-bold text-blue-600">
+                  ${grandTotal.toFixed(2)} {currency}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

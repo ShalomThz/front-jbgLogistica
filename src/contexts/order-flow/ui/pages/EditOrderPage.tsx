@@ -29,17 +29,18 @@ export const EditOrderPage = () => {
     return <NewPartnerOrderPage initialValues={mapOrderToPartnerFormValues(order)} orderId={order.id} storeName={order.store.name} />;
   }
 
-  const partnerPrice = order.type === "PARTNER" && order.status === "PENDING_HQ_PROCESS"
-    ? order.financials.totalPrice
-    : undefined;
-
   const isFromPartner = order.type === "PARTNER";
+  const isPendingHQ = isFromPartner && order.status === "PENDING_HQ_PROCESS";
+
+  const partnerPrice = isPendingHQ ? order.financials.totalPrice : undefined;
+  const partnerCostBreakdown = isPendingHQ ? order.financials.costBreakdown : undefined;
 
   return (
     <NewHQOrderPage
       initialValues={mapOrderToHQFormValues(order)}
       orderId={order.id}
       partnerPrice={partnerPrice}
+      partnerCostBreakdown={partnerCostBreakdown}
       storeName={isFromPartner ? order.store.name : undefined}
       partnerOrderNumber={isFromPartner ? order.references.partnerOrderNumber ?? undefined : undefined}
     />
