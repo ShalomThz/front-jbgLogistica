@@ -4,10 +4,10 @@ import { FormProvider } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { usePartnerOrderFlow } from "../hooks/partner/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
-import { PartnerContactStep } from "../components/contact/PartnerContactStep";
-import { PartnerPackageStep } from "../components/package/PartnerPackageStep";
-import { PartnerPricingStep } from "../components/partner/PartnerPricingStep";
-import { StepIndicator } from "../components/StepIndicator";
+import { PartnerContactStep } from "../components/partner/contact/PartnerContactStep";
+import { PartnerPackageStep } from "../components/partner/package/PartnerPackageStep";
+import { PartnerPricingStep } from "../components/partner/pricing/PartnerPricingStep";
+import { StepIndicator } from "../components/shared/StepIndicator";
 import type { PartnerOrderFormValues } from "../../domain/schemas/NewOrderForm";
 
 interface NewPartnerOrderPageProps {

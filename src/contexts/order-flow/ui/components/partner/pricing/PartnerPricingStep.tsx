@@ -8,7 +8,7 @@ import { PartnerAdditionalCostsCard } from "./PartnerAdditionalCostsCard";
 import { PartnerTariffCard } from "./PartnerTariffCard";
 import { PartnerOrderSummaryCard } from "./PartnerOrderSummaryCard";
 import { PartnerTotalCard } from "./PartnerTotalCard";
-import { SignatureCard } from "../rate/SignatureCard";
+import { SignatureCard } from "../../shared/SignatureCard";
 
 interface PartnerPricingStepProps {
   tariffPrice: MoneyPrimitives | null;

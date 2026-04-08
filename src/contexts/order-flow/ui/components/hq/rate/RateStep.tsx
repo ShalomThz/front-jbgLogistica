@@ -6,11 +6,11 @@ import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import { RateTable } from "./RateTable";
 import { AdditionalCostsCard } from "./AdditionalCostsCard";
-import { SignatureCard } from "./SignatureCard";
+import { SignatureCard } from "../../shared/SignatureCard";
 import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
 import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
 import { OrderTotalCard } from "./OrderTotalCard";
-import { OrderSuccessView } from "../order/OrderSuccessView";
+import { OrderSuccessView } from "../../order/OrderSuccessView";
 
 interface RateStepProps {
   rates: RatePrimitives[];

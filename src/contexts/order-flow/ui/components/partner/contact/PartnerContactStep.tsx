@@ -15,7 +15,7 @@ import {
 import { Controller, useFormContext } from "react-hook-form";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
-import { ContactColumn } from "./ContactColumn";
+import { ContactColumn } from "../../shared/ContactColumn";
 
 interface PartnerContactStepProps {
   stores?: Pick<StorePrimitives, "id" | "name">[];

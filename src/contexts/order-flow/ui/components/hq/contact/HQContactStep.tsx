@@ -1,4 +1,4 @@
-import { ContactColumn } from "./ContactColumn";
+import { ContactColumn } from "../../shared/ContactColumn";
 import { OrderReferencesCard } from "./OrderReferencesCard";
 
 export function HQContactStep() {
