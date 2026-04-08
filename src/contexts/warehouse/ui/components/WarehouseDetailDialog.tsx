@@ -106,7 +106,7 @@ export const WarehouseDetailDialog = ({
           if (!v) onClose();
         }}
       >
-        <DialogContent className="sm:max-w-lg pt-8">
+        <DialogContent className="sm:max-w-2xl pt-8">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">

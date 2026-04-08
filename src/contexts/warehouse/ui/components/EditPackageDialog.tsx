@@ -264,7 +264,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Paquete</DialogTitle>
           <DialogDescription>
