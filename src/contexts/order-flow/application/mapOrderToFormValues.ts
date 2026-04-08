@@ -41,6 +41,13 @@ const mapCostBreakdown = (order: OrderListView) => {
   };
 };
 
+const inferCostBreakdownCurrency = (order: OrderListView): string => {
+  const cb = order.financials.costBreakdown;
+  const fields = [cb.insurance, cb.tools, cb.additionalCost, cb.wrap, cb.tape];
+  const firstWithCurrency = fields.find((f) => f?.currency);
+  return firstWithCurrency?.currency ?? hqOrderDefaultValues.shippingService.costBreakdownCurrency;
+};
+
 const mapBaseFields = (order: OrderListView) => ({
   orderData: {
     orderNumber: order.references.orderNumber ?? "",
@@ -52,6 +59,7 @@ const mapBaseFields = (order: OrderListView) => ({
   customerSignature: order.customerSignature ?? null,
   shippingService: {
     ...hqOrderDefaultValues.shippingService,
+    costBreakdownCurrency: inferCostBreakdownCurrency(order),
     costBreakdown: mapCostBreakdown(order),
   },
 });

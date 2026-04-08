@@ -51,6 +51,7 @@ export const baseOrderFormSchema = z.object({
   customerSignature: z.string().nullable(),
   shippingService: z.object({
     currency: z.string(),
+    costBreakdownCurrency: z.string(),
     costBreakdown: costBreakdownSchema,
   }),
 });

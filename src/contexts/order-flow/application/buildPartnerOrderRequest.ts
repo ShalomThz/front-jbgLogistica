@@ -13,7 +13,7 @@ export const buildPartnerOrderRequest = (formValues: PartnerOrderFormValues, sto
 
   const pkg = formValues.package;
   const cb = formValues.shippingService.costBreakdown;
-  const currency = formValues.shippingService.currency;
+  const currency = formValues.shippingService.costBreakdownCurrency;
 
   const costBreakdown = {
     insurance: parseMoney(cb.insurance, currency),

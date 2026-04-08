@@ -31,6 +31,7 @@ const baseDefaults = {
   customerSignature: null,
   shippingService: {
     currency: "USD",
+    costBreakdownCurrency: "USD",
     costBreakdown: {
       insurance: "",
       tools: "",

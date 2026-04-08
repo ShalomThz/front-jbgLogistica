@@ -33,7 +33,7 @@ import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxe
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { useOrderFilters } from "../hooks/orders/useOrderFilters";
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
-import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
+import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 

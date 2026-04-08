@@ -1,6 +1,7 @@
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import { ExternalLink } from "lucide-react";
+import { FinalPriceRow } from "./FinalPriceRow";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -9,12 +10,6 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="col-span-2 text-sm">{value}</span>
     </div>
   );
-}
-
-function sumMoney(...amounts: (MoneyPrimitives | undefined | null)[]): MoneyPrimitives {
-  const totalAmount = amounts.reduce((sum, money) => sum + (money?.amount ?? 0), 0);
-  const currency = amounts.find((money) => money?.currency)?.currency || "USD";
-  return { amount: totalAmount, currency };
 }
 
 function formatMoney(money: MoneyPrimitives) {
@@ -115,21 +110,7 @@ export const OrderShipmentSection = ({
       )}
 
       {finalPrice && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Precio final</h4>
-          <div className="rounded-md border p-3">
-            <DetailRow label="Total" value={formatMoney(
-              sumMoney(
-                finalPrice,
-                costBreakdown?.additionalCost,
-                costBreakdown?.insurance,
-                costBreakdown?.tape,
-                costBreakdown?.wrap,
-                costBreakdown?.tools,
-              )
-            )} />
-          </div>
-        </div>
+        <FinalPriceRow finalPrice={finalPrice} costBreakdown={costBreakdown} />
       )}
     </div>
   );
