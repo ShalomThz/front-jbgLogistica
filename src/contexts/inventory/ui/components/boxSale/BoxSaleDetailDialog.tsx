@@ -1,11 +1,14 @@
 import {
+  Button,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   Separator,
 } from "@contexts/shared/shadcn";
+import { Download, Printer } from "lucide-react";
 import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
 
 interface Props {
@@ -14,9 +17,13 @@ interface Props {
   onClose: () => void;
   boxNames?: Record<string, string>;
   userNames?: Record<string, string>;
+  onDownloadReceipt?: (saleId: string) => void;
+  isDownloadingReceipt?: boolean;
+  onPrintReceipt?: (saleId: string) => void;
+  isPrintingReceipt?: boolean;
 }
 
-export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNames = {} }: Props) => {
+export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNames = {}, onDownloadReceipt, isDownloadingReceipt, onPrintReceipt, isPrintingReceipt }: Props) => {
   if (!sale) return null;
 
   return (
@@ -64,6 +71,32 @@ export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNa
         <div className="text-xs text-muted-foreground">
           Vendido por: {userNames[sale.soldBy] ?? sale.soldBy}
         </div>
+        {(onDownloadReceipt || onPrintReceipt) && (
+          <DialogFooter>
+            {onPrintReceipt && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPrintReceipt(sale.id)}
+                disabled={isPrintingReceipt}
+              >
+                <Printer className="mr-1.5 size-4" />
+                {isPrintingReceipt ? "Preparando..." : "Imprimir"}
+              </Button>
+            )}
+            {onDownloadReceipt && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onDownloadReceipt(sale.id)}
+                disabled={isDownloadingReceipt}
+              >
+                <Download className="mr-1.5 size-4" />
+                {isDownloadingReceipt ? "Generando..." : "Descargar recibo"}
+              </Button>
+            )}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

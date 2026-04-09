@@ -3,7 +3,7 @@ import { boxSaleSchema } from "@contexts/inventory/domain/schemas/boxSale/BoxSal
 import type { SellBoxRequestPrimitives } from "@contexts/inventory/application/SellBoxRequest";
 import type { FindBoxSalesResponsePrimitives } from "@contexts/inventory/application/FindBoxSalesResponse";
 import { findBoxSalesResponseSchema } from "@contexts/inventory/application/FindBoxSalesResponse";
-import { httpClient } from "@contexts/shared/infrastructure/http";
+import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http";
 
 export const boxSaleRepository = {
   sell: async (request: SellBoxRequestPrimitives): Promise<BoxSalePrimitives> => {
@@ -22,5 +22,9 @@ export const boxSaleRepository = {
       body: JSON.stringify({ filters: [], ...request }),
     });
     return findBoxSalesResponseSchema.parse(data);
+  },
+
+  getReceipt: async (saleId: string): Promise<Blob> => {
+    return httpClientBlob(`/box-sale/${saleId}/receipt`);
   },
 };

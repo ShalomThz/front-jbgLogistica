@@ -72,6 +72,10 @@ export const BoxPage = () => {
     pagination: salesPagination,
     totalPages: salesTotalPages,
     isLoading: salesLoading,
+    downloadReceipt,
+    isDownloadingReceipt,
+    printReceipt,
+    isPrintingReceipt,
   } = useBoxSales({ page: salesPage, limit: salesLimit, enabled: activeTab === "sales" });
 
   const { users } = useUsers({ limit: 100 });
@@ -484,7 +488,7 @@ export const BoxPage = () => {
       <BoxFormDialog open={!!editBox} onClose={() => setEditBox(null)} onSave={handleUpdate} box={editBox} isLoading={isUpdating} />
       <BoxDeleteDialog box={deleteBoxDialog} open={!!deleteBoxDialog} onClose={() => setDeleteBoxDialog(null)} onConfirm={handleDelete} isLoading={isDeleting} />
       <BoxStockDialog box={stockBox} operation={stockOperation} open={!!stockBox} onClose={closeStockDialog} onConfirm={handleStockConfirm} />
-      <BoxSaleDetailDialog sale={selectedSale} open={!!selectedSale} onClose={() => setSelectedSale(null)} boxNames={boxNames} userNames={userNames} />
+      <BoxSaleDetailDialog sale={selectedSale} open={!!selectedSale} onClose={() => setSelectedSale(null)} boxNames={boxNames} userNames={userNames} onDownloadReceipt={downloadReceipt} isDownloadingReceipt={isDownloadingReceipt} onPrintReceipt={printReceipt} isPrintingReceipt={isPrintingReceipt} />
     </div>
   );
 };
