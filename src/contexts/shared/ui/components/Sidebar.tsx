@@ -54,7 +54,7 @@ const navigation: NavSection[] = [
   {
     title: 'Inventario',
     items: [
-      { label: 'Cajas', href: '/boxes', icon: Package, policy: boxPolicies.manage },
+      { label: 'Inventario de Cajas', href: '/boxes', icon: Package, policy: boxPolicies.manage },
       { label: 'Venta de Cajas', href: '/box-sales', icon: Receipt, policy: boxPolicies.sell },
     ],
   },

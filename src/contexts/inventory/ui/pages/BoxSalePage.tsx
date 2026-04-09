@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
-import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { BoxSaleSuccessDialog } from "../components/boxSale/BoxSaleSuccessDialog";
+import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -17,16 +19,35 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
 } from "@contexts/shared/shadcn";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
+import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+
+const LIMIT_OPTIONS = [10, 20, 50];
 
 interface CartItem {
   box: BoxPrimitives;
   quantity: number;
+}
+
+interface StockInfo {
+  boxId: string;
+  name: string;
+  dimensions: string;
+  soldQuantity: number;
+  previousStock: number;
+  remainingStock: number;
 }
 
 export const BoxSalePage = () => {
@@ -35,17 +56,49 @@ export const BoxSalePage = () => {
   const [displayCurrency, setDisplayCurrency] = useState("MXN");
   const [exchangeRate, setExchangeRate] = useState(20);
 
+  const [salesPage, setSalesPage] = useState(1);
+  const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
+
   const { boxes, isLoading } = useBoxes();
-  const { sellBox, isSelling } = useBoxSales({ enabled: false });
+  const {
+    sellBox,
+    isSelling,
+    sales,
+    pagination: salesPagination,
+    totalPages: salesTotalPages,
+    isLoading: salesLoading,
+    downloadReceipt,
+    isDownloadingReceipt,
+    printReceipt,
+    isPrintingReceipt,
+  } = useBoxSales({ page: salesPage, limit: salesLimit });
   const { user } = useAuth();
+  const { users } = useUsers();
+
+  const boxNames = useMemo(
+    () => Object.fromEntries(boxes.map((b) => [b.id, b.name])),
+    [boxes],
+  );
+  const userNames = useMemo(
+    () => Object.fromEntries(users.map((u) => [u.id, u.name])),
+    [users],
+  );
+
+  const [completedSale, setCompletedSale] = useState<BoxSalePrimitives | null>(null);
+  const [saleStockInfo, setSaleStockInfo] = useState<StockInfo[]>([]);
+  const [selectedSale, setSelectedSale] = useState<BoxSalePrimitives | null>(null);
 
   const filtered = useMemo(
     () =>
-      boxes.filter(
-        (b) =>
-          searchQuery === "" ||
-          b.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
+      boxes.filter((b) => {
+        if (searchQuery === "") return true;
+        const q = searchQuery.toLowerCase();
+        const dims = `${b.dimensions.length} × ${b.dimensions.width} × ${b.dimensions.height} ${UNIT_SHORT_LABELS[b.dimensions.unit]}`;
+        return (
+          b.name.toLowerCase().includes(q) ||
+          dims.toLowerCase().includes(q)
+        );
+      }),
     [boxes, searchQuery],
   );
 
@@ -93,8 +146,20 @@ export const BoxSalePage = () => {
   const handleConfirmSale = async () => {
     if (!user || cartItems.length === 0) return;
 
+    const stockSnapshot: StockInfo[] = cartItems.map((item) => {
+      const d = item.box.dimensions;
+      return {
+        boxId: item.box.id,
+        name: item.box.name,
+        dimensions: `${d.length} × ${d.width} × ${d.height} ${UNIT_SHORT_LABELS[d.unit]}`,
+        soldQuantity: item.quantity,
+        previousStock: item.box.stock,
+        remainingStock: item.box.stock - item.quantity,
+      };
+    });
+
     try {
-      await sellBox({
+      const sale = await sellBox({
         items: cartItems.map((item) => ({
           boxId: item.box.id,
           quantity: item.quantity,
@@ -103,11 +168,17 @@ export const BoxSalePage = () => {
         soldBy: user.id,
       });
       setCart(new Map());
-      toast.success("Venta registrada exitosamente");
+      setSaleStockInfo(stockSnapshot);
+      setCompletedSale(sale);
     } catch {
       toast.error("Error al registrar la venta");
     }
   };
+
+  const handleCloseSuccess = useCallback(() => {
+    setCompletedSale(null);
+    setSaleStockInfo([]);
+  }, []);
 
   if (isLoading) {
     return <PageLoader text="Cargando cajas..." />;
@@ -313,6 +384,128 @@ export const BoxSalePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Sales history */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Historial de Ventas</h2>
+          <Select
+            value={String(salesLimit)}
+            onValueChange={(v) => {
+              setSalesLimit(Number(v));
+              setSalesPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LIMIT_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)}>
+                  {opt} por página
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Folio</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="hidden sm:table-cell">Vendedor</TableHead>
+                <TableHead className="text-center">Items</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {salesLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-48 text-center">
+                    <p className="text-muted-foreground">Cargando ventas...</p>
+                  </TableCell>
+                </TableRow>
+              ) : sales.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-48 text-center">
+                    <p className="text-muted-foreground">No hay ventas registradas.</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sales.map((sale) => (
+                  <TableRow key={sale.id} className="cursor-pointer" onClick={() => setSelectedSale(sale)}>
+                    <TableCell className="font-mono text-xs">
+                      {sale.id.slice(0, 8).toUpperCase()}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(sale.createdAt).toLocaleString("es-MX")}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm">
+                      {userNames[sale.soldBy] ?? sale.soldBy.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="text-center">{sale.items.length}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${sale.totalAmount.amount.toFixed(2)} {sale.totalAmount.currency}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {salesPagination && salesPagination.total > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {salesPagination.offset + 1}-{salesPagination.offset + sales.length} de {salesPagination.total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSalesPage((p) => p - 1)}
+                disabled={salesPage <= 1}
+              >
+                <ChevronLeft className="size-4" />
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {salesPage} / {salesTotalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSalesPage((p) => p + 1)}
+                disabled={!salesPagination.hasMore}
+              >
+                Siguiente
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <BoxSaleDetailDialog
+        sale={selectedSale}
+        open={!!selectedSale}
+        onClose={() => setSelectedSale(null)}
+        boxNames={boxNames}
+        userNames={userNames}
+        onDownloadReceipt={downloadReceipt}
+        isDownloadingReceipt={isDownloadingReceipt}
+        onPrintReceipt={printReceipt}
+        isPrintingReceipt={isPrintingReceipt}
+      />
+
+      <BoxSaleSuccessDialog
+        sale={completedSale}
+        stockInfo={saleStockInfo}
+        open={!!completedSale}
+        onClose={handleCloseSuccess}
+        onPrintReceipt={printReceipt}
+        isPrintingReceipt={isPrintingReceipt}
+      />
     </div>
   );
 };
