@@ -21,6 +21,10 @@ import {
   TableHead,
   TableRow,
   TableCell,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from "@contexts/shared/shadcn";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
@@ -36,6 +40,7 @@ import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
+import { OrderReport } from "../components/order/OrderReport";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -172,6 +177,13 @@ export const OrdersPage = () => {
         </div>
       </div>
 
+      <Tabs defaultValue="orders">
+        <TabsList>
+          <TabsTrigger value="orders">Ordenes</TabsTrigger>
+          <TabsTrigger value="reports">Reportes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-4">
       <OrderFilters
         filters={filters}
         options={options}
@@ -347,6 +359,13 @@ export const OrdersPage = () => {
           </div>
         </div>
       )}
+
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <OrderReport orders={orders} />
+        </TabsContent>
+      </Tabs>
 
       <OrderDetailDialog
         order={selectedOrder}
