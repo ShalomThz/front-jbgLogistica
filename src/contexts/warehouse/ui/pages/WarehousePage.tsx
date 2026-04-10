@@ -38,6 +38,7 @@ import { EditPackageDialog } from "../components/EditPackageDialog";
 import { WarehouseDeleteDialog } from "../components/WarehouseDeleteDialog";
 import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
 import { WarehouseFilters } from "../components/WarehouseFilters";
+import { exportWarehousePackages } from "@contexts/warehouse/domain/services/exportWarehousePackages";
 import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -290,6 +291,7 @@ export const WarehousePage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
+        onExport={() => exportWarehousePackages(filtered)}
       />
 
       {/* ── Table ── */}

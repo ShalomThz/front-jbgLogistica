@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { BoxSaleSuccessDialog } from "../components/boxSale/BoxSaleSuccessDialog";
 import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
@@ -26,6 +26,7 @@ import {
   TableRow,
   TableCell,
 } from "@contexts/shared/shadcn";
+import { exportBoxSales } from "@contexts/inventory/domain/services/exportBoxSales";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
@@ -389,6 +390,11 @@ export const BoxSalePage = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Historial de Ventas</h2>
+          <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportBoxSales(sales, boxNames, userNames)}>
+            <Download className="size-4" />
+            Exportar XLSX
+          </Button>
           <Select
             value={String(salesLimit)}
             onValueChange={(v) => {
@@ -407,6 +413,7 @@ export const BoxSalePage = () => {
               ))}
             </SelectContent>
           </Select>
+          </div>
         </div>
         <div className="rounded-lg border">
           <Table>

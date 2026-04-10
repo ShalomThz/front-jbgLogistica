@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Filter, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Download, Filter, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -29,6 +29,7 @@ import { BoxDetailDialog } from "../components/box/BoxDetailDialog";
 import { BoxFormDialog } from "../components/box/BoxFormDialog";
 import { BoxDeleteDialog } from "../components/box/BoxDeleteDialog";
 import { BoxStockDialog } from "../components/box/BoxStockDialog";
+import { exportBoxes } from "@contexts/inventory/domain/services/exportBoxes";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
@@ -262,6 +263,10 @@ export const BoxPage = () => {
                   <Button variant="outline" className="w-full gap-2" onClick={() => { resetFilters(); refetch(); }}>
                     <RefreshCw className="size-4" />
                     Limpiar filtros y actualizar
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => exportBoxes(filtered)}>
+                    <Download className="size-4" />
+                    Exportar XLSX
                   </Button>
                 </div>
               </SheetContent>

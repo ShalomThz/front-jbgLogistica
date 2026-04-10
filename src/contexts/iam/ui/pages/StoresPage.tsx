@@ -14,6 +14,7 @@ import { StoreDetailDialog } from "../components/store/StoreDetailDialog";
 import { StoreFormDialog } from "../components/store/StoreFormDialog";
 import { StoreDeleteDialog } from "../components/store/StoreDeleteDialog";
 import { StoreFilters } from "../components/store/StoreFilters";
+import { exportStores } from "@contexts/iam/domain/services/exportStores";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { useStoreFilters } from "../hooks/useStoreFilters";
 import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
@@ -104,6 +105,7 @@ export const StoresPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
+        onExport={() => exportStores(filtered)}
       />
       <div className="rounded-lg border">
         <Table>

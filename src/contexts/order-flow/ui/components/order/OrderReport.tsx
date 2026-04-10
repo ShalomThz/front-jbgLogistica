@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, DollarSign, Download, FileText, TrendingUp } from "lucide-react";
-import { exportOrderReport } from "./exportOrderReport";
+import { exportOrderReport } from "@contexts/order-flow/domain/services/exportOrderReport";
 import {
   Button,
   Calendar,

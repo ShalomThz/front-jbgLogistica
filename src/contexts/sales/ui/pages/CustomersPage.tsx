@@ -19,6 +19,7 @@ import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
 import { CustomerPortalAccessDialog } from "../components/customer/CustomerPortalAccessDialog";
 import { CustomerFilters } from "../components/customer/CustomerFilters";
+import { exportCustomers } from "@contexts/sales/domain/services/exportCustomers";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
 import { useCustomerFilters } from "../hooks/useCustomerFilters";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
@@ -123,6 +124,7 @@ export const CustomersPage = () => {
           setPage(1);
         }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
+        onExport={() => exportCustomers(filtered)}
       />
 
       <div className="rounded-lg border">

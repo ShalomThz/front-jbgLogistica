@@ -1,4 +1,4 @@
-import { ArrowDownAZ, Clock, Filter, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, Clock, Download, Filter, RefreshCw, Search } from "lucide-react";
 import {
   Button,
   Input,
@@ -24,6 +24,7 @@ interface StoreFiltersProps {
   setFilter: <K extends keyof StoreFiltersState>(key: K, value: StoreFiltersState[K]) => void;
   onLimitChange: (value: number) => void;
   onResetAndRefetch: () => void;
+  onExport?: () => void;
 }
 
 const countActiveFilters = (filters: StoreFiltersState): number =>
@@ -40,6 +41,7 @@ export const StoreFilters = ({
   setFilter,
   onLimitChange,
   onResetAndRefetch,
+  onExport,
 }: StoreFiltersProps) => {
   const activeCount = countActiveFilters(filters);
 
@@ -143,6 +145,12 @@ export const StoreFilters = ({
               <RefreshCw className="size-4" />
               Limpiar filtros y actualizar
             </Button>
+            {onExport && (
+              <Button variant="outline" className="w-full gap-2" onClick={onExport}>
+                <Download className="size-4" />
+                Exportar XLSX
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>

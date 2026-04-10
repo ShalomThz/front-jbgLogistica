@@ -17,6 +17,7 @@ import { CreateUserDialog } from "../components/user/CreateUserDialog";
 import { EditUserDialog } from "../components/user/EditUserDialog";
 import { UserDeleteDialog } from "../components/user/UserDeleteDialog";
 import { UserFilters } from "../components/user/UserFilters";
+import { exportUsers } from "@contexts/iam/domain/services/exportUsers";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import { useUserFilters } from "../hooks/useUserFilters";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
@@ -127,6 +128,7 @@ export const UsersPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
+        onExport={() => exportUsers(filtered)}
       />
       <div className="rounded-lg border">
         <Table>

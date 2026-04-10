@@ -14,6 +14,7 @@ import { TariffDetailDialog } from "../components/tariff/TariffDetailDialog";
 import { TariffFormDialog } from "../components/tariff/TariffFormDialog";
 import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
 import { TariffFilters } from "../components/tariff/TariffFilters";
+import { exportTariffs } from "@contexts/pricing/domain/services/exportTariffs";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
 import { useTariffFilters } from "../hooks/useTariffFilters";
 import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
@@ -111,6 +112,7 @@ export const TariffsPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
+        onExport={() => exportTariffs(filtered)}
       />
       <div className="rounded-lg border">
         <Table>

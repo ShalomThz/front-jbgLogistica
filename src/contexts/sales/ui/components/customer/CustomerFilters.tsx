@@ -1,4 +1,4 @@
-import { ArrowDownAZ, CalendarDays, Clock, Filter, KeyRound, MapPin, RefreshCw, Search, Store } from "lucide-react";
+import { ArrowDownAZ, CalendarDays, Clock, Download, Filter, KeyRound, MapPin, RefreshCw, Search, Store } from "lucide-react";
 import {
   Button,
   Calendar,
@@ -30,6 +30,7 @@ interface CustomerFiltersProps {
   setFilter: <K extends keyof CustomerFiltersState>(key: K, value: CustomerFiltersState[K]) => void;
   onLimitChange: (value: number) => void;
   onResetAndRefetch: () => void;
+  onExport?: () => void;
 }
 
 function formatDate(date: Date): string {
@@ -112,6 +113,7 @@ export const CustomerFilters = ({
   setFilter,
   onLimitChange,
   onResetAndRefetch,
+  onExport,
 }: CustomerFiltersProps) => {
   const activeCount = countActiveFilters(filters, showStoreFilter);
 
@@ -311,6 +313,12 @@ export const CustomerFilters = ({
               <RefreshCw className="size-4" />
               Limpiar filtros y actualizar
             </Button>
+            {onExport && (
+              <Button variant="outline" className="w-full gap-2" onClick={onExport}>
+                <Download className="size-4" />
+                Exportar XLSX
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>
