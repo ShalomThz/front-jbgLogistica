@@ -13,7 +13,7 @@ export const editOrderRequestSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }).optional(),
-  references: orderReferencesSchema.optional(),
+  references: orderReferencesSchema.partial().optional(),
   package: packageSchema.optional(),
   pickupAtAddress: z.boolean().optional(),
   customerSignature: z.string().nullish(),
