@@ -21,16 +21,17 @@ const STEPS: { key: PartnerOrderStep; label: string }[] = [
 interface UsePartnerOrderFlowOptions {
   initialValues?: PartnerOrderFormValues;
   orderId?: string;
+  storeId?: string;
 }
 
-export const usePartnerOrderFlow = ({ initialValues, orderId }: UsePartnerOrderFlowOptions = {}) => {
+export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePartnerOrderFlowOptions = {}) => {
   const [step, setStep] = useState<PartnerOrderStep>("contact");
   const { user } = useAuth();
 
   // TODO: cambiar a CAN_SELECT_STORE cuando se cree el permiso
   const canSelectStore = user ? orderPolicies.createHQ(user) : false;
 
-  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(user?.storeId);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
 
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;

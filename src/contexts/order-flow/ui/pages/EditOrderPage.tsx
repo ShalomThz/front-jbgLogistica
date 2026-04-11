@@ -26,7 +26,7 @@ export const EditOrderPage = () => {
   }
 
   if (order.type === "PARTNER" && mode !== "complete") {
-    return <NewPartnerOrderPage initialValues={mapOrderToPartnerFormValues(order)} orderId={order.id} storeName={order.store.name} />;
+    return <NewPartnerOrderPage initialValues={mapOrderToPartnerFormValues(order)} orderId={order.id} storeName={order.store.name} storeId={order.store.id} />;
   }
 
   const isFromPartner = order.type === "PARTNER";

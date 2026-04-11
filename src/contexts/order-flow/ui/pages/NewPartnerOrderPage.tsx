@@ -14,11 +14,12 @@ interface NewPartnerOrderPageProps {
   initialValues?: PartnerOrderFormValues;
   orderId?: string;
   storeName?: string;
+  storeId?: string;
 }
 
-export const NewPartnerOrderPage = ({ initialValues, orderId, storeName }: NewPartnerOrderPageProps = {}) => {
+export const NewPartnerOrderPage = ({ initialValues, orderId, storeName, storeId }: NewPartnerOrderPageProps = {}) => {
   const navigate = useNavigate();
-  const flow = usePartnerOrderFlow({ initialValues, orderId });
+  const flow = usePartnerOrderFlow({ initialValues, orderId, storeId });
   const { stores } = useStores({ limit: 100 });
 
   const title = (() => {
