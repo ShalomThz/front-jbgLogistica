@@ -26,6 +26,7 @@ interface UseHQOrderSubmissionOptions {
   initialOrderId?: string;
   boxes: BoxPrimitives[];
   updateBox: (id: string, data: UpdateBoxRequest) => Promise<BoxPrimitives>;
+  storeId?: string;
 }
 
 export const useHQOrderSubmission = ({
@@ -35,6 +36,7 @@ export const useHQOrderSubmission = ({
   initialOrderId,
   boxes,
   updateBox,
+  storeId,
 }: UseHQOrderSubmissionOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -73,7 +75,7 @@ export const useHQOrderSubmission = ({
     if (orderId) {
       try {
         setShipmentId(null);
-        const request = buildEditOrderRequest(form.getValues());
+        const request = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, request);
         const shipment = await findByOrderId(orderId);
         if (!shipment) {
@@ -95,7 +97,7 @@ export const useHQOrderSubmission = ({
         return;
       }
       try {
-        const request = buildHQOrderRequest(form.getValues(), user.storeId);
+        const request = buildHQOrderRequest(form.getValues(), storeId ?? user.storeId);
         const order = await createHQOrder(request);
         setOrderId(order.id);
         const shipment = await findByOrderId(order.id);
@@ -124,7 +126,7 @@ export const useHQOrderSubmission = ({
 
       // Then if we have an orderId, update the order to save the signature
       if (orderId) {
-        const orderRequest = buildEditOrderRequest(form.getValues());
+        const orderRequest = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, orderRequest);
       }
 

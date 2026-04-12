@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { useHQOrderFlowForm, type HQOrderStep } from "./useHQOrderFlowForm";
 import { useContactSave } from "../shared/useContactSave";
 import { useBoxOperations } from "../shared/useBoxOperations";
@@ -16,16 +18,21 @@ const STEPS: { key: HQOrderStep; label: string }[] = [
 interface UseHQOrderFlowOptions {
   initialValues?: HQOrderFormValues;
   orderId?: string;
+  storeId?: string;
 }
 
-export const useHQOrderFlow = ({ initialValues, orderId }: UseHQOrderFlowOptions = {}) => {
+export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFlowOptions = {}) => {
   const [step, setStep] = useState<HQOrderStep>("contact");
+  const { user } = useAuth();
+
+  const canSelectStore = user ? orderPolicies.createHQ(user) : false;
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
 
   const { form, validateStep } = useHQOrderFlowForm({ initialValues });
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
   const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
-  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox });
+  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox, storeId: selectedStoreId });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -80,5 +87,8 @@ export const useHQOrderFlow = ({ initialValues, orderId }: UseHQOrderFlowOptions
     isSelectingProvider: submission.isSelectingProvider,
     fulfilledShipment: submission.fulfilledShipment,
     invoiceId: submission.invoiceId,
+    canSelectStore,
+    selectedStoreId,
+    setSelectedStoreId,
   };
 };

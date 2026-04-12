@@ -43,6 +43,7 @@ export const EditOrderPage = () => {
       partnerCostBreakdown={partnerCostBreakdown}
       storeName={isFromPartner ? order.store.name : undefined}
       partnerOrderNumber={isFromPartner ? order.references.partnerOrderNumber ?? undefined : undefined}
+      storeId={order.store.id}
     />
   );
 };

@@ -6,11 +6,23 @@ import {
   Checkbox,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@contexts/shared/shadcn";
 import { Controller, useFormContext } from "react-hook-form";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 
-export function OrderReferencesCard() {
+interface OrderReferencesCardProps {
+  stores?: Pick<StorePrimitives, "id" | "name">[];
+  selectedStoreId?: string;
+  onStoreChange?: (storeId: string) => void;
+}
+
+export function OrderReferencesCard({ stores, selectedStoreId, onStoreChange }: OrderReferencesCardProps = {}) {
   const { register, control, clearErrors, formState: { errors } } = useFormContext<BaseOrderFormValues>();
 
   return (
@@ -19,6 +31,23 @@ export function OrderReferencesCard() {
         <CardTitle className="text-base">Información de la Orden</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
+        {stores && onStoreChange && (
+          <div className="space-y-1">
+            <Label htmlFor="store-select">Tienda *</Label>
+            <Select value={selectedStoreId} onValueChange={onStoreChange}>
+              <SelectTrigger id="store-select" className="w-full">
+                <SelectValue placeholder="Selecciona una tienda" />
+              </SelectTrigger>
+              <SelectContent>
+                {stores.map((store) => (
+                  <SelectItem key={store.id} value={store.id}>
+                    {store.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label htmlFor="order-number">Factura jbg*</Label>

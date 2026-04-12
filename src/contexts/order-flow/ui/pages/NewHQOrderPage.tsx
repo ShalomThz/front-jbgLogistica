@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { HQContactStep } from "../components/hq/contact/HQContactStep";
 import { HQPackageStep } from "../components/hq/package/HQPackageStep";
 import { RateStep } from "../components/hq/rate/RateStep";
@@ -19,11 +20,13 @@ interface NewHQOrderPageProps {
   partnerCostBreakdown?: CostBreakdownPrimitives;
   storeName?: string;
   partnerOrderNumber?: string;
+  storeId?: string;
 }
 
-export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber }: NewHQOrderPageProps = {}) => {
+export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber, storeId }: NewHQOrderPageProps = {}) => {
   const navigate = useNavigate();
-  const flow = useHQOrderFlow({ initialValues, orderId });
+  const flow = useHQOrderFlow({ initialValues, orderId, storeId });
+  const { stores } = useStores({ limit: 100 });
 
   const title = (() => {
     const action = flow.isEditing ? "Editar Orden JBG" : "Nueva Orden JBG";
@@ -61,7 +64,15 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCo
 
       {/* Form */}
       <FormProvider {...flow.form}>
-        {flow.step === "contact" && <HQContactStep />}
+        {flow.step === "contact" && (
+          <HQContactStep
+            {...(flow.canSelectStore && {
+              stores,
+              selectedStoreId: flow.selectedStoreId,
+              onStoreChange: flow.setSelectedStoreId,
+            })}
+          />
+        )}
 
         {flow.step === "package" && (
           <HQPackageStep onEditContacts={() => flow.setStep("contact")} />

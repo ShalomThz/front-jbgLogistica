@@ -3,11 +3,12 @@ import type { HQOrderFormValues } from "../domain/schemas/HQOrderForm";
 import type { PartnerOrderFormValues } from "../domain/schemas/PartnerOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
 
-export const buildEditOrderRequest = (formValues: HQOrderFormValues) => {
+export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: string) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
   return editOrderRequestSchema.parse({
+    storeId,
     references: {
       orderNumber: formValues.orderData.orderNumber || null,
       partnerOrderNumber: formValues.orderData.partnerOrderNumber || null,
@@ -20,11 +21,12 @@ export const buildEditOrderRequest = (formValues: HQOrderFormValues) => {
   });
 };
 
-export const buildPartnerEditOrderRequest = (formValues: PartnerOrderFormValues) => {
+export const buildPartnerEditOrderRequest = (formValues: PartnerOrderFormValues, storeId?: string) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
   return editOrderRequestSchema.parse({
+    storeId,
     references: {
       partnerOrderNumber: formValues.orderData.partnerOrderNumber || null,
     },
