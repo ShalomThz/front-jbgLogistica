@@ -10,6 +10,10 @@ import {
 import type { GetShipmentRatesRequest } from "../../../application/shipment/GetshipmentRatesRequest";
 import type { SelectShipmentProviderRequest } from "../../../application/shipment/GetshipmentProviderRequest";
 import { rateSchema, type RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
+import {
+  DEFAULT_LABEL_VARIANT,
+  type LabelVariant,
+} from "../../../domain/schemas/value-objects/LabelVariant";
 import { z } from "zod";
 
 export const shipmentRepository = {
@@ -71,8 +75,13 @@ export const shipmentRepository = {
     return shipmentSchema.parse(data);
   },
 
-  getLabel: async (shipmentId: string): Promise<Blob> => {
-    return httpClientBlob(`/shipment/${shipmentId}/label`);
+  getLabel: async (
+    shipmentId: string,
+    variant: LabelVariant = DEFAULT_LABEL_VARIANT,
+  ): Promise<Blob> => {
+    return httpClientBlob(
+      `/shipment/${shipmentId}/label?variant=${variant}`,
+    );
   },
 
   cancel: async (shipmentId: string): Promise<void> => {

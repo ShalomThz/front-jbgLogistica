@@ -4,6 +4,7 @@ import {
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import {
   Button,
@@ -16,6 +17,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Tabs,
   TabsContent,
@@ -122,7 +125,7 @@ export const OrderDetailDialog = ({
     }
   };
 
-  const downloadLabel = async () => {
+  const downloadLabel = async (variant: LabelVariant) => {
     if (!shipment?.label) return;
     if (!shipment.label.documentUrl.startsWith("/")) {
       window.open(shipment.label.documentUrl, "_blank");
@@ -130,11 +133,11 @@ export const OrderDetailDialog = ({
     }
     setIsDownloadingLabel(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id);
+      const blob = await shipmentRepository.getLabel(shipment.id, variant);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `etiqueta-${order.id}.pdf`;
+      a.download = `etiqueta-${order.id}-${variant}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -155,7 +158,7 @@ export const OrderDetailDialog = ({
     }
   };
 
-  const printLabel = async () => {
+  const printLabel = async (variant: LabelVariant) => {
     if (!shipment?.label) return;
     if (!shipment.label.documentUrl.startsWith("/")) {
       const printWindow = window.open(shipment.label.documentUrl, "_blank");
@@ -164,7 +167,7 @@ export const OrderDetailDialog = ({
     }
     setIsDownloadingLabel(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id);
+      const blob = await shipmentRepository.getLabel(shipment.id, variant);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());
@@ -377,11 +380,38 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={downloadLabel}>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  JBG Cargo
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                  onClick={() => downloadLabel("cargo")}
+                >
                   <Download className="size-4" />
                   Descargar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={printLabel}>
+                <DropdownMenuItem
+                  className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                  onClick={() => printLabel("cargo")}
+                >
+                  <Printer className="size-4" />
+                  Imprimir
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  JBG Agente
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
+                  onClick={() => downloadLabel("agente")}
+                >
+                  <Download className="size-4" />
+                  Descargar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
+                  onClick={() => printLabel("agente")}
+                >
                   <Printer className="size-4" />
                   Imprimir
                 </DropdownMenuItem>

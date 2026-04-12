@@ -30,6 +30,7 @@ import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderLi
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
+import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
@@ -84,7 +85,10 @@ export const OrdersPage = () => {
   const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
-  const handlePrintLabel = async (order: OrderListView) => {
+  const handlePrintLabel = async (
+    order: OrderListView,
+    variant: LabelVariant,
+  ) => {
     const shipment = order.shipment;
     if (!shipment?.label) return;
     setDownloadingLabel(order.id);
@@ -95,7 +99,7 @@ export const OrdersPage = () => {
         printWindow?.print();
         return;
       }
-      const blob = await shipmentRepository.getLabel(shipment.id);
+      const blob = await shipmentRepository.getLabel(shipment.id, variant);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());
@@ -290,13 +294,24 @@ export const OrdersPage = () => {
                           <>
                             <DropdownMenuSeparator />
                             {order.shipment?.label && (
-                              <DropdownMenuItem
-                                disabled={downloadingLabel === order.id}
-                                onClick={() => handlePrintLabel(order)}
-                              >
-                                <Printer className="size-4" />
-                                Imprimir etiqueta
-                              </DropdownMenuItem>
+                              <>
+                                <DropdownMenuItem
+                                  className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                                  disabled={downloadingLabel === order.id}
+                                  onClick={() => handlePrintLabel(order, "cargo")}
+                                >
+                                  <Printer className="size-4" />
+                                  Imprimir etiqueta JBG Cargo
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
+                                  disabled={downloadingLabel === order.id}
+                                  onClick={() => handlePrintLabel(order, "agente")}
+                                >
+                                  <Printer className="size-4" />
+                                  Imprimir etiqueta JBG Agente
+                                </DropdownMenuItem>
+                              </>
                             )}
                             {order.invoiceId && (
                               <DropdownMenuItem
