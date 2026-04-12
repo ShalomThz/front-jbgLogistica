@@ -11,6 +11,7 @@ export function exportBoxSales(
       Folio: sale.id.slice(0, 8).toUpperCase(),
       Fecha: new Date(sale.createdAt).toLocaleDateString("es-MX"),
       Vendedor: userNames[sale.soldBy] ?? sale.soldBy.slice(0, 8),
+      Cliente: sale.customerName ?? "",
       Producto: boxNames[item.boxId] ?? item.boxId,
       Cantidad: item.quantity,
       "Precio Unitario": item.unitPrice.amount,

@@ -68,8 +68,9 @@ export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNa
             ${sale.totalAmount.amount.toFixed(2)} {sale.totalAmount.currency}
           </span>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Vendido por: {userNames[sale.soldBy] ?? sale.soldBy}
+        <div className="space-y-0.5 text-xs text-muted-foreground">
+          {sale.customerName && <div>Cliente: {sale.customerName}</div>}
+          <div>Vendido por: {userNames[sale.soldBy] ?? sale.soldBy}</div>
         </div>
         {(onDownloadReceipt || onPrintReceipt) && (
           <DialogFooter>

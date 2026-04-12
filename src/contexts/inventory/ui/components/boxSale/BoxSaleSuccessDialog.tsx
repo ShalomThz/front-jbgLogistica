@@ -48,6 +48,12 @@ export const BoxSaleSuccessDialog = ({
           <DialogTitle>Venta registrada</DialogTitle>
           <DialogDescription>
             {new Date(sale.createdAt).toLocaleString("es-MX")}
+            {sale.customerName && (
+              <>
+                <br />
+                Cliente: {sale.customerName}
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 

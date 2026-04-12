@@ -31,6 +31,7 @@ import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxe
 import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
@@ -54,8 +55,13 @@ interface StockInfo {
 export const BoxSalePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<Map<string, CartItem>>(new Map());
+  const [customerName, setCustomerName] = useState("");
   const [displayCurrency, setDisplayCurrency] = useState("MXN");
-  const [exchangeRate, setExchangeRate] = useState(20);
+  const { exchangeRate: liveRate, isLoadingRate } = useExchangeRate({
+    from: "USD",
+    to: "MXN",
+  });
+  const exchangeRate = liveRate?.rate ?? 0;
 
   const [salesPage, setSalesPage] = useState(1);
   const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
@@ -160,15 +166,19 @@ export const BoxSalePage = () => {
     });
 
     try {
+      const trimmedCustomer = customerName.trim();
       const sale = await sellBox({
         items: cartItems.map((item) => ({
           boxId: item.box.id,
           quantity: item.quantity,
         })),
+        currency: displayCurrency,
+        customerName: trimmedCustomer.length > 0 ? trimmedCustomer : undefined,
         storeId: user.storeId,
         soldBy: user.id,
       });
       setCart(new Map());
+      setCustomerName("");
       setSaleStockInfo(stockSnapshot);
       setCompletedSale(sale);
     } catch {
@@ -290,6 +300,18 @@ export const BoxSalePage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="customerName">
+                    Cliente <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </label>
+                  <Input
+                    id="customerName"
+                    placeholder="Nombre del cliente"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Moneda</label>
                   <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
                     <SelectTrigger>
@@ -303,23 +325,11 @@ export const BoxSalePage = () => {
                 </div>
 
                 {needsConversion && (
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">1 USD =</label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={exchangeRate}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          setExchangeRate(isNaN(val) ? 0 : val);
-                        }}
-                        className="h-8 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                      <span className="text-sm text-muted-foreground">MXN</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Recuerda revisar el cambio actual</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Tipo de cambio</span>
+                    <span className="font-mono">
+                      {isLoadingRate ? "Cargando..." : `1 USD = ${exchangeRate.toFixed(2)} MXN`}
+                    </span>
                   </div>
                 )}
 
