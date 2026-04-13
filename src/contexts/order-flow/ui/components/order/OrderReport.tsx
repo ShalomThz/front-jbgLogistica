@@ -11,7 +11,6 @@ import {
   Filter,
   Package,
   RefreshCw,
-  Search,
   Store,
   TrendingUp,
   Truck,
@@ -25,7 +24,6 @@ import {
   CardHeader,
   CardTitle,
   Badge,
-  Input,
   Label,
   Popover,
   PopoverContent,
@@ -45,7 +43,10 @@ import {
   TableCell,
 } from "@contexts/shared/shadcn";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_VARIANT,
+} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderStatuses } from "@contexts/sales/domain/schemas/order/OrderStatuses";
 import { useOrderFilters } from "../../hooks/orders/useOrderFilters";
@@ -152,14 +153,26 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
         const matching = reportOrders.filter((o) => o.status === status);
         acc[status] = {
           count: matching.length,
-          total: matching.reduce((s, o) => s + (o.financials.totalPrice?.amount ?? 0), 0),
+          total: matching.reduce(
+            (s, o) => s + (o.financials.totalPrice?.amount ?? 0),
+            0,
+          ),
         };
         return acc;
       },
       {} as Record<string, { count: number; total: number }>,
     );
 
-    const byStore = new Map<string, { name: string; count: number; total: number; paid: number; unpaid: number }>();
+    const byStore = new Map<
+      string,
+      {
+        name: string;
+        count: number;
+        total: number;
+        paid: number;
+        unpaid: number;
+      }
+    >();
     for (const order of reportOrders) {
       const existing = byStore.get(order.store.id) ?? {
         name: order.store.name,
@@ -204,8 +217,7 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
       filters.dateFilter,
     ].filter((v) => v !== "all").length +
     (filters.nameSort !== "none" ? 1 : 0) +
-    (filters.dateSort !== "desc" ? 1 : 0) +
-    (filters.searchQuery !== "" ? 1 : 0);
+    (filters.dateSort !== "desc" ? 1 : 0);
 
   const activeRing = (v: string, def = "all") =>
     v !== def ? "ring-2 ring-primary/40" : "";
@@ -220,16 +232,7 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
   return (
     <div className="space-y-6">
       {/* Action bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, telefono, ciudad, ID o referencia..."
-            value={filters.searchQuery}
-            onChange={(e) => setFilter("searchQuery", e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button variant="outline" onClick={resetFilters} className="gap-1.5">
           <RefreshCw className="size-4" />
           Limpiar
@@ -272,202 +275,205 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
           </CardTitle>
           {activeFilterCount > 0 && (
             <Badge variant="secondary" className="font-mono">
-              {activeFilterCount} {activeFilterCount === 1 ? "activo" : "activos"}
+              {activeFilterCount}{" "}
+              {activeFilterCount === 1 ? "activo" : "activos"}
             </Badge>
           )}
         </CardHeader>
         <Separator />
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarDays className="size-3.5" />
-            Periodo
-          </Label>
-          <Select
-            value={filters.dateFilter}
-            onValueChange={(v) => setFilter("dateFilter", v as DatePreset)}
-          >
-            <SelectTrigger className={activeRing(filters.dateFilter)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todo</SelectItem>
-              <SelectItem value="today">Hoy</SelectItem>
-              <SelectItem value="week">Ultima semana</SelectItem>
-              <SelectItem value="month">Ultimo mes</SelectItem>
-              <SelectItem value="3months">Ultimos 3 meses</SelectItem>
-              <SelectItem value="custom">Rango personalizado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarDays className="size-3.5" />
+                Periodo
+              </Label>
+              <Select
+                value={filters.dateFilter}
+                onValueChange={(v) => setFilter("dateFilter", v as DatePreset)}
+              >
+                <SelectTrigger className={activeRing(filters.dateFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo</SelectItem>
+                  <SelectItem value="today">Hoy</SelectItem>
+                  <SelectItem value="week">Ultima semana</SelectItem>
+                  <SelectItem value="month">Ultimo mes</SelectItem>
+                  <SelectItem value="3months">Ultimos 3 meses</SelectItem>
+                  <SelectItem value="custom">Rango personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {filters.dateFilter === "custom" && (
-          <>
-            <DatePickerField
-              label="Desde"
-              value={filters.dateFrom}
-              onChange={(v) => setFilter("dateFrom", v)}
-            />
-            <DatePickerField
-              label="Hasta"
-              value={filters.dateTo}
-              onChange={(v) => setFilter("dateTo", v)}
-            />
-          </>
-        )}
+            {filters.dateFilter === "custom" && (
+              <>
+                <DatePickerField
+                  label="Desde"
+                  value={filters.dateFrom}
+                  onChange={(v) => setFilter("dateFrom", v)}
+                />
+                <DatePickerField
+                  label="Hasta"
+                  value={filters.dateTo}
+                  onChange={(v) => setFilter("dateTo", v)}
+                />
+              </>
+            )}
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Filter className="size-3.5" />
-            Estado
-          </Label>
-          <Select
-            value={filters.statusFilter}
-            onValueChange={(v) => setFilter("statusFilter", v)}
-          >
-            <SelectTrigger className={activeRing(filters.statusFilter)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
-              <SelectItem value="COMPLETED">Completada</SelectItem>
-              <SelectItem value="CANCELLED">Cancelada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Filter className="size-3.5" />
+                Estado
+              </Label>
+              <Select
+                value={filters.statusFilter}
+                onValueChange={(v) => setFilter("statusFilter", v)}
+              >
+                <SelectTrigger className={activeRing(filters.statusFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
+                  <SelectItem value="COMPLETED">Completada</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CreditCard className="size-3.5" />
-            Pago
-          </Label>
-          <Select
-            value={filters.paymentFilter}
-            onValueChange={(v) => setFilter("paymentFilter", v)}
-          >
-            <SelectTrigger className={activeRing(filters.paymentFilter)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los pagos</SelectItem>
-              <SelectItem value="paid">Pagados</SelectItem>
-              <SelectItem value="unpaid">No pagados</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CreditCard className="size-3.5" />
+                Pago
+              </Label>
+              <Select
+                value={filters.paymentFilter}
+                onValueChange={(v) => setFilter("paymentFilter", v)}
+              >
+                <SelectTrigger className={activeRing(filters.paymentFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los pagos</SelectItem>
+                  <SelectItem value="paid">Pagados</SelectItem>
+                  <SelectItem value="unpaid">No pagados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Package className="size-3.5" />
-            Cliente
-          </Label>
-          <Select
-            value={filters.customerFilter}
-            onValueChange={(v) => setFilter("customerFilter", v)}
-          >
-            <SelectTrigger className={activeRing(filters.customerFilter)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los clientes</SelectItem>
-              {options.customers.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Package className="size-3.5" />
+                Cliente
+              </Label>
+              <Select
+                value={filters.customerFilter}
+                onValueChange={(v) => setFilter("customerFilter", v)}
+              >
+                <SelectTrigger className={activeRing(filters.customerFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los clientes</SelectItem>
+                  {options.customers.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Truck className="size-3.5" />
-            Proveedor
-          </Label>
-          <Select
-            value={filters.providerFilter}
-            onValueChange={(v) => setFilter("providerFilter", v)}
-          >
-            <SelectTrigger className={activeRing(filters.providerFilter)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los proveedores</SelectItem>
-              {options.providers.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Truck className="size-3.5" />
+                Proveedor
+              </Label>
+              <Select
+                value={filters.providerFilter}
+                onValueChange={(v) => setFilter("providerFilter", v)}
+              >
+                <SelectTrigger className={activeRing(filters.providerFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los proveedores</SelectItem>
+                  {options.providers.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <BoxIcon className="size-3.5" />
-            Caja
-          </Label>
-          <Select
-            value={filters.boxFilter}
-            onValueChange={(v) => setFilter("boxFilter", v)}
-          >
-            <SelectTrigger className={activeRing(filters.boxFilter)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las cajas</SelectItem>
-              {options.boxes.map((box) => (
-                <SelectItem key={box.id} value={box.id}>
-                  {box.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <BoxIcon className="size-3.5" />
+                Caja
+              </Label>
+              <Select
+                value={filters.boxFilter}
+                onValueChange={(v) => setFilter("boxFilter", v)}
+              >
+                <SelectTrigger className={activeRing(filters.boxFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las cajas</SelectItem>
+                  {options.boxes.map((box) => (
+                    <SelectItem key={box.id} value={box.id}>
+                      {box.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <ArrowDownAZ className="size-3.5" />
-            Ordenar por nombre
-          </Label>
-          <Select
-            value={filters.nameSort}
-            onValueChange={(v) => setFilter("nameSort", v as NameSort)}
-          >
-            <SelectTrigger className={activeSortRing(filters.nameSort)}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sin orden</SelectItem>
-              <SelectItem value="asc">A-Z</SelectItem>
-              <SelectItem value="desc">Z-A</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ArrowDownAZ className="size-3.5" />
+                Ordenar por nombre
+              </Label>
+              <Select
+                value={filters.nameSort}
+                onValueChange={(v) => setFilter("nameSort", v as NameSort)}
+              >
+                <SelectTrigger className={activeSortRing(filters.nameSort)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin orden</SelectItem>
+                  <SelectItem value="asc">A-Z</SelectItem>
+                  <SelectItem value="desc">Z-A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="size-3.5" />
-            Ordenar por fecha
-          </Label>
-          <Select
-            value={filters.dateSort}
-            onValueChange={(v) => setFilter("dateSort", v as DateSort)}
-          >
-            <SelectTrigger
-              className={filters.dateSort !== "desc" ? "ring-2 ring-primary/40" : ""}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sin orden</SelectItem>
-              <SelectItem value="desc">Mas reciente</SelectItem>
-              <SelectItem value="asc">Mas antiguo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="size-3.5" />
+                Ordenar por fecha
+              </Label>
+              <Select
+                value={filters.dateSort}
+                onValueChange={(v) => setFilter("dateSort", v as DateSort)}
+              >
+                <SelectTrigger
+                  className={
+                    filters.dateSort !== "desc" ? "ring-2 ring-primary/40" : ""
+                  }
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin orden</SelectItem>
+                  <SelectItem value="desc">Mas reciente</SelectItem>
+                  <SelectItem value="asc">Mas antiguo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -573,7 +579,9 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
                   className="rounded-lg border bg-card p-3 space-y-2 transition-colors hover:bg-accent/30"
                 >
                   <div className="flex items-center justify-between">
-                    <Badge variant={ORDER_STATUS_VARIANT[status as OrderStatus]}>
+                    <Badge
+                      variant={ORDER_STATUS_VARIANT[status as OrderStatus]}
+                    >
                       {ORDER_STATUS_LABELS[status as OrderStatus]}
                     </Badge>
                     <span className="text-xs font-mono text-muted-foreground">
@@ -581,7 +589,9 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <p className="text-2xl font-bold tabular-nums">{data.count}</p>
+                    <p className="text-2xl font-bold tabular-nums">
+                      {data.count}
+                    </p>
                     <p className="text-xs font-mono text-muted-foreground">
                       {fmt(data.total)}
                     </p>
@@ -625,7 +635,9 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
                         : 0;
                     return (
                       <TableRow key={store.name}>
-                        <TableCell className="font-medium">{store.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {store.name}
+                        </TableCell>
                         <TableCell className="text-center tabular-nums">
                           {store.count}
                         </TableCell>
