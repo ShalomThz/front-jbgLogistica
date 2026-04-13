@@ -1,10 +1,11 @@
-import type { UserListViewPrimitives, UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
-import { userListViewSchema, userSchema } from "@contexts/iam/domain/schemas/user/User";
-import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { FindUsersRequestPrimitives } from "@contexts/iam/application/user/FindUsersRequest";
 import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
 import { findUsersResponseSchema } from "@contexts/iam/application/user/FindUsersResponse";
+import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
+import type { UserListViewPrimitives, UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import { userListViewSchema, userSchema } from "@contexts/iam/domain/schemas/user/User";
 import { httpClient } from "@contexts/shared/infrastructure/http";
+import z from "zod";
 import type { EditUserRequest } from "../../../application/user/EditUserRequest";
 
 export const userRepository = {
@@ -25,11 +26,13 @@ export const userRepository = {
 
   create: async (
     user: RegisterUserRequestPrimitives,
-  ): Promise<void> => {
-    await httpClient<unknown>("/user", {
+  ): Promise<{ id: string; token: string }> => {
+    const data = await httpClient<unknown>("/user", {
       method: "POST",
       body: JSON.stringify(user),
     });
+
+    return z.object({ id: z.string(), token: z.string() }).parse(data);
   },
 
   update: async (

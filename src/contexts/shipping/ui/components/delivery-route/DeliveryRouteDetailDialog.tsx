@@ -16,12 +16,14 @@ const STATUS_LABELS: Record<RouteStatus, string> = {
   PLANNED: "Planeada",
   ACTIVE: "Activa",
   COMPLETED: "Completada",
+  CANCELLED: "Cancelada",
 };
 
 const STATUS_VARIANT: Record<RouteStatus, "default" | "secondary" | "outline"> = {
   PLANNED: "outline",
   ACTIVE: "secondary",
   COMPLETED: "default",
+  CANCELLED: "outline",
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -52,7 +54,7 @@ interface Props {
 
 export const DeliveryRouteDetailDialog = ({ route, open, onClose, onEdit, onDelete }: Props) => {
   if (!route) return null;
-  const completedStops = route.stops.filter((s) => s.isCompleted).length;
+  const completedStops = route.stops.filter((s) => s.status === "DELIVERED").length;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg pt-8">
@@ -75,7 +77,7 @@ export const DeliveryRouteDetailDialog = ({ route, open, onClose, onEdit, onDele
               <DetailRow label="Estado" value={STATUS_LABELS[route.status]} />
               <DetailRow label="Paradas" value={`${completedStops}/${route.stops.length} completadas`} />
               {route.finishDate && (
-                <DetailRow label="Fecha fin" value={formatDateTime(route.finishDate.toString())} />
+                <DetailRow label="Fecha fin" value={formatDateTime(route.finishDate)} />
               )}
             </div>
           </div>
@@ -108,12 +110,12 @@ export const DeliveryRouteDetailDialog = ({ route, open, onClose, onEdit, onDele
                 <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
                   {route.stops.map((stop) => (
                     <div key={stop.id} className="p-2 flex items-center gap-2">
-                      <MapPin className={`size-4 ${stop.isCompleted ? "text-green-500" : "text-muted-foreground"}`} />
+                      <MapPin className={`size-4 ${stop.status === "DELIVERED" ? "text-green-500" : "text-muted-foreground"}`} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">#{stop.stopOrder} - {stop.orderId}</p>
+                        <p className="text-sm font-medium truncate">#{stop.stopOrder} - {stop.shipmentId}</p>
                         <p className="text-xs text-muted-foreground truncate">{stop.address.address1}, {stop.address.city}</p>
                       </div>
-                      {stop.isCompleted && <Badge variant="default" className="text-xs">Completada</Badge>}
+                      {stop.status === "DELIVERED" && <Badge variant="default" className="text-xs">Completada</Badge>}
                     </div>
                   ))}
                 </div>

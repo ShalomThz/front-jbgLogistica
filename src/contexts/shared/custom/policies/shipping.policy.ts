@@ -1,4 +1,4 @@
-import { hasAll } from "./Policy";
+import { hasAll, isUserType } from "./Policy";
 
 export const shippingPolicies = {
   manage: hasAll("CAN_LIST_SHIPMENTS"),
@@ -8,4 +8,7 @@ export const shippingPolicies = {
   selectProvider: hasAll("CAN_SELECT_SHIPMENT_PROVIDER"),
   viewLabel: hasAll("CAN_VIEW_SHIPMENT_LABEL"),
   cancel: hasAll("CAN_CANCEL_SHIPMENTS"),
+  manageRoute: hasAll("CAN_LIST_SHIPMENTS"),
+  manageDriver: hasAll("CAN_LIST_SHIPMENTS"),
+  driverRoute: isUserType("EMPLOYEE", "DRIVER"),
 };

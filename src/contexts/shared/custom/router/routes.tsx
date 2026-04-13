@@ -29,6 +29,8 @@ const BoxSalePage = lazy(() => import("@contexts/inventory/ui/pages/BoxSalePage"
 // Shipping
 const DeliveryRoutesPage = lazy(() => import("@contexts/shipping/ui/pages/DeliveryRoutesPage").then(m => ({ default: m.DeliveryRoutesPage })));
 const DriversPage = lazy(() => import("@contexts/shipping/ui/pages/DriversPage").then(m => ({ default: m.DriversPage })));
+const DriverWorkspacePage = lazy(() => import("@contexts/shipping/ui/pages/DriverWorkspacePage").then(m => ({ default: m.DriverWorkspacePage })));
+const PublicTrackingPage = lazy(() => import("@contexts/shipping/ui/pages/PublicTrackingPage").then(m => ({ default: m.PublicTrackingPage })));
 
 // Pricing
 const TariffsPage = lazy(() => import("@contexts/pricing/ui/pages/TariffsPage").then(m => ({ default: m.TariffsPage })));
@@ -132,9 +134,9 @@ export const routes: RouteObject[] = [
 
   // Logística
   {
-    path: "/delivery-routes",
+    path: "/routes",
     element: (
-      <ProtectedRoute policy={shippingPolicies.list}>
+      <ProtectedRoute policy={shippingPolicies.manageRoute}>
         <Suspense fallback={<PageLoader />}>
           <DeliveryRoutesPage />
         </Suspense>
@@ -144,11 +146,29 @@ export const routes: RouteObject[] = [
   {
     path: "/drivers",
     element: (
-      <ProtectedRoute policy={shippingPolicies.list}>
+      <ProtectedRoute policy={shippingPolicies.manageDriver}>
         <Suspense fallback={<PageLoader />}>
           <DriversPage />
         </Suspense>
       </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/driver-workspace",
+    element: (
+      <ProtectedRoute policy={shippingPolicies.driverRoute}>
+        <Suspense fallback={<PageLoader />}>
+          <DriverWorkspacePage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/tracking/:trackingNumber",
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <PublicTrackingPage />
+      </Suspense>
     ),
   },
 

@@ -1,24 +1,40 @@
 import { useState } from "react";
-import { Plus, RefreshCw, User } from "lucide-react";
+import { toast } from "sonner";
+import {
+  BadgeCheck,
+  CarFront,
+  ClipboardList,
+  Plus,
+  RefreshCw,
+  UserRound,
+} from "lucide-react";
+import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
   Badge,
   Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Table,
-  TableHeader,
   TableBody,
-  TableHead,
-  TableRow,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@contexts/shared/shadcn";
+import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
+import type { DriverListViewPrimitives, } from "../../domain/schemas/driver/DriverListView";
+import type { DriverStatus } from "../../domain/schemas/driver/Driver";
+import type { EditDriverRequest } from "../../application/driver/EditDriverRequest";
+import { CreateDriverUserDialog } from "../components/driver/CreateDriverUserDialog";
 import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
-import { DriverFormDialog } from "../components/driver/DriverFormDialog";
-import { DriverDeleteDialog } from "../components/driver/DriverDeleteDialog";
-import { DriverFilters } from "../components/driver/DriverFilters";
-import { useDriverFilters } from "../hooks/useDriverFilters";
-import type {
-  DriverPrimitives,
-  DriverStatus,
-} from "../../domain/schemas/driver/Driver";
+import { EditDriverDialog } from "../components/driver/EditDriverDialog";
+
+const LIMIT = 20;
 
 const STATUS_LABELS: Record<DriverStatus, string> = {
   AVAILABLE: "Disponible",
@@ -26,220 +42,268 @@ const STATUS_LABELS: Record<DriverStatus, string> = {
   OFF_DUTY: "Fuera de servicio",
 };
 
-const STATUS_VARIANT: Record<
-  DriverStatus,
-  "default" | "secondary" | "outline"
-> = {
+const STATUS_VARIANT: Record<DriverStatus, "default" | "secondary" | "outline"> = {
   AVAILABLE: "default",
   ON_ROUTE: "secondary",
   OFF_DUTY: "outline",
 };
 
-const now = new Date().toISOString();
+function DriverStat({
+  title,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  icon: typeof UserRound;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center justify-between p-5">
+        <div>
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="text-2xl font-semibold">{value}</p>
+          <p className="text-xs text-muted-foreground">{detail}</p>
+        </div>
+        <div className="rounded-full bg-primary/10 p-3 text-primary">
+          <Icon className="size-5" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-const INITIAL_DATA: DriverPrimitives[] = [
-  {
-    id: "DRV-001",
-    userId: "USR-001",
-    licenseNumber: "LIC-A-12345",
-    status: "AVAILABLE",
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: "DRV-002",
-    userId: "USR-002",
-    licenseNumber: "LIC-B-67890",
-    status: "ON_ROUTE",
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: "DRV-003",
-    userId: "USR-003",
-    licenseNumber: "LIC-A-11111",
-    status: "AVAILABLE",
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: "DRV-004",
-    userId: "USR-004",
-    licenseNumber: "LIC-B-22222",
-    status: "OFF_DUTY",
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: "DRV-005",
-    userId: "USR-005",
-    licenseNumber: "LIC-A-33333",
-    status: "ON_ROUTE",
-    createdAt: now,
-    updatedAt: now,
-  },
-];
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
 export const DriversPage = () => {
-  const [drivers, setDrivers] = useState<DriverPrimitives[]>(INITIAL_DATA);
-  const { filters, setFilter, resetFilters, filtered } =
-    useDriverFilters(drivers);
-
-  const [selected, setSelected] = useState<DriverPrimitives | null>(null);
+  const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
-  const [editDriver, setEditDriver] = useState<DriverPrimitives | null>(null);
-  const [deleteDriver, setDeleteDriver] = useState<DriverPrimitives | null>(
-    null,
-  );
+  const [selected, setSelected] = useState<DriverListViewPrimitives | null>(null);
+  const [editDriver, setEditDriver] = useState<DriverListViewPrimitives | null>(null);
 
-  const handleCreate = (
-    data: Omit<DriverPrimitives, "id" | "createdAt" | "updatedAt">,
-  ) => {
-    const now = new Date().toISOString();
-    const newDriver: DriverPrimitives = {
-      ...data,
-      id: `DRV-${String(Date.now()).slice(-6)}`,
-      createdAt: now,
-      updatedAt: now,
-    };
-    setDrivers((prev) => [...prev, newDriver]);
-    setFormOpen(false);
+  const {
+    drivers,
+    pagination,
+    totalPages,
+    isLoading,
+    refetch,
+    createDriver,
+    isCreatingDriver,
+    updateDriver,
+    isUpdating,
+  } = useDrivers({ page, limit: LIMIT});
+  const { createUser, isCreating } = useUsers({ page: 1, limit: 10 });
+
+  const availableCount = drivers.filter((d) => d.status === "AVAILABLE").length;
+  const onRouteCount = drivers.filter((d) => d.status === "ON_ROUTE").length;
+  const offDutyCount = drivers.filter((d) => d.status === "OFF_DUTY").length;
+
+  const handleCreate = async ({
+    user,
+    licenseNumber,
+  }: {
+    user: Parameters<typeof createUser>[0];
+    licenseNumber: string;
+  }) => {
+    try {
+      const userId = await createUser(user);
+      await createDriver({ userId, licenseNumber: licenseNumber.trim() });
+      toast.success("Conductor creado.");
+      setFormOpen(false);
+      setPage(1);
+    } catch (error) {
+      toast.error(parseApiError(error));
+    }
   };
 
-  const handleUpdate = (
-    data: Omit<DriverPrimitives, "id" | "createdAt" | "updatedAt">,
-  ) => {
+  const handleUpdate = async (data: EditDriverRequest) => {
     if (!editDriver) return;
-    setDrivers((prev) =>
-      prev.map((d) =>
-        d.id === editDriver.id
-          ? { ...d, ...data, updatedAt: new Date().toISOString() }
-          : d,
-      ),
-    );
-    setEditDriver(null);
+    try {
+      await updateDriver(editDriver.id, data);
+      toast.success("Conductor actualizado.");
+      setEditDriver(null);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
-  const handleDelete = () => {
-    if (!deleteDriver) return;
-    setDrivers((prev) => prev.filter((d) => d.id !== deleteDriver.id));
-    setDeleteDriver(null);
-  };
-
-  const handleEditFromDetail = (driver: DriverPrimitives) => {
-    setSelected(null);
-    setEditDriver(driver);
-  };
-
-  const handleDeleteFromDetail = (driver: DriverPrimitives) => {
-    setSelected(null);
-    setDeleteDriver(driver);
-  };
-
-  const available = drivers.filter((d) => d.status === "AVAILABLE").length;
-  const onRoute = drivers.filter((d) => d.status === "ON_ROUTE").length;
+  if (isLoading) {
+    return <PageLoader text="Cargando conductores..." />;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Conductores</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Conductores</h1>
           <p className="text-sm text-muted-foreground">
-            {available} disponibles · {onRoute} en ruta
+            Gestión de conductores y sus perfiles operativos.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => resetFilters()}>
+          <Button variant="outline" className="gap-2" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
+            Actualizar
           </Button>
-          <Button onClick={() => setFormOpen(true)}>
+          <Button
+            className="gap-2"
+            onClick={() => setFormOpen(true)}
+            disabled={isCreating || isCreatingDriver}
+          >
             <Plus className="size-4" />
-            Crear Conductor
+            Nuevo conductor
           </Button>
         </div>
       </div>
 
-      <DriverFilters
-        filters={filters}
-        setFilter={setFilter}
-        onReset={resetFilters}
-      />
-
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Conductor</TableHead>
-              <TableHead className="hidden sm:table-cell">Usuario</TableHead>
-              <TableHead className="hidden md:table-cell">Licencia</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No se encontraron conductores.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((d) => (
-                <TableRow
-                  key={d.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelected(d)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <User className="size-4 text-muted-foreground" />
-                      <span className="font-medium">{d.id}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm">
-                    {d.userId}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell font-mono text-sm">
-                    {d.licenseNumber}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[d.status]}>
-                      {STATUS_LABELS[d.status]}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <DriverStat
+          title="Disponibles"
+          value={String(availableCount)}
+          detail="Listos para asignación"
+          icon={BadgeCheck}
+        />
+        <DriverStat
+          title="En ruta"
+          value={String(onRouteCount)}
+          detail="Con entrega activa"
+          icon={CarFront}
+        />
+        <DriverStat
+          title="Fuera de servicio"
+          value={String(offDutyCount)}
+          detail="No disponibles por ahora"
+          icon={ClipboardList}
+        />
       </div>
+
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Registro de conductores</CardTitle>
+          <CardDescription>
+            Haz clic en una fila para ver los detalles o editar el perfil.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Conductor</TableHead>
+                  <TableHead>Licencia</TableHead>
+                  <TableHead>Tienda</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Registro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {drivers.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      No hay conductores registrados.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  drivers.map((driver) => (
+                    <TableRow
+                      key={driver.id}
+                      className="cursor-pointer"
+                      onClick={() => setSelected(driver)}
+                    >
+                      <TableCell>
+                        <div className="font-medium">{driver.user.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {driver.user.email}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {driver.licenseNumber}
+                      </TableCell>
+                      <TableCell>{driver.user.store.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANT[driver.status]}>
+                          {STATUS_LABELS[driver.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(driver.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {pagination && pagination.total > LIMIT && (
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Página {page} de {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasMore}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      <CreateDriverUserDialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSave={handleCreate}
+        isLoading={isCreating || isCreatingDriver}
+      />
 
       <DriverDetailDialog
         driver={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
-        onEdit={handleEditFromDetail}
-        onDelete={handleDeleteFromDetail}
+        onEdit={(driver) => {
+          setSelected(null);
+          setEditDriver(driver);
+        }}
       />
-      <DriverFormDialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSave={handleCreate}
-      />
-      <DriverFormDialog
-        open={!!editDriver}
-        onClose={() => setEditDriver(null)}
-        onSave={handleUpdate}
-        driver={editDriver}
-      />
-      <DriverDeleteDialog
-        driver={deleteDriver}
-        open={!!deleteDriver}
-        onClose={() => setDeleteDriver(null)}
-        onConfirm={handleDelete}
-      />
+
+      {editDriver && (
+        <EditDriverDialog
+          open={!!editDriver}
+          onClose={() => setEditDriver(null)}
+          driver={editDriver}
+          onSave={handleUpdate}
+          isLoading={isUpdating}
+        />
+      )}
     </div>
   );
 };

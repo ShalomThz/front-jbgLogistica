@@ -4,7 +4,7 @@ import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRo
 import { routeStopSchema } from "./RouteStop";
 import { mapsMetadataSchema } from "./MapsMetadata";
 
-const statuses = ["PLANNED", "ACTIVE", "COMPLETED"] as const;
+const statuses = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"] as const;
 
 export const routeSchema = z.object({
   id: z.string(),
@@ -12,7 +12,7 @@ export const routeSchema = z.object({
   driverId: z.string(),
   stops: z.array(routeStopSchema),
   status: z.enum(statuses),
-  finishDate: z.date().nullable(),
+  finishDate: z.iso.datetime({ offset: true }).nullable(),
   mapsMetadata: mapsMetadataSchema.nullable(),
   ...aggregateRootSchema.shape,
 });

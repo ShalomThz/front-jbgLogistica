@@ -17,12 +17,13 @@ import {
 } from "@contexts/shared/shadcn";
 import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/RouteDelivery";
 
-const ROUTE_STATUSES: RouteStatus[] = ["PLANNED", "ACTIVE", "COMPLETED"];
+const ROUTE_STATUSES: RouteStatus[] = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"];
 
 const STATUS_LABELS: Record<RouteStatus, string> = {
   PLANNED: "Planeada",
   ACTIVE: "Activa",
   COMPLETED: "Completada",
+  CANCELLED: "Cancelada",
 };
 
 type RouteFormData = Omit<RoutePrimitives, "id" | "createdAt" | "updatedAt" | "stops" | "mapsMetadata">;
@@ -72,7 +73,7 @@ export const DeliveryRouteFormDialog = ({ open, onClose, onSave, route }: Props)
         placeId: placeId || null,
       },
       status,
-      finishDate: finishDate ? new Date(finishDate) : null,
+      finishDate: finishDate ? new Date(finishDate).toISOString() : null,
     });
   };
 

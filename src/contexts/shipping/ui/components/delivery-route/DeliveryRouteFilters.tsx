@@ -132,6 +132,7 @@ export const DeliveryRouteFilters = ({
                   <SelectItem value="PLANNED">Planeada</SelectItem>
                   <SelectItem value="ACTIVE">Activa</SelectItem>
                   <SelectItem value="COMPLETED">Completada</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
             </div>

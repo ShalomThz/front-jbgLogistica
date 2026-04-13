@@ -10,11 +10,15 @@ export const httpClient = async <T>(
   skipAuth = false,
 ): Promise<T> => {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
+
+  if (!isFormData && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (!skipAuth && token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -33,7 +37,18 @@ export const httpClient = async <T>(
       throw new Error(error.error || error.message || `HTTP ${response.status}`);
     }
 
-  return response.json();
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  return (text ? text : undefined) as T;
 };
 
 export const httpClientBlob = async (
