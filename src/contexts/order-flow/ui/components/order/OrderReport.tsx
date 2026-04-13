@@ -1,5 +1,21 @@
-import { useMemo, useState } from "react";
-import { CalendarDays, DollarSign, Download, FileText, TrendingUp } from "lucide-react";
+import { useMemo } from "react";
+import {
+  ArrowDownAZ,
+  Box as BoxIcon,
+  CalendarDays,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Download,
+  FileText,
+  Filter,
+  Package,
+  RefreshCw,
+  Search,
+  Store,
+  TrendingUp,
+  Truck,
+} from "lucide-react";
 import { exportOrderReport } from "@contexts/order-flow/domain/services/exportOrderReport";
 import {
   Button,
@@ -9,15 +25,18 @@ import {
   CardHeader,
   CardTitle,
   Badge,
+  Input,
   Label,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Progress,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Separator,
   Table,
   TableHeader,
   TableBody,
@@ -29,17 +48,12 @@ import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderLi
 import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderStatuses } from "@contexts/sales/domain/schemas/order/OrderStatuses";
-
-type DatePreset = "all" | "today" | "week" | "month" | "3months" | "custom";
-
-const DATE_PRESET_LABELS: Record<DatePreset, string> = {
-  all: "Todo",
-  today: "Hoy",
-  week: "Ultima semana",
-  month: "Ultimo mes",
-  "3months": "Ultimos 3 meses",
-  custom: "Rango personalizado",
-};
+import { useOrderFilters } from "../../hooks/orders/useOrderFilters";
+import type {
+  DatePreset,
+  DateSort,
+  NameSort,
+} from "../../hooks/orders/useOrderFilters";
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -99,54 +113,28 @@ function DatePickerField({
 
 interface Props {
   orders: OrderListView[];
+  boxNames: Map<string, string>;
 }
 
-export const OrderReport = ({ orders }: Props) => {
-  const [datePreset, setDatePreset] = useState<DatePreset>("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
+export const OrderReport = ({ orders, boxNames }: Props) => {
+  const { filters, setFilter, resetFilters, filtered, options } =
+    useOrderFilters(orders, { boxNames });
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const orderDate = new Date(order.createdAt);
-      const now = new Date();
-
-      let matchesDate = true;
-      if (datePreset === "today") {
-        matchesDate = orderDate.toDateString() === now.toDateString();
-      } else if (datePreset === "week") {
-        const weekAgo = new Date(now);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        matchesDate = orderDate >= weekAgo;
-      } else if (datePreset === "month") {
-        const monthAgo = new Date(now);
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        matchesDate = orderDate >= monthAgo;
-      } else if (datePreset === "3months") {
-        const threeMonthsAgo = new Date(now);
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        matchesDate = orderDate >= threeMonthsAgo;
-      } else if (datePreset === "custom") {
-        if (dateFrom && orderDate < new Date(dateFrom + "T00:00:00")) matchesDate = false;
-        if (dateTo && orderDate > new Date(dateTo + "T23:59:59")) matchesDate = false;
-      }
-
-      const matchesPayment =
-        paymentFilter === "all" ||
-        (paymentFilter === "paid" && order.financials.isPaid) ||
-        (paymentFilter === "unpaid" && !order.financials.isPaid);
-
-      return matchesDate && matchesPayment;
-    });
-  }, [orders, datePreset, dateFrom, dateTo, paymentFilter]);
+  const reportOrders = useMemo(
+    () => filtered.filter((o) => o.status !== "DRAFT"),
+    [filtered],
+  );
+  const reportStatuses = useMemo(
+    () => orderStatuses.filter((s) => s !== "DRAFT"),
+    [],
+  );
 
   const stats = useMemo(() => {
-    const totalOrders = filteredOrders.length;
-    const paid = filteredOrders.filter((o) => o.financials.isPaid);
-    const unpaid = filteredOrders.filter((o) => !o.financials.isPaid);
+    const totalOrders = reportOrders.length;
+    const paid = reportOrders.filter((o) => o.financials.isPaid);
+    const unpaid = reportOrders.filter((o) => !o.financials.isPaid);
 
-    const totalRevenue = filteredOrders.reduce(
+    const totalRevenue = reportOrders.reduce(
       (sum, o) => sum + (o.financials.totalPrice?.amount ?? 0),
       0,
     );
@@ -159,9 +147,9 @@ export const OrderReport = ({ orders }: Props) => {
       0,
     );
 
-    const byStatus = orderStatuses.reduce(
+    const byStatus = reportStatuses.reduce(
       (acc, status) => {
-        const matching = filteredOrders.filter((o) => o.status === status);
+        const matching = reportOrders.filter((o) => o.status === status);
         acc[status] = {
           count: matching.length,
           total: matching.reduce((s, o) => s + (o.financials.totalPrice?.amount ?? 0), 0),
@@ -172,7 +160,7 @@ export const OrderReport = ({ orders }: Props) => {
     );
 
     const byStore = new Map<string, { name: string; count: number; total: number; paid: number; unpaid: number }>();
-    for (const order of filteredOrders) {
+    for (const order of reportOrders) {
       const existing = byStore.get(order.store.id) ?? {
         name: order.store.name,
         count: 0,
@@ -200,114 +188,362 @@ export const OrderReport = ({ orders }: Props) => {
       byStatus,
       byStore: Array.from(byStore.values()).sort((a, b) => b.total - a.total),
     };
-  }, [filteredOrders]);
+  }, [reportOrders, reportStatuses]);
 
   const fmt = (amount: number) =>
     `$${amount.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const activeFilterCount =
+    [
+      filters.statusFilter,
+      filters.storeFilter,
+      filters.paymentFilter,
+      filters.customerFilter,
+      filters.providerFilter,
+      filters.boxFilter,
+      filters.dateFilter,
+    ].filter((v) => v !== "all").length +
+    (filters.nameSort !== "none" ? 1 : 0) +
+    (filters.dateSort !== "desc" ? 1 : 0) +
+    (filters.searchQuery !== "" ? 1 : 0);
+
+  const activeRing = (v: string, def = "all") =>
+    v !== def ? "ring-2 ring-primary/40" : "";
+  const activeSortRing = (v: string) =>
+    v !== "none" ? "ring-2 ring-primary/40" : "";
+
+  const paidShare =
+    stats.totalOrders > 0
+      ? Math.round((stats.paidCount / stats.totalOrders) * 100)
+      : 0;
+
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3">
+      {/* Action bar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre, telefono, ciudad, ID o referencia..."
+            value={filters.searchQuery}
+            onChange={(e) => setFilter("searchQuery", e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" onClick={resetFilters} className="gap-1.5">
+          <RefreshCw className="size-4" />
+          Limpiar
+        </Button>
+        <Select
+          value={filters.storeFilter}
+          onValueChange={(v) => setFilter("storeFilter", v)}
+        >
+          <SelectTrigger
+            className={`w-full sm:w-[200px] ${activeRing(filters.storeFilter)}`}
+          >
+            <Store className="size-4 text-muted-foreground" />
+            <SelectValue placeholder="Tienda" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las tiendas</SelectItem>
+            {options.stores.map((store) => (
+              <SelectItem key={store.id} value={store.id}>
+                {store.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          disabled={reportOrders.length === 0}
+          onClick={() => exportOrderReport(reportOrders, stats)}
+          className="gap-1.5"
+        >
+          <Download className="size-4" />
+          Exportar XLSX
+        </Button>
+      </div>
+
+      {/* Filters card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="size-4 text-muted-foreground" />
+            Filtros
+          </CardTitle>
+          {activeFilterCount > 0 && (
+            <Badge variant="secondary" className="font-mono">
+              {activeFilterCount} {activeFilterCount === 1 ? "activo" : "activos"}
+            </Badge>
+          )}
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarDays className="size-3.5" />
             Periodo
           </Label>
-          <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
-            <SelectTrigger className="w-[200px]">
+          <Select
+            value={filters.dateFilter}
+            onValueChange={(v) => setFilter("dateFilter", v as DatePreset)}
+          >
+            <SelectTrigger className={activeRing(filters.dateFilter)}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(DATE_PRESET_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
+              <SelectItem value="all">Todo</SelectItem>
+              <SelectItem value="today">Hoy</SelectItem>
+              <SelectItem value="week">Ultima semana</SelectItem>
+              <SelectItem value="month">Ultimo mes</SelectItem>
+              <SelectItem value="3months">Ultimos 3 meses</SelectItem>
+              <SelectItem value="custom">Rango personalizado</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {datePreset === "custom" && (
+        {filters.dateFilter === "custom" && (
           <>
-            <DatePickerField label="Desde" value={dateFrom} onChange={setDateFrom} />
-            <DatePickerField label="Hasta" value={dateTo} onChange={setDateTo} />
+            <DatePickerField
+              label="Desde"
+              value={filters.dateFrom}
+              onChange={(v) => setFilter("dateFrom", v)}
+            />
+            <DatePickerField
+              label="Hasta"
+              value={filters.dateTo}
+              onChange={(v) => setFilter("dateTo", v)}
+            />
           </>
         )}
 
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <DollarSign className="size-3.5" />
-            Pago
+            <Filter className="size-3.5" />
+            Estado
           </Label>
-          <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as "all" | "paid" | "unpaid")}>
-            <SelectTrigger className="w-[150px]">
+          <Select
+            value={filters.statusFilter}
+            onValueChange={(v) => setFilter("statusFilter", v)}
+          >
+            <SelectTrigger className={activeRing(filters.statusFilter)}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
+              <SelectItem value="COMPLETED">Completada</SelectItem>
+              <SelectItem value="CANCELLED">Cancelada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CreditCard className="size-3.5" />
+            Pago
+          </Label>
+          <Select
+            value={filters.paymentFilter}
+            onValueChange={(v) => setFilter("paymentFilter", v)}
+          >
+            <SelectTrigger className={activeRing(filters.paymentFilter)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los pagos</SelectItem>
               <SelectItem value="paid">Pagados</SelectItem>
               <SelectItem value="unpaid">No pagados</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <Button
-          variant="outline"
-          className="self-end"
-          disabled={filteredOrders.length === 0}
-          onClick={() => exportOrderReport(filteredOrders, stats)}
-        >
-          <Download className="mr-1.5 size-4" />
-          Exportar XLSX
-        </Button>
-      </div>
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Package className="size-3.5" />
+            Cliente
+          </Label>
+          <Select
+            value={filters.customerFilter}
+            onValueChange={(v) => setFilter("customerFilter", v)}
+          >
+            <SelectTrigger className={activeRing(filters.customerFilter)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los clientes</SelectItem>
+              {options.customers.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Truck className="size-3.5" />
+            Proveedor
+          </Label>
+          <Select
+            value={filters.providerFilter}
+            onValueChange={(v) => setFilter("providerFilter", v)}
+          >
+            <SelectTrigger className={activeRing(filters.providerFilter)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los proveedores</SelectItem>
+              {options.providers.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <BoxIcon className="size-3.5" />
+            Caja
+          </Label>
+          <Select
+            value={filters.boxFilter}
+            onValueChange={(v) => setFilter("boxFilter", v)}
+          >
+            <SelectTrigger className={activeRing(filters.boxFilter)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las cajas</SelectItem>
+              {options.boxes.map((box) => (
+                <SelectItem key={box.id} value={box.id}>
+                  {box.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ArrowDownAZ className="size-3.5" />
+            Ordenar por nombre
+          </Label>
+          <Select
+            value={filters.nameSort}
+            onValueChange={(v) => setFilter("nameSort", v as NameSort)}
+          >
+            <SelectTrigger className={activeSortRing(filters.nameSort)}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin orden</SelectItem>
+              <SelectItem value="asc">A-Z</SelectItem>
+              <SelectItem value="desc">Z-A</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="size-3.5" />
+            Ordenar por fecha
+          </Label>
+          <Select
+            value={filters.dateSort}
+            onValueChange={(v) => setFilter("dateSort", v as DateSort)}
+          >
+            <SelectTrigger
+              className={filters.dateSort !== "desc" ? "ring-2 ring-primary/40" : ""}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin orden</SelectItem>
+              <SelectItem value="desc">Mas reciente</SelectItem>
+              <SelectItem value="asc">Mas antiguo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Ordenes</CardTitle>
-            <FileText className="size-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Ordenes
+            </CardTitle>
+            <div className="rounded-md bg-primary/10 p-1.5">
+              <FileText className="size-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">{fmt(stats.totalRevenue)}</p>
+            <p className="mt-1 text-xs font-mono text-muted-foreground">
+              {fmt(stats.totalRevenue)}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pagadas</CardTitle>
-            <DollarSign className="size-4 text-green-500" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pagadas
+            </CardTitle>
+            <div className="rounded-md bg-green-500/10 p-1.5">
+              <DollarSign className="size-4 text-green-600 dark:text-green-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.paidCount}</div>
-            <p className="text-xs text-muted-foreground">{fmt(stats.paidRevenue)}</p>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {stats.paidCount}
+            </div>
+            <p className="mt-1 text-xs font-mono text-muted-foreground">
+              {fmt(stats.paidRevenue)}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">No Pagadas</CardTitle>
-            <DollarSign className="size-4 text-red-500" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              No Pagadas
+            </CardTitle>
+            <div className="rounded-md bg-red-500/10 p-1.5">
+              <DollarSign className="size-4 text-red-600 dark:text-red-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.unpaidCount}</div>
-            <p className="text-xs text-muted-foreground">{fmt(stats.unpaidRevenue)}</p>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {stats.unpaidCount}
+            </div>
+            <p className="mt-1 text-xs font-mono text-muted-foreground">
+              {fmt(stats.unpaidRevenue)}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-indigo-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Tasa de Cobro</CardTitle>
-            <TrendingUp className="size-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Tasa de Cobro
+            </CardTitle>
+            <div className="rounded-md bg-indigo-500/10 p-1.5">
+              <TrendingUp className="size-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.totalOrders > 0
-                ? `${Math.round((stats.paidCount / stats.totalOrders) * 100)}%`
-                : "—"}
+              {stats.totalOrders > 0 ? `${paidShare}%` : "—"}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <Progress value={paidShare} className="mt-2 h-1.5" />
+            <p className="mt-1 text-xs text-muted-foreground">
               {stats.paidCount} de {stats.totalOrders} ordenes
             </p>
           </CardContent>
@@ -316,20 +552,41 @@ export const OrderReport = ({ orders }: Props) => {
 
       {/* By status */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Por Estatus</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="size-4 text-muted-foreground" />
+            Por Estatus
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {orderStatuses.map((status) => {
+        <Separator />
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {reportStatuses.map((status) => {
               const data = stats.byStatus[status];
+              const share =
+                stats.totalOrders > 0
+                  ? Math.round((data.count / stats.totalOrders) * 100)
+                  : 0;
               return (
-                <div key={status} className="space-y-1">
-                  <Badge variant={ORDER_STATUS_VARIANT[status as OrderStatus]}>
-                    {ORDER_STATUS_LABELS[status as OrderStatus]}
-                  </Badge>
-                  <p className="text-lg font-semibold">{data.count}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{fmt(data.total)}</p>
+                <div
+                  key={status}
+                  className="rounded-lg border bg-card p-3 space-y-2 transition-colors hover:bg-accent/30"
+                >
+                  <div className="flex items-center justify-between">
+                    <Badge variant={ORDER_STATUS_VARIANT[status as OrderStatus]}>
+                      {ORDER_STATUS_LABELS[status as OrderStatus]}
+                    </Badge>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {share}%
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-2xl font-bold tabular-nums">{data.count}</p>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {fmt(data.total)}
+                    </p>
+                  </div>
+                  <Progress value={share} className="h-1" />
                 </div>
               );
             })}
@@ -340,31 +597,58 @@ export const OrderReport = ({ orders }: Props) => {
       {/* By store */}
       {stats.byStore.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Por Tienda</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Store className="size-4 text-muted-foreground" />
+              Por Tienda
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border">
+          <Separator />
+          <CardContent className="pt-4">
+            <div className="rounded-lg border overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead>Tienda</TableHead>
                     <TableHead className="text-center">Ordenes</TableHead>
                     <TableHead className="text-right">Pagado</TableHead>
                     <TableHead className="text-right">Pendiente</TableHead>
                     <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="w-[140px]">Participacion</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stats.byStore.map((store) => (
-                    <TableRow key={store.name}>
-                      <TableCell className="font-medium">{store.name}</TableCell>
-                      <TableCell className="text-center">{store.count}</TableCell>
-                      <TableCell className="text-right font-mono text-green-600">{fmt(store.paid)}</TableCell>
-                      <TableCell className="text-right font-mono text-red-600">{fmt(store.unpaid)}</TableCell>
-                      <TableCell className="text-right font-mono font-semibold">{fmt(store.total)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {stats.byStore.map((store) => {
+                    const share =
+                      stats.totalRevenue > 0
+                        ? Math.round((store.total / stats.totalRevenue) * 100)
+                        : 0;
+                    return (
+                      <TableRow key={store.name}>
+                        <TableCell className="font-medium">{store.name}</TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {store.count}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-green-600 dark:text-green-400">
+                          {fmt(store.paid)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-red-600 dark:text-red-400">
+                          {fmt(store.unpaid)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold tabular-nums">
+                          {fmt(store.total)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={share} className="h-1.5 flex-1" />
+                            <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+                              {share}%
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

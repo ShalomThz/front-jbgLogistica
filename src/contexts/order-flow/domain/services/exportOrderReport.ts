@@ -53,12 +53,14 @@ export function exportOrderReport(
   const wsStore = XLSX.utils.json_to_sheet(storeRows);
   XLSX.utils.book_append_sheet(wb, wsStore, "Por Tienda");
 
-  // Sheet 3: Summary by status
-  const statusRows = orderStatuses.map((status) => ({
-    Estatus: ORDER_STATUS_LABELS[status as OrderStatus],
-    Ordenes: stats.byStatus[status].count,
-    Total: stats.byStatus[status].total,
-  }));
+  // Sheet 3: Summary by status (drafts excluded from reports)
+  const statusRows = orderStatuses
+    .filter((status) => status !== "DRAFT")
+    .map((status) => ({
+      Estatus: ORDER_STATUS_LABELS[status as OrderStatus],
+      Ordenes: stats.byStatus[status].count,
+      Total: stats.byStatus[status].total,
+    }));
   const wsStatus = XLSX.utils.json_to_sheet(statusRows);
   XLSX.utils.book_append_sheet(wb, wsStatus, "Por Estatus");
 

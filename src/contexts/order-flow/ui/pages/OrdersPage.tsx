@@ -42,7 +42,6 @@ import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog"
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
-import { exportOrders } from "@contexts/order-flow/domain/services/exportOrders";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -61,6 +60,8 @@ export const OrdersPage = () => {
     deleteOrder,
     isDeleting,
   } = useOrders({ page, limit });
+
+  const { orders: allOrders } = useOrders();
 
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
@@ -200,7 +201,6 @@ export const OrdersPage = () => {
           setPage(1);
         }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportOrders(filtered)}
       />
 
       <div className="rounded-lg border">
@@ -380,7 +380,7 @@ export const OrdersPage = () => {
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <OrderReport orders={orders} />
+          <OrderReport orders={allOrders} boxNames={boxNames} />
         </TabsContent>
       </Tabs>
 

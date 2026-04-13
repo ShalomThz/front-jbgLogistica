@@ -15,10 +15,11 @@ interface UseOrdersOptions {
   enabled?: boolean;
 }
 
-export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOptions = {}) => {
+export const useOrders = ({ page, limit, enabled = true }: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const offset = (page - 1) * limit;
+  const offset =
+    page !== undefined && limit !== undefined ? (page - 1) * limit : undefined;
 
   const filters: unknown[] = [];
   if (user && !orderPolicies.listAll(user)) {
@@ -34,7 +35,8 @@ export const useOrders = ({ page = 1, limit = 10, enabled = true }: UseOrdersOpt
 
   const orders = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createHQMutation = useMutation({
     mutationFn: (data: CreateHQOrderRequest) => orderRepository.createHQ(data),

@@ -56,7 +56,7 @@ export const BoxSalePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<Map<string, CartItem>>(new Map());
   const [customerName, setCustomerName] = useState("");
-  const [displayCurrency, setDisplayCurrency] = useState("MXN");
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
   const { exchangeRate: liveRate, isLoadingRate } = useExchangeRate({
     from: "USD",
     to: "MXN",

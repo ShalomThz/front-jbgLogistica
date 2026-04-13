@@ -4,7 +4,6 @@ import {
   CalendarDays,
   Clock,
   CreditCard,
-  Download,
   Filter,
   Package,
   RefreshCw,
@@ -51,7 +50,6 @@ interface OrderFiltersProps {
   ) => void;
   onLimitChange: (value: number) => void;
   onResetAndRefetch: () => void;
-  onExport?: () => void;
 }
 
 function formatDate(date: Date): string {
@@ -138,7 +136,6 @@ export const OrderFilters = ({
   setFilter,
   onLimitChange,
   onResetAndRefetch,
-  onExport,
 }: OrderFiltersProps) => {
   const activeCount = countActiveFilters(filters);
 
@@ -430,16 +427,6 @@ export const OrderFilters = ({
               <RefreshCw className="size-4" />
               Limpiar filtros y actualizar
             </Button>
-            {onExport && (
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={onExport}
-              >
-                <Download className="size-4" />
-                Exportar XLSX
-              </Button>
-            )}
           </div>
         </SheetContent>
       </Sheet>
