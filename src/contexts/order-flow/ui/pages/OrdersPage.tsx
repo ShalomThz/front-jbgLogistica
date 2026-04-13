@@ -209,7 +209,9 @@ export const OrdersPage = () => {
             <TableRow>
               <TableHead>Destinatario</TableHead>
               <TableHead className="hidden md:table-cell">Destino</TableHead>
+              <TableHead className="hidden sm:table-cell w-[50px]"></TableHead>
               <TableHead className="hidden sm:table-cell">Ref. JBG</TableHead>
+              <TableHead className="hidden lg:table-cell w-[50px]"></TableHead>
               <TableHead className="hidden lg:table-cell">Ref. Agente</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="hidden lg:table-cell">Creacion</TableHead>
@@ -220,7 +222,7 @@ export const OrdersPage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                   No se encontraron órdenes.
                 </TableCell>
               </TableRow>
@@ -242,8 +244,42 @@ export const OrdersPage = () => {
                       {order.destination.address.city}, {order.destination.address.province}
                     </div>
                   </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {order.shipment?.label && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                        disabled={downloadingLabel === order.id}
+                        title="Imprimir etiqueta JBG Cargo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePrintLabel(order, "cargo");
+                        }}
+                      >
+                        <Printer className="size-3.5" />
+                      </Button>
+                    )}
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell text-xs">
                     {order.references.orderNumber ?? "—"}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {order.shipment?.label && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 text-orange-600 hover:bg-orange-100 hover:text-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
+                        disabled={downloadingLabel === order.id}
+                        title="Imprimir etiqueta JBG Agente"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePrintLabel(order, "agente");
+                        }}
+                      >
+                        <Printer className="size-3.5" />
+                      </Button>
+                    )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-xs">
                     {order.references.partnerOrderNumber ?? "—"}
