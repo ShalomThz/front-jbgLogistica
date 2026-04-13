@@ -21,6 +21,7 @@ export const userSchema = z.object({
   storeId: z.string(),
   isActive: z.boolean(),
   type: z.enum(USER_TYPES),
+  phone: z.string().optional(),
   ...aggregateRootSchema.shape,
 });
 

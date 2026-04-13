@@ -5,6 +5,7 @@ export function exportUsers(users: UserListViewPrimitives[]) {
   const rows = users.map((u) => ({
     Nombre: u.name,
     Email: u.email,
+    Telefono: u.phone ?? "",
     Rol: u.role.name,
     Tipo: u.type,
     Activo: u.isActive ? "Si" : "No",

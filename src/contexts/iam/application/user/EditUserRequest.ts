@@ -9,6 +9,7 @@ export const editUserRequestSchema = z
     isActive: userSchema.shape.isActive.optional(),
     newPassword: z.string().min(8).optional(),
     storeId: userSchema.shape.storeId.optional(),
+    phone: userSchema.shape.phone,
   });
 
 export type EditUserRequest = z.infer<typeof editUserRequestSchema>;
