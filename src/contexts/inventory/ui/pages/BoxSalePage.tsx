@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Download, Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { AlertCircle, ChevronLeft, ChevronRight, Download, Minus, Plus, RefreshCw, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { BoxSaleSuccessDialog } from "../components/boxSale/BoxSaleSuccessDialog";
 import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
@@ -57,11 +57,26 @@ export const BoxSalePage = () => {
   const [cart, setCart] = useState<Map<string, CartItem>>(new Map());
   const [customerName, setCustomerName] = useState("");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const { exchangeRate: liveRate, isLoadingRate } = useExchangeRate({
+  const {
+    exchangeRate: liveRate,
+    isLoadingRate,
+    isFetchingRate,
+    isRateError,
+    rateError,
+    invalidateRate,
+  } = useExchangeRate({
     from: "USD",
     to: "MXN",
   });
   const exchangeRate = liveRate?.rate ?? 0;
+
+  useEffect(() => {
+    if (isRateError) {
+      toast.error("Error al obtener el tipo de cambio", {
+        description: rateError ?? "No se pudo contactar al servicio de exchange.",
+      });
+    }
+  }, [isRateError, rateError]);
 
   const [salesPage, setSalesPage] = useState(1);
   const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
@@ -325,11 +340,54 @@ export const BoxSalePage = () => {
                 </div>
 
                 {needsConversion && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Tipo de cambio</span>
-                    <span className="font-mono">
-                      {isLoadingRate ? "Cargando..." : `1 USD = ${exchangeRate.toFixed(2)} MXN`}
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Tipo de cambio</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono">
+                          {isLoadingRate
+                            ? "Cargando..."
+                            : isRateError
+                              ? "—"
+                              : `1 USD = ${exchangeRate.toFixed(2)} MXN`}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6"
+                          title="Actualizar tipo de cambio"
+                          onClick={() => invalidateRate()}
+                          disabled={isFetchingRate}
+                        >
+                          <RefreshCw
+                            className={`size-3.5 ${isFetchingRate ? "animate-spin" : ""}`}
+                          />
+                        </Button>
+                      </div>
+                    </div>
+                    {isRateError && (
+                      <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                        <AlertCircle className="size-3.5 mt-0.5 shrink-0" />
+                        <div className="flex-1 space-y-1">
+                          <p className="font-medium">No se pudo obtener el tipo de cambio</p>
+                          <p className="text-destructive/80">
+                            {rateError ?? "Servicio de exchange no disponible."}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 mt-1"
+                            onClick={() => invalidateRate()}
+                            disabled={isFetchingRate}
+                          >
+                            <RefreshCw
+                              className={`size-3 ${isFetchingRate ? "animate-spin" : ""}`}
+                            />
+                            Reintentar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -385,7 +443,11 @@ export const BoxSalePage = () => {
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled={cartItems.length === 0 || isSelling || (needsConversion && exchangeRate <= 0)}
+                  disabled={
+                    cartItems.length === 0 ||
+                    isSelling ||
+                    (needsConversion && (isRateError || exchangeRate <= 0))
+                  }
                   onClick={handleConfirmSale}
                 >
                   {isSelling ? "Procesando..." : "Confirmar Venta"}
