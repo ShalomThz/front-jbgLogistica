@@ -1,19 +1,19 @@
-import type { PackageFormData, ShippingServiceState } from "../schemas/NewOrderForm";
+import type { HQPackageFormData, HQShippingServiceState } from "../schemas/NewOrderForm";
 
-export const calculateVolumetricWeight = (pkg: PackageFormData) => {
+export const calculateVolumetricWeight = (pkg: HQPackageFormData) => {
   const l = parseFloat(pkg.length) || 0;
   const w = parseFloat(pkg.width) || 0;
   const h = parseFloat(pkg.height) || 0;
   return (l * w * h) / 5000;
 };
 
-export const calculateBillableWeight = (pkg: PackageFormData) => {
+export const calculateBillableWeight = (pkg: HQPackageFormData) => {
   const actualWeight = parseFloat(pkg.weight) || 0;
   const volumetricWeight = calculateVolumetricWeight(pkg);
   return Math.max(actualWeight, volumetricWeight);
 };
 
-export const calculateTotal = (shippingService: ShippingServiceState) => {
+export const calculateTotal = (shippingService: HQShippingServiceState) => {
   const shippingPrice = shippingService.selectedRate?.price.amount || 0;
   const { insurance, tools, additionalCost, wrap, tape } = shippingService.costBreakdown;
   const breakdownTotal = [insurance, tools, additionalCost, wrap, tape]

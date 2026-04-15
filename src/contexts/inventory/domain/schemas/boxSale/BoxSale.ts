@@ -15,6 +15,7 @@ export const boxSaleSchema = z.object({
   totalAmount: moneySchema,
   storeId: z.string(),
   soldBy: z.string(),
+  customerName: z.string().trim().min(1).nullish(),
   ...aggregateRootSchema.shape,
 });
 

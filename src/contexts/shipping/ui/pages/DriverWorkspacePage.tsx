@@ -1,21 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import {
-  Camera,
-  CheckCircle2,
-  Clock3,
-  Crosshair,
-  MapPinned,
-  Navigation,
-  PackageCheck,
-  RefreshCw,
-  Route,
-  Truck,
-  XCircle,
-} from "lucide-react";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
   Badge,
   Button,
@@ -34,10 +17,27 @@ import {
   Progress,
   Textarea,
 } from "@contexts/shared/shadcn";
-import { useDriverActiveRoute, useRouteActions } from "../../infrastructure/hooks/routes/useRoutes";
-import type { RouteStopPrimitives } from "../../domain/schemas/route/RouteStop";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import {
+  Camera,
+  CheckCircle2,
+  Clock3,
+  Crosshair,
+  MapPinned,
+  Navigation,
+  PackageCheck,
+  RefreshCw,
+  Route,
+  Truck,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { parseApiError } from "../../../shared/infrastructure/http";
 import type { DeliveryOutcome } from "../../domain/schemas/route/DeliveryAttempt";
 import type { RoutePrimitives } from "../../domain/schemas/route/Route";
+import type { RouteStopPrimitives } from "../../domain/schemas/route/RouteStop";
+import { useDriverActiveRoute, useRouteActions } from "../../infrastructure/hooks/routes/useRoutes";
 
 const STOP_VARIANT = {
   PENDING: "secondary",

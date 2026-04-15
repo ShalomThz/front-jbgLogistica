@@ -4,10 +4,15 @@ import {
   Button,
   Card,
   CardContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Separator,
 } from "@contexts/shared/shadcn";
 import {
   CheckCircle2,
+  ChevronDown,
   ClipboardCopy,
   Download,
   ExternalLink,
@@ -19,6 +24,7 @@ import {
 import { toast } from "sonner";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { FileText } from "lucide-react";
@@ -74,7 +80,7 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnothe
     }
   };
 
-  const handleDownloadLabel = async () => {
+  const handleDownloadLabel = async (variant: LabelVariant) => {
     if (!label) return;
     const isLocal = label.documentUrl.startsWith("/");
     if (!isLocal) {
@@ -83,11 +89,11 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnothe
     }
     setIsDownloading(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id);
+      const blob = await shipmentRepository.getLabel(shipment.id, variant);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `etiqueta-${label.trackingNumber}.pdf`;
+      a.download = `etiqueta-${label.trackingNumber}-${variant}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -95,7 +101,7 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnothe
     }
   };
 
-  const handlePrintLabel = async () => {
+  const handlePrintLabel = async (variant: LabelVariant) => {
     if (!label) return;
     const isLocal = label.documentUrl.startsWith("/");
     if (!isLocal) {
@@ -105,7 +111,7 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnothe
     }
     setIsDownloading(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id);
+      const blob = await shipmentRepository.getLabel(shipment.id, variant);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());
@@ -218,24 +224,64 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnothe
       {/* Label Actions */}
       {label && (
         <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={handleDownloadLabel}
-            disabled={isDownloading}
-          >
-            <Download className="size-4" />
-            {isDownloading ? "Descargando..." : "Descargar etiqueta"}
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={handlePrintLabel}
-            disabled={isDownloading}
-          >
-            <Printer className="size-4" />
-            Imprimir etiqueta
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={isDownloading}
+              >
+                <Download className="size-4" />
+                {isDownloading ? "Descargando..." : "Descargar etiqueta"}
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                onClick={() => handleDownloadLabel("cargo")}
+              >
+                <Download className="size-4" />
+                JBG Cargo
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
+                onClick={() => handleDownloadLabel("agente")}
+              >
+                <Download className="size-4" />
+                JBG Agente
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={isDownloading}
+              >
+                <Printer className="size-4" />
+                Imprimir etiqueta
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                onClick={() => handlePrintLabel("cargo")}
+              >
+                <Printer className="size-4" />
+                JBG Cargo
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
+                onClick={() => handlePrintLabel("agente")}
+              >
+                <Printer className="size-4" />
+                JBG Agente
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
 

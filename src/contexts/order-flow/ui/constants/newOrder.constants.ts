@@ -1,4 +1,5 @@
-import type { NewOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/HQOrderForm";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/PartnerOrderForm";
 
 const emptyContactWithAddress = {
   id: null,
@@ -17,10 +18,9 @@ const emptyContactWithAddress = {
     geolocation: { latitude: 0, longitude: 0, placeId: null },
   },
   save: false,
-} as const satisfies NewOrderFormValues["sender"];
+} as const;
 
-export const newOrderDefaultValues: NewOrderFormValues = {
-  orderType: "HQ",
+const baseDefaults = {
   orderData: {
     orderNumber: "",
     partnerOrderNumber: "",
@@ -29,27 +29,9 @@ export const newOrderDefaultValues: NewOrderFormValues = {
   recipient: { ...emptyContactWithAddress },
   pickupAtAddress: false,
   customerSignature: null,
-  package: {
-    productSearch: "",
-    boxId: null,
-    ownership: "CUSTOMER",
-    packageType: "",
-    length: "",
-    width: "",
-    height: "",
-    dimensionUnit: "cm",
-    weight: "",
-    weightUnit: "kg",
-    productType: "",
-    savePackage: false,
-    skydropxCategoryId: "",
-    skydropxSubcategoryId: "",
-    consignmentNoteClassCode: "",
-    consignmentNotePackagingCode: "",
-  },
   shippingService: {
-    selectedRate: null,
-    currency: "MXN",
+    currency: "USD",
+    costBreakdownCurrency: "USD",
     costBreakdown: {
       insurance: "",
       tools: "",
@@ -58,14 +40,45 @@ export const newOrderDefaultValues: NewOrderFormValues = {
       tape: "",
     },
   },
-};
+} as const;
 
-export const hqOrderDefaultValues: NewOrderFormValues = {
-  ...newOrderDefaultValues,
+export const hqOrderDefaultValues: HQOrderFormValues = {
+  ...baseDefaults,
   orderType: "HQ",
+  package: {
+    productSearch: "",
+    boxId: null,
+    ownership: "CUSTOMER",
+    packageType: "",
+    length: "",
+    width: "",
+    height: "",
+    dimensionUnit: "in",
+    weight: "",
+    weightUnit: "lb",
+    productType: "",
+    savePackage: false,
+    skydropxCategoryId: "",
+    skydropxSubcategoryId: "",
+    consignmentNoteClassCode: "",
+    consignmentNotePackagingCode: "",
+  },
+  shippingService: {
+    ...baseDefaults.shippingService,
+    selectedRate: null,
+  },
 };
 
-export const partnerOrderDefaultValues: NewOrderFormValues = {
-  ...newOrderDefaultValues,
+export const partnerOrderDefaultValues: PartnerOrderFormValues = {
+  ...baseDefaults,
   orderType: "PARTNER",
+  package: {
+    boxId: null,
+    ownership: "CUSTOMER",
+    packageType: "",
+    length: "",
+    width: "",
+    height: "",
+    dimensionUnit: "in",
+  },
 };

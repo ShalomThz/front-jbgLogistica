@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Search, Shield, Store, User } from "lucide-react";
+import { Phone, Search, Shield, Store, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +54,7 @@ function getDefaults(): FormValues {
     storeId: "",
     isActive: true,
     type: "EMPLOYEE",
+    phone: "",
     role: {
       name: "Vendedor",
       permissions: [
@@ -170,21 +171,38 @@ export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
                   />
                 </FormField>
 
-                <FormField label="Contraseña *" error={errors.password?.message}>
+                <FormField label="Telefono" error={errors.phone?.message}>
                   <div className="relative">
+                    <Phone className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                     <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="Min. 6 caracteres"
-                      aria-invalid={!!errors.password}
-                      className="pr-10"
-                      {...register("password")}
+                      id="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="+52 555 123 4567"
+                      aria-invalid={!!errors.phone}
+                      className="pl-9"
+                      {...register("phone", {
+                        setValueAs: (v: string) => (v === "" ? undefined : v),
+                      })}
                     />
-                    <PasswordToggle show={showPassword} onToggle={() => setShowPassword((p) => !p)} />
                   </div>
                 </FormField>
               </div>
+
+              <FormField label="Contraseña *" error={errors.password?.message}>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Min. 6 caracteres"
+                    aria-invalid={!!errors.password}
+                    className="pr-10"
+                    {...register("password")}
+                  />
+                  <PasswordToggle show={showPassword} onToggle={() => setShowPassword((p) => !p)} />
+                </div>
+              </FormField>
 
               <FormField label="Tienda *" error={errors.storeId?.message}>
                 <Controller

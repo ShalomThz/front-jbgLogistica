@@ -14,6 +14,7 @@ import { ZoneDetailDialog } from "../components/zone/ZoneDetailDialog";
 import { ZoneFormDialog } from "../components/zone/ZoneFormDialog";
 import { ZoneDeleteDialog } from "../components/zone/ZoneDeleteDialog";
 import { ZoneFilters } from "../components/zone/ZoneFilters";
+import { exportZones } from "@contexts/pricing/domain/services/exportZones";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { useZoneFilters } from "../hooks/useZoneFilters";
 import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
@@ -104,6 +105,7 @@ export const ZonesPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
+        onExport={() => exportZones(filtered)}
       />
       <div className="rounded-lg border">
         <Table>

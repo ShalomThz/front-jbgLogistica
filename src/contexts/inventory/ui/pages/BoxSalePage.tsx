@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
-import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { AlertCircle, ChevronLeft, ChevronRight, Download, Minus, Plus, RefreshCw, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { BoxSaleSuccessDialog } from "../components/boxSale/BoxSaleSuccessDialog";
+import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -17,35 +19,108 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
 } from "@contexts/shared/shadcn";
+import { exportBoxSales } from "@contexts/inventory/domain/services/exportBoxSales";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
+import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+
+const LIMIT_OPTIONS = [10, 20, 50];
 
 interface CartItem {
   box: BoxPrimitives;
   quantity: number;
 }
 
+interface StockInfo {
+  boxId: string;
+  name: string;
+  dimensions: string;
+  soldQuantity: number;
+  previousStock: number;
+  remainingStock: number;
+}
+
 export const BoxSalePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<Map<string, CartItem>>(new Map());
-  const [displayCurrency, setDisplayCurrency] = useState("MXN");
-  const [exchangeRate, setExchangeRate] = useState(20);
+  const [customerName, setCustomerName] = useState("");
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const {
+    exchangeRate: liveRate,
+    isLoadingRate,
+    isFetchingRate,
+    isRateError,
+    rateError,
+    invalidateRate,
+  } = useExchangeRate({
+    from: "USD",
+    to: "MXN",
+  });
+  const exchangeRate = liveRate?.rate ?? 0;
+
+  useEffect(() => {
+    if (isRateError) {
+      toast.error("Error al obtener el tipo de cambio", {
+        description: rateError ?? "No se pudo contactar al servicio de exchange.",
+      });
+    }
+  }, [isRateError, rateError]);
+
+  const [salesPage, setSalesPage] = useState(1);
+  const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
 
   const { boxes, isLoading } = useBoxes();
-  const { sellBox, isSelling } = useBoxSales({ enabled: false });
+  const {
+    sellBox,
+    isSelling,
+    sales,
+    pagination: salesPagination,
+    totalPages: salesTotalPages,
+    isLoading: salesLoading,
+    downloadReceipt,
+    isDownloadingReceipt,
+    printReceipt,
+    isPrintingReceipt,
+  } = useBoxSales({ page: salesPage, limit: salesLimit });
   const { user } = useAuth();
+  const { users } = useUsers();
+
+  const boxNames = useMemo(
+    () => Object.fromEntries(boxes.map((b) => [b.id, b.name])),
+    [boxes],
+  );
+  const userNames = useMemo(
+    () => Object.fromEntries(users.map((u) => [u.id, u.name])),
+    [users],
+  );
+
+  const [completedSale, setCompletedSale] = useState<BoxSalePrimitives | null>(null);
+  const [saleStockInfo, setSaleStockInfo] = useState<StockInfo[]>([]);
+  const [selectedSale, setSelectedSale] = useState<BoxSalePrimitives | null>(null);
 
   const filtered = useMemo(
     () =>
-      boxes.filter(
-        (b) =>
-          searchQuery === "" ||
-          b.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
+      boxes.filter((b) => {
+        if (searchQuery === "") return true;
+        const q = searchQuery.toLowerCase();
+        const dims = `${b.dimensions.length} × ${b.dimensions.width} × ${b.dimensions.height} ${UNIT_SHORT_LABELS[b.dimensions.unit]}`;
+        return (
+          b.name.toLowerCase().includes(q) ||
+          dims.toLowerCase().includes(q)
+        );
+      }),
     [boxes, searchQuery],
   );
 
@@ -93,21 +168,43 @@ export const BoxSalePage = () => {
   const handleConfirmSale = async () => {
     if (!user || cartItems.length === 0) return;
 
+    const stockSnapshot: StockInfo[] = cartItems.map((item) => {
+      const d = item.box.dimensions;
+      return {
+        boxId: item.box.id,
+        name: item.box.name,
+        dimensions: `${d.length} × ${d.width} × ${d.height} ${UNIT_SHORT_LABELS[d.unit]}`,
+        soldQuantity: item.quantity,
+        previousStock: item.box.stock,
+        remainingStock: item.box.stock - item.quantity,
+      };
+    });
+
     try {
-      await sellBox({
+      const trimmedCustomer = customerName.trim();
+      const sale = await sellBox({
         items: cartItems.map((item) => ({
           boxId: item.box.id,
           quantity: item.quantity,
         })),
+        currency: displayCurrency,
+        customerName: trimmedCustomer.length > 0 ? trimmedCustomer : undefined,
         storeId: user.storeId,
         soldBy: user.id,
       });
       setCart(new Map());
-      toast.success("Venta registrada exitosamente");
+      setCustomerName("");
+      setSaleStockInfo(stockSnapshot);
+      setCompletedSale(sale);
     } catch {
       toast.error("Error al registrar la venta");
     }
   };
+
+  const handleCloseSuccess = useCallback(() => {
+    setCompletedSale(null);
+    setSaleStockInfo([]);
+  }, []);
 
   if (isLoading) {
     return <PageLoader text="Cargando cajas..." />;
@@ -218,6 +315,18 @@ export const BoxSalePage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="customerName">
+                    Cliente <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </label>
+                  <Input
+                    id="customerName"
+                    placeholder="Nombre del cliente"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Moneda</label>
                   <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
                     <SelectTrigger>
@@ -231,23 +340,54 @@ export const BoxSalePage = () => {
                 </div>
 
                 {needsConversion && (
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">1 USD =</label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={exchangeRate}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          setExchangeRate(isNaN(val) ? 0 : val);
-                        }}
-                        className="h-8 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                      <span className="text-sm text-muted-foreground">MXN</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Tipo de cambio</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono">
+                          {isLoadingRate
+                            ? "Cargando..."
+                            : isRateError
+                              ? "—"
+                              : `1 USD = ${exchangeRate.toFixed(2)} MXN`}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6"
+                          title="Actualizar tipo de cambio"
+                          onClick={() => invalidateRate()}
+                          disabled={isFetchingRate}
+                        >
+                          <RefreshCw
+                            className={`size-3.5 ${isFetchingRate ? "animate-spin" : ""}`}
+                          />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">Recuerda revisar el cambio actual</p>
+                    {isRateError && (
+                      <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                        <AlertCircle className="size-3.5 mt-0.5 shrink-0" />
+                        <div className="flex-1 space-y-1">
+                          <p className="font-medium">No se pudo obtener el tipo de cambio</p>
+                          <p className="text-destructive/80">
+                            {rateError ?? "Servicio de exchange no disponible."}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 mt-1"
+                            onClick={() => invalidateRate()}
+                            disabled={isFetchingRate}
+                          >
+                            <RefreshCw
+                              className={`size-3 ${isFetchingRate ? "animate-spin" : ""}`}
+                            />
+                            Reintentar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -303,7 +443,11 @@ export const BoxSalePage = () => {
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled={cartItems.length === 0 || isSelling || (needsConversion && exchangeRate <= 0)}
+                  disabled={
+                    cartItems.length === 0 ||
+                    isSelling ||
+                    (needsConversion && (isRateError || exchangeRate <= 0))
+                  }
                   onClick={handleConfirmSale}
                 >
                   {isSelling ? "Procesando..." : "Confirmar Venta"}
@@ -313,6 +457,134 @@ export const BoxSalePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Sales history */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Historial de Ventas</h2>
+          <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportBoxSales(sales, boxNames, userNames)}>
+            <Download className="size-4" />
+            Exportar XLSX
+          </Button>
+          <Select
+            value={String(salesLimit)}
+            onValueChange={(v) => {
+              setSalesLimit(Number(v));
+              setSalesPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LIMIT_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)}>
+                  {opt} por página
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          </div>
+        </div>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Folio</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="hidden sm:table-cell">Vendedor</TableHead>
+                <TableHead className="text-center">Items</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {salesLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-48 text-center">
+                    <p className="text-muted-foreground">Cargando ventas...</p>
+                  </TableCell>
+                </TableRow>
+              ) : sales.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-48 text-center">
+                    <p className="text-muted-foreground">No hay ventas registradas.</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sales.map((sale) => (
+                  <TableRow key={sale.id} className="cursor-pointer" onClick={() => setSelectedSale(sale)}>
+                    <TableCell className="font-mono text-xs">
+                      {sale.id.slice(0, 8).toUpperCase()}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(sale.createdAt).toLocaleString("es-MX")}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm">
+                      {userNames[sale.soldBy] ?? sale.soldBy.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="text-center">{sale.items.length}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${sale.totalAmount.amount.toFixed(2)} {sale.totalAmount.currency}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {salesPagination && salesPagination.total > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {salesPagination.offset + 1}-{salesPagination.offset + sales.length} de {salesPagination.total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSalesPage((p) => p - 1)}
+                disabled={salesPage <= 1}
+              >
+                <ChevronLeft className="size-4" />
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {salesPage} / {salesTotalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSalesPage((p) => p + 1)}
+                disabled={!salesPagination.hasMore}
+              >
+                Siguiente
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <BoxSaleDetailDialog
+        sale={selectedSale}
+        open={!!selectedSale}
+        onClose={() => setSelectedSale(null)}
+        boxNames={boxNames}
+        userNames={userNames}
+        onDownloadReceipt={downloadReceipt}
+        isDownloadingReceipt={isDownloadingReceipt}
+        onPrintReceipt={printReceipt}
+        isPrintingReceipt={isPrintingReceipt}
+      />
+
+      <BoxSaleSuccessDialog
+        sale={completedSale}
+        stockInfo={saleStockInfo}
+        open={!!completedSale}
+        onClose={handleCloseSuccess}
+        onPrintReceipt={printReceipt}
+        isPrintingReceipt={isPrintingReceipt}
+      />
     </div>
   );
 };

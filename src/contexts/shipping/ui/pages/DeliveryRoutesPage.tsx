@@ -1,4 +1,3 @@
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
   Badge,
   Button,
@@ -36,6 +35,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useOrders } from "../../../sales/infrastructure/hooks/orders/userOrders";
+import { parseApiError } from "../../../shared/infrastructure/http";
 import { formatDate } from "../../../shared/infrastructure/services/format-date,";
 import type { RouteStatus } from "../../domain/schemas/route/Route";
 import type { ShipmentPrimitives } from "../../domain/schemas/shipment/Shipment";

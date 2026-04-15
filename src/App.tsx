@@ -1,6 +1,6 @@
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { CustomerLayout, DashboardLayout } from "@contexts/shared/custom";
-import { routes } from "@contexts/shared/custom/router";
+import { CustomerLayout, DashboardLayout } from "@contexts/shared/ui/layouts";
+import { routes } from "@contexts/shared/ui/router";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation, useRoutes, useSearchParams } from "react-router-dom";

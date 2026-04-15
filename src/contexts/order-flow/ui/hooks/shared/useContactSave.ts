@@ -1,0 +1,99 @@
+import type { UseFormReturn, FieldValues } from "react-hook-form";
+import { toast } from "sonner";
+import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+
+interface UseContactSaveOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<FieldValues, any, any>;
+}
+
+export const useContactSave = ({ form }: UseContactSaveOptions) => {
+  const { user } = useAuth();
+  const { createCustomer, updateCustomer, isUpdating, isCreating } = useCustomers({ enabled: false });
+
+  const saveContacts = async (): Promise<boolean> => {
+    if (!user) {
+      toast.error("No se pudo identificar al usuario. Inicia sesión de nuevo.");
+      return false;
+    }
+
+    const { sender, recipient } = form.getValues();
+    const updates: Promise<void>[] = [];
+    let hasError = false;
+
+    if (sender.save && !sender.address.geolocation?.placeId) {
+      toast.error(`La dirección del remitente "${sender.name}" no está verificada. Selecciona una dirección de las sugerencias.`);
+      return false;
+    }
+
+    if (recipient.save && !recipient.address.geolocation?.placeId) {
+      toast.error(`La dirección del destinatario "${recipient.name}" no está verificada. Selecciona una dirección de las sugerencias.`);
+      return false;
+    }
+
+    if (sender.save && !sender.id) {
+      updates.push(
+        createCustomer({ userId: null, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address, registeredByStoreId: user.storeId })
+          .then((created) => {
+            toast.success(`Remitente "${sender.name}" guardado`);
+            form.setValue("sender.id", created.id);
+            form.setValue("sender.save", false);
+          })
+          .catch((err) => {
+            hasError = true;
+            toast.error(parseApiError(err));
+          }),
+      );
+    }
+
+    if (sender.save && sender.id) {
+      updates.push(
+        updateCustomer(sender.id, { name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address })
+          .then(() => {
+            toast.success(`Remitente "${sender.name}" actualizado`);
+            form.setValue("sender.save", false);
+          })
+          .catch((err) => {
+            hasError = true;
+            toast.error(parseApiError(err));
+          }),
+      );
+    }
+
+    if (recipient.save && !recipient.id) {
+      updates.push(
+        createCustomer({ userId: null, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address, registeredByStoreId: user.storeId })
+          .then((created) => {
+            toast.success(`Destinatario "${recipient.name}" guardado`);
+            form.setValue("recipient.id", created.id);
+            form.setValue("recipient.save", false);
+          })
+          .catch((err) => {
+            hasError = true;
+            toast.error(parseApiError(err));
+          }),
+      );
+    }
+
+    if (recipient.save && recipient.id) {
+      updates.push(
+        updateCustomer(recipient.id, { name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address })
+          .then(() => {
+            toast.success(`Destinatario "${recipient.name}" actualizado`);
+            form.setValue("recipient.save", false);
+          })
+          .catch((err) => {
+            hasError = true;
+            toast.error(parseApiError(err));
+          }),
+      );
+    }
+
+    await Promise.all(updates);
+    return !hasError;
+  };
+
+  return { saveContacts, isSaving: isUpdating || isCreating };
+};

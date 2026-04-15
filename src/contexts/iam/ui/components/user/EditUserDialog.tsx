@@ -18,7 +18,7 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Search, Shield, Store, User } from "lucide-react";
+import { Phone, Search, Shield, Store, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { editUserRequestSchema, type EditUserRequest } from "../../../application/user/EditUserRequest";
@@ -48,6 +48,7 @@ function getDefaults(user: UserListViewPrimitives): EditUserRequest {
     isActive: user.isActive,
     role: user.role,
     newPassword: undefined,
+    phone: user.phone ?? "",
   };
 }
 
@@ -114,6 +115,7 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
         : dirtyFields.role?.permissions));
     if (isRoleDirty) payload.role = data.role;
     if (dirtyFields.newPassword && data.newPassword) payload.newPassword = data.newPassword;
+    if (dirtyFields.phone) payload.phone = data.phone;
 
     onSave(payload);
   });
@@ -162,23 +164,40 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
                   />
                 </FormField>
 
-                <FormField label="Nueva contraseña" error={errors.newPassword?.message}>
+                <FormField label="Telefono" error={errors.phone?.message}>
                   <div className="relative">
+                    <Phone className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                     <Input
-                      id="newPassword"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="Dejar vacío para no cambiar"
-                      aria-invalid={!!errors.newPassword}
-                      className="pr-10"
-                      {...register("newPassword", {
+                      id="edit-phone"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="+52 555 123 4567"
+                      aria-invalid={!!errors.phone}
+                      className="pl-9"
+                      {...register("phone", {
                         setValueAs: (v: string) => (v === "" ? undefined : v),
                       })}
                     />
-                    <PasswordToggle show={showPassword} onToggle={() => setShowPassword((p) => !p)} />
                   </div>
                 </FormField>
               </div>
+
+              <FormField label="Nueva contraseña" error={errors.newPassword?.message}>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Dejar vacío para no cambiar"
+                    aria-invalid={!!errors.newPassword}
+                    className="pr-10"
+                    {...register("newPassword", {
+                      setValueAs: (v: string) => (v === "" ? undefined : v),
+                    })}
+                  />
+                  <PasswordToggle show={showPassword} onToggle={() => setShowPassword((p) => !p)} />
+                </div>
+              </FormField>
 
               <FormField label="Tienda *" error={errors.storeId?.message}>
                 <Controller

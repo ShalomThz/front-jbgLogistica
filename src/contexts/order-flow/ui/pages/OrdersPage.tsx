@@ -1,41 +1,35 @@
 import { useMemo, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, MoreHorizontal, Package, Pencil, Plus, Printer, RefreshCw, Trash2, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Users } from "lucide-react";
 import {
   Button,
-  Badge,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from "@contexts/shared/shadcn";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
+import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
-import { useOrderFilters } from "../hooks/useOrderFilters";
-import { useOrderDialog } from "../hooks/useOrderDialog";
-import { OrderDetailDialog } from "../components/order/OrderDetailDialog";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { useOrderFilters } from "../hooks/orders/useOrderFilters";
+import { useOrderDialog } from "../hooks/orders/useOrderDialog";
+import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
+import { OrderReport } from "../components/order/OrderReport";
+import { OrdersTable } from "../components/order/OrdersTable";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -54,6 +48,8 @@ export const OrdersPage = () => {
     deleteOrder,
     isDeleting,
   } = useOrders({ page, limit });
+
+  const { orders: allOrders } = useOrders();
 
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
@@ -78,7 +74,10 @@ export const OrdersPage = () => {
   const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
-  const handlePrintLabel = async (order: OrderListView) => {
+  const handlePrintLabel = async (
+    order: OrderListView,
+    variant: LabelVariant,
+  ) => {
     const shipment = order.shipment;
     if (!shipment?.label) return;
     setDownloadingLabel(order.id);
@@ -89,7 +88,7 @@ export const OrdersPage = () => {
         printWindow?.print();
         return;
       }
-      const blob = await shipmentRepository.getLabel(shipment.id);
+      const blob = await shipmentRepository.getLabel(shipment.id, variant);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());
@@ -172,6 +171,13 @@ export const OrdersPage = () => {
         </div>
       </div>
 
+      <Tabs defaultValue="orders">
+        <TabsList>
+          <TabsTrigger value="orders">Ordenes</TabsTrigger>
+          <TabsTrigger value="reports">Reportes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-4">
       <OrderFilters
         filters={filters}
         options={options}
@@ -185,139 +191,20 @@ export const OrdersPage = () => {
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
       />
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Destinatario</TableHead>
-              <TableHead className="hidden md:table-cell">Destino</TableHead>
-              <TableHead className="hidden sm:table-cell">Ref. JBG</TableHead>
-              <TableHead className="hidden lg:table-cell">Ref. Agente</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="hidden lg:table-cell">Creacion</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="w-[50px]">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                  No se encontraron órdenes.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((order) => (
-                <TableRow
-                  key={order.id}
-                  className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
-                  onClick={() => handleOpenDialog(order)}
-                >
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{order.destination.name}</div>
-                      <div className="text-xs text-muted-foreground">{order.destination.phone}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="text-sm">
-                      {order.destination.address.city}, {order.destination.address.province}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-xs">
-                    {order.references.orderNumber ?? "—"}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs">
-                    {order.references.partnerOrderNumber ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
-                      {ORDER_STATUS_LABELS[order.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString("es-MX")}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {canEdit(order) && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
-                          <DropdownMenuItem
-                            className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-                            onClick={() => navigate(`/orders/${order.id}/edit`)}
-                          >
-                            <Pencil className="size-4" />
-                            Editar orden
-                          </DropdownMenuItem>
-                        )}
-                        {order.type === "PARTNER" && canEditHQ && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
-                          <DropdownMenuItem
-                            className="bg-purple-50 text-purple-700 focus:bg-purple-100 focus:text-purple-800 dark:bg-purple-950/30 dark:text-purple-400 dark:focus:bg-purple-950/50"
-                            onClick={() => navigate(`/orders/${order.id}/edit?mode=complete`)}
-                          >
-                            <Package className="size-4" />
-                            Completar venta
-                          </DropdownMenuItem>
-                        )}
-                        {(order.shipment?.label || order.invoiceId) && (
-                          <>
-                            <DropdownMenuSeparator />
-                            {order.shipment?.label && (
-                              <DropdownMenuItem
-                                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
-                                disabled={downloadingLabel === order.id}
-                                onClick={() => handlePrintLabel(order)}
-                              >
-                                <Printer className="size-4" />
-                                Imprimir etiqueta
-                              </DropdownMenuItem>
-                            )}
-                            {order.invoiceId && (
-                              <DropdownMenuItem
-                                className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
-                                disabled={downloadingInvoice === order.id}
-                                onClick={() => handlePrintInvoice(order)}
-                              >
-                                <Printer className="size-4" />
-                                Imprimir factura
-                              </DropdownMenuItem>
-                            )}
-                          </>
-                        )}
-                        {canDelete(order) && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="bg-red-50 text-red-700 focus:bg-red-100 focus:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:focus:bg-red-950/50"
-                              onClick={() => setOrderToDelete(order)}
-                            >
-                              <Trash2 className="size-4" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <OrdersTable
+        orders={filtered}
+        canEdit={canEdit}
+        canEditHQ={canEditHQ}
+        canDelete={canDelete}
+        downloadingLabel={downloadingLabel}
+        downloadingInvoice={downloadingInvoice}
+        onOpenDetail={handleOpenDialog}
+        onPrintLabel={handlePrintLabel}
+        onPrintInvoice={handlePrintInvoice}
+        onEdit={(order) => navigate(`/orders/${order.id}/edit`)}
+        onCompleteSale={(order) => navigate(`/orders/${order.id}/edit?mode=complete`)}
+        onDelete={(order) => setOrderToDelete(order)}
+      />
 
       {pagination && total > 0 && (
         <div className="flex items-center justify-between">
@@ -349,6 +236,13 @@ export const OrdersPage = () => {
           </div>
         </div>
       )}
+
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <OrderReport orders={allOrders} boxNames={boxNames} />
+        </TabsContent>
+      </Tabs>
 
       <OrderDetailDialog
         order={selectedOrder}

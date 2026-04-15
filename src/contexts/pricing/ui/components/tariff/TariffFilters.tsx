@@ -1,4 +1,4 @@
-import { ArrowDownAZ, Clock, Filter, Globe, RefreshCw, Search } from "lucide-react";
+import { ArrowDownAZ, Clock, Download, Filter, Globe, RefreshCw, Search } from "lucide-react";
 import {
   Button,
   Input,
@@ -25,6 +25,7 @@ interface TariffFiltersProps {
   setFilter: <K extends keyof TariffFiltersState>(key: K, value: TariffFiltersState[K]) => void;
   onLimitChange: (value: number) => void;
   onResetAndRefetch: () => void;
+  onExport?: () => void;
 }
 
 const countActiveFilters = (filters: TariffFiltersState): number =>
@@ -46,6 +47,7 @@ export const TariffFilters = ({
   setFilter,
   onLimitChange,
   onResetAndRefetch,
+  onExport,
 }: TariffFiltersProps) => {
   const activeCount = countActiveFilters(filters);
 
@@ -167,6 +169,12 @@ export const TariffFilters = ({
               <RefreshCw className="size-4" />
               Limpiar filtros y actualizar
             </Button>
+            {onExport && (
+              <Button variant="outline" className="w-full gap-2" onClick={onExport}>
+                <Download className="size-4" />
+                Exportar XLSX
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>

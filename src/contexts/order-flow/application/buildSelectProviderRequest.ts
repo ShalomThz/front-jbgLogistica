@@ -1,4 +1,4 @@
-import type { ShippingServiceState } from "../domain/schemas/NewOrderForm";
+import type { HQShippingServiceState } from "../domain/schemas/NewOrderForm";
 import type { CarrierType } from "@contexts/shipping/domain/schemas/value-objects/Carrier";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
@@ -12,23 +12,22 @@ const parseMoney = (amount: string, currency: string): MoneyPrimitives | null =>
   return parsed > 0 ? { amount: parsed, currency } : null;
 };
 
-export const buildSelectProviderRequest = (shipmentId: string, shippingService: ShippingServiceState) => {
+export const buildSelectProviderRequest = (shipmentId: string, shippingService: HQShippingServiceState) => {
   const rate = shippingService.selectedRate!;
   const cb = shippingService.costBreakdown;
-  const isJBG = rate.serviceName === JBG_SERVICE_NAME;
-  const currency = isJBG ? shippingService.currency : rate.price.currency;
+  const costsCurrency = shippingService.costBreakdownCurrency;
 
   return {
     shipmentId,
     provider: { type: resolveCarrierType(rate.serviceName), providerName: rate.serviceName },
     rate,
-    finalPrice: { ...rate.price, currency },
+    finalPrice: rate.price,
     costBreakdown: {
-      insurance: parseMoney(cb.insurance, currency),
-      tools: parseMoney(cb.tools, currency),
-      additionalCost: parseMoney(cb.additionalCost, currency),
-      wrap: parseMoney(cb.wrap, currency),
-      tape: parseMoney(cb.tape, currency),
+      insurance: parseMoney(cb.insurance, costsCurrency),
+      tools: parseMoney(cb.tools, costsCurrency),
+      additionalCost: parseMoney(cb.additionalCost, costsCurrency),
+      wrap: parseMoney(cb.wrap, costsCurrency),
+      tape: parseMoney(cb.tape, costsCurrency),
     },
   };
 };

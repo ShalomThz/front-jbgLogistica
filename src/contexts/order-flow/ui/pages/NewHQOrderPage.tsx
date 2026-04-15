@@ -2,26 +2,31 @@ import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useHQOrderFlow } from "../hooks/useHQOrderFlow";
-import { HQContactStep } from "../components/contact/HQContactStep";
-import { HQPackageStep } from "../components/package/HQPackageStep";
-import { RateStep } from "../components/rate/RateStep";
+import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { HQContactStep } from "../components/hq/contact/HQContactStep";
+import { HQPackageStep } from "../components/hq/package/HQPackageStep";
+import { RateStep } from "../components/hq/rate/RateStep";
 import { OrderSuccessView } from "../components/order/OrderSuccessView";
-import { StepIndicator } from "../components/StepIndicator";
-import type { NewOrderFormValues } from "../../domain/schemas/NewOrderForm";
+import { StepIndicator } from "../components/shared/StepIndicator";
+import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 
 interface NewHQOrderPageProps {
-  initialValues?: NewOrderFormValues;
+  initialValues?: HQOrderFormValues;
   orderId?: string;
   partnerPrice?: MoneyPrimitives | null;
+  partnerCostBreakdown?: CostBreakdownPrimitives;
   storeName?: string;
   partnerOrderNumber?: string;
+  storeId?: string;
 }
 
-export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName, partnerOrderNumber }: NewHQOrderPageProps = {}) => {
+export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber, storeId }: NewHQOrderPageProps = {}) => {
   const navigate = useNavigate();
-  const flow = useHQOrderFlow({ initialValues, orderId });
+  const flow = useHQOrderFlow({ initialValues, orderId, storeId });
+  const { stores } = useStores({ limit: 100 });
 
   const title = (() => {
     const action = flow.isEditing ? "Editar Orden JBG" : "Nueva Orden JBG";
@@ -59,7 +64,15 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName
 
       {/* Form */}
       <FormProvider {...flow.form}>
-        {flow.step === "contact" && <HQContactStep />}
+        {flow.step === "contact" && (
+          <HQContactStep
+            {...(flow.canSelectStore && {
+              stores,
+              selectedStoreId: flow.selectedStoreId,
+              onStoreChange: flow.setSelectedStoreId,
+            })}
+          />
+        )}
 
         {flow.step === "package" && (
           <HQPackageStep onEditContacts={() => flow.setStep("contact")} />
@@ -78,6 +91,7 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, storeName
             onFinish={flow.goToOrders}
             onCreateAnother={() => navigate("/orders/new/hq")}
             partnerPrice={partnerPrice}
+            partnerCostBreakdown={partnerCostBreakdown}
           />
         )}
 

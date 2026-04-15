@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Filter, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Download, Filter, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Input,
@@ -23,22 +23,15 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
 } from "@contexts/shared/shadcn";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { BoxDetailDialog } from "../components/box/BoxDetailDialog";
 import { BoxFormDialog } from "../components/box/BoxFormDialog";
 import { BoxDeleteDialog } from "../components/box/BoxDeleteDialog";
 import { BoxStockDialog } from "../components/box/BoxStockDialog";
-import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
+import { exportBoxes } from "@contexts/inventory/domain/services/exportBoxes";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
-import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
-import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 
 type StockOperation = "add" | "subtract";
@@ -47,7 +40,6 @@ const LIMIT_OPTIONS = [10, 20, 50];
 
 export const BoxPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("stock");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -64,26 +56,6 @@ export const BoxPage = () => {
     deleteBox,
     isDeleting,
   } = useBoxes({ page, limit });
-
-  const [salesPage, setSalesPage] = useState(1);
-  const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
-  const {
-    sales,
-    pagination: salesPagination,
-    totalPages: salesTotalPages,
-    isLoading: salesLoading,
-  } = useBoxSales({ page: salesPage, limit: salesLimit, enabled: activeTab === "sales" });
-
-  const { users } = useUsers({ limit: 100 });
-
-  const boxNames = useMemo(
-    () => Object.fromEntries(boxes.map((b) => [b.id, b.name])),
-    [boxes],
-  );
-  const userNames = useMemo(
-    () => Object.fromEntries(users.map((u) => [u.id, u.name])),
-    [users],
-  );
 
   const [searchQuery, setSearchQuery] = useState("");
   const [unitFilter, setUnitFilter] = useState<string>("all");
@@ -115,9 +87,6 @@ export const BoxPage = () => {
   const [deleteBoxDialog, setDeleteBoxDialog] = useState<BoxPrimitives | null>(null);
   const [stockBox, setStockBox] = useState<BoxPrimitives | null>(null);
   const [stockOperation, setStockOperation] = useState<StockOperation | null>(null);
-  const [selectedSale, setSelectedSale] = useState<BoxSalePrimitives | null>(null);
-
-
   const filtered = (() => {
     const result = boxes.filter((b) => {
       const matchesSearch = searchQuery === "" || b.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -185,7 +154,7 @@ export const BoxPage = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Cajas</h1>
+        <h1 className="text-2xl font-bold">Inventario de Cajas</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
@@ -200,13 +169,7 @@ export const BoxPage = () => {
           </Button>
         </div>
       </div>
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="stock">Stock</TabsTrigger>
-          <TabsTrigger value="sales">Ventas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="stock" className="space-y-4">
+      <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
@@ -301,6 +264,10 @@ export const BoxPage = () => {
                     <RefreshCw className="size-4" />
                     Limpiar filtros y actualizar
                   </Button>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => exportBoxes(filtered)}>
+                    <Download className="size-4" />
+                    Exportar XLSX
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -385,106 +352,13 @@ export const BoxPage = () => {
               </div>
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="sales" className="space-y-4">
-          <div className="flex justify-end">
-            <Select
-              value={String(salesLimit)}
-              onValueChange={(v) => {
-                setSalesLimit(Number(v));
-                setSalesPage(1);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[130px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LIMIT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt} value={String(opt)}>
-                    {opt} por página
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead className="text-center">Items</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {salesLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-48 text-center">
-                      <p className="text-muted-foreground">Cargando ventas...</p>
-                    </TableCell>
-                  </TableRow>
-                ) : sales.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-48 text-center">
-                      <p className="text-muted-foreground">No hay ventas registradas.</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sales.map((sale) => (
-                    <TableRow key={sale.id} className="cursor-pointer" onClick={() => setSelectedSale(sale)}>
-                      <TableCell className="text-sm">
-                        {new Date(sale.createdAt).toLocaleString("es-MX")}
-                      </TableCell>
-                      <TableCell className="text-center">{sale.items.length}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        ${sale.totalAmount.amount.toFixed(2)} {sale.totalAmount.currency}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          {salesPagination && salesPagination.total > 0 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {salesPagination.offset + 1}-{salesPagination.offset + sales.length} de {salesPagination.total}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSalesPage((p) => p - 1)}
-                  disabled={salesPage <= 1}
-                >
-                  <ChevronLeft className="size-4" />
-                  Anterior
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {salesPage} / {salesTotalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSalesPage((p) => p + 1)}
-                  disabled={!salesPagination.hasMore}
-                >
-                  Siguiente
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      </div>
 
       <BoxDetailDialog box={selected} open={!!selected} onClose={() => setSelected(null)} onEdit={handleEditFromDetail} onDelete={handleDeleteFromDetail} />
       <BoxFormDialog open={formOpen} onClose={() => setFormOpen(false)} onSave={handleCreate} isLoading={isCreating} />
       <BoxFormDialog open={!!editBox} onClose={() => setEditBox(null)} onSave={handleUpdate} box={editBox} isLoading={isUpdating} />
       <BoxDeleteDialog box={deleteBoxDialog} open={!!deleteBoxDialog} onClose={() => setDeleteBoxDialog(null)} onConfirm={handleDelete} isLoading={isDeleting} />
       <BoxStockDialog box={stockBox} operation={stockOperation} open={!!stockBox} onClose={closeStockDialog} onConfirm={handleStockConfirm} />
-      <BoxSaleDetailDialog sale={selectedSale} open={!!selectedSale} onClose={() => setSelectedSale(null)} boxNames={boxNames} userNames={userNames} />
     </div>
   );
 };

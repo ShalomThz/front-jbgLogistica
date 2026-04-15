@@ -1,0 +1,111 @@
+import { useState } from "react";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { useQuery } from "@tanstack/react-query";
+import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
+import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
+import { usePartnerOrderFlowForm, type PartnerOrderStep } from "./usePartnerOrderFlowForm";
+import { useContactSave } from "../shared/useContactSave";
+import { useBoxOperations } from "../shared/useBoxOperations";
+import { usePartnerOrderSubmission } from "./usePartnerOrderSubmission";
+
+const STEPS: { key: PartnerOrderStep; label: string }[] = [
+  { key: "contact", label: "Contactos" },
+  { key: "package", label: "Paquete" },
+  { key: "pricing", label: "Costos" },
+  { key: "success", label: "Listo" },
+];
+
+interface UsePartnerOrderFlowOptions {
+  initialValues?: PartnerOrderFormValues;
+  orderId?: string;
+  storeId?: string;
+}
+
+export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePartnerOrderFlowOptions = {}) => {
+  const [step, setStep] = useState<PartnerOrderStep>("contact");
+  const { user } = useAuth();
+
+  // TODO: cambiar a CAN_SELECT_STORE cuando se cree el permiso
+  const canSelectStore = user ? orderPolicies.createHQ(user) : false;
+
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
+
+  const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
+  const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
+  const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
+  const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, onSuccess: () => setStep("success") });
+
+  const activeStoreId = selectedStoreId ?? user?.storeId;
+
+  const { data: store } = useQuery({
+    queryKey: ["stores", activeStoreId],
+    queryFn: () => storeRepository.getById(activeStoreId!),
+    enabled: !!activeStoreId,
+  });
+
+  const destinationCountry = form.watch("recipient.address.country");
+  const boxId = form.watch("package.boxId");
+
+  const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useTariffPrice({
+    zoneId: store?.zone?.id ?? "",
+    destinationCountry,
+    boxId: boxId ?? "",
+    enabled: step === "pricing" && !!store?.zone?.id && !!destinationCountry && !!boxId,
+  });
+
+  const isEditing = !!submission.orderId;
+  const stepIndex = STEPS.findIndex((s) => s.key === step);
+
+  const handleNext = async () => {
+    if (step === "contact") {
+      if (!(await validateStep("contact"))) return;
+      if (!(await saveContacts())) return;
+      setStep("package");
+    } else if (step === "package") {
+      if (!(await validateStep("package"))) return;
+      if (!(await processBox())) return;
+      setStep("pricing");
+    } else if (step === "pricing") {
+      await submission.submitPartnerOrder();
+    }
+  };
+
+  const handleBack = () => {
+    if (step === "package") setStep("contact");
+    else if (step === "pricing") setStep("package");
+  };
+
+  const nextButtonLabel = (() => {
+    if (step === "contact") return isSaving ? "Guardando..." : "Siguiente";
+    if (step === "package") return "Siguiente";
+    if (submission.isCreating) return isEditing ? "Actualizando..." : "Creando...";
+    return isEditing ? "Actualizar Orden" : "Crear Orden";
+  })();
+
+  const isNextDisabled = submission.isCreating || isSaving || isProcessingBox;
+
+  return {
+    form,
+    step,
+    stepIndex,
+    steps: STEPS,
+    setStep,
+    handleNext,
+    handleBack,
+    goToOrders: submission.goToOrders,
+    isEditing,
+    nextButtonLabel,
+    isNextDisabled,
+    tariffPrice,
+    isLoadingPrice,
+    tariffError: priceError,
+    refetchPrice,
+    canSelectStore,
+    selectedStoreId,
+    setSelectedStoreId,
+  };
+};

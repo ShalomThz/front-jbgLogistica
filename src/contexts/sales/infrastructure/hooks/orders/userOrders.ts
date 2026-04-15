@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { orderPolicies } from "@contexts/shared/custom/policies/order.policy";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -19,7 +19,8 @@ interface UseOrdersOptions {
 export const useOrders = ({ page = 1, limit = 10, enabled = true, filters = [] }: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const offset = (page - 1) * limit;
+  const offset =
+    page !== undefined && limit !== undefined ? (page - 1) * limit : undefined;
 
   if (user && !orderPolicies.listAll(user)) {
     filters.push({ field: "store.id", filterOperator: "=", value: user.storeId });
@@ -34,7 +35,8 @@ export const useOrders = ({ page = 1, limit = 10, enabled = true, filters = [] }
 
   const orders = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createHQMutation = useMutation({
     mutationFn: (data: CreateHQOrderRequest) => orderRepository.createHQ(data),

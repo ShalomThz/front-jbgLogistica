@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { emailSchema} from "@contexts/shared/domain/schemas/Email";
+import { emailSchema } from "@contexts/shared/domain/schemas/Email";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { userRoleSchema } from "./UserRole";
 import { storeSchema } from "../store/Store";
@@ -8,9 +8,10 @@ import { zoneSchema } from "../../../../pricing/domain/schemas/zone/Zone";
 export const USER_TYPES = ["EMPLOYEE", "CUSTOMER", "DRIVER"] as const;
 export type UserType = (typeof USER_TYPES)[number];
 
-export const nameSchema = z.string()
-.min(2, "El nombre debe tener al menos 2 caracteres")
-.max(100, "El nombre no puede exceder los 100 caracteres");
+export const nameSchema = z
+  .string()
+  .min(2, "El nombre debe tener al menos 2 caracteres")
+  .max(100, "El nombre no puede exceder los 100 caracteres");
 
 export const userSchema = z.object({
   id: z.string(),
@@ -21,6 +22,7 @@ export const userSchema = z.object({
   storeId: z.string(),
   isActive: z.boolean(),
   type: z.enum(USER_TYPES),
+  phone: z.string().nullish(),
   ...aggregateRootSchema.shape,
 });
 

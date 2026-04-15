@@ -10,6 +10,7 @@ import z from "zod";
 export const orderSchema = z.object({
   id: z.string(),
   storeId: z.string(),
+  createdBy: z.string(),
   origin: customerProfileSchema,
   destination: customerProfileSchema,
   financials: orderFinancialsSchema,

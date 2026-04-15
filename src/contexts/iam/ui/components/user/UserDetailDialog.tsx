@@ -10,7 +10,7 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
-import { Calendar, Check, Clock, Mail, Pencil, Shield, Store, Trash2, User } from "lucide-react";
+import { Calendar, Check, Clock, Mail, Pencil, Phone, Shield, Store, Trash2, User } from "lucide-react";
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
 import { PERMISSION_LABELS, PERMISSION_GROUPS } from "./constants";
 
@@ -94,6 +94,20 @@ export const UserDetailDialog = ({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Email</span>
                   <span className="text-sm font-medium">{user.email}</span>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Telefono</span>
+                  <span className="text-sm font-medium flex items-center gap-1.5">
+                    {user.phone ? (
+                      <>
+                        <Phone className="size-3.5 text-muted-foreground" />
+                        {user.phone}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">

@@ -1,5 +1,4 @@
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
   Badge,
   Button,
@@ -26,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { parseApiError } from "../../../shared/infrastructure/http";
 import { formatDate } from "../../../shared/infrastructure/services/format-date,";
 import type { EditDriverRequest } from "../../application/driver/EditDriverRequest";
 import type { DriverStatus } from "../../domain/schemas/driver/Driver";

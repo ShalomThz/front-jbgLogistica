@@ -31,7 +31,7 @@ import { useEffect, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
-import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { z } from "zod";
 import { dimensionsSchema, dimensionUnits } from "../../../shared/domain/schemas/Dimensions";
 import { weightSchema, weightUnits } from "../../../shared/domain/schemas/Weight";
@@ -264,7 +264,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Paquete</DialogTitle>
           <DialogDescription>

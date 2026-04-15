@@ -1,3 +1,5 @@
+import { ApiError } from "./errors/ApiError";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const getToken = (): string | null => {
@@ -30,12 +32,16 @@ export const httpClient = async <T>(
   });
 
   if (!response.ok) {
-    const error = await response
+    const body = await response
       .json()
       .catch(() => ({ message: "Error de servidor" }));
 
-      throw new Error(error.error || error.message || `HTTP ${response.status}`);
-    }
+    throw new ApiError(
+      body.code ?? null,
+      body.error ?? body.message ?? `HTTP ${response.status}`,
+      response.status,
+    );
+  }
 
   if (response.status === 204) {
     return undefined as T;
@@ -71,10 +77,15 @@ export const httpClientBlob = async (
   });
 
   if (!response.ok) {
-    const error = await response
+    const body = await response
       .json()
       .catch(() => ({ message: "Error de servidor" }));
-    throw new Error(error.error || error.message || `HTTP ${response.status}`);
+
+    throw new ApiError(
+      body.code ?? null,
+      body.error ?? body.message ?? `HTTP ${response.status}`,
+      response.status,
+    );
   }
 
   return response.blob();
