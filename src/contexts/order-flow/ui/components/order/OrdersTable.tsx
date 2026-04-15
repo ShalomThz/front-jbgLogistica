@@ -56,24 +56,23 @@ export const OrdersTable = ({
         <TableHeader>
           <TableRow>
             <TableHead className="hidden md:table-cell">Creado por</TableHead>
-            <TableHead>Destinatario</TableHead>
+            <TableHead>Paquetería</TableHead>
             <TableHead className="hidden md:table-cell">Cliente</TableHead>
             <TableHead className="hidden md:table-cell">Destino</TableHead>
-            <TableHead className="hidden sm:table-cell w-[50px]"></TableHead>
             <TableHead className="hidden sm:table-cell">Ref. JBG</TableHead>
-            <TableHead className="hidden lg:table-cell w-[50px]"></TableHead>
             <TableHead className="hidden lg:table-cell">Ref. Agente</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="hidden lg:table-cell">Creacion</TableHead>
             <TableHead>Pago</TableHead>
-            <TableHead className="text-right">Total</TableHead>
+            <TableHead className="text-right">Total guías</TableHead>
+            <TableHead className="text-right">Total facturado</TableHead>
             <TableHead className="w-[50px]">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
                 No se encontraron órdenes.
               </TableCell>
             </TableRow>
@@ -84,13 +83,17 @@ export const OrdersTable = ({
                 className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
                 onClick={() => onOpenDetail(order)}
               >
-                <TableCell className="hidden md:table-cell text-xs">
-                  {order.createdBy.name}
+                <TableCell className="hidden md:table-cell text-xs max-w-[140px]">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="truncate">{order.createdBy.name}</div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{order.createdBy.name}</TooltipContent>
+                  </Tooltip>
                 </TableCell>
                 <TableCell>
-                  <div>
-                    <div className="font-medium">{order.destination.name}</div>
-                    <div className="text-xs text-muted-foreground">{order.destination.phone}</div>
+                  <div className="text-sm">
+                    {order.shipment?.provider?.providerName ?? "—"}
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
@@ -126,45 +129,45 @@ export const OrdersTable = ({
                     </TooltipContent>
                   </Tooltip>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  {order.shipment?.label && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-6 shrink-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                      disabled={downloadingLabel === order.id}
-                      title="Imprimir etiqueta JBG Cargo"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPrintLabel(order, "cargo");
-                      }}
-                    >
-                      <Printer className="size-3.5" />
-                    </Button>
-                  )}
-                </TableCell>
                 <TableCell className="hidden sm:table-cell text-xs">
-                  {order.references.orderNumber ?? "—"}
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {order.shipment?.label && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-6 shrink-0 text-orange-600 hover:bg-orange-100 hover:text-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
-                      disabled={downloadingLabel === order.id}
-                      title="Imprimir etiqueta JBG Agente"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPrintLabel(order, "agente");
-                      }}
-                    >
-                      <Printer className="size-3.5" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {order.shipment?.label && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                        disabled={downloadingLabel === order.id}
+                        title="Imprimir etiqueta JBG Cargo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPrintLabel(order, "cargo");
+                        }}
+                      >
+                        <Printer className="size-3.5" />
+                      </Button>
+                    )}
+                    <span>{order.references.orderNumber ?? "—"}</span>
+                  </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell text-xs">
-                  {order.references.partnerOrderNumber ?? "—"}
+                  <div className="flex items-center gap-1">
+                    {order.shipment?.label && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 text-orange-600 hover:bg-orange-100 hover:text-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
+                        disabled={downloadingLabel === order.id}
+                        title="Imprimir etiqueta JBG Agente"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPrintLabel(order, "agente");
+                        }}
+                      >
+                        <Printer className="size-3.5" />
+                      </Button>
+                    )}
+                    <span>{order.references.partnerOrderNumber ?? "—"}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
@@ -181,6 +184,16 @@ export const OrdersTable = ({
                 </TableCell>
                 <TableCell className="text-right font-mono">
                   ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
+                </TableCell>
+                <TableCell className="text-right font-mono">
+                  ${(
+                    (order.financials.totalPrice?.amount ?? 0) +
+                    (order.financials.costBreakdown.insurance?.amount ?? 0) +
+                    (order.financials.costBreakdown.tools?.amount ?? 0) +
+                    (order.financials.costBreakdown.additionalCost?.amount ?? 0) +
+                    (order.financials.costBreakdown.wrap?.amount ?? 0) +
+                    (order.financials.costBreakdown.tape?.amount ?? 0)
+                  ).toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
