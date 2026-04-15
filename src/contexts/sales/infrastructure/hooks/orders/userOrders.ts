@@ -13,15 +13,15 @@ interface UseOrdersOptions {
   page?: number;
   limit?: number;
   enabled?: boolean;
+  filters?: unknown[];
 }
 
-export const useOrders = ({ page, limit, enabled = true }: UseOrdersOptions = {}) => {
+export const useOrders = ({ page = 1, limit = 10, enabled = true, filters = [] }: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const offset =
     page !== undefined && limit !== undefined ? (page - 1) * limit : undefined;
 
-  const filters: unknown[] = [];
   if (user && !orderPolicies.listAll(user)) {
     filters.push({ field: "store.id", filterOperator: "=", value: user.storeId });
   }

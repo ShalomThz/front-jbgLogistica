@@ -1,7 +1,7 @@
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
-import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 
 export const useOrderDialog = (orders: OrderListView[]) => {
     const [searchParams, setSearchParams] = useSearchParams();

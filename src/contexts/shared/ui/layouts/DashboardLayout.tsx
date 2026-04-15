@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
-    <SidebarProvider className="h-screen !min-h-0 overflow-hidden">
+    <SidebarProvider className="h-screen min-h-0! overflow-hidden">
       <Sidebar>
         <AppSidebar />
       </Sidebar>

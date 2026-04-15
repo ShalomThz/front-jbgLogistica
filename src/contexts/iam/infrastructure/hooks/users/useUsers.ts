@@ -61,8 +61,10 @@ export const useUsers = ({ page = 1, limit = 10 }: UseUsersOptions = {}) => {
     error: error?.message ?? null,
     refetch,
 
-    createUser: (data: RegisterUserRequestPrimitives) =>
-      createMutation.mutateAsync(data),
+    createUser: async (data: RegisterUserRequestPrimitives) => {
+      const createdUser = await createMutation.mutateAsync(data);
+      return createdUser.id;
+    },
     isCreating: createMutation.isPending,
     createError: createMutation.error?.message ?? null,
 
