@@ -56,8 +56,9 @@ export const OrdersTable = ({
         <TableHeader>
           <TableRow>
             <TableHead className="hidden md:table-cell">Creado por</TableHead>
-            <TableHead>Paquetería</TableHead>
+            <TableHead>Compañía</TableHead>
             <TableHead className="hidden md:table-cell">Cliente</TableHead>
+            <TableHead className="hidden md:table-cell">Destinatario</TableHead>
             <TableHead className="hidden md:table-cell">Destino</TableHead>
             <TableHead className="hidden sm:table-cell">Ref. JBG</TableHead>
             <TableHead className="hidden lg:table-cell">Ref. Agente</TableHead>
@@ -72,7 +73,7 @@ export const OrdersTable = ({
         <TableBody>
           {orders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
                 No se encontraron órdenes.
               </TableCell>
             </TableRow>
@@ -100,6 +101,12 @@ export const OrdersTable = ({
                   <div>
                     <div className="font-medium">{order.origin.name}</div>
                     <div className="text-xs text-muted-foreground">{order.origin.phone}</div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div>
+                    <div className="font-medium">{order.destination.name}</div>
+                    <div className="text-xs text-muted-foreground">{order.destination.phone}</div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">

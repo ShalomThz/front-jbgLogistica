@@ -1,18 +1,26 @@
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   Checkbox,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@contexts/shared/shadcn";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 
@@ -24,6 +32,9 @@ interface OrderReferencesCardProps {
 
 export function OrderReferencesCard({ stores, selectedStoreId, onStoreChange }: OrderReferencesCardProps = {}) {
   const { register, control, clearErrors, formState: { errors } } = useFormContext<BaseOrderFormValues>();
+  const [storeOpen, setStoreOpen] = useState(false);
+
+  const selectedStore = stores?.find((s) => s.id === selectedStoreId);
 
   return (
     <Card className="mb-6 shadow-md shadow-primary/20">
@@ -34,18 +45,53 @@ export function OrderReferencesCard({ stores, selectedStoreId, onStoreChange }: 
         {stores && onStoreChange && (
           <div className="space-y-1">
             <Label htmlFor="store-select">Tienda *</Label>
-            <Select value={selectedStoreId} onValueChange={onStoreChange}>
-              <SelectTrigger id="store-select" className="w-full">
-                <SelectValue placeholder="Selecciona una tienda" />
-              </SelectTrigger>
-              <SelectContent>
-                {stores.map((store) => (
-                  <SelectItem key={store.id} value={store.id}>
-                    {store.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={storeOpen} onOpenChange={setStoreOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  id="store-select"
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={storeOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedStore ? (
+                    selectedStore.name
+                  ) : (
+                    <span className="text-muted-foreground">Selecciona una tienda</span>
+                  )}
+                  <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar tienda..." />
+                  <CommandList>
+                    <CommandEmpty>No se encontraron tiendas.</CommandEmpty>
+                    <CommandGroup>
+                      {stores.map((store) => (
+                        <CommandItem
+                          key={store.id}
+                          value={store.name}
+                          onSelect={() => {
+                            onStoreChange(store.id);
+                            setStoreOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 size-4",
+                              selectedStoreId === store.id ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          {store.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
