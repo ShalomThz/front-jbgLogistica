@@ -1,15 +1,4 @@
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  BadgeCheck,
-  CarFront,
-  ClipboardList,
-  Plus,
-  RefreshCw,
-  UserRound,
-} from "lucide-react";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
-import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { parseApiError } from "@contexts/shared/infrastructure/http/parseApiError";
 import {
   Badge,
@@ -26,10 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
-import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
-import type { DriverListViewPrimitives, } from "../../domain/schemas/driver/DriverListView";
-import type { DriverStatus } from "../../domain/schemas/driver/Driver";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import {
+  BadgeCheck,
+  CarFront,
+  ClipboardList,
+  Plus,
+  RefreshCw,
+  UserRound,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { formatDate } from "../../../shared/infrastructure/services/format-date,";
 import type { EditDriverRequest } from "../../application/driver/EditDriverRequest";
+import type { DriverStatus } from "../../domain/schemas/driver/Driver";
+import type { DriverListViewPrimitives, } from "../../domain/schemas/driver/DriverListView";
+import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
 import { CreateDriverUserDialog } from "../components/driver/CreateDriverUserDialog";
 import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
 import { EditDriverDialog } from "../components/driver/EditDriverDialog";
@@ -75,12 +76,6 @@ function DriverStat({
   );
 }
 
-const formatDate = (date: string) =>
-  new Date(date).toLocaleDateString("es-MX", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 
 export const DriversPage = () => {
   const [page, setPage] = useState(1);
@@ -98,7 +93,7 @@ export const DriversPage = () => {
     isCreatingDriver,
     updateDriver,
     isUpdating,
-  } = useDrivers({ page, limit: LIMIT});
+  } = useDrivers({ filters: [], page, limit: LIMIT });
   const { createUser, isCreating } = useUsers({ page: 1, limit: 10 });
 
   const availableCount = drivers.filter((d) => d.status === "AVAILABLE").length;
@@ -201,7 +196,6 @@ export const DriversPage = () => {
                 <TableRow>
                   <TableHead>Conductor</TableHead>
                   <TableHead>Licencia</TableHead>
-                  <TableHead>Tienda</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Registro</TableHead>
                 </TableRow>
@@ -232,7 +226,6 @@ export const DriversPage = () => {
                       <TableCell className="font-mono text-sm">
                         {driver.licenseNumber}
                       </TableCell>
-                      <TableCell>{driver.user.store.name}</TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANT[driver.status]}>
                           {STATUS_LABELS[driver.status]}

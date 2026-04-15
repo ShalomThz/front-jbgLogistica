@@ -1,10 +1,10 @@
 import { z } from "zod";
+import { geolocationSchema } from "../../../shared/domain/schemas/address/Geolocation";
 
 export const createRouteRequestSchema = z.object({
-  originLat: z.number(),
-  originLng: z.number(),
-  originPlaceId: z.string().optional(),
-  shipmentIds: z.array(z.string().uuid()),
+  origin: geolocationSchema,
+  shipmentIds: z.array(z.string()),
+  driverId: z.string(),
 });
 
 export type CreateRouteRequest = z.infer<typeof createRouteRequestSchema>;

@@ -23,7 +23,6 @@ import {
 } from "@contexts/shared/shadcn";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
-  ArrowRight,
   Map,
   MapPinned,
   Navigation,
@@ -36,11 +35,12 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { RouteStatus } from "../../domain/schemas/route/RouteDelivery";
+import { useOrders } from "../../../sales/infrastructure/hooks/orders/userOrders";
+import { formatDate } from "../../../shared/infrastructure/services/format-date,";
+import type { RouteStatus } from "../../domain/schemas/route/Route";
 import type { ShipmentPrimitives } from "../../domain/schemas/shipment/Shipment";
 import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
 import { useRoutes } from "../../infrastructure/hooks/routes/useRoutes";
-import { useShipments } from "../../infrastructure/hooks/shipments/useShipments";
 import { RouteMapDialog } from "../components/route/RouteMapDialog";
 
 const STATUS_LABELS: Record<RouteStatus, string> = {
@@ -56,6 +56,19 @@ const STATUS_VARIANT: Record<RouteStatus, "default" | "secondary" | "outline"> =
   COMPLETED: "default",
   CANCELLED: "outline",
 };
+
+function mapDriverStatus(status: string) {
+  switch (status) {
+    case "AVAILABLE":
+      return "Disponible";
+    case "ON_ROUTE":
+      return "En ruta";
+    case "OFFLINE":
+      return "Desconectado";
+    default:
+      return status;
+  }
+}
 
 const LIMIT = 20;
 
@@ -99,7 +112,6 @@ export const DeliveryRoutesPage = () => {
   const [originPlaceId, setOriginPlaceId] = useState("");
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
-  const [routeDriverDrafts, setRouteDriverDrafts] = useState<Record<string, string>>({});
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [mapRouteId, setMapRouteId] = useState<string | null>(null);
 
@@ -111,13 +123,11 @@ export const DeliveryRoutesPage = () => {
     refetch,
     createRoute,
     isCreatingRoute,
-    assignDriverToRoute,
-    isAssigningDriver,
     optimizeRoute,
     isOptimizingRoute,
     cancelRoute,
     isCancellingRoute,
-  } = useRoutes({ page, limit: LIMIT });
+  } = useRoutes({ page, limit: LIMIT, filters: [] });
 
   const { drivers } = useDrivers({
     page: 1,
@@ -125,11 +135,13 @@ export const DeliveryRoutesPage = () => {
     filters: [],
   });
 
-  const { shipments } = useShipments({
+  const { orders } = useOrders({
     page: 1,
     limit: 100,
-    filters: [{ field: "status", filterOperator: "=", value: "FULFILLED" }],
+    filters: [{ field: "shipment.status", filterOperator: "=", value: "FULFILLED" }],
   });
+
+  const fulfilledOrders = useMemo(() => orders.filter((order): order is typeof order & { shipment: ShipmentPrimitives } => order.shipment !== null && order.shipment.status === "FULFILLED"), [orders]);
 
   const availableDrivers = useMemo(
     () => drivers.filter((driver) => driver.status === "AVAILABLE"),
@@ -156,16 +168,16 @@ export const DeliveryRoutesPage = () => {
   const selectableShipments = useMemo(() => {
     const query = shipmentSearch.trim().toLowerCase();
 
-    return shipments.filter((shipment) => {
+    return fulfilledOrders.filter((order) => {
       if (!query) return true;
 
       return (
-        shipment.id.toLowerCase().includes(query) ||
-        shipment.orderId.toLowerCase().includes(query) ||
-        getTrackingLabel(shipment).toLowerCase().includes(query)
+        order.shipment.id.toLowerCase().includes(query) ||
+        order.shipment.orderId.toLowerCase().includes(query) ||
+        getTrackingLabel(order.shipment).toLowerCase().includes(query)
       );
     });
-  }, [shipments, shipmentSearch]);
+  }, [fulfilledOrders, shipmentSearch]);
 
   const selectedShipments = useMemo(
     () =>
@@ -207,35 +219,27 @@ export const DeliveryRoutesPage = () => {
       return;
     }
 
+    if (!selectedDriverId) {
+      toast.error("Selecciona un conductor para crear la ruta.");
+      return;
+    }
+
     try {
       const createdRoute = await createRoute({
-        originLat: Number(originLat),
-        originLng: Number(originLng),
-        originPlaceId: originPlaceId || undefined,
+        origin: {
+          latitude: Number(originLat),
+          longitude: Number(originLng),
+          placeId: originPlaceId ?? null,
+        },
+        driverId: selectedDriverId,
         shipmentIds: selectedShipmentIds,
       });
-
-      if (selectedDriverId) {
-        await assignDriverToRoute({
-          routeId: createdRoute.id,
-          driverId: selectedDriverId,
-        });
-      }
 
       toast.success("Ruta creada correctamente.");
       setSelectedRouteId(createdRoute.id);
       setSelectedShipmentIds([]);
       setSelectedDriverId(null);
       setShipmentSearch("");
-    } catch (error) {
-      toast.error(parseApiError(error));
-    }
-  };
-
-  const handleAssignDriver = async (routeId: string, driverId: string) => {
-    try {
-      await assignDriverToRoute({ routeId, driverId });
-      toast.success("Conductor asignado correctamente.");
     } catch (error) {
       toast.error(parseApiError(error));
     }
@@ -262,6 +266,8 @@ export const DeliveryRoutesPage = () => {
   if (isLoading) {
     return <PageLoader text="Cargando centro de rutas..." />;
   }
+
+  const findDriverById = (driverId: string) => drivers.find((driver) => driver.id === driverId);
 
   return (
     <div className="space-y-6">
@@ -294,8 +300,8 @@ export const DeliveryRoutesPage = () => {
         />
         <StatCard
           title="Paquetes elegibles"
-          value={String(shipments.length)}
-          detail="Envios fulfilled listos para planear"
+          value={String(fulfilledOrders.length)}
+          detail="Envios listos para planear"
           icon={Package}
         />
         <StatCard
@@ -307,7 +313,7 @@ export const DeliveryRoutesPage = () => {
       </div>
 
       <Tabs defaultValue="planner" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:w-[360px]">
+        <TabsList className="grid w-full grid-cols-2 md:w-90">
           <TabsTrigger value="planner">Planificador</TabsTrigger>
           <TabsTrigger value="routes">Rutas activas</TabsTrigger>
         </TabsList>
@@ -387,15 +393,14 @@ export const DeliveryRoutesPage = () => {
                             current === driver.id ? null : driver.id,
                           )
                         }
-                        className={`rounded-xl border p-3 text-left transition ${
-                          selectedDriverId === driver.id
-                            ? "border-primary bg-primary/5"
-                            : "hover:border-primary/40"
-                        }`}
+                        className={`rounded-xl border p-3 text-left transition ${selectedDriverId === driver.id
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-primary/40"
+                          }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium">{driver.id}</span>
-                          <Badge variant="outline">{driver.status}</Badge>
+                          <span className="font-medium">{driver.user.name}</span>
+                          <Badge variant="outline">{mapDriverStatus(driver.status)}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
                           Licencia {driver.licenseNumber}
@@ -433,25 +438,28 @@ export const DeliveryRoutesPage = () => {
                     </div>
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
-                    {selectableShipments.map((shipment) => {
+                    {selectableShipments.map((order) => {
+                      const shipment = order.shipment;
                       const selected = selectedShipmentIds.includes(shipment.id);
                       return (
                         <button
                           key={shipment.id}
                           type="button"
                           onClick={() => toggleShipment(shipment.id)}
-                          className={`rounded-2xl border p-4 text-left transition ${
-                            selected
-                              ? "border-primary bg-primary/5 shadow-sm"
-                              : "hover:border-primary/40"
-                          }`}
+                          className={`rounded-2xl border p-4 text-left transition ${selected
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "hover:border-primary/40"
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-medium">{shipment.id}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Orden {shipment.orderId}
-                              </p>
+                              <p className="font-medium">Num Factura JBG {order.references.orderNumber}</p>
+                              {order.references.partnerOrderNumber && (
+                                <p className="text-sm text-muted-foreground">
+                                  Num factura agente: {order.references.partnerOrderNumber}
+                                </p>
+                              )}
+
                             </div>
                             <Badge variant={selected ? "default" : "outline"}>
                               {selected ? "Incluido" : "Disponible"}
@@ -468,9 +476,8 @@ export const DeliveryRoutesPage = () => {
                             <span>
                               Caja: {shipment.parcel.dimensions.length} x{" "}
                               {shipment.parcel.dimensions.width} x{" "}
-                              {shipment.parcel.dimensions.height}
+                              {shipment.parcel.dimensions.height} {" "} {shipment.parcel.dimensions.unit}
                             </span>
-                            <span>Estado: {shipment.status}</span>
                           </div>
                         </button>
                       );
@@ -519,22 +526,26 @@ export const DeliveryRoutesPage = () => {
                     Paradas seleccionadas ({selectedShipmentIds.length})
                   </p>
                   <div className="space-y-2">
-                    {selectedShipments.map((shipment) => (
-                      <div
-                        key={shipment.id}
-                        className="flex items-center justify-between rounded-xl border p-3"
-                      >
-                        <div>
-                          <p className="font-medium">{shipment.id}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Orden {shipment.orderId}
-                          </p>
+                    {selectedShipments.map((order) => {
+                      const shipment = order.shipment;
+
+                      return (
+                        <div
+                          key={shipment.id}
+                          className="flex items-center justify-between rounded-xl border p-3"
+                        >
+                          <div>
+                            <p className="font-medium">{shipment.id}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Orden {shipment.orderId}
+                            </p>
+                          </div>
+                          <Badge variant="outline">
+                            {getTrackingLabel(shipment)}
+                          </Badge>
                         </div>
-                        <Badge variant="outline">
-                          {getTrackingLabel(shipment)}
-                        </Badge>
-                      </div>
-                    ))}
+                      )
+                    })}
                     {selectedShipments.length === 0 && (
                       <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
                         Todavía no has elegido paquetes.
@@ -545,7 +556,7 @@ export const DeliveryRoutesPage = () => {
 
                 <Button
                   onClick={handleCreateRoute}
-                  disabled={isCreatingRoute || isAssigningDriver}
+                  disabled={isCreatingRoute}
                   className="w-full gap-2"
                 >
                   <Sparkles className="size-4" />
@@ -568,7 +579,7 @@ export const DeliveryRoutesPage = () => {
                     </CardDescription>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <div className="relative min-w-[220px]">
+                    <div className="relative min-w-55">
                       <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         value={search}
@@ -632,7 +643,8 @@ export const DeliveryRoutesPage = () => {
                                 <div className="flex items-center gap-2">
                                   <Navigation className="size-4 text-muted-foreground" />
                                   <div>
-                                    <p className="font-medium">{route.id}</p>
+                                    <p className="font-medium">{formatDate(route.createdAt)}</p>
+                                    <p className="text-sm text-muted-foreground">{route.id.substring(0, 8)}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {route.mapsMetadata
                                         ? `${route.mapsMetadata.distanceKm.toFixed(1)} km`
@@ -641,7 +653,7 @@ export const DeliveryRoutesPage = () => {
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell>{route.driverId}</TableCell>
+                              <TableCell>{findDriverById(route.driverId)?.user.name || "Conductor no encontrado"}</TableCell>
                               <TableCell>
                                 {deliveredStops}/{route.stops.length}
                               </TableCell>
@@ -749,12 +761,10 @@ export const DeliveryRoutesPage = () => {
                   <>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-lg font-semibold">{selectedRoute.id}</p>
+                        <p className="text-lg font-semibold">{selectedRoute.id.substring(0, 8)}</p>
                         <p className="text-sm text-muted-foreground">
                           Creada el{" "}
-                          {new Date(selectedRoute.createdAt).toLocaleString(
-                            "es-MX",
-                          )}
+                          {formatDate(selectedRoute.createdAt)}
                         </p>
                       </div>
                       <Badge variant={STATUS_VARIANT[selectedRoute.status]}>
@@ -785,10 +795,10 @@ export const DeliveryRoutesPage = () => {
                           selectedRoute.stops.length === 0
                             ? 0
                             : (selectedRoute.stops.filter(
-                                (stop) => stop.status === "DELIVERED",
-                              ).length /
-                                selectedRoute.stops.length) *
-                              100
+                              (stop) => stop.status === "DELIVERED",
+                            ).length /
+                              selectedRoute.stops.length) *
+                            100
                         }
                       />
                     </div>
@@ -796,53 +806,22 @@ export const DeliveryRoutesPage = () => {
                     {selectedRoute.status === "PLANNED" && (
                       <div className="space-y-3 rounded-2xl border p-4">
                         <div>
-                          <p className="font-medium">Asignar conductor</p>
-                          <p className="text-sm text-muted-foreground">
-                            Elige un conductor disponible para dejar la ruta
-                            lista de salida.
-                          </p>
+                          <p className="font-medium">Conductor asignado</p>
                         </div>
                         <div className="grid gap-2">
-                          {availableDrivers.map((driver) => (
-                            <button
-                              key={driver.id}
-                              type="button"
-                              onClick={() =>
-                                setRouteDriverDrafts((current) => ({
-                                  ...current,
-                                  [selectedRoute.id]: driver.id,
-                                }))
-                              }
-                              className={`rounded-xl border p-3 text-left transition ${
-                                routeDriverDrafts[selectedRoute.id] === driver.id
-                                  ? "border-primary bg-primary/5"
-                                  : "hover:border-primary/40"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium">{driver.id}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {driver.licenseNumber}
-                                </span>
-                              </div>
-                            </button>
-                          ))}
+                          <button
+                            type="button"
+                            className="rounded-xl border p-3 text-left transition border-primary bg-primary/5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{findDriverById(selectedRoute.driverId)?.user.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {findDriverById(selectedRoute.driverId)?.licenseNumber}
+                              </span>
+                            </div>
+                          </button>
                         </div>
-                        <Button
-                          className="w-full gap-2"
-                          onClick={() => {
-                            const driverId = routeDriverDrafts[selectedRoute.id];
-                            if (!driverId) {
-                              toast.error("Selecciona un conductor primero.");
-                              return;
-                            }
-                            void handleAssignDriver(selectedRoute.id, driverId);
-                          }}
-                          disabled={isAssigningDriver}
-                        >
-                          <ArrowRight className="size-4" />
-                          Confirmar asignación
-                        </Button>
+
                       </div>
                     )}
 
@@ -856,10 +835,11 @@ export const DeliveryRoutesPage = () => {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-medium">
-                                #{stop.stopOrder} · {stop.shipmentId}
+                                #{stop.stopOrder}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {stop.address.address1}, {stop.address.city}
+                                {stop.address.address1} {stop.address.address2}, {stop.address.zip}, {stop.address.city}, {stop.address.province}, {stop.address.country}
+
                               </p>
                             </div>
                             <Badge

@@ -1,8 +1,8 @@
-import { z } from "zod";
 import { geolocationSchema } from "@contexts/shared/domain/schemas/address/Geolocation";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
+import { z } from "zod";
+import { mapsMetadataSchema } from "../value-objects/MapsMetadata";
 import { routeStopSchema } from "./RouteStop";
-import { mapsMetadataSchema } from "./MapsMetadata";
 
 const statuses = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"] as const;
 

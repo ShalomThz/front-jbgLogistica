@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { RoutePrimitives } from "../../domain/schemas/route/RouteDelivery";
+import type { RoutePrimitives } from "../../domain/schemas/route/Route";
 
 export type NameSort = "none" | "asc" | "desc";
 export type DateSort = "none" | "asc" | "desc";

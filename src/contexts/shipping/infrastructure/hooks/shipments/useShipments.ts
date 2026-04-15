@@ -10,21 +10,19 @@ interface UseShipmentsOptions {
   page?: number;
   limit?: number;
   filters?: unknown[];
-  order?: unknown;
-}
+ }
 
 export const useShipments = ({
   page = 1,
   limit = 10,
   filters = [],
-  order,
 }: UseShipmentsOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
   const { data, isLoading, error, refetch } = useQuery<FindShipmentsResponse>({
-    queryKey: [...SHIPMENTS_QUERY_KEY, { page, limit, filters, order }],
-    queryFn: () => shipmentRepository.find({ filters, order, limit, offset }),
+    queryKey: [...SHIPMENTS_QUERY_KEY, { page, limit, filters }],
+    queryFn: () => shipmentRepository.find({ filters, limit, offset }),
   });
 
   const shipments = data?.data ?? [];

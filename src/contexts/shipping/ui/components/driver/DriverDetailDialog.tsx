@@ -1,4 +1,3 @@
-import { Calendar, Clock, IdCard, Mail, Pencil, Store, User } from "lucide-react";
 import {
   Badge,
   Button,
@@ -10,6 +9,7 @@ import {
   DialogTitle,
   Separator,
 } from "@contexts/shared/shadcn";
+import { Calendar, Clock, IdCard, Mail, Pencil, User } from "lucide-react";
 import type { DriverStatus } from "../../../domain/schemas/driver/Driver";
 import type { DriverListViewPrimitives } from "../../../domain/schemas/driver/DriverListView";
 
@@ -90,7 +90,6 @@ export const DriverDetailDialog = ({ driver, open, onClose, onEdit }: Props) => 
               <DetailRow icon={User} label="Nombre" value={driver.user.name} />
               <DetailRow icon={Mail} label="Email" value={driver.user.email} />
               <DetailRow icon={IdCard} label="Licencia" value={driver.licenseNumber} />
-              <DetailRow icon={Store} label="Tienda" value={driver.user.store.name} />
               <DetailRow
                 icon={Badge as typeof User}
                 label="Estado cuenta"

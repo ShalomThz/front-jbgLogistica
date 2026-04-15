@@ -37,6 +37,7 @@ import {
 import { useDriverActiveRoute, useRouteActions } from "../../infrastructure/hooks/routes/useRoutes";
 import type { RouteStopPrimitives } from "../../domain/schemas/route/RouteStop";
 import type { DeliveryOutcome } from "../../domain/schemas/route/DeliveryAttempt";
+import type { RoutePrimitives } from "../../domain/schemas/route/Route";
 
 const STOP_VARIANT = {
   PENDING: "secondary",
@@ -52,7 +53,7 @@ const STOP_VARIANT = {
  * If only one pending stop exists, it becomes the destination with no waypoints.
  */
 const buildGoogleMapsUrl = (
-  route: import("../../domain/schemas/route/RouteDelivery").RoutePrimitives,
+  route: RoutePrimitives,
 ): string => {
   const pendingStops = route.stops
     .filter((stop) => stop.status === "PENDING")
@@ -66,7 +67,7 @@ const buildGoogleMapsUrl = (
   const intermediateStops = pendingStops.slice(0, -1);
 
   const toAddrString = (
-    stop: import("../../domain/schemas/route/RouteStop").RouteStopPrimitives,
+    stop: RouteStopPrimitives,
   ) =>
     `${stop.address.address1}, ${stop.address.city}, ${stop.address.province}, ${stop.address.country}`;
 
@@ -99,7 +100,7 @@ export const DriverWorkspacePage = () => {
   const [selectedStop, setSelectedStop] = useState<RouteStopPrimitives | null>(null);
   const [outcome, setOutcome] = useState<DeliveryOutcome>("DELIVERED");
   const [reason, setReason] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
   const [gpsLat, setGpsLat] = useState("");
   const [gpsLng, setGpsLng] = useState("");
   const [locationHint, setLocationHint] = useState("");
@@ -108,15 +109,18 @@ export const DriverWorkspacePage = () => {
     if (!route) return;
     const firstPendingStop =
       route.stops.find((stop) => stop.status === "PENDING") ?? null;
+
     setSelectedStop(firstPendingStop);
   }, [route]);
 
   const deliveredCount =
     route?.stops.filter((stop) => stop.status === "DELIVERED").length ?? 0;
+
   const terminalCount =
     route?.stops.filter(
       (stop) => stop.status === "DELIVERED" || stop.status === "RETURNED",
     ).length ?? 0;
+
   const canComplete =
     !!route &&
     route.status === "ACTIVE" &&
@@ -201,7 +205,7 @@ export const DriverWorkspacePage = () => {
         gpsLat: Number(gpsLat),
         gpsLng: Number(gpsLng),
         clientTimestamp: new Date().toISOString(),
-        reason: outcome === "FAILED" ? reason.trim() || undefined : undefined,
+        reason: outcome === "FAILED" ? reason.trim() : "",
       });
 
       toast.success(
@@ -362,15 +366,13 @@ export const DriverWorkspacePage = () => {
             {route.stops.map((stop) => (
               <div
                 key={stop.id}
-                className={`rounded-2xl border p-4 transition ${
-                  selectedStop?.id === stop.id ? "border-primary bg-primary/5" : ""
-                }`}
+                className={`rounded-2xl border p-4 transition ${selectedStop?.id === stop.id ? "border-primary bg-primary/5" : ""
+                  }`}
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="font-medium">
-                      #{stop.stopOrder} · {stop.shipmentId}
-                    </p>
+                      #{stop.stopOrder}                   </p>
                     <p className="text-sm text-muted-foreground">
                       {stop.address.address1}, {stop.address.city}
                     </p>
@@ -436,15 +438,10 @@ export const DriverWorkspacePage = () => {
             </div>
 
             <div className="rounded-2xl border p-4">
-              <p className="text-sm text-muted-foreground">Conductor asignado</p>
-              <p className="font-medium">{route.driverId}</p>
-            </div>
-
-            <div className="rounded-2xl border p-4">
               <p className="text-sm text-muted-foreground">Parada seleccionada</p>
               <p className="font-medium">
                 {currentStop
-                  ? `${currentStop.shipmentId} · ${currentStop.address.city}`
+                  ? `${currentStop.shipmentId.substring(0, 8)} · ${currentStop.address.city}`
                   : "Elige una parada pendiente"}
               </p>
             </div>
@@ -495,14 +492,23 @@ export const DriverWorkspacePage = () => {
               <p className="text-sm font-medium">Evidencia fotográfica</p>
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
                 <Camera className="size-4" />
-                {photo ? photo.name : "Seleccionar foto"}
+                {photo ? "Cambiar foto" : "Seleccionar foto"}
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(event) =>
-                    setPhoto(event.target.files?.[0] ?? null)
-                  }
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setPhoto(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    } else {
+                      setPhoto(null);
+                    }
+                  }}
                 />
               </label>
             </div>

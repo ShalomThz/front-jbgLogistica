@@ -1,12 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { FindRoutesRequest } from "../../../application/route/FindRoutesRequest";
 import type { CreateRouteRequest } from "../../../application/route/CreateRouteRequest";
-import type { AssignDriverToRouteRequest } from "../../../application/route/AssignDriverToRouteRequest";
-import type { RecordDeliveryAttemptRequest } from "../../../application/route/RecordDeliveryAttemptRequest";
+import type { FindRoutesRequest } from "../../../application/route/FindRoutesRequest";
 import type { FindRoutesResponse } from "../../../application/route/FindRoutesResponse";
+import type { RecordDeliveryAttemptRequest } from "../../../application/route/RecordDeliveryAttemptRequest";
 import { routeRepository } from "../../services/routes/routeRepository";
 
-const ROUTES_QUERY_KEY = ["routes"];
+const ROUTES_QUERY_KEY = ["routes"] as const;
 
 interface UseRoutesOptions extends Omit<FindRoutesRequest, "limit" | "offset"> {
   page?: number;
@@ -18,7 +17,7 @@ export const useRoutes = ({
   limit = 10,
   filters = [],
   order,
-}: UseRoutesOptions = {}) => {
+}: UseRoutesOptions) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
@@ -29,14 +28,6 @@ export const useRoutes = ({
 
   const createMutation = useMutation({
     mutationFn: (request: CreateRouteRequest) => routeRepository.create(request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ROUTES_QUERY_KEY });
-    },
-  });
-
-  const assignDriverMutation = useMutation({
-    mutationFn: (request: AssignDriverToRouteRequest) =>
-      routeRepository.assignDriver(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROUTES_QUERY_KEY });
     },
@@ -72,11 +63,6 @@ export const useRoutes = ({
       await createMutation.mutateAsync(request),
     isCreatingRoute: createMutation.isPending,
     createRouteError: createMutation.error?.message ?? null,
-
-    assignDriverToRoute: async (request: AssignDriverToRouteRequest) =>
-      await assignDriverMutation.mutateAsync(request),
-    isAssigningDriver: assignDriverMutation.isPending,
-    assignDriverError: assignDriverMutation.error?.message ?? null,
 
     optimizeRoute: async (routeId: string) =>
       await optimizeMutation.mutateAsync(routeId),
@@ -114,7 +100,7 @@ export const useRouteActions = () => {
   });
 
   const attemptMutation = useMutation({
-    mutationFn: (request: RecordDeliveryAttemptRequest) =>
+    mutationFn: (request: Omit<RecordDeliveryAttemptRequest, "driverId">) =>
       routeRepository.recordDeliveryAttempt(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ROUTES_QUERY_KEY });
@@ -134,7 +120,7 @@ export const useRouteActions = () => {
     isStartingRoute: startMutation.isPending,
     startRouteError: startMutation.error?.message ?? null,
 
-    recordDeliveryAttempt: async (request: RecordDeliveryAttemptRequest) =>
+    recordDeliveryAttempt: async (request: Omit<RecordDeliveryAttemptRequest, "driverId">) =>
       await attemptMutation.mutateAsync(request),
     isRecordingDeliveryAttempt: attemptMutation.isPending,
     recordDeliveryAttemptError: attemptMutation.error?.message ?? null,

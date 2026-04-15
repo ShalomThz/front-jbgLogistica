@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { routeSchema } from "../../domain/schemas/route/RouteDelivery";
+import { routeSchema } from "../../domain/schemas/route/Route";
 import { paginationSchema } from "@contexts/shared/domain/schemas/Pagination";
 
 export const findRoutesResponseSchema = z.object({

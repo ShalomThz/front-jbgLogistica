@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { IdCard, Search, Shield, Store, User } from "lucide-react";
 import {
-  Badge,
+  registerUserRequestSchema,
+  type RegisterUserRequestPrimitives,
+} from "@contexts/iam/application/user/RegisterUserRequest";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { FormField } from "@contexts/iam/ui/components/user/FormField";
+import { PasswordToggle } from "@contexts/iam/ui/components/user/PasswordToggle";
+import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -14,24 +14,18 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Separator,
+  Separator
 } from "@contexts/shared/shadcn";
-import {
-  registerUserRequestSchema,
-  type RegisterUserRequestPrimitives,
-} from "@contexts/iam/application/user/RegisterUserRequest";
-import type { Permission } from "@contexts/iam/domain/schemas/user/UserRole";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
-import { FormField } from "@contexts/iam/ui/components/user/FormField";
-import { PasswordToggle } from "@contexts/iam/ui/components/user/PasswordToggle";
-import { PermissionPicker } from "@contexts/iam/ui/components/user/PermissionPicker";
-import { ROLE_PRESETS } from "@contexts/iam/ui/components/user/constants";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { IdCard, Search, Store, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
 
 const createDriverUserFormSchema = registerUserRequestSchema.extend({
   licenseNumber: z.string().min(1, "License number is required"),
@@ -59,7 +53,7 @@ function getDefaults(): FormValues {
     type: "DRIVER",
     role: {
       name: "Conductor",
-      permissions: [],
+      permissions: ["CAN_VIEW_PARTNER_ORDERS", "CAN_VIEW_HQ_ORDERS"],
     },
     licenseNumber: "",
   };
@@ -84,7 +78,6 @@ export function CreateDriverUserDialog({
     register,
     control,
     handleSubmit,
-    setValue,
     reset,
     formState: { errors },
   } = form;
@@ -93,9 +86,7 @@ export function CreateDriverUserDialog({
     if (open) reset(getDefaults());
   }, [open, reset]);
 
-  const watchedRole = useWatch({ control, name: "role" });
   const watchedStoreId = useWatch({ control, name: "storeId" });
-  const watchedPermissions: Permission[] = watchedRole?.permissions ?? [];
   const selectedStore = stores.find((store) => store.id === watchedStoreId);
 
   const filteredStores = stores.filter(
@@ -105,24 +96,11 @@ export function CreateDriverUserDialog({
       store.id.toLowerCase().includes(storeSearch.toLowerCase()),
   );
 
-  const handlePresetChange = (name: string) => {
-    const preset = ROLE_PRESETS.find((role) => role.name === name);
-    setValue("role", { name, permissions: preset?.permissions ?? [] }, { shouldValidate: true });
-  };
-
-  const handlePermissionsChange = (permissions: Permission[]) => {
-    setValue("role", { name: watchedRole?.name ?? "", permissions }, { shouldValidate: true });
-  };
-
   const handleClose = () => {
     setStoreSearch("");
     setShowPassword(false);
     onClose();
   };
-
-  const permissionsError =
-    (errors.role as { permissions?: { message?: string } } | undefined)
-      ?.permissions?.message ?? errors.role?.message;
 
   const onSubmit = handleSubmit(({ licenseNumber, ...user }) =>
     onSave({ user, licenseNumber }),
@@ -130,232 +108,186 @@ export function CreateDriverUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={(value) => !value && handleClose()}>
-      <DialogContent className="sm:max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Crear Conductor</DialogTitle>
-          <DialogDescription>
-            Captura los datos del usuario y la licencia. Nosotros enlazamos el
-            `userId` creado con el perfil de conductor automáticamente.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+              <User className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl">Crear Conductor</DialogTitle>
+              <DialogDescription className="mt-1">
+                Captura los datos del conductor
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} noValidate className="flex flex-col overflow-hidden flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-0 md:divide-x overflow-y-auto flex-1 pr-1">
-            <div className="space-y-4 md:pr-6 pb-4 md:pb-0">
-              <div className="flex items-center gap-2 mb-1">
-                <User className="size-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Usuario base
-                </h3>
-              </div>
-
-              <div className="rounded-md border bg-muted/30 p-3 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">Tipo de usuario</p>
-                    <p className="text-xs text-muted-foreground">
-                      Este flujo crea usuarios de tipo `DRIVER`.
-                    </p>
-                  </div>
-                  <Badge variant="secondary">DRIVER</Badge>
+        <form onSubmit={onSubmit} noValidate className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-6 py-5 space-y-6">
+              {/* Sección: Información de Usuario */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-5 rounded-full bg-primary" />
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                    Información de Usuario
+                  </h3>
                 </div>
-              </div>
 
-              <FormField label="Nombre *" error={errors.name?.message}>
-                <Input
-                  id="name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder="Nombre completo"
-                  aria-invalid={!!errors.name}
-                  {...register("name")}
-                />
-              </FormField>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField label="Email *" error={errors.email?.message}>
+                <FormField label="Nombre completo *" error={errors.name?.message}>
                   <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="correo@ejemplo.com"
-                    aria-invalid={!!errors.email}
-                    {...register("email")}
+                    id="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Ingresa el nombre completo"
+                    aria-invalid={!!errors.name}
+                    {...register("name")}
                   />
                 </FormField>
 
-                <FormField label="Contraseña *" error={errors.password?.message}>
-                  <div className="relative">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField label="Correo electrónico *" error={errors.email?.message}>
                     <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="Min. 6 caracteres"
-                      aria-invalid={!!errors.password}
-                      className="pr-10"
-                      {...register("password")}
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="correo@ejemplo.com"
+                      aria-invalid={!!errors.email}
+                      {...register("email")}
                     />
-                    <PasswordToggle
-                      show={showPassword}
-                      onToggle={() => setShowPassword((current) => !current)}
-                    />
-                  </div>
+                  </FormField>
+
+                  <FormField label="Contraseña *" error={errors.password?.message}>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        placeholder="Mínimo 6 caracteres"
+                        aria-invalid={!!errors.password}
+                        className="pr-10"
+                        {...register("password")}
+                      />
+                      <PasswordToggle
+                        show={showPassword}
+                        onToggle={() => setShowPassword((current) => !current)}
+                      />
+                    </div>
+                  </FormField>
+                </div>
+              </div>
+
+              <Separator className="my-2" />
+
+              {/* Sección: Asignación */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-5 rounded-full bg-primary" />
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                    Asignación
+                  </h3>
+                </div>
+
+                <FormField label="Tienda asignada *" error={errors.storeId?.message}>
+                  <Controller
+                    name="storeId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger aria-invalid={!!errors.storeId} className="w-full">
+                          <SelectValue placeholder="Seleccionar tienda">
+                            {selectedStore ? (
+                              <span className="flex items-center gap-2 truncate">
+                                <Store className="size-4 shrink-0" />
+                                <span className="truncate">{selectedStore.name}</span>
+                              </span>
+                            ) : (
+                              "Seleccionar tienda"
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="p-2">
+                            <div className="relative">
+                              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                              <Input
+                                placeholder="Buscar tienda..."
+                                value={storeSearch}
+                                onChange={(event) => setStoreSearch(event.target.value)}
+                                className="pl-9"
+                              />
+                            </div>
+                          </div>
+                          {isLoadingStores ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              Cargando tiendas...
+                            </div>
+                          ) : filteredStores.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              No se encontraron tiendas
+                            </div>
+                          ) : (
+                            filteredStores.map((store) => (
+                              <SelectItem key={store.id} value={store.id}>
+                                <span className="flex items-center gap-2 truncate">
+                                  <Store className="size-4 shrink-0" />
+                                  <span className="truncate">{store.name}</span>
+                                  <span className="text-xs text-muted-foreground shrink-0">({store.id})</span>
+                                </span>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </FormField>
               </div>
 
-              <FormField label="Tienda *" error={errors.storeId?.message}>
-                <Controller
-                  name="storeId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger aria-invalid={!!errors.storeId}>
-                        <SelectValue placeholder="Seleccionar tienda">
-                          {selectedStore ? (
-                            <span className="flex items-center gap-2">
-                              <Store className="size-4" />
-                              {selectedStore.name}
-                            </span>
-                          ) : (
-                            "Seleccionar tienda"
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Buscar tienda..."
-                              value={storeSearch}
-                              onChange={(event) => setStoreSearch(event.target.value)}
-                              className="pl-9"
-                            />
-                          </div>
-                        </div>
-                        {isLoadingStores ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            Cargando tiendas...
-                          </div>
-                        ) : filteredStores.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            No se encontraron tiendas
-                          </div>
-                        ) : (
-                          filteredStores.map((store) => (
-                            <SelectItem key={store.id} value={store.id}>
-                              <span className="flex items-center gap-2">
-                                <Store className="size-4" />
-                                <span>{store.name}</span>
-                                <span className="text-xs text-muted-foreground">({store.id})</span>
-                              </span>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormField>
+              <Separator className="my-2" />
 
-              <FormField label="Licencia *" error={errors.licenseNumber?.message}>
-                <div className="relative">
-                  <IdCard className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="licenseNumber"
-                    type="text"
-                    placeholder="Ej. LIC-MX-2026-001"
-                    className="pl-9"
-                    aria-invalid={!!errors.licenseNumber}
-                    {...register("licenseNumber")}
-                  />
+              {/* Sección: Documentación */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-5 rounded-full bg-primary" />
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                    Documentación
+                  </h3>
                 </div>
-              </FormField>
 
-              <Controller
-                name="isActive"
-                control={control}
-                render={({ field }) => (
-                  <div className="flex items-center space-x-2 rounded-md border p-3">
-                    <Checkbox
-                      id="isActive"
-                      checked={field.value ?? true}
-                      onCheckedChange={(checked) => field.onChange(!!checked)}
+                <FormField label="Número de licencia *" error={errors.licenseNumber?.message}>
+                  <div className="relative">
+                    <IdCard className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="licenseNumber"
+                      type="text"
+                      placeholder="Ej. LIC-MX-2026-001"
+                      className="pl-9"
+                      aria-invalid={!!errors.licenseNumber}
+                      {...register("licenseNumber")}
                     />
-                    <div>
-                      <Label htmlFor="isActive" className="cursor-pointer">
-                        Usuario activo
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        El conductor podrá iniciar sesión al terminar el alta.
-                      </p>
-                    </div>
                   </div>
-                )}
-              />
-            </div>
-
-            <div className="space-y-4 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="size-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Rol y permisos
-                </h3>
-              </div>
-
-              <FormField
-                label="Nombre del rol *"
-                error={(errors.role as { name?: { message?: string } } | undefined)?.name?.message}
-              >
-                <div className="flex gap-2">
-                  <Input
-                    id="role.name"
-                    type="text"
-                    placeholder="Ej. Conductor"
-                    aria-invalid={!!(errors.role as { name?: unknown } | undefined)?.name}
-                    {...register("role.name")}
-                  />
-                  <Select onValueChange={handlePresetChange}>
-                    <SelectTrigger className="w-40 shrink-0">
-                      <SelectValue placeholder="Preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLE_PRESETS.map((role) => (
-                        <SelectItem key={role.name} value={role.name}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </FormField>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm">Permisos</Label>
-                  <Badge variant="secondary" className="text-xs">
-                    {watchedPermissions.length} seleccionados
-                  </Badge>
-                </div>
-                {permissionsError && (
-                  <p className="text-sm text-destructive mb-2">{permissionsError}</p>
-                )}
-                <PermissionPicker
-                  selected={watchedPermissions}
-                  onChange={handlePermissionsChange}
-                  idPrefix="create-driver"
-                />
+                </FormField>
               </div>
             </div>
           </div>
 
-          <Separator className="my-4 shrink-0" />
-
-          <DialogFooter className="shrink-0">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
+          <DialogFooter className="px-6 py-4 border-t bg-muted/30 shrink-0 gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
               {isLoading ? "Guardando..." : "Crear conductor"}
             </Button>
           </DialogFooter>

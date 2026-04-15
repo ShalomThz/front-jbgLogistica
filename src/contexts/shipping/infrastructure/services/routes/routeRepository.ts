@@ -1,35 +1,22 @@
-import { z } from "zod";
 import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
-import {
-  routeSchema,
-  type RoutePrimitives,
-} from "../../../domain/schemas/route/RouteDelivery";
+import { z } from "zod";
+import type { CreateRouteRequest } from "../../../application/route/CreateRouteRequest";
+import type { FindRoutesRequest } from "../../../application/route/FindRoutesRequest";
 import {
   findRoutesResponseSchema,
   type FindRoutesResponse,
 } from "../../../application/route/FindRoutesResponse";
-import type { CreateRouteRequest } from "../../../application/route/CreateRouteRequest";
-import type { AssignDriverToRouteRequest } from "../../../application/route/AssignDriverToRouteRequest";
-import type { FindRoutesRequest } from "../../../application/route/FindRoutesRequest";
 import type { RecordDeliveryAttemptRequest } from "../../../application/route/RecordDeliveryAttemptRequest";
+import {
+  routeSchema,
+  type RoutePrimitives,
+} from "../../../domain/schemas/route/Route";
 
 export const routeRepository = {
   create: async (request: CreateRouteRequest): Promise<RoutePrimitives> => {
     const data = await httpClient<unknown>("/route", {
       method: "POST",
       body: JSON.stringify(request),
-    });
-
-    return routeSchema.parse(data);
-  },
-
-  assignDriver: async (
-    request: AssignDriverToRouteRequest,
-  ): Promise<RoutePrimitives> => {
-    const { routeId, driverId } = request;
-    const data = await httpClient<unknown>(`/route/${routeId}/driver`, {
-      method: "POST",
-      body: JSON.stringify({ driverId }),
     });
 
     return routeSchema.parse(data);
@@ -43,10 +30,10 @@ export const routeRepository = {
     return routeSchema.parse(data);
   },
 
-  find: async (request: FindRoutesRequest = { filters: [] }): Promise<FindRoutesResponse> => {
+  find: async (request: FindRoutesRequest): Promise<FindRoutesResponse> => {
     const data = await httpClient<unknown>("/route/find", {
       method: "POST",
-      body: JSON.stringify({ filters: [], ...request }),
+      body: JSON.stringify({ ...request, filters: [] }),
     });
 
     return findRoutesResponseSchema.parse(data);
@@ -75,24 +62,12 @@ export const routeRepository = {
   },
 
   recordDeliveryAttempt: async (
-    request: RecordDeliveryAttemptRequest,
+    request: Omit<RecordDeliveryAttemptRequest, "driverId">,
   ): Promise<void> => {
-    const { routeId, stopId, photo, ...body } = request;
-    const formData = new FormData();
-
-    formData.append("outcome", body.outcome);
-    formData.append("photo", photo);
-    formData.append("gpsLat", String(body.gpsLat));
-    formData.append("gpsLng", String(body.gpsLng));
-    formData.append("clientTimestamp", body.clientTimestamp);
-
-    if (body.reason) {
-      formData.append("reason", body.reason);
-    }
-
+    const { routeId, stopId, ...attemptData } = request;
     await httpClient<unknown>(`/route/${routeId}/stop/${stopId}/attempt`, {
       method: "POST",
-      body: formData,
+      body: JSON.stringify(attemptData),
     });
   },
 

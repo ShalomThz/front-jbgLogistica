@@ -25,13 +25,13 @@ export const useDrivers = ({
   const { data, isLoading, error, refetch } = useQuery<FindDriversResponse>({
     queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order }],
     queryFn: () => driverRepository.find({ filters, order, limit, offset }),
-  });
+  });  
 
   const createMutation = useMutation({
     mutationFn: (request: CreateDriverRequest) =>
       driverRepository.create(request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVERS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order }] });
     },
   });
 
@@ -39,7 +39,7 @@ export const useDrivers = ({
     mutationFn: ({ id, data }: { id: string; data: EditDriverRequest }) =>
       driverRepository.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DRIVERS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order }] });
     },
   });
 

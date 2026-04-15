@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { GoogleMap, Marker, Polyline, useJsApiLoader } from "@react-google-maps/api";
 import type { Libraries } from "@react-google-maps/api";
-import type { RoutePrimitives } from "../../../domain/schemas/route/RouteDelivery";
+import type { RoutePrimitives } from "../../../domain/schemas/route/Route";
 
 // IMPORTANT: must be module-level to avoid remount on every render
 const LIBRARIES: Libraries = ["geometry"];

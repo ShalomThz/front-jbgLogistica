@@ -1,23 +1,17 @@
-import { MapPinned, Navigation, Clock } from "lucide-react";
 import {
   Badge,
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   Separator,
 } from "@contexts/shared/shadcn";
+import { Clock, MapPinned, Navigation } from "lucide-react";
+import type { RoutePrimitives } from "../../../domain/schemas/route/Route";
 import { RouteMap } from "./RouteMap";
-import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/RouteDelivery";
 
-const STATUS_LABELS: Record<RouteStatus, string> = {
-  PLANNED: "Planeada",
-  ACTIVE: "Activa",
-  COMPLETED: "Completada",
-  CANCELLED: "Cancelada",
-};
 
 const STOP_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
