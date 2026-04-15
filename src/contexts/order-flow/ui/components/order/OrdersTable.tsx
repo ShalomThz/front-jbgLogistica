@@ -87,9 +87,15 @@ export const OrdersTable = ({
                 <TableCell className="hidden md:table-cell text-xs max-w-[140px]">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="truncate">{order.createdBy.name}</div>
+                      <div>
+                        <div className="truncate font-medium">{order.createdBy.name}</div>
+                        <div className="truncate text-muted-foreground">{order.store.name}</div>
+                      </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top">{order.createdBy.name}</TooltipContent>
+                    <TooltipContent side="top">
+                      <div>{order.createdBy.name}</div>
+                      <div className="opacity-80">Tienda: {order.store.name}</div>
+                    </TooltipContent>
                   </Tooltip>
                 </TableCell>
                 <TableCell>
