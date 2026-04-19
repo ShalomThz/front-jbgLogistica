@@ -1,15 +1,6 @@
-import {
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@contexts/shared/shadcn";
-import { useFormContext, useWatch, Controller, type FieldErrors } from "react-hook-form";
+import { Input, Label } from "@contexts/shared/shadcn";
+import { useFormContext, Controller, type FieldErrors } from "react-hook-form";
 import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
-import { MEXICO_STATES } from "@contexts/shared/domain/catalogs/MexicoStates";
 
 interface AddressFormProps {
   fieldPrefix: string;
@@ -29,9 +20,6 @@ function getFieldError(errors: FieldErrors, path: string): string | undefined {
 
 export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: AddressFormProps) {
   const { register, setValue, control, formState: { errors } } = useFormContext();
-
-  const country = useWatch({ control, name: `${fieldPrefix}.country` });
-  const province = useWatch({ control, name: `${fieldPrefix}.province` });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -60,39 +48,15 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
         />
       </div>
       <div>
-        <Label>Estado *</Label>
-        <Controller
-          control={control}
-          name={`${fieldPrefix}.province`}
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={(val) => { field.onChange(val); onFieldCommit(); }}>
-              <SelectTrigger aria-invalid={!!getFieldError(errors, `${fieldPrefix}.province`)}>
-                <SelectValue placeholder="Seleccionar estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {country === "MX"
-                  ? (
-                    <>
-                      {province && !MEXICO_STATES.includes(province) && (
-                        <SelectItem value={province}>{province}</SelectItem>
-                      )}
-                      {MEXICO_STATES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </>
-                  )
-                  : (
-                    <>
-                      {province && province !== "otro" && (
-                        <SelectItem value={province}>{province}</SelectItem>
-                      )}
-                      <SelectItem value="otro">Otro</SelectItem>
-                    </>
-                  )
-                }
-              </SelectContent>
-            </Select>
-          )}
+        <Label htmlFor={`${labelPrefix}-province`}>Estado *</Label>
+        <Input
+          id={`${labelPrefix}-province`}
+          aria-invalid={!!getFieldError(errors, `${fieldPrefix}.province`)}
+          placeholder="Estado"
+          {...register(`${fieldPrefix}.province`, {
+            onBlur: onFieldCommit,
+          })}
+          onKeyDown={handleKeyDown}
         />
         {getFieldError(errors, `${fieldPrefix}.province`) && (
           <p className="text-sm text-destructive">{getFieldError(errors, `${fieldPrefix}.province`)}</p>
