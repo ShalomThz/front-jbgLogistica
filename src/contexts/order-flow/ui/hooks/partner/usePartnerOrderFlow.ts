@@ -107,5 +107,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     canSelectStore,
     selectedStoreId,
     setSelectedStoreId,
+    markAsPaid: submission.markAsPaid,
+    setMarkAsPaid: submission.setMarkAsPaid,
   };
 };

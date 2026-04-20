@@ -26,6 +26,8 @@ interface RateStepProps {
   onCreateSameClient?: () => void;
   partnerPrice?: MoneyPrimitives | null;
   partnerCostBreakdown?: CostBreakdownPrimitives;
+  markAsPaid: boolean;
+  onMarkAsPaidChange: (value: boolean) => void;
 }
 
 export function RateStep({
@@ -42,6 +44,8 @@ export function RateStep({
   onCreateSameClient,
   partnerPrice,
   partnerCostBreakdown,
+  markAsPaid,
+  onMarkAsPaidChange,
 }: RateStepProps) {
   const { setValue } = useFormContext<HQOrderFormValues>();
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
@@ -84,7 +88,7 @@ export function RateStep({
           />
         )}
         <ShipmentSummaryCard onEdit={onBack} />
-        <OrderTotalCard onSubmit={onSubmit} isSubmitting={isSubmitting} />
+        <OrderTotalCard onSubmit={onSubmit} isSubmitting={isSubmitting} markAsPaid={markAsPaid} onMarkAsPaidChange={onMarkAsPaidChange} />
       </div>
     </div>
   );

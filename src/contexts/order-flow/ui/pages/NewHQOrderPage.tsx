@@ -122,6 +122,8 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
             onCreateSameClient={handleCreateSameClient}
             partnerPrice={partnerPrice}
             partnerCostBreakdown={partnerCostBreakdown}
+            markAsPaid={flow.markAsPaid}
+            onMarkAsPaidChange={flow.setMarkAsPaid}
           />
         )}
 

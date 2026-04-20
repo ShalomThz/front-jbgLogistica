@@ -90,5 +90,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     canSelectStore,
     selectedStoreId,
     setSelectedStoreId,
+    markAsPaid: submission.markAsPaid,
+    setMarkAsPaid: submission.setMarkAsPaid,
   };
 };

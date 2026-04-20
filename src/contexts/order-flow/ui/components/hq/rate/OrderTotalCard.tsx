@@ -4,6 +4,10 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Input,
   Select,
   SelectContent,
@@ -12,6 +16,7 @@ import {
   SelectValue,
   Separator,
 } from "@contexts/shared/shadcn";
+import { ChevronDown } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
@@ -33,9 +38,11 @@ const COST_LABELS: Record<CostField, string> = {
 interface OrderTotalCardProps {
   onSubmit: () => void;
   isSubmitting: boolean;
+  markAsPaid: boolean;
+  onMarkAsPaidChange: (value: boolean) => void;
 }
 
-export function OrderTotalCard({ onSubmit, isSubmitting }: OrderTotalCardProps) {
+export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPaidChange }: OrderTotalCardProps) {
   const { setValue, control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
 
@@ -167,6 +174,24 @@ export function OrderTotalCard({ onSubmit, isSubmitting }: OrderTotalCardProps) 
           )}
 
           <div className="text-xs text-muted-foreground text-right">(Incluye IVA)</div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Estado de pago</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 w-28 flex items-center justify-between px-3 text-xs">
+                  {markAsPaid ? "Pagado" : "No pagado"}
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onMarkAsPaidChange(true)}>Pagado</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onMarkAsPaidChange(false)}>No pagado</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardContent>
       </Card>
 

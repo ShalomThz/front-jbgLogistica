@@ -26,6 +26,7 @@ export const usePartnerOrderSubmission = ({
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [markAsPaid, setMarkAsPaid] = useState(false);
   const { user } = useAuth();
   const { createPartnerOrder, updateOrder, isCreating } = useOrders({ enabled: false });
 
@@ -53,6 +54,9 @@ export const usePartnerOrderSubmission = ({
         const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.storeId);
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
+        if (markAsPaid) {
+          await updateOrder(order.id, { markAsPaid: true });
+        }
         setIsSubmitted(true);
         onSuccess();
       } catch (error) {
@@ -68,5 +72,7 @@ export const usePartnerOrderSubmission = ({
     goToOrders,
     submitPartnerOrder,
     isCreating,
+    markAsPaid,
+    setMarkAsPaid,
   };
 };

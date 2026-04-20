@@ -15,9 +15,11 @@ interface PartnerPricingStepProps {
   isLoadingPrice: boolean;
   tariffError: string | null;
   refetchPrice: () => void;
+  markAsPaid: boolean;
+  onMarkAsPaidChange: (value: boolean) => void;
 }
 
-export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice }: PartnerPricingStepProps) {
+export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, markAsPaid, onMarkAsPaidChange }: PartnerPricingStepProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
@@ -49,7 +51,7 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
           onRefetch={refetchPrice}
         />
         <PartnerOrderSummaryCard />
-        <PartnerTotalCard tariffPrice={tariffPrice} />
+        <PartnerTotalCard tariffPrice={tariffPrice} markAsPaid={markAsPaid} onMarkAsPaidChange={onMarkAsPaidChange} />
       </div>
     </div>
   );

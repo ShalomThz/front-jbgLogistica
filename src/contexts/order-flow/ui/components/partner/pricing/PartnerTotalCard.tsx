@@ -1,6 +1,11 @@
 import {
+  Button,
   Card,
   CardContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -8,6 +13,7 @@ import {
   SelectValue,
   Separator,
 } from "@contexts/shared/shadcn";
+import { ChevronDown } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
@@ -25,9 +31,11 @@ const COST_LABELS: Record<string, string> = {
 
 interface PartnerTotalCardProps {
   tariffPrice: MoneyPrimitives | null;
+  markAsPaid: boolean;
+  onMarkAsPaidChange: (value: boolean) => void;
 }
 
-export function PartnerTotalCard({ tariffPrice }: PartnerTotalCardProps) {
+export function PartnerTotalCard({ tariffPrice, markAsPaid, onMarkAsPaidChange }: PartnerTotalCardProps) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const shippingService = useWatch<PartnerOrderFormValues, "shippingService">({ name: "shippingService" });
 
@@ -85,6 +93,22 @@ export function PartnerTotalCard({ tariffPrice }: PartnerTotalCardProps) {
           })}
 
           <Separator />
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Estado de pago</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 w-28 flex items-center justify-between px-3 text-xs">
+                  {markAsPaid ? "Pagado" : "No pagado"}
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onMarkAsPaidChange(true)}>Pagado</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onMarkAsPaidChange(false)}>No pagado</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <div className="rounded-lg bg-muted/50 p-4 space-y-1">
             <div className="flex items-center justify-between">

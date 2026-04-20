@@ -43,6 +43,7 @@ export const useHQOrderSubmission = ({
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [shipmentId, setShipmentId] = useState<string | null>(null);
   const [fulfilledShipment, setFulfilledShipment] = useState<ShipmentPrimitives | null>(null);
+  const [markAsPaid, setMarkAsPaid] = useState(false);
   const { user } = useAuth();
   const { createHQOrder, updateOrder, isCreating } = useOrders({ enabled: false });
   const { findByOrderId, fulfillShipment, selectProvider, isSelectingProvider } = useShipmentActions();
@@ -128,6 +129,9 @@ export const useHQOrderSubmission = ({
       if (orderId) {
         const orderRequest = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, orderRequest);
+        if (markAsPaid) {
+          await updateOrder(orderId, { markAsPaid: true });
+        }
       }
 
       setFulfilledShipment(result);
@@ -166,5 +170,7 @@ export const useHQOrderSubmission = ({
     isSelectingProvider,
     fulfilledShipment,
     invoiceId: orderData?.invoiceId ?? null,
+    markAsPaid,
+    setMarkAsPaid,
   };
 };

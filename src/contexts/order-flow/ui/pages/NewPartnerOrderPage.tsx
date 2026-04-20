@@ -105,6 +105,8 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
             isLoadingPrice={flow.isLoadingPrice}
             tariffError={flow.tariffError}
             refetchPrice={flow.refetchPrice}
+            markAsPaid={flow.markAsPaid}
+            onMarkAsPaidChange={flow.setMarkAsPaid}
           />
         )}
 
