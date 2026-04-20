@@ -1,7 +1,8 @@
 import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft } from "lucide-react";
 import { FormProvider } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { HQContactStep } from "../components/hq/contact/HQContactStep";
@@ -23,10 +24,38 @@ interface NewHQOrderPageProps {
   storeId?: string;
 }
 
-export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber, storeId }: NewHQOrderPageProps = {}) => {
+export const NewHQOrderPage = (props: NewHQOrderPageProps = {}) => {
+  const location = useLocation();
+  const stateInitial = (location.state as { initialValues?: HQOrderFormValues } | null)?.initialValues;
+  return (
+    <NewHQOrderPageInner
+      key={location.key}
+      {...props}
+      initialValues={props.initialValues ?? stateInitial}
+    />
+  );
+};
+
+const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber, storeId }: NewHQOrderPageProps) => {
   const navigate = useNavigate();
   const flow = useHQOrderFlow({ initialValues, orderId, storeId });
-  const { stores } = useStores({ limit: 100 });
+  const { stores } = useStores({});
+
+  const handleCreateBlank = useCallback(() => {
+    navigate("/orders/new/hq", { replace: true, state: null });
+  }, [navigate]);
+
+  const handleCreateSameClient = useCallback(() => {
+    const values = flow.form.getValues();
+    const cleaned: HQOrderFormValues = {
+      ...values,
+      orderData: {
+        orderNumber: "",
+        partnerOrderNumber: "",
+      },
+    };
+    navigate("/orders/new/hq", { replace: true, state: { initialValues: cleaned } });
+  }, [flow.form, navigate]);
 
   const title = (() => {
     const action = flow.isEditing ? "Editar Orden JBG" : "Nueva Orden JBG";
@@ -89,7 +118,8 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCo
             isSubmitting={flow.isSelectingProvider}
             fulfilledShipment={flow.fulfilledShipment}
             onFinish={flow.goToOrders}
-            onCreateAnother={() => navigate("/orders/new/hq")}
+            onCreateBlank={handleCreateBlank}
+            onCreateSameClient={handleCreateSameClient}
             partnerPrice={partnerPrice}
             partnerCostBreakdown={partnerCostBreakdown}
           />
@@ -100,7 +130,8 @@ export const NewHQOrderPage = ({ initialValues, orderId, partnerPrice, partnerCo
             shipment={flow.fulfilledShipment}
             invoiceId={flow.invoiceId}
             onFinish={flow.goToOrders}
-            onCreateAnother={() => navigate("/orders/new/hq")}
+            onCreateBlank={handleCreateBlank}
+            onCreateSameClient={handleCreateSameClient}
           />
         )}
       </FormProvider>

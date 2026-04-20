@@ -16,10 +16,11 @@ import {
   ClipboardCopy,
   Download,
   ExternalLink,
-  Plus,
+  FilePlus2,
   Printer,
   Share2,
   Truck,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
@@ -56,10 +57,11 @@ interface OrderSuccessViewProps {
   shipment: ShipmentPrimitives;
   invoiceId?: string | null;
   onFinish: () => void;
-  onCreateAnother?: () => void;
+  onCreateBlank?: () => void;
+  onCreateSameClient?: () => void;
 }
 
-export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnother }: OrderSuccessViewProps) {
+export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
   const { provider, rate, label, costBreakdown, finalPrice } = shipment;
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
@@ -381,13 +383,25 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateAnothe
       </Card>
 
       {/* Navigation */}
-      <div className="flex justify-between gap-3">
-        {onCreateAnother && (
-          <Button variant="outline" className="gap-2" onClick={onCreateAnother}>
-            <Plus className="size-4" />
-            Crear otro envío
-          </Button>
-        )}
+      <div className="flex flex-wrap justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {onCreateBlank && (
+            <Button variant="outline" className="gap-2" onClick={onCreateBlank}>
+              <FilePlus2 className="size-4" />
+              Nueva orden en blanco
+            </Button>
+          )}
+          {onCreateSameClient && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={onCreateSameClient}
+            >
+              <UserPlus className="size-4" />
+              Nueva orden del mismo cliente
+            </Button>
+          )}
+        </div>
         <Button className="ml-auto" onClick={onFinish}>
           Ir a órdenes
         </Button>

@@ -22,7 +22,8 @@ interface RateStepProps {
   isSubmitting: boolean;
   fulfilledShipment: ShipmentPrimitives | null;
   onFinish: () => void;
-  onCreateAnother?: () => void;
+  onCreateBlank?: () => void;
+  onCreateSameClient?: () => void;
   partnerPrice?: MoneyPrimitives | null;
   partnerCostBreakdown?: CostBreakdownPrimitives;
 }
@@ -37,7 +38,8 @@ export function RateStep({
   isSubmitting,
   fulfilledShipment,
   onFinish,
-  onCreateAnother,
+  onCreateBlank,
+  onCreateSameClient,
   partnerPrice,
   partnerCostBreakdown,
 }: RateStepProps) {
@@ -53,7 +55,8 @@ export function RateStep({
       <OrderSuccessView
         shipment={fulfilledShipment}
         onFinish={onFinish}
-        onCreateAnother={onCreateAnother}
+        onCreateBlank={onCreateBlank}
+        onCreateSameClient={onCreateSameClient}
       />
     );
   }
