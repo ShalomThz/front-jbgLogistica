@@ -1,7 +1,8 @@
 import { Button } from "@contexts/shared/shadcn";
-import { ArrowLeft, CheckCircle2, Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FilePlus2, UserPlus } from "lucide-react";
 import { FormProvider } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 import { usePartnerOrderFlow } from "../hooks/partner/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/partner/contact/PartnerContactStep";
@@ -17,10 +18,38 @@ interface NewPartnerOrderPageProps {
   storeId?: string;
 }
 
-export const NewPartnerOrderPage = ({ initialValues, orderId, storeName, storeId }: NewPartnerOrderPageProps = {}) => {
+export const NewPartnerOrderPage = (props: NewPartnerOrderPageProps = {}) => {
+  const location = useLocation();
+  const stateInitial = (location.state as { initialValues?: PartnerOrderFormValues } | null)?.initialValues;
+  return (
+    <NewPartnerOrderPageInner
+      key={location.key}
+      {...props}
+      initialValues={props.initialValues ?? stateInitial}
+    />
+  );
+};
+
+const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }: NewPartnerOrderPageProps) => {
   const navigate = useNavigate();
   const flow = usePartnerOrderFlow({ initialValues, orderId, storeId });
   const { stores } = useStores({ limit: 100 });
+
+  const handleCreateBlank = useCallback(() => {
+    navigate("/orders/new/partner", { replace: true, state: null });
+  }, [navigate]);
+
+  const handleCreateSameClient = useCallback(() => {
+    const values = flow.form.getValues();
+    const cleaned: PartnerOrderFormValues = {
+      ...values,
+      orderData: {
+        orderNumber: "",
+        partnerOrderNumber: "",
+      },
+    };
+    navigate("/orders/new/partner", { replace: true, state: { initialValues: cleaned } });
+  }, [flow.form, navigate]);
 
   const title = (() => {
     const action = flow.isEditing ? "Editar Orden" : "Nueva Orden";
@@ -90,12 +119,18 @@ export const NewPartnerOrderPage = ({ initialValues, orderId, storeName, storeId
                 La orden ha sido registrada y está pendiente de procesamiento
               </p>
             </div>
-            <div className="flex justify-between gap-3">
-              <Button variant="outline" className="gap-2" onClick={() => navigate("/orders/new/partner")}>
-                <Plus className="size-4" />
-                Crear otra orden
-              </Button>
-              <Button onClick={flow.goToOrders}>
+            <div className="flex flex-wrap justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" className="gap-2" onClick={handleCreateBlank}>
+                  <FilePlus2 className="size-4" />
+                  Nueva orden en blanco
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={handleCreateSameClient}>
+                  <UserPlus className="size-4" />
+                  Nueva orden del mismo cliente
+                </Button>
+              </div>
+              <Button className="ml-auto" onClick={flow.goToOrders}>
                 Ir a órdenes
               </Button>
             </div>
