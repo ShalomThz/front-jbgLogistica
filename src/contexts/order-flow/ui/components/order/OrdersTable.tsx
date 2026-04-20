@@ -1,25 +1,26 @@
-import { MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import {
-  Button,
   Badge,
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Table,
-  TableHeader,
   TableBody,
-  TableHead,
-  TableRow,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
+import { ChevronDown, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
+import { useOrders } from "../../../../sales/infrastructure/hooks/orders/userOrders";
 
 interface OrdersTableProps {
   orders: OrderListView[];
@@ -50,6 +51,13 @@ export const OrdersTable = ({
   onCompleteSale,
   onDelete,
 }: OrdersTableProps) => {
+
+  const { updateOrder } = useOrders()
+
+  const handlePaymentStatusChange = async (order: OrderListView, isPaid: boolean) => {
+    await updateOrder(order.id, { markAsPaid: isPaid });
+  };
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -67,7 +75,7 @@ export const OrdersTable = ({
             <TableHead>Pago</TableHead>
             <TableHead className="text-right">Total guías</TableHead>
             <TableHead className="text-right">Total facturado</TableHead>
-            <TableHead className="w-[50px]">Acciones</TableHead>
+            <TableHead className="w-12.5">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -84,7 +92,7 @@ export const OrdersTable = ({
                 className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
                 onClick={() => onOpenDetail(order)}
               >
-                <TableCell className="hidden md:table-cell text-xs max-w-[140px]">
+                <TableCell className="hidden md:table-cell text-xs max-w-35">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
@@ -190,10 +198,29 @@ export const OrdersTable = ({
                 <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                   {new Date(order.createdAt).toLocaleDateString("es-MX")}
                 </TableCell>
-                <TableCell>
-                  <Badge variant={order.financials.isPaid ? "default" : "secondary"}>
-                    {order.financials.isPaid ? "Pagado" : "Pendiente"}
-                  </Badge>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  {canEdit(order) ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-25 flex items-center justify-between p-4 text-xs"
+                        >
+                          {order.financials.isPaid === true ? "Pagado" : "No pagado"}
+                          <ChevronDown className="h-3 w-3 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center">
+                        <DropdownMenuItem onClick={() => handlePaymentStatusChange(order, true)}>
+                          Pagado
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handlePaymentStatusChange(order, false)}>
+                          No pagado
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (<div>  {order.financials.isPaid === true ? "Pagado" : "No pagado"}</div>)}
                 </TableCell>
                 <TableCell className="text-right font-mono">
                   ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
