@@ -1,14 +1,13 @@
-import { customerSchema } from "@contexts/sales/domain/schemas/customer/Customer";
-import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
-import z from "zod";
+import { createCustomerSchema } from "@contexts/sales/domain/schemas/customer/Customer";
+import { z } from "zod";
 
 export const editCustomerRequestSchema = z.object({
-  id: customerSchema.shape.id,
-  name: customerSchema.shape.name.optional(),
-  company: customerSchema.shape.company.optional(),
-  email: customerSchema.shape.email.optional(),
-  phone: customerSchema.shape.phone.optional(),
-  address: createAddressSchema.optional(),
+  id: z.string(),
+  name: createCustomerSchema.shape.name.optional(),
+  company: createCustomerSchema.shape.company.optional(),
+  email: createCustomerSchema.shape.email.optional(),
+  phone: createCustomerSchema.shape.phone.optional(),
+  address: createCustomerSchema.shape.address.optional(),
 });
 
 export type EditCustomerRequest = z.infer<typeof editCustomerRequestSchema>;
