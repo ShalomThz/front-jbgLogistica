@@ -9,20 +9,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Separator,
 } from "@contexts/shared/shadcn";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
-
-const JBG_SERVICE_NAME = "JBG Logistics";
 
 const COST_BREAKDOWN_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
 type CostField = (typeof COST_BREAKDOWN_FIELDS)[number];
@@ -40,13 +40,13 @@ interface OrderTotalCardProps {
   isSubmitting: boolean;
   markAsPaid: boolean;
   onMarkAsPaidChange: (value: boolean) => void;
+  disabled?: boolean;
 }
 
-export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPaidChange }: OrderTotalCardProps) {
+export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPaidChange, disabled = false }: OrderTotalCardProps) {
   const { setValue, control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
 
-  const isJBGRate = shippingService.selectedRate?.serviceName === JBG_SERVICE_NAME;
   const rateCurrency = shippingService.selectedRate?.price.currency ?? shippingService.currency;
   const costsCurrency = shippingService.costBreakdownCurrency;
   const displayCurrency = shippingService.currency;
@@ -101,7 +101,7 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="font-mono border-dashed border-2">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Resumen de cobro</CardTitle>
@@ -123,26 +123,22 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
           </div>
         </CardHeader>
         <CardContent className="space-y-2 pt-0">
-          {/* Precio del servicio */}
+          {/* Tarifa asignada */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Precio del servicio</span>
-            {isJBGRate ? (
-              <div className="relative w-28">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={rateAmount ?? ""}
-                  onChange={(e) => handleCustomPriceChange(e.target.value)}
-                  className="h-7 pl-5 pr-12 text-xs text-right"
-                  placeholder="0.00"
-                />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{rateCurrency}</span>
-              </div>
-            ) : (
-              <span className="text-sm">${rateAmount.toFixed(2)} {rateCurrency}</span>
-            )}
+            <span className="text-muted-foreground">Tarifa asignada</span>
+            <div className="relative w-28">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={rateAmount ?? ""}
+                onChange={(e) => handleCustomPriceChange(e.target.value)}
+                className="h-7 pl-5 pr-12 text-xs text-right"
+                placeholder="0.00"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{rateCurrency}</span>
+            </div>
           </div>
 
           {/* Costos adicionales */}
@@ -157,31 +153,52 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
             );
           })}
 
-          <Separator />
+          <div className="my-2 border-t-2 border-dashed border-muted-foreground/40" />
 
           {/* Total */}
           <div className="flex items-center justify-between pt-1">
             <span className="text-sm font-semibold">Total</span>
-            <span className="text-xl font-bold text-blue-600">
-              {grandTotal !== null ? `$${grandTotal.toFixed(2)} ${displayCurrency}` : "Calculando..."}
-            </span>
-          </div>
-
-          {grandTotal !== null && (
-            <div className="flex justify-end">
-              <CurrencyConversion amount={grandTotal} from={displayCurrency} />
+            <div className="flex items-center gap-1.5">
+              {grandTotal !== null && displayCurrency !== "MXN" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Info className="size-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3" align="end">
+                    <CurrencyConversion amount={grandTotal} from={displayCurrency} />
+                  </PopoverContent>
+                </Popover>
+              )}
+              <span className="text-xl font-bold text-emerald-600">
+                {grandTotal !== null ? `$${grandTotal.toFixed(2)} ${displayCurrency}` : "Calculando..."}
+              </span>
             </div>
-          )}
+          </div>
 
           <div className="text-xs text-muted-foreground text-right">(Incluye IVA)</div>
 
-          <Separator />
+          <div className="my-2 border-t-2 border-dashed border-muted-foreground/40" />
 
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Estado de pago</span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 w-28 flex items-center justify-between px-3 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-7 w-28 flex items-center justify-between px-3 text-xs ${
+                    markAsPaid
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                      : "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
+                  }`}
+                >
                   {markAsPaid ? "Pagado" : "No pagado"}
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
@@ -198,7 +215,7 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
       <Button
         className="w-full bg-blue-600 hover:bg-blue-700"
         onClick={onSubmit}
-        disabled={isSubmitting}
+        disabled={isSubmitting || disabled}
       >
         {isSubmitting ? "Confirmando envío..." : "Confirmar envío"}
       </Button>

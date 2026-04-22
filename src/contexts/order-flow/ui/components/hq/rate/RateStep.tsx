@@ -10,7 +10,13 @@ import { SignatureCard } from "../../shared/SignatureCard";
 import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
 import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
 import { OrderTotalCard } from "./OrderTotalCard";
+import { TariffLoadingBanner } from "./TariffLoadingBanner";
+import { TariffErrorBanner } from "./TariffErrorBanner";
+import { JBGFallbackBanner } from "./JBGFallbackBanner";
+import { JBGHintBanner } from "./JBGHintBanner";
 import { OrderSuccessView } from "../../order/OrderSuccessView";
+
+const JBG_RATE_ID = "JBG_RATE";
 
 interface RateStepProps {
   rates: RatePrimitives[];
@@ -28,6 +34,13 @@ interface RateStepProps {
   partnerCostBreakdown?: CostBreakdownPrimitives;
   markAsPaid: boolean;
   onMarkAsPaidChange: (value: boolean) => void;
+  tariff: MoneyPrimitives | null;
+  isLoadingTariff: boolean;
+  tariffError: string | null;
+  tariffZoneId: string;
+  tariffDestinationCountry: string;
+  tariffBoxId: string;
+  onTariffCreated?: () => void;
 }
 
 export function RateStep({
@@ -46,12 +59,20 @@ export function RateStep({
   partnerCostBreakdown,
   markAsPaid,
   onMarkAsPaidChange,
+  tariff,
+  isLoadingTariff,
+  tariffError,
+  tariffZoneId,
+  tariffDestinationCountry,
+  tariffBoxId,
+  onTariffCreated,
 }: RateStepProps) {
   const { setValue } = useFormContext<HQOrderFormValues>();
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
 
   const handleRateSelection = (rate: RatePrimitives) => {
-    setValue("shippingService.selectedRate", rate);
+    const price = tariff ?? rate.price;
+    setValue("shippingService.selectedRate", { ...rate, price });
   };
 
   if (fulfilledShipment) {
@@ -65,17 +86,41 @@ export function RateStep({
     );
   }
 
+  const hasTariff = !!tariff;
+  const skydropxRates = rates.filter((r) => r.id !== JBG_RATE_ID);
+  const hasSkydropxRates = skydropxRates.length > 0;
+  const showTariffLoading = isLoadingTariff;
+  const showTariffError = !isLoadingTariff && (tariffError || !hasTariff);
+  const showJBGFallback = !showTariffLoading && !showTariffError && !isLoadingRates && !ratesError && !hasSkydropxRates && rates.length > 0;
+  const showRateTable = !showTariffLoading && !showTariffError && (hasSkydropxRates || isLoadingRates || !!ratesError);
+  const showJBGHint = showRateTable && hasSkydropxRates;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
-        <RateTable
-          rates={rates}
-          isLoading={isLoadingRates}
-          error={ratesError}
-          selectedRateId={selectedRate?.id ?? null}
-          onSelect={handleRateSelection}
-          onRefetch={onRefetch}
-        />
+        {showTariffLoading && <TariffLoadingBanner />}
+        {showTariffError && (
+          <TariffErrorBanner
+            zoneId={tariffZoneId}
+            destinationCountry={tariffDestinationCountry}
+            boxId={tariffBoxId}
+            onCreated={onTariffCreated}
+          />
+        )}
+        {showJBGFallback && <JBGFallbackBanner />}
+        {showJBGHint && <JBGHintBanner />}
+        {showRateTable && (
+          <RateTable
+            rates={rates}
+            isLoading={isLoadingRates}
+            error={ratesError}
+            selectedRateId={selectedRate?.id ?? null}
+            onSelect={handleRateSelection}
+            onRefetch={onRefetch}
+            onClearSelection={() => setValue("shippingService.selectedRate", null)}
+          />
+        )}
+
         <AdditionalCostsCard />
         {selectedRate && <SignatureCard />}
       </div>
@@ -88,7 +133,13 @@ export function RateStep({
           />
         )}
         <ShipmentSummaryCard onEdit={onBack} />
-        <OrderTotalCard onSubmit={onSubmit} isSubmitting={isSubmitting} markAsPaid={markAsPaid} onMarkAsPaidChange={onMarkAsPaidChange} />
+        <OrderTotalCard
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          markAsPaid={markAsPaid}
+          onMarkAsPaidChange={onMarkAsPaidChange}
+          disabled={!hasTariff}
+        />
       </div>
     </div>
   );

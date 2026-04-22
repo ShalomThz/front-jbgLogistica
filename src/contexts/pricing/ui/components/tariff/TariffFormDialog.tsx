@@ -31,15 +31,26 @@ type FormInput = z.input<typeof createTariffRequestSchema>;
 
 const CURRENCIES = ["MXN", "USD", "EUR"];
 
-function getDefaults(tariff?: TariffListViewPrimitives | null): FormInput {
+function getDefaults(
+  tariff?: TariffListViewPrimitives | null,
+  initialValues?: Partial<FormInput>,
+): FormInput {
+  if (tariff) {
+    return {
+      originZoneId: tariff.zone?.id ?? "",
+      destinationCountry: tariff.destinationCountry ?? "",
+      boxId: tariff.box?.id ?? "",
+      price: {
+        amount: tariff.price.amount ?? 0,
+        currency: tariff.price.currency ?? "MXN",
+      },
+    };
+  }
   return {
-    originZoneId: tariff?.zone?.id ?? "",
-    destinationCountry: tariff?.destinationCountry ?? "",
-    boxId: tariff?.box?.id ?? "",
-    price: {
-      amount: tariff?.price.amount ?? 0,
-      currency: tariff?.price.currency ?? "MXN",
-    },
+    originZoneId: initialValues?.originZoneId ?? "",
+    destinationCountry: initialValues?.destinationCountry ?? "",
+    boxId: initialValues?.boxId ?? "",
+    price: initialValues?.price ?? { amount: 0, currency: "MXN" },
   };
 }
 
@@ -48,10 +59,11 @@ interface Props {
   onClose: () => void;
   onSave: (data: CreateTariffRequestPrimitives) => Promise<void>;
   tariff?: TariffListViewPrimitives | null;
+  initialValues?: Partial<FormInput>;
   isLoading?: boolean;
 }
 
-export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: Props) => {
+export const TariffFormDialog = ({ open, onClose, onSave, tariff, initialValues, isLoading }: Props) => {
   const { zones } = useZones({ page: 1, limit: 100 });
   const { boxes } = useBoxes();
 
@@ -63,12 +75,12 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, isLoading }: P
     formState: { errors },
   } = useForm<FormInput>({
     resolver: zodResolver(createTariffRequestSchema),
-    defaultValues: getDefaults(tariff),
+    defaultValues: getDefaults(tariff, initialValues),
   });
 
   useEffect(() => {
-    if (open) reset(getDefaults(tariff));
-  }, [open, tariff, reset]);
+    if (open) reset(getDefaults(tariff, initialValues));
+  }, [open, tariff, initialValues, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
     await onSave(values as CreateTariffRequestPrimitives);

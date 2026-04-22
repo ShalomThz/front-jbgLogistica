@@ -7,7 +7,11 @@ const parseMoney = (amount: string, currency: string): MoneyPrimitives | null =>
   return parsed > 0 ? { amount: parsed, currency } : null;
 };
 
-export const buildPartnerOrderRequest = (formValues: PartnerOrderFormValues, storeId: string) => {
+export const buildPartnerOrderRequest = (
+  formValues: PartnerOrderFormValues,
+  storeId: string,
+  tariff: MoneyPrimitives,
+) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
@@ -40,6 +44,7 @@ export const buildPartnerOrderRequest = (formValues: PartnerOrderFormValues, sto
     },
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
+    tariff,
     ...(hasCosts && { costBreakdown }),
     pickupAtAddress: formValues.pickupAtAddress,
     customerSignature: formValues.customerSignature ?? null,

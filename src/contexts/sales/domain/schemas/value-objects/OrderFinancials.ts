@@ -3,6 +3,7 @@ import { costBreakdownSchema } from "./CostBreakdown";
 import z from "zod";
 
 export const orderFinancialsSchema = z.object({
+  tariff: moneySchema.nullable(),
   totalPrice: moneySchema.nullable(),
   isPaid: z.boolean().default(false),
   costBreakdown: costBreakdownSchema,

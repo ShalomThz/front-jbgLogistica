@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
+import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
 import { useShipmentActions, useShipmentRates } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
@@ -47,7 +49,25 @@ export const useHQOrderSubmission = ({
   const { user } = useAuth();
   const { createHQOrder, updateOrder, isCreating } = useOrders({ enabled: false });
   const { findByOrderId, fulfillShipment, selectProvider, isSelectingProvider } = useShipmentActions();
-  const { data: orderData } = useOrder(step === "success" ? orderId : undefined);
+  const { data: orderData } = useOrder(orderId);
+
+  const activeStoreId = storeId ?? user?.storeId;
+  const { data: store } = useQuery({
+    queryKey: ["stores", activeStoreId],
+    queryFn: () => storeRepository.getById(activeStoreId!),
+    enabled: !!activeStoreId,
+  });
+
+  const destinationCountry = useWatch({ control: form.control, name: "recipient.address.country" });
+  const boxId = useWatch({ control: form.control, name: "package.boxId" });
+  const zoneId = store?.zone?.id ?? "";
+  const { tariffPrice, isLoadingPrice: isLoadingTariff, priceError: tariffError, refetchPrice: refetchTariff } = useTariffPrice({
+    zoneId,
+    destinationCountry: destinationCountry ?? "",
+    boxId: boxId ?? "",
+    enabled: step === "rate" && !!zoneId && !!destinationCountry && !!boxId,
+  });
+  const tariff = tariffPrice;
 
   const consignmentNoteClassCode = useWatch({ control: form.control, name: "package.consignmentNoteClassCode" });
   const consignmentNotePackagingCode = useWatch({ control: form.control, name: "package.consignmentNotePackagingCode" });
@@ -59,6 +79,14 @@ export const useHQOrderSubmission = ({
       consignment_note_packaging_code: consignmentNotePackagingCode,
     },
   });
+
+  const selectedRate = useWatch({ control: form.control, name: "shippingService.selectedRate" });
+
+  useEffect(() => {
+    if (isLoadingRates || selectedRate || rates.length === 0 || !tariff) return;
+    const jbg = rates.find((r) => r.id === "JBG_RATE");
+    if (jbg) form.setValue("shippingService.selectedRate", { ...jbg, price: tariff });
+  }, [rates, isLoadingRates, selectedRate, form, tariff]);
 
   const goToOrders = () => navigate("/orders");
 
@@ -118,10 +146,14 @@ export const useHQOrderSubmission = ({
   const selectAndFulfill = async () => {
     const shippingService = form.getValues("shippingService");
     if (!shipmentId || !shippingService.selectedRate) return;
+    if (!tariff) {
+      toast.error("No se pudo obtener la tarifa de la zona. Revisa la configuración de tarifas.", { id: "order-flow" });
+      return;
+    }
 
     try {
       // First select provider and fulfill
-      const request = buildSelectProviderRequest(shipmentId, shippingService);
+      const request = buildSelectProviderRequest(shipmentId, shippingService, tariff);
       await selectProvider(request);
       const result = await fulfillShipment(shipmentId);
 
@@ -170,6 +202,13 @@ export const useHQOrderSubmission = ({
     isSelectingProvider,
     fulfilledShipment,
     invoiceId: orderData?.invoiceId ?? null,
+    tariff,
+    isLoadingTariff,
+    tariffError,
+    refetchTariff,
+    tariffZoneId: zoneId,
+    tariffDestinationCountry: destinationCountry ?? "",
+    tariffBoxId: boxId ?? "",
     markAsPaid,
     setMarkAsPaid,
   };

@@ -25,7 +25,7 @@ export function CurrencyConversion({ amount, from, to = "MXN" }: CurrencyConvers
   const converted = amount * exchangeRate.rate;
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
       <ArrowRightLeft className="size-3.5" />
       ${converted.toFixed(2)} {to}
       <span className="text-xs font-normal text-muted-foreground">(1 {from} = {exchangeRate.rate.toFixed(2)} {to})</span>

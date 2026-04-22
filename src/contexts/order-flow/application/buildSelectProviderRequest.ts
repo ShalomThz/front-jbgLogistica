@@ -12,7 +12,11 @@ const parseMoney = (amount: string, currency: string): MoneyPrimitives | null =>
   return parsed > 0 ? { amount: parsed, currency } : null;
 };
 
-export const buildSelectProviderRequest = (shipmentId: string, shippingService: HQShippingServiceState) => {
+export const buildSelectProviderRequest = (
+  shipmentId: string,
+  shippingService: HQShippingServiceState,
+  tariff: MoneyPrimitives,
+) => {
   const rate = shippingService.selectedRate!;
   const cb = shippingService.costBreakdown;
   const costsCurrency = shippingService.costBreakdownCurrency;
@@ -22,6 +26,7 @@ export const buildSelectProviderRequest = (shipmentId: string, shippingService: 
     provider: { type: resolveCarrierType(rate.serviceName), providerName: rate.serviceName },
     rate,
     finalPrice: rate.price,
+    tariff,
     costBreakdown: {
       insurance: parseMoney(cb.insurance, costsCurrency),
       tools: parseMoney(cb.tools, costsCurrency),

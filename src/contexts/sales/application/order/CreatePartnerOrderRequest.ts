@@ -1,6 +1,7 @@
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
+import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
 import z from "zod";
 
@@ -18,6 +19,7 @@ export const createPartnerOrderSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }),
+  tariff: moneySchema,
   costBreakdown: costBreakdownSchema.optional(),
   pickupAtAddress: z.boolean().optional(),
   customerSignature: z.string().nullable(),

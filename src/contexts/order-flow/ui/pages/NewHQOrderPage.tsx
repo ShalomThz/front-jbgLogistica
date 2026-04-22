@@ -124,6 +124,13 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
             partnerCostBreakdown={partnerCostBreakdown}
             markAsPaid={flow.markAsPaid}
             onMarkAsPaidChange={flow.setMarkAsPaid}
+            tariff={flow.tariff}
+            isLoadingTariff={flow.isLoadingTariff}
+            tariffError={flow.tariffError}
+            tariffZoneId={flow.tariffZoneId}
+            tariffDestinationCountry={flow.tariffDestinationCountry}
+            tariffBoxId={flow.tariffBoxId}
+            onTariffCreated={flow.refetchTariff}
           />
         )}
 

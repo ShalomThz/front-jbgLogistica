@@ -5,6 +5,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildPartnerEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
@@ -14,6 +15,7 @@ interface UsePartnerOrderSubmissionOptions {
   form: UseFormReturn<PartnerOrderFormValues, any, any>;
   initialOrderId?: string;
   storeId?: string;
+  tariff: MoneyPrimitives | null;
   onSuccess: () => void;
 }
 
@@ -21,6 +23,7 @@ export const usePartnerOrderSubmission = ({
   form,
   initialOrderId,
   storeId,
+  tariff,
   onSuccess,
 }: UsePartnerOrderSubmissionOptions) => {
   const navigate = useNavigate();
@@ -50,8 +53,12 @@ export const usePartnerOrderSubmission = ({
         toast.error("No se pudo identificar al usuario. Inicia sesión de nuevo.", { id: "order-flow" });
         return;
       }
+      if (!tariff) {
+        toast.error("No se pudo obtener la tarifa. Intenta de nuevo.", { id: "order-flow" });
+        return;
+      }
       try {
-        const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.storeId);
+        const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.storeId, tariff);
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
         if (markAsPaid) {

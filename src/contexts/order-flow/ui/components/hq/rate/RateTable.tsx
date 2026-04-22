@@ -7,9 +7,11 @@ import {
   Progress,
   Skeleton,
 } from "@contexts/shared/shadcn";
-import { RefreshCw, Truck } from "lucide-react";
+import { Eraser, RefreshCw, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
+
+const JBG_RATE_ID = "JBG_RATE";
 
 import ampmLogo from "@/assets/carriers/ampm.png";
 import dhlLogo from "@/assets/carriers/dhl.png";
@@ -20,7 +22,6 @@ import ninetyMinutesLogo from "@/assets/carriers/ninetyminutes.png";
 import paquetexpressLogo from "@/assets/carriers/paquetexpress.png";
 import redpackLogo from "@/assets/carriers/redpack.png";
 import upsLogo from "@/assets/carriers/ups.jpeg";
-import jbgLogo from "@/assets/carriers/jbg.png";
 
 const CARRIER_LOGOS: Record<string, string> = {
   AMPM: ampmLogo,
@@ -32,7 +33,6 @@ const CARRIER_LOGOS: Record<string, string> = {
   PAQUETEXPRESS: paquetexpressLogo,
   REDPACK: redpackLogo,
   UPS: upsLogo,
-  "JBG LOGISTICS": jbgLogo,
 };
 
 const parseServiceName = (serviceName: string) => {
@@ -47,10 +47,12 @@ interface RateTableProps {
   selectedRateId: string | null;
   onSelect: (rate: RatePrimitives) => void;
   onRefetch: () => void;
+  onClearSelection?: () => void;
 }
 
-export function RateTable({ rates, isLoading, error, selectedRateId, onSelect, onRefetch }: RateTableProps) {
+export function RateTable({ rates, isLoading, error, selectedRateId, onSelect, onRefetch, onClearSelection }: RateTableProps) {
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const visibleRates = rates.filter((r) => r.id !== JBG_RATE_ID);
 
   useEffect(() => {
     if (!isLoading) {
@@ -74,17 +76,31 @@ export function RateTable({ rates, isLoading, error, selectedRateId, onSelect, o
               <Truck className="size-4" />
               Selecciona un servicio de paquetería
             </CardTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onRefetch}
-              disabled={isLoading}
-              className="h-7 gap-1.5"
-            >
-              <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
-              Actualizar
-            </Button>
+            <div className="flex items-center gap-1">
+              {onClearSelection && selectedRateId && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClearSelection}
+                  className="h-7 gap-1.5"
+                >
+                  <Eraser className="size-3.5" />
+                  Limpiar
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onRefetch}
+                disabled={isLoading}
+                className="h-7 gap-1.5"
+              >
+                <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
+                Actualizar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-0 pt-0">
@@ -114,15 +130,9 @@ export function RateTable({ rates, isLoading, error, selectedRateId, onSelect, o
             </div>
           )}
 
-          {!isLoading && !error && rates.length === 0 && (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No se encontraron tarifas disponibles para este envío.
-            </div>
-          )}
-
-          {!isLoading && rates.length > 0 && (
+          {!isLoading && !error && (
             <div className="space-y-0">
-              {rates.map((rate) => {
+              {visibleRates.map((rate) => {
                 const { carrier, service } = parseServiceName(rate.serviceName);
                 const logo = CARRIER_LOGOS[carrier.toUpperCase()];
                 return (

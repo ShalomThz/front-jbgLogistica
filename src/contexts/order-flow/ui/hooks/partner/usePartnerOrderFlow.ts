@@ -37,7 +37,6 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
   const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
-  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, onSuccess: () => setStep("success") });
 
   const activeStoreId = selectedStoreId ?? user?.storeId;
 
@@ -56,6 +55,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     boxId: boxId ?? "",
     enabled: step === "pricing" && !!store?.zone?.id && !!destinationCountry && !!boxId,
   });
+
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: tariffPrice, onSuccess: () => setStep("success") });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -86,7 +87,11 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     return isEditing ? "Actualizar Orden" : "Crear Orden";
   })();
 
-  const isNextDisabled = submission.isCreating || isSaving || isProcessingBox;
+  const isNextDisabled =
+    submission.isCreating ||
+    isSaving ||
+    isProcessingBox ||
+    (step === "pricing" && (isLoadingPrice || !tariffPrice));
 
   return {
     form,
