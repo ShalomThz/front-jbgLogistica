@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Download, Filter, Minus, Plus, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { handleBoxError } from "@contexts/inventory/application/errors/handleBoxError";
 import {
   Input,
   Button,
@@ -101,22 +103,37 @@ export const BoxPage = () => {
   })();
 
   const handleCreate = async (data: CreateBoxRequestPrimitives) => {
-    await createBox(data);
-    setFormOpen(false);
-    setPage(1);
+    try {
+      await createBox(data);
+      toast.success("Caja creada");
+      setFormOpen(false);
+      setPage(1);
+    } catch (error) {
+      handleBoxError(error);
+    }
   };
 
   const handleUpdate = async (data: CreateBoxRequestPrimitives) => {
     if (!editBox) return;
-    await updateBox(editBox.id, data);
-    setEditBox(null);
+    try {
+      await updateBox(editBox.id, data);
+      toast.success("Caja actualizada");
+      setEditBox(null);
+    } catch (error) {
+      handleBoxError(error);
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteBoxDialog) return;
-    await deleteBox(deleteBoxDialog.id);
-    setDeleteBoxDialog(null);
-    setPage(1);
+    try {
+      await deleteBox(deleteBoxDialog.id);
+      toast.success("Caja eliminada");
+      setDeleteBoxDialog(null);
+      setPage(1);
+    } catch (error) {
+      handleBoxError(error);
+    }
   };
 
   const handleEditFromDetail = (box: BoxPrimitives) => {
@@ -130,7 +147,13 @@ export const BoxPage = () => {
   };
 
   const handleStockConfirm = async (boxId: string, newStock: number) => {
-    await updateBox(boxId, { stock: newStock });
+    try {
+      await updateBox(boxId, { stock: newStock });
+      toast.success("Stock actualizado");
+    } catch (error) {
+      handleBoxError(error);
+      throw error;
+    }
   };
 
   const openStockDialog = (box: BoxPrimitives, operation: StockOperation) => {

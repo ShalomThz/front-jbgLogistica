@@ -11,6 +11,11 @@ export const errorTranslations: Record<string, Record<Lang, string>> = {
     en: "A box with that name already exists",
     pt: "Já existe uma caixa com esse nome",
   },
+  BOX_DIMENSIONS_ALREADY_EXIST: {
+    es: "Ya existe una caja con las mismas dimensiones",
+    en: "A box with the same dimensions already exists",
+    pt: "Já existe uma caixa com as mesmas dimensões",
+  },
   ORDER_DUPLICATE_REFERENCES: {
     es: "Ya existe una orden con las mismas referencias",
     en: "An order with the same references already exists",

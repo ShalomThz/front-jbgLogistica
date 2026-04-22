@@ -4,7 +4,7 @@ import { dimensionsSchema } from "@contexts/shared/domain/schemas/Dimensions";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 export const boxSchema = z.object({
   id: z.string(),
-  name: z.string(),
+  name: z.string().trim().min(1, "El nombre es obligatorio"),
   dimensions: dimensionsSchema,
   stock: z.number().int().min(0),
   price: moneySchema,

@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import type { UseFormReturn, FieldValues } from "react-hook-form";
 import { toast } from "sonner";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { handleBoxError } from "@contexts/inventory/application/errors/handleBoxError";
 
 interface UseBoxOperationsOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +64,7 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
           toast.success(`Caja "${pkg.packageType}" actualizada`, { id: "order-flow" });
         } catch (error) {
           hasError = true;
-          toast.error(parseApiError(error), { id: "order-flow" });
+          handleBoxError(error, { toastId: "order-flow" });
         }
       }
     } else if (pkg.packageType) {
@@ -79,7 +79,7 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
           form.setValue("package.boxId", created.id, { shouldValidate: true });
         } catch (error) {
           hasError = true;
-          toast.error(parseApiError(error), { id: "order-flow" });
+          handleBoxError(error, { toastId: "order-flow" });
         }
       }
     }
