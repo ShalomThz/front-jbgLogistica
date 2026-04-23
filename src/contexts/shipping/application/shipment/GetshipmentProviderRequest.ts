@@ -10,6 +10,7 @@ export const selectShipmentProviderRequestSchema = z.object({
   provider: carrierSchema,
   rate: rateSchema,
   finalPrice: moneySchema,
+  tariff: moneySchema,
   costBreakdown: costBreakdownSchema,
 });
 

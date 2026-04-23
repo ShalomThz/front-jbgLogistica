@@ -15,9 +15,9 @@ const parseMoney = (amount: string, currency: string): MoneyPrimitives | null =>
 export const buildSelectProviderRequest = (
   shipmentId: string,
   shippingService: HQShippingServiceState,
-  tariff: MoneyPrimitives,
 ) => {
   const rate = shippingService.selectedRate!;
+  const tariff = shippingService.tariff!;
   const cb = shippingService.costBreakdown;
   const costsCurrency = shippingService.costBreakdownCurrency;
 

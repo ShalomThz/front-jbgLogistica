@@ -1,5 +1,8 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANT } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_VARIANT,
+} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import {
   Badge,
   Button,
@@ -19,8 +22,17 @@ import {
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
-import { ChevronDown, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
-import { useOrders } from "../../../../sales/infrastructure/hooks/orders/userOrders";
+import {
+  ChevronDown,
+  MoreHorizontal,
+  Package,
+  Pencil,
+  Printer,
+  Trash2,
+} from "lucide-react";
+import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { TotalBilledCell } from "./TotalBilledCell";
+import { TotalShippingCell } from "./TotalShippingCell";
 
 interface OrdersTableProps {
   orders: OrderListView[];
@@ -51,10 +63,12 @@ export const OrdersTable = ({
   onCompleteSale,
   onDelete,
 }: OrdersTableProps) => {
+  const { updateOrder } = useOrders();
 
-  const { updateOrder } = useOrders()
-
-  const handlePaymentStatusChange = async (order: OrderListView, isPaid: boolean) => {
+  const handlePaymentStatusChange = async (
+    order: OrderListView,
+    isPaid: boolean,
+  ) => {
     await updateOrder(order.id, { markAsPaid: isPaid });
   };
 
@@ -81,7 +95,10 @@ export const OrdersTable = ({
         <TableBody>
           {orders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
+              <TableCell
+                colSpan={13}
+                className="h-24 text-center text-muted-foreground"
+              >
                 No se encontraron órdenes.
               </TableCell>
             </TableRow>
@@ -96,13 +113,19 @@ export const OrdersTable = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
-                        <div className="truncate font-medium">{order.createdBy.name}</div>
-                        <div className="truncate text-muted-foreground">{order.store.name}</div>
+                        <div className="truncate font-medium">
+                          {order.createdBy.name}
+                        </div>
+                        <div className="truncate text-muted-foreground">
+                          {order.store.name}
+                        </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top">
                       <div>{order.createdBy.name}</div>
-                      <div className="opacity-80">Tienda: {order.store.name}</div>
+                      <div className="opacity-80">
+                        Tienda: {order.store.name}
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                 </TableCell>
@@ -114,20 +137,25 @@ export const OrdersTable = ({
                 <TableCell className="hidden md:table-cell">
                   <div>
                     <div className="font-medium">{order.origin.name}</div>
-                    <div className="text-xs text-muted-foreground">{order.origin.phone}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {order.origin.phone}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div>
                     <div className="font-medium">{order.destination.name}</div>
-                    <div className="text-xs text-muted-foreground">{order.destination.phone}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {order.destination.phone}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="text-sm cursor-help">
-                        {order.destination.address.city}, {order.destination.address.province}
+                        {order.destination.address.city},{" "}
+                        {order.destination.address.province}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
@@ -137,7 +165,8 @@ export const OrdersTable = ({
                           <div>{order.destination.address.address2}</div>
                         )}
                         <div>
-                          {order.destination.address.city}, {order.destination.address.province}{" "}
+                          {order.destination.address.city},{" "}
+                          {order.destination.address.province}{" "}
                           {order.destination.address.zip}
                         </div>
                         <div>{order.destination.address.country}</div>
@@ -207,34 +236,38 @@ export const OrdersTable = ({
                           size="sm"
                           className="h-7 w-25 flex items-center justify-between p-4 text-xs"
                         >
-                          {order.financials.isPaid === true ? "Pagado" : "No pagado"}
+                          {order.financials.isPaid === true
+                            ? "Pagado"
+                            : "No pagado"}
                           <ChevronDown className="h-3 w-3 opacity-50" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="center">
-                        <DropdownMenuItem onClick={() => handlePaymentStatusChange(order, true)}>
+                        <DropdownMenuItem
+                          onClick={() => handlePaymentStatusChange(order, true)}
+                        >
                           Pagado
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handlePaymentStatusChange(order, false)}>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handlePaymentStatusChange(order, false)
+                          }
+                        >
                           No pagado
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  ) : (<div>  {order.financials.isPaid === true ? "Pagado" : "No pagado"}</div>)}
+                  ) : (
+                    <div>
+                      {" "}
+                      {order.financials.isPaid === true
+                        ? "Pagado"
+                        : "No pagado"}
+                    </div>
+                  )}
                 </TableCell>
-                <TableCell className="text-right font-mono">
-                  ${order.financials.totalPrice?.amount.toFixed(2) ?? "0.00"}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  ${(
-                    (order.financials.totalPrice?.amount ?? 0) +
-                    (order.financials.costBreakdown.insurance?.amount ?? 0) +
-                    (order.financials.costBreakdown.tools?.amount ?? 0) +
-                    (order.financials.costBreakdown.additionalCost?.amount ?? 0) +
-                    (order.financials.costBreakdown.wrap?.amount ?? 0) +
-                    (order.financials.costBreakdown.tape?.amount ?? 0)
-                  ).toFixed(2)}
-                </TableCell>
+                <TotalShippingCell financials={order.financials} />
+                <TotalBilledCell financials={order.financials} />
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -248,24 +281,29 @@ export const OrdersTable = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {canEdit(order) && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
-                        <DropdownMenuItem
-                          className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-                          onClick={() => onEdit(order)}
-                        >
-                          <Pencil className="size-4" />
-                          Editar orden
-                        </DropdownMenuItem>
-                      )}
-                      {order.type === "PARTNER" && canEditHQ && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
-                        <DropdownMenuItem
-                          className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
-                          onClick={() => onCompleteSale(order)}
-                        >
-                          <Package className="size-4" />
-                          Completar venta
-                        </DropdownMenuItem>
-                      )}
+                      {canEdit(order) &&
+                        order.status !== "COMPLETED" &&
+                        order.status !== "CANCELLED" && (
+                          <DropdownMenuItem
+                            className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                            onClick={() => onEdit(order)}
+                          >
+                            <Pencil className="size-4" />
+                            Editar orden
+                          </DropdownMenuItem>
+                        )}
+                      {order.type === "PARTNER" &&
+                        canEditHQ &&
+                        order.status !== "COMPLETED" &&
+                        order.status !== "CANCELLED" && (
+                          <DropdownMenuItem
+                            className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
+                            onClick={() => onCompleteSale(order)}
+                          >
+                            <Package className="size-4" />
+                            Completar venta
+                          </DropdownMenuItem>
+                        )}
                       {(order.shipment?.label || order.invoiceId) && (
                         <>
                           <DropdownMenuSeparator />

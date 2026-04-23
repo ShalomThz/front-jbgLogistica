@@ -66,6 +66,7 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
   shippingService: {
     ...baseDefaults.shippingService,
     selectedRate: null,
+    tariff: null,
   },
 };
 

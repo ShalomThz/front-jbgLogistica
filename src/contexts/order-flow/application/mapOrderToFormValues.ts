@@ -65,9 +65,15 @@ const mapBaseFields = (order: OrderListView) => ({
 });
 
 export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues {
+  const base = mapBaseFields(order);
   return {
-    ...mapBaseFields(order),
+    ...base,
     orderType: "HQ",
+    shippingService: {
+      ...base.shippingService,
+      selectedRate: null,
+      tariff: order.financials.tariff,
+    },
     package: {
       ...hqOrderDefaultValues.package,
       boxId: order.package.boxId,

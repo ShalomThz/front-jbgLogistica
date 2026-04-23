@@ -71,8 +71,7 @@ export function RateStep({
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
 
   const handleRateSelection = (rate: RatePrimitives) => {
-    const price = tariff ?? rate.price;
-    setValue("shippingService.selectedRate", { ...rate, price });
+    setValue("shippingService.selectedRate", rate);
   };
 
   if (fulfilledShipment) {

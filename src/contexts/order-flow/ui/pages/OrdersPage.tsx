@@ -29,7 +29,7 @@ import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog"
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
-import { OrdersTable } from "../components/order/OrdersTable";
+import { OrdersTable } from "../components/order/orders-table/OrdersTable";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 

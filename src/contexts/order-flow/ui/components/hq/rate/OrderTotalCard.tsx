@@ -47,19 +47,19 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
   const { setValue, control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
 
-  const rateCurrency = shippingService.selectedRate?.price.currency ?? shippingService.currency;
+  const tariffCurrency = shippingService.tariff?.currency ?? shippingService.currency;
   const costsCurrency = shippingService.costBreakdownCurrency;
   const displayCurrency = shippingService.currency;
 
-  const needsRateConversion = rateCurrency !== displayCurrency;
+  const needsTariffConversion = tariffCurrency !== displayCurrency;
   const needsCostsConversion = costsCurrency !== displayCurrency;
 
-  const { exchangeRate: rateExchange } = useExchangeRate({
-    from: rateCurrency,
+  const { exchangeRate: tariffExchange } = useExchangeRate({
+    from: tariffCurrency,
     to: displayCurrency,
-    enabled: needsRateConversion,
+    enabled: needsTariffConversion,
   });
-  const rateConversionRate = needsRateConversion ? rateExchange?.rate ?? null : 1;
+  const tariffConversionRate = needsTariffConversion ? tariffExchange?.rate ?? null : 1;
 
   const { exchangeRate: costsExchange } = useExchangeRate({
     from: costsCurrency,
@@ -68,13 +68,9 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
   });
   const costsConversionRate = needsCostsConversion ? costsExchange?.rate ?? null : 1;
 
-  const handleCustomPriceChange = (value: string) => {
-    if (!shippingService.selectedRate) return;
+  const handleTariffChange = (value: string) => {
     const amount = parseFloat(value) || 0;
-    setValue("shippingService.selectedRate", {
-      ...shippingService.selectedRate,
-      price: { ...shippingService.selectedRate.price, amount },
-    });
+    setValue("shippingService.tariff", { amount, currency: tariffCurrency });
   };
 
   if (!shippingService.selectedRate) {
@@ -89,15 +85,15 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
     );
   }
 
-  const rateAmount = shippingService.selectedRate.price.amount;
+  const tariffAmount = shippingService.tariff?.amount ?? 0;
   const costsTotal = COST_BREAKDOWN_FIELDS.reduce((sum, field) => {
     const val = parseFloat(shippingService.costBreakdown[field]);
     return sum + (val > 0 ? val : 0);
   }, 0);
 
-  const convertedRate = rateConversionRate !== null ? rateAmount * rateConversionRate : null;
+  const convertedTariff = tariffConversionRate !== null ? tariffAmount * tariffConversionRate : null;
   const convertedCosts = costsConversionRate !== null ? costsTotal * costsConversionRate : null;
-  const grandTotal = convertedRate !== null && convertedCosts !== null ? convertedRate + convertedCosts : null;
+  const grandTotal = convertedTariff !== null && convertedCosts !== null ? convertedTariff + convertedCosts : null;
 
   return (
     <div className="space-y-4">
@@ -132,12 +128,12 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
                 type="number"
                 step="0.01"
                 min="0"
-                value={rateAmount ?? ""}
-                onChange={(e) => handleCustomPriceChange(e.target.value)}
+                value={tariffAmount || ""}
+                onChange={(e) => handleTariffChange(e.target.value)}
                 className="h-7 pl-5 pr-12 text-xs text-right"
                 placeholder="0.00"
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{rateCurrency}</span>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{tariffCurrency}</span>
             </div>
           </div>
 

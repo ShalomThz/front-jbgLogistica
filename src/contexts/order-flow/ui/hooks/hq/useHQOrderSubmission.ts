@@ -8,7 +8,10 @@ import { storeRepository } from "@contexts/iam/infrastructure/services/stores/st
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
-import { useShipmentActions, useShipmentRates } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
+import {
+  useShipmentActions,
+  useShipmentRates,
+} from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
@@ -44,11 +47,19 @@ export const useHQOrderSubmission = ({
   const queryClient = useQueryClient();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [shipmentId, setShipmentId] = useState<string | null>(null);
-  const [fulfilledShipment, setFulfilledShipment] = useState<ShipmentPrimitives | null>(null);
+  const [fulfilledShipment, setFulfilledShipment] =
+    useState<ShipmentPrimitives | null>(null);
   const [markAsPaid, setMarkAsPaid] = useState(false);
   const { user } = useAuth();
-  const { createHQOrder, updateOrder, isCreating } = useOrders({ enabled: false });
-  const { findByOrderId, fulfillShipment, selectProvider, isSelectingProvider } = useShipmentActions();
+  const { createHQOrder, updateOrder, isCreating } = useOrders({
+    enabled: false,
+  });
+  const {
+    findByOrderId,
+    fulfillShipment,
+    selectProvider,
+    isSelectingProvider,
+  } = useShipmentActions();
   const { data: orderData } = useOrder(orderId);
 
   const activeStoreId = storeId ?? user?.storeId;
@@ -58,10 +69,18 @@ export const useHQOrderSubmission = ({
     enabled: !!activeStoreId,
   });
 
-  const destinationCountry = useWatch({ control: form.control, name: "recipient.address.country" });
+  const destinationCountry = useWatch({
+    control: form.control,
+    name: "recipient.address.country",
+  });
   const boxId = useWatch({ control: form.control, name: "package.boxId" });
   const zoneId = store?.zone?.id ?? "";
-  const { tariffPrice, isLoadingPrice: isLoadingTariff, priceError: tariffError, refetchPrice: refetchTariff } = useTariffPrice({
+  const {
+    tariffPrice,
+    isLoadingPrice: isLoadingTariff,
+    priceError: tariffError,
+    refetchPrice: refetchTariff,
+  } = useTariffPrice({
     zoneId,
     destinationCountry: destinationCountry ?? "",
     boxId: boxId ?? "",
@@ -69,9 +88,20 @@ export const useHQOrderSubmission = ({
   });
   const tariff = tariffPrice;
 
-  const consignmentNoteClassCode = useWatch({ control: form.control, name: "package.consignmentNoteClassCode" });
-  const consignmentNotePackagingCode = useWatch({ control: form.control, name: "package.consignmentNotePackagingCode" });
-  const { rates, isLoading: isLoadingRates, error: ratesError, refetch: refetchRates } = useShipmentRates({
+  const consignmentNoteClassCode = useWatch({
+    control: form.control,
+    name: "package.consignmentNoteClassCode",
+  });
+  const consignmentNotePackagingCode = useWatch({
+    control: form.control,
+    name: "package.consignmentNotePackagingCode",
+  });
+  const {
+    rates,
+    isLoading: isLoadingRates,
+    error: ratesError,
+    refetch: refetchRates,
+  } = useShipmentRates({
     shipmentId: shipmentId ?? "",
     enabled: !!shipmentId && step === "rate",
     additionalData: {
@@ -80,20 +110,28 @@ export const useHQOrderSubmission = ({
     },
   });
 
-  const selectedRate = useWatch({ control: form.control, name: "shippingService.selectedRate" });
+  const selectedRate = useWatch({
+    control: form.control,
+    name: "shippingService.selectedRate",
+  });
 
   useEffect(() => {
-    if (isLoadingRates || selectedRate || rates.length === 0 || !tariff) return;
+    if (isLoadingRates || selectedRate || rates.length === 0) return;
     const jbg = rates.find((r) => r.id === "JBG_RATE");
-    if (jbg) form.setValue("shippingService.selectedRate", { ...jbg, price: tariff });
-  }, [rates, isLoadingRates, selectedRate, form, tariff]);
+    if (jbg) form.setValue("shippingService.selectedRate", jbg);
+  }, [rates, isLoadingRates, selectedRate, form]);
+
+  useEffect(() => {
+    if (tariff) form.setValue("shippingService.tariff", tariff);
+  }, [tariff, form]);
 
   const goToOrders = () => navigate("/orders");
 
-  const onError = (error: unknown) => handleOrderError(error, {
-    form,
-    setStep: (step) => setStep(step as HQOrderStep),
-  });
+  const onError = (error: unknown) =>
+    handleOrderError(error, {
+      form,
+      setStep: (step) => setStep(step as HQOrderStep),
+    });
 
   const clearRateData = () => {
     form.setValue("shippingService.selectedRate", null);
@@ -108,11 +146,15 @@ export const useHQOrderSubmission = ({
         await updateOrder(orderId, request);
         const shipment = await findByOrderId(orderId);
         if (!shipment) {
-          toast.error("No se encontró el envío para la orden actualizada", { id: "order-flow" });
+          toast.error("No se encontró el envío para la orden actualizada", {
+            id: "order-flow",
+          });
           return;
         }
         setShipmentId(shipment.id);
-        queryClient.invalidateQueries({ queryKey: ["shipments", shipment.id, "rates"] });
+        queryClient.invalidateQueries({
+          queryKey: ["shipments", shipment.id, "rates"],
+        });
         form.setValue("shippingService.selectedRate", null);
         setFulfilledShipment(null);
         setStep("rate");
@@ -122,16 +164,24 @@ export const useHQOrderSubmission = ({
       }
     } else {
       if (!user) {
-        toast.error("No se pudo identificar al usuario. Inicia sesión de nuevo.", { id: "order-flow" });
+        toast.error(
+          "No se pudo identificar al usuario. Inicia sesión de nuevo.",
+          { id: "order-flow" },
+        );
         return;
       }
       try {
-        const request = buildHQOrderRequest(form.getValues(), storeId ?? user.storeId);
+        const request = buildHQOrderRequest(
+          form.getValues(),
+          storeId ?? user.storeId,
+        );
         const order = await createHQOrder(request);
         setOrderId(order.id);
         const shipment = await findByOrderId(order.id);
         if (!shipment) {
-          toast.error("No se encontró el envío para la orden creada", { id: "order-flow" });
+          toast.error("No se encontró el envío para la orden creada", {
+            id: "order-flow",
+          });
           return;
         }
         setShipmentId(shipment.id);
@@ -146,14 +196,17 @@ export const useHQOrderSubmission = ({
   const selectAndFulfill = async () => {
     const shippingService = form.getValues("shippingService");
     if (!shipmentId || !shippingService.selectedRate) return;
-    if (!tariff) {
-      toast.error("No se pudo obtener la tarifa de la zona. Revisa la configuración de tarifas.", { id: "order-flow" });
+    if (!shippingService.tariff) {
+      toast.error(
+        "No se pudo obtener la tarifa de la zona. Revisa la configuración de tarifas.",
+        { id: "order-flow" },
+      );
       return;
     }
 
     try {
       // First select provider and fulfill
-      const request = buildSelectProviderRequest(shipmentId, shippingService, tariff);
+      const request = buildSelectProviderRequest(shipmentId, shippingService);
       await selectProvider(request);
       const result = await fulfillShipment(shipmentId);
 
@@ -176,7 +229,10 @@ export const useHQOrderSubmission = ({
         if (box && box.stock > 0) {
           try {
             await updateBox(pkg.boxId, { stock: box.stock - 1 });
-            toast.success(`Se descontó 1 unidad de "${box.name}" del inventario`, { id: "order-flow" });
+            toast.success(
+              `Se descontó 1 unidad de "${box.name}" del inventario`,
+              { id: "order-flow" },
+            );
           } catch (error) {
             toast.error(parseApiError(error), { id: "order-flow" });
           }

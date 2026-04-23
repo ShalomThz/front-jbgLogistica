@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { weightUnits } from "@contexts/shared/domain/schemas/Weight";
 
 import { baseOrderFormSchema, basePackageSchema } from "./BaseOrderForm";
@@ -33,6 +34,7 @@ export const hqOrderFormSchema = baseOrderFormSchema.extend({
   package: hqPackageSchema,
   shippingService: baseOrderFormSchema.shape.shippingService.extend({
     selectedRate: z.custom<RatePrimitives>().nullable(),
+    tariff: z.custom<MoneyPrimitives>().nullable(),
   }),
 }).superRefine((data, ctx) => {
   if (!data.orderData.orderNumber.trim()) {
