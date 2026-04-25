@@ -10,6 +10,18 @@ export const addressSchema = placeDetailsResponseSchema.extend({
   reference: z.string().min(1, "Referencia es requerida").max(25, "Máximo 25 caracteres"),
 });
 
+export const verifiedAddressSchema = addressSchema.superRefine((value, ctx) => {
+  const { placeId, latitude, longitude } = value.geolocation;
+  const isVerified = !!placeId && (latitude !== 0 || longitude !== 0);
+  if (!isVerified) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Selecciona una sugerencia de Google para verificar la dirección",
+      path: ["geolocation"],
+    });
+  }
+});
+
 export const createAddressSchema = addressSchema;
 
 export type AddressPrimitives = z.infer<typeof addressSchema>;

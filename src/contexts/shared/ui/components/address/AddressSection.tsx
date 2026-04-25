@@ -1,7 +1,7 @@
 import { Label } from "@contexts/shared/shadcn";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, TriangleAlert } from "lucide-react";
 import { useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext, useWatch, type FieldErrors } from "react-hook-form";
 import { AddressSuggestions } from "./AddressSuggestions";
 import { AddressForm } from "./AddressForm";
 
@@ -10,12 +10,23 @@ interface AddressSectionProps {
   labelPrefix: string;
 }
 
+function getFieldError(errors: FieldErrors, path: string): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let current: any = errors;
+  for (const part of path.split(".")) {
+    if (!current) return undefined;
+    current = current[part];
+  }
+  return current?.message as string | undefined;
+}
+
 export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps) {
   const form = useFormContext();
   const [addressQuery, setAddressQuery] = useState("");
 
   const geolocation = useWatch({ control: form.control, name: `${fieldPrefix}.geolocation` });
   const isAddressVerified = !!geolocation?.placeId && (geolocation.latitude !== 0 || geolocation.longitude !== 0);
+  const verificationError = getFieldError(form.formState.errors, `${fieldPrefix}.geolocation`);
 
   const commitAddressSearch = () => {
     const address1 = form.getValues(`${fieldPrefix}.address1`);
@@ -41,14 +52,19 @@ export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold text-muted-foreground">
-          Dirección
+          Dirección *
         </Label>
-        {isAddressVerified && (
+        {isAddressVerified ? (
           <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
             <BadgeCheck className="size-3.5" />
             Dirección verificada
           </span>
-        )}
+        ) : verificationError ? (
+          <span className="flex items-center gap-1 text-xs font-medium text-destructive">
+            <TriangleAlert className="size-3.5" />
+            {verificationError}
+          </span>
+        ) : null}
       </div>
       <AddressSuggestions
         query={addressQuery}

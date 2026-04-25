@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ownershipTypes } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { dimensionUnits } from "@contexts/shared/domain/schemas/Dimensions";
-import { addressSchema } from "@contexts/shared/domain/schemas/address/Address";
+import { verifiedAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
 
 // --- Contact with address (sender/recipient) ---
 
@@ -11,7 +11,7 @@ export const contactWithAddressSchema = z.object({
   company: z.string().min(1, "La empresa es requerida"),
   email: z.string().min(1, "El correo es requerido").email("El correo no es válido"),
   phone: z.string().min(1, "El teléfono es requerido"),
-  address: addressSchema,
+  address: verifiedAddressSchema,
   save: z.boolean(),
 });
 
