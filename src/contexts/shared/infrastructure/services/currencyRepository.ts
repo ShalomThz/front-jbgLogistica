@@ -7,9 +7,10 @@ export interface ExchangeRate {
 }
 
 export const currencyRepository = {
-  getExchangeRate: async (from: string, to: string): Promise<ExchangeRate> => {
+  getExchangeRate: async (from: string, to: string, date?: Date): Promise<ExchangeRate> => {
+    const dateParam = date ? `&date=${date.toISOString()}` : "";
     return httpClient<ExchangeRate>(
-      `/exchange-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      `/exchange-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${dateParam}`,
       { method: "GET" },
     );
   },

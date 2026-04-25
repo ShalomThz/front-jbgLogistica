@@ -5,15 +5,16 @@ interface UseExchangeRateOptions {
   from: string;
   to: string;
   enabled?: boolean;
+  date?: Date;
 }
 
-export const useExchangeRate = ({ from, to, enabled = true }: UseExchangeRateOptions) => {
+export const useExchangeRate = ({ from, to, date, enabled = true }: UseExchangeRateOptions) => {
   const queryClient = useQueryClient();
-  const queryKey = ["exchange-rate", from, to];
+  const queryKey = ["exchange-rate", from, to, (date?.toISOString()) || "latest"];
 
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey,
-    queryFn: () => currencyRepository.getExchangeRate(from, to),
+    queryFn: () => currencyRepository.getExchangeRate(from, to, date),
     enabled: enabled && from !== to,
     staleTime: 1000 * 60 * 10,
     retry: 1,

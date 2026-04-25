@@ -267,7 +267,7 @@ export const OrdersTable = ({
                   )}
                 </TableCell>
                 <TotalShippingCell financials={order.financials} />
-                <TotalBilledCell financials={order.financials} />
+                <TotalBilledCell financials={order.financials} createdAt={order.createdAt} />
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

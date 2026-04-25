@@ -16,9 +16,10 @@ const CURRENCIES = ["MXN", "USD", "EUR"] as const;
 
 interface TotalBilledCellProps {
   financials: OrderListView["financials"];
+  createdAt: string;
 }
 
-export function TotalBilledCell({ financials }: TotalBilledCellProps) {
+export function TotalBilledCell({ financials, createdAt }: TotalBilledCellProps) {
   const { tariff, costBreakdown } = financials;
   const baseCurrency = tariff?.currency ?? "MXN";
   const [displayCurrency, setDisplayCurrency] = useState<string>(baseCurrency);
@@ -34,6 +35,7 @@ export function TotalBilledCell({ financials }: TotalBilledCellProps) {
     from: costsCurrency,
     to: baseCurrency,
     enabled: needsCostConversion,
+    date: new Date(createdAt),
   });
 
   const costConversionRate = needsCostConversion ? costRate.exchangeRate?.rate ?? null : 1;
