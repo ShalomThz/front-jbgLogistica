@@ -11,30 +11,42 @@ export const warehousePackageStatuses = [
   "AUTHORIZED",
 ] as const;
 
+// ── Shared sub-schemas ────────────────────────────────────────────────────────
+
+export const packageBoxSchema = z.object({
+  boxId: z.string(),
+  dimensions: dimensionsSchema,
+  weight: weightSchema,
+});
+
+export const providerDetailsSchema = z.object({
+  providerId: z.string(),
+  deliveryPerson: z.string().min(1, "Repartidor es requerido"),
+  supplierInvoice: z.string().nullish(),
+});
+
+export type PackageBoxPrimitives = z.infer<typeof packageBoxSchema>;
+export type ProviderDetailsPrimitives = z.infer<typeof providerDetailsSchema>;
+
+// ── List view (GET /package, GET /package/:id) ────────────────────────────────
+
+const entitySummarySchema = z.object({ id: z.string(), name: z.string() });
+
 export const providerSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
 });
 
-const entitySummarySchema = z.object({ id: z.string(), name: z.string() });
-
 export const packageListViewSchema = z.object({
   id: z.string(),
   provider: providerSummarySchema,
   user: entitySummarySchema,
-  customer: z.object({
-    id: z.string(),
-    name: z.string(),
-    email: z.string(),
-  }),
+  customer: z.object({ id: z.string(), name: z.string(), email: z.string() }),
   store: entitySummarySchema,
+  providerDetails: providerDetailsSchema,
+  boxes: z.array(packageBoxSchema).min(1),
   groupId: z.string().nullable().optional(),
-  groupInvoiceNumber: z.string().nullable().optional(),
-  boxId: z.string(),
-  dimensions: dimensionsSchema,
   officialInvoice: z.string().optional(),
-  providerDeliveryPerson: z.string(),
-  weight: weightSchema,
   status: z.enum(warehousePackageStatuses),
   photos: z.array(z.string()).max(4).default([]),
   ...aggregateRootSchema.shape,
@@ -44,54 +56,54 @@ export type WarehousePackageStatus = z.infer<typeof packageListViewSchema.shape.
 export type PackageListViewPrimitives = z.infer<typeof packageListViewSchema>;
 export type ProviderSummaryPrimitives = z.infer<typeof providerSummarySchema>;
 
-// Keep legacy alias so nothing else breaks
 export type WarehousePackagePrimitives = PackageListViewPrimitives;
 
-export const createPackageRequestSchema = z.object({
-  customerId: z.string().min(1, "Cliente requerido"),
-  storeId: z.string().min(1, "Tienda requerida"),
-  providerName: z.string().min(1, "Proveedor requerido"),
-  boxId: z.string().min(1, "Caja requerida"),
-  dimensions: dimensionsSchema,
-  officialInvoice: z.string().optional(),
-  providerDeliveryPerson: z.string().min(1, "Repartidor requerido"),
-  weight: weightSchema,
-  photos: z.array(z.string()).max(4).default([]),
-});
-
-export type CreatePackageRequest = z.infer<typeof createPackageRequestSchema>;
-
-export const updatePackageRequestSchema = z.object({
-  providerName: z.string().min(1).optional(),
-  boxId: z.string().optional(),
-  dimensions: dimensionsSchema.optional(),
-  officialInvoice: z.string().optional(),
-  providerDeliveryPerson: z.string().optional(),
-  weight: weightSchema.optional(),
-  status: z.enum(warehousePackageStatuses).optional(),
-  photos: z.array(z.string()).max(4).optional(),
-});
-
-export type UpdatePackageRequest = z.infer<typeof updatePackageRequestSchema>;
-
+// ── Aggregate (POST /package, PUT /package/:id responses) ─────────────────────
 
 export const warehousePackageSchema = z.object({
   id: z.string(),
   userId: z.string(),
   customerId: z.string(),
   storeId: z.string(),
-  providerId: z.string(),
+  providerDetails: providerDetailsSchema,
+  boxes: z.array(packageBoxSchema).min(1),
   groupId: z.string().nullable().optional(),
-  boxId: z.string(),
-  dimensions: dimensionsSchema,
   officialInvoice: z.string().optional(),
-  providerDeliveryPerson: z
-    .string()
-    .min(1, "Repartidor del proveedor es requerido"),
-  weight: weightSchema,
   status: z.enum(warehousePackageStatuses),
   photos: z.array(z.string()).max(4).default([]),
   ...aggregateRootSchema.shape,
 });
 
 export type WarehousePackage = z.infer<typeof warehousePackageSchema>;
+
+// ── Create request ────────────────────────────────────────────────────────────
+
+export const createPackageRequestSchema = z.object({
+  customerId: z.string().min(1, "Cliente requerido"),
+  storeId: z.string().min(1, "Tienda requerida"),
+  providerName: z.string().min(1, "Proveedor requerido"),
+  deliveryPerson: z.string().min(1, "Repartidor requerido"),
+  supplierInvoice: z.string().optional(),
+  boxes: z.array(packageBoxSchema).min(1, "Al menos una caja requerida"),
+  officialInvoice: z.string().optional(),
+  photos: z.array(z.string()).max(4).default([]),
+});
+
+export type CreatePackageRequest = z.infer<typeof createPackageRequestSchema>;
+
+// ── Update request ────────────────────────────────────────────────────────────
+
+export const updatePackageRequestSchema = z.object({
+  providerName: z.string().min(1).optional(),
+  deliveryPerson: z.string().min(1).optional(),
+  supplierInvoice: z.string().nullish(),
+  boxes: z.array(packageBoxSchema).min(1).optional(),
+  officialInvoice: z.string().optional(),
+  status: z.enum(warehousePackageStatuses).optional(),
+  customerId: z.string().optional(),
+  storeId: z.string().optional(),
+  groupId: z.string().nullable().optional(),
+  photos: z.array(z.string()).max(4).optional(),
+});
+
+export type UpdatePackageRequest = z.infer<typeof updatePackageRequestSchema>;

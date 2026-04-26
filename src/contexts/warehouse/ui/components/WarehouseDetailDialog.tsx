@@ -94,8 +94,9 @@ export const WarehouseDetailDialog = ({
     minute: "2-digit",
   });
 
-  const dimStr = `${pkg.dimensions.length} × ${pkg.dimensions.width} × ${pkg.dimensions.height} ${pkg.dimensions.unit}`;
-  const weightStr = `${pkg.weight.value} ${pkg.weight.unit}`;
+  const boxSummaries = pkg.boxes.map((b) =>
+    `${b.dimensions.length}×${b.dimensions.width}×${b.dimensions.height} ${b.dimensions.unit} · ${b.weight.value} ${b.weight.unit}`
+  );
 
   return (
     <>
@@ -152,8 +153,9 @@ export const WarehouseDetailDialog = ({
               <div className="rounded-md border p-3 space-y-1">
                 <DetailRow label="Factura oficial" value={pkg.officialInvoice} />
                 <DetailRow label="ID de grupo" value={pkg.groupId ?? "Sin grupo"} />
-                <DetailRow label="Dimensiones" value={dimStr} />
-                <DetailRow label="Peso" value={weightStr} />
+                {boxSummaries.map((summary, i) => (
+                  <DetailRow key={i} label={`Caja ${i + 1}`} value={summary} />
+                ))}
               </div>
             </div>
             <Separator />
@@ -161,7 +163,8 @@ export const WarehouseDetailDialog = ({
               <h4 className="text-sm font-semibold">Referencias</h4>
               <div className="rounded-md border p-3 space-y-1">
                 <DetailRow label="Proveedor" value={pkg.provider.name} />
-                <DetailRow label="Repartidor proveedor" value={pkg.providerDeliveryPerson} />
+                <DetailRow label="Repartidor proveedor" value={pkg.providerDetails.deliveryPerson} />
+                <DetailRow label="Factura proveedor" value={pkg.providerDetails.supplierInvoice ?? undefined} />
                 <DetailRow label="Cliente" value={pkg.customer.name} />
                 <DetailRow label="Tienda" value={pkg.store.name} />
                 <DetailRow label="Registrado por" value={pkg.user.name} />

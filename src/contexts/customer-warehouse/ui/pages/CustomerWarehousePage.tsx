@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@contexts/shared/shadcn";
 import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Filter, RefreshCw, Search } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import type {
@@ -101,17 +101,7 @@ export const CustomerWarehousePage = () => {
     groupId: string;
     status: WarehousePackageStatus;
   } | null>(null);
-  const [optimisticGroupInvoices, setOptimisticGroupInvoices] = useState<Record<string, string | undefined>>({});
-
-  const groupInvoiceMap = useMemo(() => {
-    const derived: Record<string, string | undefined> = {};
-    packages.forEach((pkg) => {
-      if (pkg.groupId && pkg.groupInvoiceNumber) {
-        derived[pkg.groupId] = pkg.groupInvoiceNumber;
-      }
-    });
-    return { ...derived, ...optimisticGroupInvoices };
-  }, [packages, optimisticGroupInvoices]);
+  const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
 
   const filtered = (() => {
     const result = packages.filter((p) => {
@@ -154,12 +144,7 @@ export const CustomerWarehousePage = () => {
   const handleCreateGroup = async (invoiceNumber?: string) => {
     try {
       const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
-      setOptimisticGroupInvoices((prev) => (
-        {
-          ...prev,
-          [group.id]: group.invoiceNumber,
-        }
-      ));
+      setGroupInvoiceMap((prev) => ({ ...prev, [group.id]: group.invoiceNumber }));
       setCreateGroupOpen(false);
       setSelectedPackageIds([]);
       toast.success("Grupo creado correctamente");
@@ -176,12 +161,7 @@ export const CustomerWarehousePage = () => {
   const handleEditGroup = async (groupId: string, payload: EditPackageGroupRequest) => {
     try {
       const group = await editPackageGroup(groupId, payload);
-      setOptimisticGroupInvoices((prev) => (
-        {
-          ...prev,
-          [group.id]: group.invoiceNumber,
-        }
-      ));
+      setGroupInvoiceMap((prev) => ({ ...prev, [group.id]: group.invoiceNumber }));
       setEditGroupTarget(null);
       toast.success("Grupo actualizado");
     } catch (err) {
@@ -199,7 +179,16 @@ export const CustomerWarehousePage = () => {
       grouped.set(key, current);
     });
 
-    return Array.from(grouped.entries());
+    // Always render ungrouped (selectable) packages last so the bottom rows have checkboxes.
+    // Map preserves insertion order — if a grouped package appears first in the sorted list
+    // its key is inserted before "__ungrouped__", pushing selectable rows to the middle.
+    const entries = Array.from(grouped.entries());
+    const ungroupedIdx = entries.findIndex(([key]) => key === "__ungrouped__");
+    if (ungroupedIdx !== -1 && ungroupedIdx !== entries.length - 1) {
+      const [ungrouped] = entries.splice(ungroupedIdx, 1);
+      entries.push(ungrouped);
+    }
+    return entries;
   })();
 
   const from = pagination ? pagination.offset + 1 : 0;
@@ -433,7 +422,9 @@ export const CustomerWarehousePage = () => {
                           {p.provider.name}
                         </TableCell>
                         <TableCell className="hidden md:table-cell font-mono text-sm">
-                          {p.weight.value} {p.weight.unit}
+                          {p.boxes.length === 1
+                            ? `${p.boxes[0].weight.value} ${p.boxes[0].weight.unit}`
+                            : `${p.boxes.length} cajas`}
                         </TableCell>
                         <TableCell>
                           <Badge variant={STATUS_VARIANT[p.status]}>

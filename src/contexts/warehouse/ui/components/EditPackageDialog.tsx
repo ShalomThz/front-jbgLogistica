@@ -26,16 +26,21 @@ import {
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Camera, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus } from "lucide-react";
+import { Box, Camera, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { z } from "zod";
 import { dimensionsSchema, dimensionUnits } from "../../../shared/domain/schemas/Dimensions";
 import { weightSchema, weightUnits } from "../../../shared/domain/schemas/Weight";
-import { warehousePackageStatuses, type PackageListViewPrimitives, type UpdatePackageRequest, type WarehousePackageStatus } from "../../domain/WarehousePackageSchema";
+import {
+  warehousePackageStatuses,
+  type PackageListViewPrimitives,
+  type UpdatePackageRequest,
+  type WarehousePackageStatus,
+} from "../../domain/WarehousePackageSchema";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -49,32 +54,43 @@ const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const editFormSchema = z.object({
-  providerName: z.string().min(1, "Nombre del proveedor requerido"),
+const boxEntrySchema = z.object({
   boxId: z.string().nullable(),
   boxName: z.string().min(1, "Nombre de la caja requerido"),
-  officialInvoice: z.string().optional(),
-  providerDeliveryPerson: z.string().min(1, "Nombre del repartidor requerido"),
   dimensions: dimensionsSchema.extend({ unit: z.enum(dimensionUnits) }),
   weight: weightSchema.extend({ unit: z.enum(weightUnits) }),
+});
+
+const editFormSchema = z.object({
+  providerName: z.string().min(1, "Nombre del proveedor requerido"),
+  officialInvoice: z.string().optional(),
+  providerDeliveryPerson: z.string().min(1, "Nombre del repartidor requerido"),
+  supplierInvoice: z.string().optional(),
   status: z.enum(warehousePackageStatuses),
+  boxes: z.array(boxEntrySchema).min(1, "Al menos una caja requerida"),
   photos: z.array(z.string()).max(4),
 });
 
 type FormValues = z.infer<typeof editFormSchema>;
+type BoxEntry = z.infer<typeof boxEntrySchema>;
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
+const defaultBox = (): BoxEntry => ({
+  boxId: null,
+  boxName: "",
+  dimensions: { length: 0, width: 0, height: 0, unit: "cm" },
+  weight: { value: 0, unit: "kg" },
+});
 
 function getDefaults(pkg: PackageListViewPrimitives): FormValues {
   return {
     providerName: pkg.provider.name,
-    boxId: pkg.boxId,
-    boxName: "",
-    officialInvoice: pkg.officialInvoice,
-    providerDeliveryPerson: pkg.providerDeliveryPerson,
-    dimensions: pkg.dimensions,
-    weight: pkg.weight,
+    officialInvoice: pkg.officialInvoice ?? "",
+    providerDeliveryPerson: pkg.providerDetails.deliveryPerson,
+    supplierInvoice: pkg.providerDetails.supplierInvoice ?? "",
     status: pkg.status,
+    boxes: pkg.boxes.length > 0
+      ? pkg.boxes.map((b) => ({ boxId: b.boxId, boxName: "", dimensions: b.dimensions, weight: b.weight }))
+      : [defaultBox()],
     photos: pkg.photos ?? [],
   };
 }
@@ -92,8 +108,8 @@ type Props = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Props) {
-  const { boxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes();
-  const [boxOpen, setBoxOpen] = useState(false);
+  const { boxes: inventoryBoxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes();
+  const [boxPopovers, setBoxPopovers] = useState<boolean[]>([]);
   const [isProcessingBox, setIsProcessingBox] = useState(false);
 
   const {
@@ -102,137 +118,109 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
     handleSubmit,
     reset,
     setValue,
-    formState: { errors, dirtyFields },
+    watch,
+    formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(editFormSchema),
     defaultValues: getDefaults(pkg),
   });
 
-  // Reset when dialog opens
+  const { fields, append, remove } = useFieldArray({ control, name: "boxes" });
+
   useEffect(() => {
     if (open) {
-      reset(getDefaults(pkg));
+      const defaults = getDefaults(pkg);
+      reset(defaults);
+      setBoxPopovers(defaults.boxes.map(() => false));
     }
   }, [open, pkg.id, reset]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync boxNames from inventory once loaded
+  useEffect(() => {
+    if (!inventoryBoxes.length) return;
+    pkg.boxes.forEach((pkgBox, i) => {
+      const found = inventoryBoxes.find((b) => b.id === pkgBox.boxId);
+      if (found) setValue(`boxes.${i}.boxName`, found.name);
+    });
+  }, [inventoryBoxes, pkg.boxes, setValue]);
+
   const handleClose = () => {
-    setBoxOpen(false);
+    setBoxPopovers([]);
     onClose();
   };
 
-  // Sync boxName from boxes list once loaded
-  useEffect(() => {
-    if (!boxes.length) return;
-    const box = boxes.find((b) => b.id === pkg.boxId);
-    if (box) setValue("boxName", box.name);
-  }, [boxes, pkg.boxId, setValue]);
-
-  const watchedBoxId = useWatch({ control, name: "boxId" });
-  const watchedBoxName = useWatch({ control, name: "boxName" });
-  const watchedDims = useWatch({ control, name: "dimensions" });
-
-  const selectedBox = boxes.find((b) => b.id === watchedBoxId);
-
-  // ── Box status indicator ──────────────────────────────────────────────────
-  const nameChanged = !!(selectedBox && watchedBoxName && watchedBoxName !== selectedBox.name);
-  const dimsChanged = !!(selectedBox &&
-    (watchedDims.length !== selectedBox.dimensions.length ||
-      watchedDims.width !== selectedBox.dimensions.width ||
-      watchedDims.height !== selectedBox.dimensions.height ||
-      watchedDims.unit !== selectedBox.dimensions.unit));
-
-  const hasBoxData = watchedBoxName || watchedDims.length || watchedDims.width || watchedDims.height;
-  const boxStatusMessage =
-    !watchedBoxId && hasBoxData
-      ? { text: "Se creará una nueva caja al guardar", icon: Plus }
-      : watchedBoxId && dimsChanged
-        ? { text: "Se creará una nueva caja con estas dimensiones", icon: Plus }
-        : watchedBoxId && nameChanged
-          ? { text: "Se actualizará el nombre de esta caja al guardar", icon: Pencil }
-          : null;
-
-  // ── Box combobox handlers ─────────────────────────────────────────────────
-  const handleBoxSelect = (box: (typeof boxes)[number]) => {
-    setValue("boxId", box.id, { shouldValidate: true, shouldDirty: true });
-    setValue("boxName", box.name, { shouldDirty: true });
-    setValue("dimensions.length", box.dimensions.length, { shouldValidate: true, shouldDirty: true });
-    setValue("dimensions.width", box.dimensions.width, { shouldValidate: true, shouldDirty: true });
-    setValue("dimensions.height", box.dimensions.height, { shouldValidate: true, shouldDirty: true });
-    setValue("dimensions.unit", box.dimensions.unit as "cm" | "in", { shouldDirty: true });
-    setBoxOpen(false);
+  const setBoxPopover = (index: number, value: boolean) => {
+    setBoxPopovers((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
   };
 
-  const handleBoxClear = () => {
-    setValue("boxId", null, { shouldValidate: true, shouldDirty: true });
-    setValue("boxName", "", { shouldDirty: true });
-    setValue("dimensions.length", 0, { shouldDirty: true });
-    setValue("dimensions.width", 0, { shouldDirty: true });
-    setValue("dimensions.height", 0, { shouldDirty: true });
-    setValue("dimensions.unit", "cm", { shouldDirty: true });
+  const handleBoxSelect = (index: number, box: (typeof inventoryBoxes)[number]) => {
+    setValue(`boxes.${index}.boxId`, box.id, { shouldValidate: true, shouldDirty: true });
+    setValue(`boxes.${index}.boxName`, box.name, { shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.length`, box.dimensions.length, { shouldValidate: true, shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.width`, box.dimensions.width, { shouldValidate: true, shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.height`, box.dimensions.height, { shouldValidate: true, shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.unit`, box.dimensions.unit as "cm" | "in", { shouldDirty: true });
+    setBoxPopover(index, false);
   };
 
-  // ── Submit: process box then call onSave ──────────────────────────────────
+  const handleBoxClear = (index: number) => {
+    setValue(`boxes.${index}.boxId`, null, { shouldValidate: true, shouldDirty: true });
+    setValue(`boxes.${index}.boxName`, "", { shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.length`, 0, { shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.width`, 0, { shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.height`, 0, { shouldDirty: true });
+    setValue(`boxes.${index}.dimensions.unit`, "cm", { shouldDirty: true });
+  };
+
+  const processBoxEntry = async (entry: BoxEntry): Promise<string> => {
+    const selectedBox = inventoryBoxes.find((b) => b.id === entry.boxId);
+    const nameChanged = !!(selectedBox && entry.boxName && entry.boxName !== selectedBox.name);
+    const dimsChanged = !!(selectedBox && (
+      entry.dimensions.length !== selectedBox.dimensions.length ||
+      entry.dimensions.width !== selectedBox.dimensions.width ||
+      entry.dimensions.height !== selectedBox.dimensions.height ||
+      entry.dimensions.unit !== selectedBox.dimensions.unit
+    ));
+
+    if (entry.boxId) {
+      if (dimsChanged) {
+        const created = await createBox({ name: entry.boxName, dimensions: entry.dimensions, stock: 1, price: { amount: 0, currency: "USD" } });
+        toast.success(`Nueva caja "${entry.boxName}" creada`);
+        return created.id;
+      }
+      if (nameChanged) {
+        await updateBox(entry.boxId, { name: entry.boxName, dimensions: entry.dimensions });
+        toast.success(`Caja renombrada a "${entry.boxName}"`);
+        return entry.boxId;
+      }
+      return entry.boxId;
+    }
+
+    const existing = inventoryBoxes.find((b) => b.name.toLowerCase() === entry.boxName.toLowerCase());
+    if (existing) {
+      toast.success(`Caja "${entry.boxName}" ya existía, vinculada`);
+      return existing.id;
+    }
+
+    const created = await createBox({ name: entry.boxName, dimensions: entry.dimensions, stock: 1, price: { amount: 0, currency: "USD" } });
+    toast.success(`Caja "${entry.boxName}" creada`);
+    return created.id;
+  };
+
   const onSubmit = handleSubmit(async (values) => {
     setIsProcessingBox(true);
-    let resolvedBoxId = values.boxId;
+    let resolvedBoxIds: string[];
 
-    const isBoxDirty =
-      !!dirtyFields.boxId ||
-      !!dirtyFields.boxName ||
-      !!dirtyFields.dimensions?.length ||
-      !!dirtyFields.dimensions?.width ||
-      !!dirtyFields.dimensions?.height ||
-      !!dirtyFields.dimensions?.unit;
-
-    if (isBoxDirty) {
-      try {
-        if (values.boxId) {
-          if (dimsChanged) {
-            // Dims changed → always create a new box, never mutate the original
-            const created = await createBox({
-              name: values.boxName,
-              dimensions: values.dimensions,
-              stock: 1,
-              price: { amount: 0, currency: "USD" },
-            });
-            resolvedBoxId = created.id;
-            toast.success(`Nueva caja "${values.boxName}" creada`);
-          } else if (nameChanged) {
-            // Only name changed → rename existing box
-            await updateBox(values.boxId, {
-              name: values.boxName,
-              dimensions: values.dimensions,
-            });
-            resolvedBoxId = values.boxId;
-            toast.success(`Caja renombrada a "${values.boxName}"`);
-          } else {
-            // Nothing changed → keep existing
-            resolvedBoxId = values.boxId;
-          }
-        } else {
-          // No box selected — find by name or create
-          const existing = boxes.find(
-            (b) => b.name.toLowerCase() === values.boxName.toLowerCase(),
-          );
-          if (existing) {
-            resolvedBoxId = existing.id;
-            toast.success(`Caja "${values.boxName}" ya existía, vinculada`);
-          } else {
-            const created = await createBox({
-              name: values.boxName,
-              dimensions: values.dimensions,
-              stock: 1,
-              price: { amount: 0, currency: "USD" },
-            });
-            resolvedBoxId = created.id;
-            toast.success(`Caja "${values.boxName}" creada`);
-          }
-        }
-      } catch (err) {
-        toast.error(parseApiError(err));
-        setIsProcessingBox(false);
-        return;
-      }
+    try {
+      resolvedBoxIds = await Promise.all(values.boxes.map(processBoxEntry));
+    } catch (err) {
+      toast.error(parseApiError(err));
+      setIsProcessingBox(false);
+      return;
     }
 
     setIsProcessingBox(false);
@@ -240,11 +228,14 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
     try {
       await onSave({
         providerName: values.providerName,
-        boxId: resolvedBoxId!,
+        deliveryPerson: values.providerDeliveryPerson,
+        supplierInvoice: values.supplierInvoice || undefined,
+        boxes: values.boxes.map((entry, i) => ({
+          boxId: resolvedBoxIds[i],
+          dimensions: entry.dimensions,
+          weight: entry.weight,
+        })),
         officialInvoice: values.officialInvoice,
-        providerDeliveryPerson: values.providerDeliveryPerson,
-        dimensions: values.dimensions,
-        weight: values.weight,
         status: values.status,
         photos: values.photos,
       });
@@ -255,11 +246,6 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
     }
   });
 
-  const dimsError =
-    errors.dimensions?.length?.message ??
-    errors.dimensions?.width?.message ??
-    errors.dimensions?.height?.message;
-
   const isBusy = isLoading || isProcessingBox;
 
   return (
@@ -268,30 +254,24 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
         <DialogHeader>
           <DialogTitle>Editar Paquete</DialogTitle>
           <DialogDescription>
-            Modifica los datos del paquete{" "}
-            <span className="font-medium">{pkg.id.slice(0, 8)}</span>.
+            Modifica los datos del paquete <span className="font-medium">{pkg.id.slice(0, 8)}</span>.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={onSubmit} noValidate className="space-y-5">
 
-          {/* ── Sección: Estado ── */}
+          {/* ── Estado ── */}
           <SectionHeader icon={<Package className="size-4" />} title="Estado" />
-
           <FormField label="Estado del paquete" error={errors.status?.message}>
             <Controller
               name="status"
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {warehousePackageStatuses.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {STATUS_LABELS[s]}
-                      </SelectItem>
+                      <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -299,264 +279,218 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
             />
           </FormField>
 
-          {/* ── Sección: Identificación ── */}
+          {/* ── Identificación ── */}
           <SectionHeader icon={<Package className="size-4" />} title="Identificación" />
-
-          <FormField label="Factura oficial *" error={errors.officialInvoice?.message}>
-            <Input
-              id="officialInvoice"
-              placeholder="FAC-2025-001"
-              aria-invalid={!!errors.officialInvoice}
-              {...register("officialInvoice")}
-            />
+          <FormField label="Factura oficial" error={errors.officialInvoice?.message}>
+            <Input id="officialInvoice" placeholder="FAC-2025-001" {...register("officialInvoice")} />
           </FormField>
 
-          {/* ── Sección: Proveedor ── */}
+          {/* ── Proveedor ── */}
           <SectionHeader icon={<Package className="size-4" />} title="Proveedor" />
-
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Nombre del proveedor *" error={errors.providerName?.message}>
-              <Input
-                id="providerName"
-                placeholder="Ej: DHL, FedEx..."
-                aria-invalid={!!errors.providerName}
-                {...register("providerName")}
-              />
+              <Input id="providerName" placeholder="Ej: DHL, FedEx..." {...register("providerName")} />
             </FormField>
-
             <FormField label="Repartidor *" error={errors.providerDeliveryPerson?.message}>
-              <Input
-                id="providerDeliveryPerson"
-                placeholder="Nombre del repartidor"
-                aria-invalid={!!errors.providerDeliveryPerson}
-                {...register("providerDeliveryPerson")}
-              />
+              <Input id="providerDeliveryPerson" placeholder="Nombre del repartidor" {...register("providerDeliveryPerson")} />
             </FormField>
           </div>
-
-          {/* ── Sección: Embalaje ── */}
-          <SectionHeader icon={<Box className="size-4" />} title="Embalaje" />
-
-          {/* ── Box combobox ── */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label>Caja</Label>
-              {watchedBoxId && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 text-muted-foreground hover:text-destructive"
-                  onClick={handleBoxClear}
-                >
-                  <Eraser className="size-4" />
-                </Button>
-              )}
-            </div>
-            <Popover open={boxOpen} onOpenChange={setBoxOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={boxOpen}
-                  className="w-full justify-between font-normal"
-                >
-                  {isLoadingBoxes ? (
-                    <span className="text-muted-foreground">Cargando cajas...</span>
-                  ) : selectedBox ? (
-                    <span className="flex items-center gap-2">
-                      <Box className="size-4" />
-                      {selectedBox.name} — {selectedBox.dimensions.length}×
-                      {selectedBox.dimensions.width}×{selectedBox.dimensions.height}{" "}
-                      {selectedBox.dimensions.unit}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Buscar caja existente...</span>
-                  )}
-                  <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar por nombre..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontraron cajas.</CommandEmpty>
-                    <CommandGroup>
-                      {boxes.map((box) => (
-                        <CommandItem
-                          key={box.id}
-                          value={box.name}
-                          onSelect={() => handleBoxSelect(box)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 size-4",
-                              watchedBoxId === box.id ? "opacity-100" : "opacity-0",
-                            )}
-                          />
-                          <div>
-                            <div className="font-medium">{box.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {box.dimensions.length}×{box.dimensions.width}×
-                              {box.dimensions.height} {box.dimensions.unit}
-                            </div>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* ── Box name ── */}
-          <FormField label="Nombre de la caja *" error={errors.boxName?.message}>
-            <Input
-              id="boxName"
-              placeholder="Se completa al seleccionar, o escribe para crear nueva"
-              aria-invalid={!!errors.boxName}
-              {...register("boxName")}
-            />
+          <FormField label="Factura del proveedor" error={errors.supplierInvoice?.message}>
+            <Input id="supplierInvoice" placeholder="Ej: PROV-2025-001" {...register("supplierInvoice")} />
           </FormField>
 
-          {/* ── Box status indicator ── */}
-          {boxStatusMessage && (
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground -mt-2">
-              <boxStatusMessage.icon className="size-3 shrink-0" />
-              {boxStatusMessage.text}
-            </p>
-          )}
-
-          {/* ── Dimensions ── */}
-          <div className="space-y-1">
-            <Label>Dimensiones *</Label>
-            <div className="grid grid-cols-4 gap-2 items-end">
-              <div className="space-y-1">
-                <Label htmlFor="dim-length" className="text-xs text-muted-foreground">
-                  Largo
-                </Label>
-                <Input
-                  id="dim-length"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  aria-invalid={!!errors.dimensions?.length}
-                  {...register("dimensions.length", { valueAsNumber: true })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="dim-width" className="text-xs text-muted-foreground">
-                  Ancho
-                </Label>
-                <Input
-                  id="dim-width"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  aria-invalid={!!errors.dimensions?.width}
-                  {...register("dimensions.width", { valueAsNumber: true })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="dim-height" className="text-xs text-muted-foreground">
-                  Alto
-                </Label>
-                <Input
-                  id="dim-height"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  aria-invalid={!!errors.dimensions?.height}
-                  {...register("dimensions.height", { valueAsNumber: true })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Unidad</Label>
-                <Controller
-                  name="dimensions.unit"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cm">cm</SelectItem>
-                        <SelectItem value="in">in</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-            </div>
-            {dimsError && <p className="text-xs text-destructive">{dimsError}</p>}
+          {/* ── Cajas ── */}
+          <div className="flex items-center justify-between">
+            <SectionHeader icon={<Box className="size-4" />} title={`Cajas (${fields.length})`} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                append(defaultBox());
+                setBoxPopovers((p) => [...p, false]);
+              }}
+            >
+              <Plus className="size-3 mr-1" /> Añadir caja
+            </Button>
           </div>
 
-          {/* ── Weight ── */}
-          <div className="space-y-1">
-            <Label>Peso *</Label>
-            <div className="flex gap-2">
-              <div className="flex-1 space-y-1">
-                <Label htmlFor="weight-value" className="text-xs text-muted-foreground">
-                  Valor
-                </Label>
-                <Input
-                  id="weight-value"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  aria-invalid={!!errors.weight?.value}
-                  {...register("weight.value", { valueAsNumber: true })}
-                />
-              </div>
-              <div className="w-24 space-y-1">
-                <Label className="text-xs text-muted-foreground">Unidad</Label>
-                <Controller
-                  name="weight.unit"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kg">kg</SelectItem>
-                        <SelectItem value="lb">lb</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-            </div>
-            {errors.weight?.value && (
-              <p className="text-xs text-destructive">{errors.weight.value.message}</p>
-            )}
-          </div>
+          {fields.map((field, index) => {
+            const watchedEntry = watch(`boxes.${index}`);
+            const selectedBox = inventoryBoxes.find((b) => b.id === watchedEntry?.boxId);
+            const nameChanged = !!(selectedBox && watchedEntry?.boxName && watchedEntry.boxName !== selectedBox.name);
+            const dimsChanged = !!(selectedBox && watchedEntry && (
+              watchedEntry.dimensions.length !== selectedBox.dimensions.length ||
+              watchedEntry.dimensions.width !== selectedBox.dimensions.width ||
+              watchedEntry.dimensions.height !== selectedBox.dimensions.height ||
+              watchedEntry.dimensions.unit !== selectedBox.dimensions.unit
+            ));
+            const hasBoxData = watchedEntry?.boxName || watchedEntry?.dimensions.length;
+            const boxStatusMessage =
+              !watchedEntry?.boxId && hasBoxData ? { text: "Se creará una nueva caja al guardar", icon: Plus }
+              : watchedEntry?.boxId && dimsChanged ? { text: "Se creará una nueva caja con estas dimensiones", icon: Plus }
+              : watchedEntry?.boxId && nameChanged ? { text: "Se actualizará el nombre de esta caja al guardar", icon: Pencil }
+              : null;
+            const boxErrors = errors.boxes?.[index];
 
-          {/* ── Sección: Fotos ── */}
+            return (
+              <div key={field.id} className="rounded-md border p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase">Caja {index + 1}</span>
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        remove(index);
+                        setBoxPopovers((p) => p.filter((_, i) => i !== index));
+                      }}
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Box picker */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Caja existente</Label>
+                    {watchedEntry?.boxId && (
+                      <Button type="button" variant="ghost" size="icon" className="size-6 text-muted-foreground hover:text-destructive" onClick={() => handleBoxClear(index)}>
+                        <Eraser className="size-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <Popover open={boxPopovers[index]} onOpenChange={(v) => setBoxPopover(index, v)}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal text-xs h-8">
+                        {isLoadingBoxes ? (
+                          <span className="text-muted-foreground">Cargando...</span>
+                        ) : selectedBox ? (
+                          <span className="flex items-center gap-1.5">
+                            <Box className="size-3" />
+                            {selectedBox.name} — {selectedBox.dimensions.length}×{selectedBox.dimensions.width}×{selectedBox.dimensions.height} {selectedBox.dimensions.unit}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Buscar caja existente...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 size-3 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar por nombre..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontraron cajas.</CommandEmpty>
+                          <CommandGroup>
+                            {inventoryBoxes.map((box) => (
+                              <CommandItem key={box.id} value={box.name} onSelect={() => handleBoxSelect(index, box)}>
+                                <Check className={cn("mr-2 size-4", watchedEntry?.boxId === box.id ? "opacity-100" : "opacity-0")} />
+                                <div>
+                                  <div className="font-medium text-sm">{box.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {box.dimensions.length}×{box.dimensions.width}×{box.dimensions.height} {box.dimensions.unit}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <FormField label="Nombre de la caja *" error={boxErrors?.boxName?.message}>
+                  <Input placeholder="Se completa al seleccionar, o escribe para crear nueva" className="h-8 text-sm" {...register(`boxes.${index}.boxName`)} />
+                </FormField>
+
+                {boxStatusMessage && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <boxStatusMessage.icon className="size-3 shrink-0" />
+                    {boxStatusMessage.text}
+                  </p>
+                )}
+
+                {/* Dimensions */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Dimensiones *</Label>
+                  <div className="grid grid-cols-4 gap-1.5 items-end">
+                    {(["length", "width", "height"] as const).map((dim, di) => (
+                      <div key={dim} className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">{["Largo", "Ancho", "Alto"][di]}</Label>
+                        <Input
+                          type="number" min="0.1" step="0.1"
+                          className="h-8 text-sm"
+                          aria-invalid={!!boxErrors?.dimensions?.[dim]}
+                          {...register(`boxes.${index}.dimensions.${dim}`, { valueAsNumber: true })}
+                        />
+                      </div>
+                    ))}
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Unidad</Label>
+                      <Controller
+                        name={`boxes.${index}.dimensions.unit`}
+                        control={control}
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cm">cm</SelectItem>
+                              <SelectItem value="in">in</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Weight */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Peso *</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Input
+                      type="number" min="0.01" step="0.01"
+                      className="h-8 text-sm"
+                      aria-invalid={!!boxErrors?.weight?.value}
+                      {...register(`boxes.${index}.weight.value`, { valueAsNumber: true })}
+                    />
+                    <Controller
+                      name={`boxes.${index}.weight.unit`}
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="kg">kg</SelectItem>
+                            <SelectItem value="lb">lb</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  {boxErrors?.weight?.value && <p className="text-xs text-destructive">{boxErrors.weight.value.message}</p>}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* ── Fotos ── */}
           <SectionHeader icon={<Camera className="size-4" />} title="Fotos" />
-
           <Controller
             name="photos"
             control={control}
             render={({ field }) => (
-              <PhotosInput
-                value={field.value}
-                onChange={field.onChange}
-                disabled={isBusy}
-              />
+              <PhotosInput value={field.value} onChange={field.onChange} disabled={isBusy} />
             )}
           />
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isBusy}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isBusy}>
-              {isBusy ? "Guardando..." : "Guardar"}
-            </Button>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isBusy}>Cancelar</Button>
+            <Button type="submit" disabled={isBusy}>{isBusy ? "Guardando..." : "Guardar"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -566,15 +500,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function FormField({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <Label>{label}</Label>
@@ -588,9 +514,7 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
   return (
     <div className="flex items-center gap-2 border-b pb-1">
       <span className="text-muted-foreground">{icon}</span>
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
     </div>
   );
 }

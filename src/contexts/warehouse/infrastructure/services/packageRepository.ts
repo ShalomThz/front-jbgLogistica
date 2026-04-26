@@ -23,7 +23,14 @@ export const packageRepository = {
       method: "POST",
       body: JSON.stringify({ filters: [], ...request }),
     });
-    return findPackagesResponseSchema.parse(data);
+    const d = findPackagesResponseSchema.safeParse(data);
+
+    if (d.success) {
+      return d.data;
+    }
+
+    console.error("Error parsing find packages response:", d.error);
+    return d.data as unknown as FindPackagesResponsePrimitives;
   },
 
   getById: async (id: string): Promise<PackageListViewPrimitives> => {

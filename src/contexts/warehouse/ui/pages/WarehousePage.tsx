@@ -140,24 +140,8 @@ export const WarehousePage = () => {
       return next;
     });
 
-    // Populate group invoice map from loaded packages
-    const newMap: Record<string, string | undefined> = {};
-    packages.forEach((pkg) => {
-      if (pkg.groupId && pkg.groupInvoiceNumber) {
-        newMap[pkg.groupId] = pkg.groupInvoiceNumber;
-      }
-    });
-
-    setGroupInvoiceMap((prev) => {
-      let hasChanges = false;
-      for (const key in newMap) {
-        if (prev[key] !== newMap[key]) {
-          hasChanges = true;
-          break;
-        }
-      }
-      return hasChanges ? { ...prev, ...newMap } : prev;
-    });
+    // Group invoice numbers are only known after create/edit group API calls;
+    // the package list view does not carry them.
   }, [packages]);
 
   const selectionAnchor = selectedPackageIds.length > 0
@@ -394,7 +378,9 @@ export const WarehousePage = () => {
                           {p.customer.email}
                         </TableCell>
                         <TableCell className="hidden md:table-cell font-mono text-sm">
-                          {p.weight.value} {p.weight.unit}
+                          {p.boxes.length === 1
+                            ? `${p.boxes[0].weight.value} ${p.boxes[0].weight.unit}`
+                            : `${p.boxes.length} cajas`}
                         </TableCell>
                         <TableCell>
                           <div onClick={(e) => e.stopPropagation()}>
