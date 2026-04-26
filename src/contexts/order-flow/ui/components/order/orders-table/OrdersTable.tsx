@@ -234,7 +234,11 @@ export const OrdersTable = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 w-25 flex items-center justify-between p-4 text-xs"
+                          className={`h-7 w-25 flex items-center justify-between p-4 text-xs ${
+                            order.financials.isPaid === true
+                              ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900 dark:hover:bg-green-950/50 dark:hover:text-green-300"
+                              : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-950/50 dark:hover:text-red-300"
+                          }`}
                         >
                           {order.financials.isPaid === true
                             ? "Pagado"
@@ -258,12 +262,18 @@ export const OrdersTable = ({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : (
-                    <div>
-                      {" "}
+                    <Badge
+                      variant="outline"
+                      className={
+                        order.financials.isPaid === true
+                          ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900"
+                          : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
+                      }
+                    >
                       {order.financials.isPaid === true
                         ? "Pagado"
                         : "No pagado"}
-                    </div>
+                    </Badge>
                   )}
                 </TableCell>
                 <TotalShippingCell financials={order.financials} />
