@@ -31,6 +31,9 @@ import type {
   UpdatePackageRequest,
   WarehousePackageStatus,
 } from "../../domain/WarehousePackageSchema";
+import { warehousePackageStatuses } from "../../domain/WarehousePackageSchema";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
+import { STATUS_CONFIG } from "@/contexts/customer-warehouse/ui/components/PackageCard";
 import type { EditPackageGroupRequest } from "../../domain/PackageGroupSchema";
 import { CreatePackageDialog } from "../components/CreatePackageDialog";
 import { CreatePackageGroupDialog } from "../components/CreatePackageGroupDialog";
@@ -43,6 +46,7 @@ import { exportWarehousePackages } from "@contexts/warehouse/domain/services/exp
 import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",
@@ -232,6 +236,11 @@ export const WarehousePage = () => {
   const total = pagination?.total ?? 0;
   const inWarehouse = packages.filter((p) => p.status === "WAREHOUSE").length;
 
+  const statusCounts = packages.reduce(
+    (acc, p) => { acc[p.status] = (acc[p.status] ?? 0) + 1; return acc; },
+    {} as Partial<Record<WarehousePackageStatus, number>>,
+  );
+
   if (isLoading) {
     return <PageLoader text="Cargando paquetes..." />;
   }
@@ -274,6 +283,60 @@ export const WarehousePage = () => {
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
         onExport={() => exportWarehousePackages(filtered)}
       />
+
+      {/* ── Status pills ── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setFilter("statusFilter", "all")}
+          className={cn(
+            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200",
+            filters.statusFilter === "all"
+              ? "bg-linear-to-r from-blue-600 to-blue-500 text-white border-transparent hover:scale-105"
+              : "bg-slate-100 text-slate-600 border-slate-200 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50",
+          )}
+        >
+          Todos
+          <span className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none",
+            filters.statusFilter === "all"
+              ? "bg-white/25 backdrop-blur-sm"
+              : "bg-slate-200 text-slate-700"
+          )}>
+            {packages.length}
+          </span>
+        </button>
+
+        {warehousePackageStatuses.map((status) => {
+          const count = statusCounts[status];
+          if (!count) return null;
+          const config = STATUS_CONFIG[status];
+          const isActive = filters.statusFilter === status;
+          return (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setFilter("statusFilter", isActive ? "all" : status)}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200",
+                isActive
+                  ? cn(config.badgeClass, "hover:scale-105")
+                  : "bg-slate-100 text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-800 hover:bg-slate-200",
+              )}
+            >
+              {config.label}
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none",
+                isActive
+                  ? "bg-white/25 backdrop-blur-sm"
+                  : "bg-slate-200 text-slate-700"
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ── Table ── */}
       <div className="rounded-lg border">
