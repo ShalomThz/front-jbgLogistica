@@ -14,9 +14,10 @@ const CURRENCIES = ["MXN", "USD", "EUR"] as const;
 
 interface TotalShippingCellProps {
   financials: OrderListView["financials"];
+  createdAt: string;
 }
 
-export function TotalShippingCell({ financials }: TotalShippingCellProps) {
+export function TotalShippingCell({ financials, createdAt }: TotalShippingCellProps) {
   const { totalPrice } = financials;
   const sourceCurrency = totalPrice?.currency ?? "MXN";
   const [displayCurrency, setDisplayCurrency] = useState<string>(sourceCurrency);
@@ -26,6 +27,7 @@ export function TotalShippingCell({ financials }: TotalShippingCellProps) {
     from: sourceCurrency,
     to: displayCurrency,
     enabled: needsConversion,
+    date: new Date(createdAt)
   });
   const rate = needsConversion ? exchangeRate?.rate ?? null : 1;
   const converted = rate !== null ? (totalPrice?.amount ?? 0) * rate : null;

@@ -36,7 +36,7 @@ interface OrderShipmentSectionProps {
 export const OrderShipmentSection = ({
   shipment,
 }: OrderShipmentSectionProps) => {
-  const { provider, rate, costBreakdown, finalPrice } = shipment;
+  const { provider, rate, costBreakdown, finalPrice, createdAt } = shipment;
 
   return (
     <div className="space-y-4">
@@ -110,7 +110,7 @@ export const OrderShipmentSection = ({
       )}
 
       {finalPrice && (
-        <FinalPriceRow finalPrice={finalPrice} costBreakdown={costBreakdown} />
+        <FinalPriceRow finalPrice={finalPrice} costBreakdown={costBreakdown} createdAt={createdAt}/>
       )}
     </div>
   );

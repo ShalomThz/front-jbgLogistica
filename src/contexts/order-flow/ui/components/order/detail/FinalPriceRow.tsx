@@ -12,9 +12,10 @@ function formatMoney(money: MoneyPrimitives) {
 interface FinalPriceRowProps {
   finalPrice: MoneyPrimitives;
   costBreakdown: ShipmentPrimitives["costBreakdown"];
+  createdAt: string;
 }
 
-export function FinalPriceRow({ finalPrice, costBreakdown }: FinalPriceRowProps) {
+export function FinalPriceRow({ finalPrice, costBreakdown, createdAt }: FinalPriceRowProps) {
   const baseCurrency = finalPrice.currency;
 
   const costItems = costBreakdown
@@ -28,7 +29,9 @@ export function FinalPriceRow({ finalPrice, costBreakdown }: FinalPriceRowProps)
     from: costsCurrency,
     to: baseCurrency,
     enabled: needsConversion,
+    date: new Date(createdAt)
   });
+  
   const conversionRate = needsConversion ? exchangeRate?.rate ?? null : 1;
 
   const costsTotal = costItems.reduce((sum, m) => sum + m.amount, 0);

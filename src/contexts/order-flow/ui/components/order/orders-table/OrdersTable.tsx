@@ -276,7 +276,7 @@ export const OrdersTable = ({
                     </Badge>
                   )}
                 </TableCell>
-                <TotalShippingCell financials={order.financials} />
+                <TotalShippingCell financials={order.financials} createdAt={order.createdAt} />
                 <TotalBilledCell financials={order.financials} createdAt={order.createdAt} />
                 <TableCell>
                   <DropdownMenu>
