@@ -1,8 +1,15 @@
 import { useCustomerPackages } from "@/contexts/customer-warehouse/infrastructure/hooks/useCustomerPackages";
+import type { EditPackageGroupRequest } from "@/contexts/warehouse/domain/PackageGroupSchema";
+import type {
+  PackageListViewPrimitives,
+  WarehousePackageStatus,
+} from "@/contexts/warehouse/domain/WarehousePackageSchema";
+import { warehousePackageStatuses } from "@/contexts/warehouse/domain/WarehousePackageSchema";
+import { CreatePackageGroupDialog } from "@/contexts/warehouse/ui/components/CreatePackageGroupDialog";
+import { EditPackageGroupDialog } from "@/contexts/warehouse/ui/components/EditPackageGroupDialog";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
-  Badge,
   Button,
-  Checkbox,
   Input,
   Label,
   Select,
@@ -16,41 +23,25 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@contexts/shared/shadcn";
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Clock, Filter, RefreshCw, Search } from "lucide-react";
-import { Fragment, useState } from "react";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
+import {
+  ArrowDownAZ,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Filter,
+  Package,
+  PackageCheck,
+  RefreshCw,
+  Search,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
-import type {
-  PackageListViewPrimitives,
-  WarehousePackageStatus,
-} from "@/contexts/warehouse/domain/WarehousePackageSchema";
-import type { EditPackageGroupRequest } from "@/contexts/warehouse/domain/PackageGroupSchema";
 import { CustomerPackageDetailDialog } from "../components/CustomerPackageDetailDialog";
-import { CreatePackageGroupDialog } from "@/contexts/warehouse/ui/components/CreatePackageGroupDialog";
-import { EditPackageGroupDialog } from "@/contexts/warehouse/ui/components/EditPackageGroupDialog";
-
-const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
-  WAREHOUSE: "En bodega",
-  SHIPPED: "Enviado",
-  DELIVERED: "Entregado",
-  REPACKED: "Reempacado",
-  AUTHORIZED: "Autorizado",
-};
-
-const STATUS_VARIANT: Record<WarehousePackageStatus, "default" | "secondary" | "outline"> = {
-  WAREHOUSE: "secondary",
-  SHIPPED: "outline",
-  DELIVERED: "default",
-  REPACKED: "secondary",
-  AUTHORIZED: "default",
-};
+import { GroupContainerCard } from "../components/GroupContainerCard";
+import { PackageCard, STATUS_CONFIG } from "../components/PackageCard";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -74,6 +65,16 @@ export const CustomerWarehousePage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
   const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("desc");
+  const [selectionMode, setSelectionMode] = useState(false);
+
+  const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [editGroupTarget, setEditGroupTarget] = useState<{
+    groupId: string;
+    status: WarehousePackageStatus;
+  } | null>(null);
+  const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
 
   const handleNameSort = (v: "none" | "asc" | "desc") => {
     setNameSort(v);
@@ -89,19 +90,11 @@ export const CustomerWarehousePage = () => {
     setNameSort("none");
     setDateSort("desc");
   };
+
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
     (nameSort !== "none" ? 1 : 0) +
     (dateSort !== "none" ? 1 : 0);
-
-  const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
-  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [editGroupTarget, setEditGroupTarget] = useState<{
-    groupId: string;
-    status: WarehousePackageStatus;
-  } | null>(null);
-  const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
 
   const filtered = (() => {
     const result = packages.filter((p) => {
@@ -113,14 +106,25 @@ export const CustomerWarehousePage = () => {
       const matchesStatus = statusFilter === "all" || p.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (dateSort === "asc")
+      result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    else if (dateSort === "desc")
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
   })();
 
-  const selectionAnchor = selectedPackageIds.length > 0
-    ? packages.find((pkg) => pkg.id === selectedPackageIds[0])
-    : null;
+  const statusCounts = packages.reduce(
+    (acc, p) => {
+      acc[p.status] = (acc[p.status] ?? 0) + 1;
+      return acc;
+    },
+    {} as Partial<Record<WarehousePackageStatus, number>>,
+  );
+
+  const selectionAnchor =
+    selectedPackageIds.length > 0
+      ? packages.find((pkg) => pkg.id === selectedPackageIds[0])
+      : null;
 
   const isSelectableForGrouping = (pkg: PackageListViewPrimitives) => {
     if (pkg.status !== "WAREHOUSE") return false;
@@ -131,14 +135,15 @@ export const CustomerWarehousePage = () => {
 
   const handleSelectForGroup = (pkg: PackageListViewPrimitives, checked: boolean) => {
     if (!isSelectableForGrouping(pkg)) return;
-
     setSelectedPackageIds((prev) => {
-      if (checked) {
-        if (prev.includes(pkg.id)) return prev;
-        return [...prev, pkg.id];
-      }
+      if (checked) return prev.includes(pkg.id) ? prev : [...prev, pkg.id];
       return prev.filter((id) => id !== pkg.id);
     });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedPackageIds([]);
   };
 
   const handleCreateGroup = async (invoiceNumber?: string) => {
@@ -146,7 +151,7 @@ export const CustomerWarehousePage = () => {
       const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
       setGroupInvoiceMap((prev) => ({ ...prev, [group.id]: group.invoiceNumber }));
       setCreateGroupOpen(false);
-      setSelectedPackageIds([]);
+      exitSelectionMode();
       toast.success("Grupo creado correctamente");
     } catch (err) {
       toast.error(parseApiError(err));
@@ -169,27 +174,14 @@ export const CustomerWarehousePage = () => {
     }
   };
 
-  const groupedPackages = (() => {
-    const grouped = new Map<string, PackageListViewPrimitives[]>();
+  const grouped = new Map<string, PackageListViewPrimitives[]>();
+  filtered.forEach((pkg) => {
+    const key = pkg.groupId ?? "__ungrouped__";
+    grouped.set(key, [...(grouped.get(key) ?? []), pkg]);
+  });
 
-    filtered.forEach((pkg) => {
-      const key = pkg.groupId ?? "__ungrouped__";
-      const current = grouped.get(key) ?? [];
-      current.push(pkg);
-      grouped.set(key, current);
-    });
-
-    // Always render ungrouped (selectable) packages last so the bottom rows have checkboxes.
-    // Map preserves insertion order — if a grouped package appears first in the sorted list
-    // its key is inserted before "__ungrouped__", pushing selectable rows to the middle.
-    const entries = Array.from(grouped.entries());
-    const ungroupedIdx = entries.findIndex(([key]) => key === "__ungrouped__");
-    if (ungroupedIdx !== -1 && ungroupedIdx !== entries.length - 1) {
-      const [ungrouped] = entries.splice(ungroupedIdx, 1);
-      entries.push(ungrouped);
-    }
-    return entries;
-  })();
+  const ungroupedPackages = grouped.get("__ungrouped__") ?? [];
+  const groupEntries = Array.from(grouped.entries()).filter(([key]) => key !== "__ungrouped__");
 
   const from = pagination ? pagination.offset + 1 : 0;
   const to = pagination ? pagination.offset + packages.length : 0;
@@ -204,7 +196,7 @@ export const CustomerWarehousePage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-24">
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -212,18 +204,42 @@ export const CustomerWarehousePage = () => {
           <p className="text-sm text-muted-foreground">{total} paquetes registrados</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
-            <RefreshCw className="size-4" />
-          </Button>
           <Button
             variant="outline"
-            onClick={() => setCreateGroupOpen(true)}
-            disabled={selectedPackageIds.length < 1 || isCreatingPackageGroup}
+            size="icon"
+            onClick={() => {
+              resetFilters();
+              refetch();
+            }}
           >
-            Agrupar ({selectedPackageIds.length})
+            <RefreshCw className="size-4" />
           </Button>
+          {selectionMode ? (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={exitSelectionMode}>
+              <X className="size-4" />
+              Cancelar
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setSelectionMode(true)}
+            >
+              <PackageCheck className="size-4" />
+              Seleccionar paquetes
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* ── Selection mode hint ── */}
+      {selectionMode && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+          Selecciona paquetes{" "}
+          <strong>En bodega</strong> sin grupo. Solo puedes agrupar paquetes de la misma tienda.
+        </div>
+      )}
 
       {/* ── Filters ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -243,7 +259,7 @@ export const CustomerWarehousePage = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[130px]">
+          <SelectTrigger className="w-full sm:w-32.5">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -256,7 +272,11 @@ export const CustomerWarehousePage = () => {
         </Select>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant={activeFilterCount > 0 ? "secondary" : "outline"} size="sm" className="gap-1.5">
+            <Button
+              variant={activeFilterCount > 0 ? "secondary" : "outline"}
+              size="sm"
+              className="gap-1.5"
+            >
               <Filter className="size-4" />
               Filtros
               {activeFilterCount > 0 && (
@@ -269,7 +289,9 @@ export const CustomerWarehousePage = () => {
           <SheetContent side="right" className="overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Filtros y orden</SheetTitle>
-              <SheetDescription>Filtra y ordena los paquetes por diferentes criterios</SheetDescription>
+              <SheetDescription>
+                Filtra y ordena los paquetes por diferentes criterios
+              </SheetDescription>
             </SheetHeader>
             <div className="space-y-5 px-4">
               <div className="space-y-1.5">
@@ -277,7 +299,10 @@ export const CustomerWarehousePage = () => {
                   <ArrowDownAZ className="size-3.5" />
                   Ordenar por nombre
                 </Label>
-                <Select value={nameSort} onValueChange={(v) => handleNameSort(v as "none" | "asc" | "desc")}>
+                <Select
+                  value={nameSort}
+                  onValueChange={(v) => handleNameSort(v as "none" | "asc" | "desc")}
+                >
                   <SelectTrigger className={nameSort !== "none" ? "ring-2 ring-primary/50" : ""}>
                     <SelectValue />
                   </SelectTrigger>
@@ -293,7 +318,10 @@ export const CustomerWarehousePage = () => {
                   <Clock className="size-3.5" />
                   Ordenar por fecha
                 </Label>
-                <Select value={dateSort} onValueChange={(v) => handleDateSort(v as "none" | "asc" | "desc")}>
+                <Select
+                  value={dateSort}
+                  onValueChange={(v) => handleDateSort(v as "none" | "asc" | "desc")}
+                >
                   <SelectTrigger className={dateSort !== "none" ? "ring-2 ring-primary/50" : ""}>
                     <SelectValue />
                   </SelectTrigger>
@@ -324,7 +352,14 @@ export const CustomerWarehousePage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" className="w-full gap-2" onClick={() => { resetFilters(); refetch(); }}>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => {
+                  resetFilters();
+                  refetch();
+                }}
+              >
                 <RefreshCw className="size-4" />
                 Limpiar filtros y actualizar
               </Button>
@@ -333,120 +368,118 @@ export const CustomerWarehousePage = () => {
         </Sheet>
       </div>
 
-      {/* ── Table ── */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10" />
-              <TableHead>Factura</TableHead>
-              <TableHead className="hidden md:table-cell">Proveedor</TableHead>
-              <TableHead className="hidden md:table-cell">Peso</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="hidden sm:table-cell">Fecha</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  No se encontraron paquetes.
-                </TableCell>
-              </TableRow>
-            ) : (
-              groupedPackages.map(([groupKey, groupItems]) => {
-                const isUngrouped = groupKey === "__ungrouped__";
-                const groupStatus = groupItems.every((item) => item.status === groupItems[0].status)
-                  ? groupItems[0].status
-                  : null;
-                const samplePkg = groupItems[0];
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("all")}
+          className={cn(
+            "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200",
+            statusFilter === "all"
+              ? "bg-linear-to-r from-blue-600 to-blue-500 text-white border-transparent hover:scale-105"
+              : "bg-slate-100 text-slate-600 border-slate-200 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50",
+          )}
+        >
+          Todos
+          <span className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none",
+            statusFilter === "all"
+              ? "bg-white/25 backdrop-blur-sm"
+              : "bg-slate-200 text-slate-700"
+          )}>
+            {packages.length}
+          </span>
+        </button>
 
-                return (
-                  <Fragment key={groupKey}>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableCell colSpan={6}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
-                              {isUngrouped
-                                ? "Sin grupo"
-                                : groupInvoiceMap[groupKey]
-                                  ? groupInvoiceMap[groupKey]
-                                  : `Grupo ${groupKey.slice(0, 5)}`
-                              }
-                            </Badge>
-                            <span className="text-muted-foreground">
-                              {groupItems.length} paquete{groupItems.length === 1 ? "" : "s"}
-                            </span>
-                            {groupStatus && (
-                              <Badge variant={STATUS_VARIANT[groupStatus]} className="text-xs">
-                                {STATUS_LABELS[groupStatus]}
-                              </Badge>
-                            )}
-                          </div>
+        {warehousePackageStatuses.map((status) => {
+          const count = statusCounts[status];
+          if (!count) return null;
 
-                          {!isUngrouped && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={() => openEditGroup(samplePkg)}
-                            >
-                              Editar grupo
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+          const config = STATUS_CONFIG[status];
+          const isActive = statusFilter === status;
 
-                    {groupItems.map((p) => (
-                      <TableRow
-                        key={p.id}
-                        className="cursor-pointer"
-                        onClick={() => setSelected(p)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          {p.status === "WAREHOUSE" && !p.groupId ? (
-                            <Checkbox
-                              checked={selectedPackageIds.includes(p.id)}
-                              onCheckedChange={(value) => handleSelectForGroup(p, value === true)}
-                              disabled={!isSelectableForGrouping(p) || isCreatingPackageGroup}
-                              aria-label={`Seleccionar paquete ${p.id}`}
-                            />
-                          ) : null}
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-sm">{p.officialInvoice || p.id.slice(0, 8)}</span>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">
-                          {p.provider.name}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell font-mono text-sm">
-                          {p.boxes.length === 1
-                            ? `${p.boxes[0].weight.value} ${p.boxes[0].weight.unit}`
-                            : `${p.boxes.length} cajas`}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={STATUS_VARIANT[p.status]}>
-                            {STATUS_LABELS[p.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                          {new Date(p.createdAt).toLocaleDateString("es-MX", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+          return (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(isActive ? "all" : status)}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200",
+                isActive
+                  ? cn(
+                    config.badgeClass,
+                    "hover:scale-105"
+                  )
+                  : "bg-slate-100 text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-800 hover:bg-slate-200",
+              )}
+            >
+              {config.label}
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none",
+                  isActive
+                    ? "bg-white/25 backdrop-blur-sm"
+                    : "bg-slate-200 text-slate-700"
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* ── Empty state ── */}
+      {filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-48 gap-3 text-center rounded-lg border border-dashed">
+          <Package className="size-12 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">No se encontraron paquetes.</p>
+        </div>
+      )}
+
+      {/* ── Group container cards ── */}
+      {groupEntries.length > 0 && (
+        <div className="space-y-3">
+          {groupEntries.map(([groupKey, groupItems]) => (
+            <GroupContainerCard
+              key={groupKey}
+              groupKey={groupKey}
+              groupItems={groupItems}
+              invoiceLabel={groupInvoiceMap[groupKey]}
+              onEditGroup={() => openEditGroup(groupItems[0])}
+              onCardClick={setSelected}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Ungrouped package cards ── */}
+      {ungroupedPackages.length > 0 && (
+        <div className="space-y-3">
+          {groupEntries.length > 0 && (
+            <div className="flex items-center gap-3">
+              <hr className="flex-1" />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Paquetes sin grupo
+              </span>
+              <hr className="flex-1" />
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {ungroupedPackages.map((pkg) => (
+              <PackageCard
+                key={pkg.id}
+                pkg={pkg}
+                selectionMode={selectionMode}
+                isSelected={selectedPackageIds.includes(pkg.id)}
+                isSelectable={isSelectableForGrouping(pkg)}
+                onSelect={(checked) => handleSelectForGroup(pkg, checked)}
+                onClick={() => setSelected(pkg)}
+                isCreatingPackageGroup={isCreatingPackageGroup}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Pagination ── */}
       {pagination && total > 0 && (
@@ -480,6 +513,7 @@ export const CustomerWarehousePage = () => {
         </div>
       )}
 
+      {/* ── Dialogs ── */}
       <CustomerPackageDetailDialog
         pkg={selected}
         open={!!selected}
@@ -500,6 +534,41 @@ export const CustomerWarehousePage = () => {
         onClose={() => setEditGroupTarget(null)}
         onSave={handleEditGroup}
       />
+
+      {/* ── Sticky grouping bar (slides up when packages are selected) ── */}
+      {selectionMode && (
+        <div
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur shadow-lg",
+            "transition-transform duration-200 ease-out",
+            selectedPackageIds.length > 0 ? "translate-y-0" : "translate-y-full",
+          )}
+        >
+          <div className="mx-auto max-w-7xl flex items-center justify-between gap-4 px-4 py-3">
+            <p className="text-sm font-medium">
+              {selectedPackageIds.length} paquete
+              {selectedPackageIds.length !== 1 ? "s" : ""} seleccionado
+              {selectedPackageIds.length !== 1 ? "s" : ""}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedPackageIds([])}
+              >
+                Limpiar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setCreateGroupOpen(true)}
+                disabled={isCreatingPackageGroup}
+              >
+                Agrupar ({selectedPackageIds.length})
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

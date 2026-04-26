@@ -1,15 +1,15 @@
-import { lazy, Suspense } from "react";
-import type { RouteObject } from "react-router-dom";
-import { ProtectedRoute } from "@contexts/shared/ui/components";
-import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
-import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
+import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
-import { warehousePolicies } from "@contexts/shared/domain/policies/warehouse.policy";
-import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
 import { settingsPolicies } from "@contexts/shared/domain/policies/settings.policy";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
+import { warehousePolicies } from "@contexts/shared/domain/policies/warehouse.policy";
+import { ProtectedRoute } from "@contexts/shared/ui/components";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { lazy, Suspense } from "react";
+import type { RouteObject } from "react-router-dom";
 
 // Dashboard (static — initial page)
 import { DashboardPage } from "@contexts/shared/ui/pages";
@@ -20,7 +20,9 @@ const NewHQOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewHQOrd
 const NewPartnerOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewPartnerOrderPage").then(m => ({ default: m.NewPartnerOrderPage })));
 const EditOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/EditOrderPage").then(m => ({ default: m.EditOrderPage })));
 const CustomersPage = lazy(() => import("@contexts/sales/ui/pages/CustomersPage").then(m => ({ default: m.CustomersPage })));
+
 const WarehousePage = lazy(() => import("@/contexts/warehouse/ui/pages/WarehousePage").then(m => ({ default: m.WarehousePage })));
+const CustomerWarehousePage = lazy(() => import("@/contexts/customer-warehouse/ui/pages/CustomerWarehousePage").then(m => ({ default: m.CustomerWarehousePage })));
 
 // Inventory
 const BoxPage = lazy(() => import("@contexts/inventory/ui/pages/BoxPage").then(m => ({ default: m.BoxPage })));
@@ -104,6 +106,16 @@ export const routes: RouteObject[] = [
       <ProtectedRoute policy={warehousePolicies.manage}>
         <Suspense fallback={<PageLoader />}>
           <WarehousePage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/customer-warehouse",
+    element: (
+      <ProtectedRoute policy={warehousePolicies.customerView}>
+        <Suspense fallback={<PageLoader />}>
+          <CustomerWarehousePage />
         </Suspense>
       </ProtectedRoute>
     ),
