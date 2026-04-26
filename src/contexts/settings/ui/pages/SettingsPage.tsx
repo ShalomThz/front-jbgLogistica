@@ -15,12 +15,16 @@ import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { parseApiError } from "../../../shared/infrastructure/http";
 import { AddressSection } from "../../../shared/ui/components/address/AddressSection";
-import { hqSettingsSchema, type HQSettingsPrimitives } from "../../domain/schemas/SkydropxAddressSchema";
+import {
+  saveSkydropxAddressSchema,
+  type SaveSkydropxAddressRequest,
+} from "../../domain/schemas/SaveSkydropxAddressRequest";
+import type { HQSkydropxAddressResponse } from "../../domain/schemas/HQSkydropxAddressResponse";
 
-type FormValues = HQSettingsPrimitives['skydropxAddress'];
+type FormValues = SaveSkydropxAddressRequest;
 
 function getDefaultValues(
-  saved: FormValues | null,
+  saved: HQSkydropxAddressResponse | null,
 ): FormValues {
   return {
     name: saved?.name ?? "",
@@ -50,7 +54,7 @@ export function SettingsPage() {
     useHQSettings();
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(hqSettingsSchema.shape.skydropxAddress),
+    resolver: zodResolver(saveSkydropxAddressSchema),
     defaultValues: getDefaultValues(null),
   });
 

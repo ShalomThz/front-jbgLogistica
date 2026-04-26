@@ -1,6 +1,6 @@
 import { skydropxSettingsRepository } from "@contexts/settings/infrastructure/services/skydropxSettingsRepository";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { SaveSkydropxAddressRequest } from "../../domain/schemas/SkydropxAddressSchema";
+import type { SaveSkydropxAddressRequest } from "../../domain/schemas/SaveSkydropxAddressRequest";
 
 const SKYDROPX_ADDRESS_QUERY_KEY = ["settings", "skydropx-address"];
 

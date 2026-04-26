@@ -1,13 +1,13 @@
 import {
-  hqSkydropxAddressSchema,
-  type HQSkydropxAddressPrimitives,
-  type SaveSkydropxAddressRequest
-} from "@contexts/settings/domain/schemas/SkydropxAddressSchema";
+  hqSkydropxAddressResponseSchema,
+  type HQSkydropxAddressResponse,
+} from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
+import type { SaveSkydropxAddressRequest } from "@contexts/settings/domain/schemas/SaveSkydropxAddressRequest";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export const skydropxSettingsRepository = {
-  getAddress: async (): Promise<HQSkydropxAddressPrimitives> =>
-    hqSkydropxAddressSchema.parse(
+  getAddress: async (): Promise<HQSkydropxAddressResponse> =>
+    hqSkydropxAddressResponseSchema.parse(
       await httpClient<unknown>("/settings/skydropx-address"),
     ),
 
