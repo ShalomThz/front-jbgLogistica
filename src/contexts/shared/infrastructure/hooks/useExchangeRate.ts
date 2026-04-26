@@ -10,7 +10,8 @@ interface UseExchangeRateOptions {
 
 export const useExchangeRate = ({ from, to, date, enabled = true }: UseExchangeRateOptions) => {
   const queryClient = useQueryClient();
-  const queryKey = ["exchange-rate", from, to, (date?.toISOString()) || "latest"];
+  const dayKey = date ? date.toISOString().slice(0, 10) : "latest";
+  const queryKey = ["exchange-rate", from, to, dayKey];
 
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey,
