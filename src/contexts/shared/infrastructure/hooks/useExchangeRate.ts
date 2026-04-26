@@ -8,9 +8,16 @@ interface UseExchangeRateOptions {
   date?: Date;
 }
 
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export const useExchangeRate = ({ from, to, date, enabled = true }: UseExchangeRateOptions) => {
   const queryClient = useQueryClient();
-  const dayKey = date ? date.toISOString().slice(0, 10) : "latest";
+  const dayKey = date ? formatDateLocal(date) : "latest";
   const queryKey = ["exchange-rate", from, to, dayKey];
 
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({

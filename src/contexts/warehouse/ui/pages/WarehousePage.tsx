@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   ChevronLeft,
@@ -248,11 +249,7 @@ export const WarehousePage = () => {
   const inWarehouse = packages.filter((p) => p.status === "WAREHOUSE").length;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Cargando paquetes...</p>
-      </div>
-    );
+    return <PageLoader text="Cargando paquetes..." />;
   }
 
   return (
