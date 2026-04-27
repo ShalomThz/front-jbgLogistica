@@ -17,12 +17,14 @@ const formatDateLocal = (date: Date): string => {
 
 export const useExchangeRate = ({ from, to, date, enabled = true }: UseExchangeRateOptions) => {
   const queryClient = useQueryClient();
-  const dayKey = date ? formatDateLocal(date) : "latest";
+  const isToday = date ? formatDateLocal(date) === formatDateLocal(new Date()) : false;
+  const effectiveDate = isToday ? undefined : date;
+  const dayKey = effectiveDate ? formatDateLocal(effectiveDate) : "latest";
   const queryKey = ["exchange-rate", from, to, dayKey];
 
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey,
-    queryFn: () => currencyRepository.getExchangeRate(from, to, date),
+    queryFn: () => currencyRepository.getExchangeRate(from, to, effectiveDate),
     enabled: enabled && from !== to,
     staleTime: 1000 * 60 * 10,
     retry: 1,
