@@ -253,7 +253,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr] gap-0 lg:gap-0 lg:divide-x overflow-y-auto flex-1 pr-1">
 
             {/* ── Columna 1: Identificación y Proveedor ── */}
-            <div className="space-y-4 lg:pr-6 pb-4 lg:pb-0">
+            <div className="space-y-4 lg:pr-6 pb-4 lg:pb-0  px-2">
               <SectionHeader icon={<User className="size-4" />} title="Identificación" />
 
               <FormField label="Cliente *" error={errors.customerId?.message}>

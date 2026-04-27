@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Badge,
   Button,
@@ -152,7 +153,7 @@ export const WarehouseDetailDialog = ({
               <h4 className="text-sm font-semibold">Información del paquete</h4>
               <div className="rounded-md border p-3 space-y-1">
                 <DetailRow label="Factura oficial" value={pkg.officialInvoice} />
-                <DetailRow label="ID de grupo" value={pkg.groupId ?? "Sin grupo"} />
+                <DetailRow label="Folio grupo" value={pkg.groupId?.slice(0, 8) ?? "Sin grupo"} />
                 {boxSummaries.map((summary, i) => (
                   <DetailRow key={i} label={`Caja ${i + 1}`} value={summary} />
                 ))}
@@ -222,15 +223,14 @@ export const WarehouseDetailDialog = ({
         </DialogContent>
       </Dialog>
 
-      {/* Lightbox */}
-      {lightboxIndex !== null && (
+      {/* Lightbox — rendered in a portal so it sits above the Dialog overlay */}
+      {lightboxIndex !== null && createPortal(
         <div
-          className="fixed inset-0 z-200 flex items-center justify-center bg-black/95"
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-black/95 pointer-events-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setLightboxIndex(null);
           }}
         >
-          {/* Close */}
           <button
             type="button"
             onClick={() => setLightboxIndex(null)}
@@ -239,48 +239,37 @@ export const WarehouseDetailDialog = ({
             <X className="size-7" />
           </button>
 
-          {/* Counter */}
           <span className="absolute top-4 left-1/2 -translate-x-1/2 text-sm text-white/70">
             {lightboxIndex + 1} / {photos.length}
           </span>
 
-          {/* Prev */}
           {photos.length > 1 && (
             <button
               type="button"
-              onClick={() =>
-                setLightboxIndex((i) =>
-                  i !== null ? (i - 1 + photos.length) % photos.length : null,
-                )
-              }
+              onClick={() => setLightboxIndex((i) => i !== null ? (i - 1 + photos.length) % photos.length : null)}
               className="absolute left-4 text-white/80 hover:text-white"
             >
               <ChevronLeft className="size-10" />
             </button>
           )}
 
-          {/* Image */}
           <img
             src={photos[lightboxIndex]}
             alt={`Foto ${lightboxIndex + 1}`}
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
           />
 
-          {/* Next */}
           {photos.length > 1 && (
             <button
               type="button"
-              onClick={() =>
-                setLightboxIndex((i) =>
-                  i !== null ? (i + 1) % photos.length : null,
-                )
-              }
+              onClick={() => setLightboxIndex((i) => i !== null ? (i + 1) % photos.length : null)}
               className="absolute right-4 text-white/80 hover:text-white"
             >
               <ChevronRight className="size-10" />
             </button>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

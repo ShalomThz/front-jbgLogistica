@@ -13,6 +13,7 @@ import type {
   PackageListViewPrimitives,
   WarehousePackageStatus,
 } from "@/contexts/warehouse/domain/WarehousePackageSchema";
+import { createPortal } from "react-dom";
 
 const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
   WAREHOUSE: "En bodega",
@@ -172,9 +173,9 @@ export const CustomerPackageDetailDialog = ({ pkg, open, onClose }: Props) => {
       </Dialog>
 
       {/* Lightbox */}
-      {lightboxIndex !== null && (
+      {lightboxIndex !== null && createPortal(
         <div
-          className="fixed inset-0 z-200 flex items-center justify-center bg-black/95"
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-black/95 pointer-events-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setLightboxIndex(null);
           }}
@@ -194,11 +195,7 @@ export const CustomerPackageDetailDialog = ({ pkg, open, onClose }: Props) => {
           {photos.length > 1 && (
             <button
               type="button"
-              onClick={() =>
-                setLightboxIndex((i) =>
-                  i !== null ? (i - 1 + photos.length) % photos.length : null,
-                )
-              }
+              onClick={() => setLightboxIndex((i) => i !== null ? (i - 1 + photos.length) % photos.length : null)}
               className="absolute left-4 text-white/80 hover:text-white"
             >
               <ChevronLeft className="size-10" />
@@ -214,17 +211,14 @@ export const CustomerPackageDetailDialog = ({ pkg, open, onClose }: Props) => {
           {photos.length > 1 && (
             <button
               type="button"
-              onClick={() =>
-                setLightboxIndex((i) =>
-                  i !== null ? (i + 1) % photos.length : null,
-                )
-              }
+              onClick={() => setLightboxIndex((i) => i !== null ? (i + 1) % photos.length : null)}
               className="absolute right-4 text-white/80 hover:text-white"
             >
               <ChevronRight className="size-10" />
             </button>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
