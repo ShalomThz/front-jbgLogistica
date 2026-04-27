@@ -61,7 +61,7 @@ export const OrderShipmentSection = ({
             <div className="grid grid-cols-3 gap-2">
               <span className="text-sm text-muted-foreground">Rastreo</span>
               <a
-                href={`/tracking/${shipment.label.trackingNumber}`}
+                href={shipment.provider?.type === "INTERNAL_FLEET" ? `/tracking/${shipment.label.trackingNumber}` : shipment.label.trackingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="col-span-2 text-sm text-primary underline inline-flex items-center gap-1"
