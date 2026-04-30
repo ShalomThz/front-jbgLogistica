@@ -122,7 +122,7 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
           {/* Tarifa asignada */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Tarifa asignada</span>
-            <div className="relative w-28">
+            <div className="relative w-40">
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
               <Input
                 type="number"
