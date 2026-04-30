@@ -1,18 +1,15 @@
 import * as XLSX from "xlsx";
-import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+import type { BoxSaleListViewPrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSaleListView";
 
-export function exportBoxSales(
-  sales: BoxSalePrimitives[],
-  boxNames: Record<string, string>,
-  userNames: Record<string, string>,
-) {
+export function exportBoxSales(sales: BoxSaleListViewPrimitives[]) {
   const rows = sales.flatMap((sale) =>
     sale.items.map((item) => ({
       Folio: sale.id.slice(0, 8).toUpperCase(),
       Fecha: new Date(sale.createdAt).toLocaleDateString("es-MX"),
-      Vendedor: userNames[sale.soldBy] ?? sale.soldBy.slice(0, 8),
+      Vendedor: sale.soldBy?.name ?? "—",
+      Tienda: sale.store.name,
       Cliente: sale.customerName ?? "",
-      Producto: boxNames[item.boxId] ?? item.boxId,
+      Producto: item.box?.name ?? item.boxId,
       Cantidad: item.quantity,
       "Precio Unitario": item.unitPrice.amount,
       Subtotal: item.subtotal.amount,

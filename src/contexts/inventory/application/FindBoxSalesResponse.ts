@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boxSaleSchema } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+import { boxSaleListViewSchema } from "@contexts/inventory/domain/schemas/boxSale/BoxSaleListView";
 
 const paginationSchema = z.object({
   total: z.number().int().nonnegative(),
@@ -9,7 +9,7 @@ const paginationSchema = z.object({
 });
 
 export const findBoxSalesResponseSchema = z.object({
-  data: z.array(boxSaleSchema),
+  data: z.array(boxSaleListViewSchema),
   pagination: paginationSchema,
 });
 

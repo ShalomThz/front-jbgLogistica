@@ -9,21 +9,27 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import { Download, Printer } from "lucide-react";
-import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+import type { BoxSaleListViewPrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSaleListView";
 
 interface Props {
-  sale: BoxSalePrimitives | null;
+  sale: BoxSaleListViewPrimitives | null;
   open: boolean;
   onClose: () => void;
-  boxNames?: Record<string, string>;
-  userNames?: Record<string, string>;
   onDownloadReceipt?: (saleId: string) => void;
   isDownloadingReceipt?: boolean;
   onPrintReceipt?: (saleId: string) => void;
   isPrintingReceipt?: boolean;
 }
 
-export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNames = {}, onDownloadReceipt, isDownloadingReceipt, onPrintReceipt, isPrintingReceipt }: Props) => {
+export const BoxSaleDetailDialog = ({
+  sale,
+  open,
+  onClose,
+  onDownloadReceipt,
+  isDownloadingReceipt,
+  onPrintReceipt,
+  isPrintingReceipt,
+}: Props) => {
   if (!sale) return null;
 
   return (
@@ -48,7 +54,7 @@ export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNa
                 className="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center rounded-md border p-2 text-sm"
               >
                 <div className="min-w-0">
-                  <p className="truncate">{boxNames[item.boxId] ?? item.boxId}</p>
+                  <p className="truncate">{item.box?.name ?? item.boxId}</p>
                   <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                 </div>
                 <span className="font-mono text-right whitespace-nowrap">
@@ -70,7 +76,8 @@ export const BoxSaleDetailDialog = ({ sale, open, onClose, boxNames = {}, userNa
         </div>
         <div className="space-y-0.5 text-xs text-muted-foreground">
           {sale.customerName && <div>Cliente: {sale.customerName}</div>}
-          <div>Vendido por: {userNames[sale.soldBy] ?? sale.soldBy}</div>
+          <div>Vendido por: {sale.soldBy?.name ?? "—"}</div>
+          <div>Tienda: {sale.store.name}</div>
         </div>
         {(onDownloadReceipt || onPrintReceipt) && (
           <DialogFooter>

@@ -1,6 +1,8 @@
 import { ZodError } from "zod";
 import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
 import { boxSaleSchema } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+import type { BoxSaleListViewPrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSaleListView";
+import { boxSaleListViewSchema } from "@contexts/inventory/domain/schemas/boxSale/BoxSaleListView";
 import type { SellBoxRequestPrimitives } from "@contexts/inventory/application/SellBoxRequest";
 import type { FindBoxSalesResponsePrimitives } from "@contexts/inventory/application/FindBoxSalesResponse";
 import { findBoxSalesResponseSchema } from "@contexts/inventory/application/FindBoxSalesResponse";
@@ -9,6 +11,21 @@ import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http
 function parseBoxSale(data: unknown, context: string): BoxSalePrimitives {
   try {
     return boxSaleSchema.parse(data);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      console.error(`[boxSaleRepository] Parse error in ${context}:`, error.issues);
+      console.error(`[boxSaleRepository] Raw data received:`, data);
+    }
+    throw error;
+  }
+}
+
+function parseBoxSaleListView(
+  data: unknown,
+  context: string,
+): BoxSaleListViewPrimitives {
+  try {
+    return boxSaleListViewSchema.parse(data);
   } catch (error) {
     if (error instanceof ZodError) {
       console.error(`[boxSaleRepository] Parse error in ${context}:`, error.issues);
@@ -47,6 +64,11 @@ export const boxSaleRepository = {
       body: JSON.stringify({ filters: [], ...request }),
     });
     return parseFindBoxSales(data);
+  },
+
+  findById: async (saleId: string): Promise<BoxSaleListViewPrimitives> => {
+    const data = await httpClient<unknown>(`/box-sale/${saleId}`);
+    return parseBoxSaleListView(data, "findById");
   },
 
   getReceipt: async (saleId: string): Promise<Blob> => {
