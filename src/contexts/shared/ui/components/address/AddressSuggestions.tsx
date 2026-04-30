@@ -16,8 +16,7 @@ export function AddressSuggestions({ query, onSelect }: AddressSuggestionsProps)
 
   const handleSelect = async (placeId: string) => {
     const details = await getPlaceDetails(placeId);
-    const filledQuery = [details.address1, details.city, details.province].filter(Boolean).join(", ");
-    setDismissedQuery(filledQuery);
+    setDismissedQuery(query);
     onSelect(details);
   };
 
