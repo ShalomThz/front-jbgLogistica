@@ -39,6 +39,11 @@ const baseDefaults = {
       wrap: "",
       tape: "",
     },
+    discount: {
+      amount: "",
+      currency: "MXN",
+      concept: "",
+    },
   },
 } as const;
 

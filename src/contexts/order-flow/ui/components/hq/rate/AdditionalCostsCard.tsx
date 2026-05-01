@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Tag } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
@@ -27,6 +27,7 @@ const COST_LABELS: Record<string, string> = {
 export function AdditionalCostsCard() {
   const { register, control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
+  const discountAmount = parseFloat(shippingService.discount?.amount ?? "") || 0;
   const [open, setOpen] = useState(true);
 
   const total = COST_BREAKDOWN_FIELDS.reduce((sum, field) => {
@@ -91,6 +92,49 @@ export function AdditionalCostsCard() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="border-t pt-3 space-y-2">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Tag className="size-3" />
+              Descuento
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">-$</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("shippingService.discount.amount")}
+                  className="pl-7 pr-16 text-xs"
+                  placeholder="0.00"
+                />
+                <Controller
+                  control={control}
+                  name="shippingService.discount.currency"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="absolute right-0 top-0 h-full w-16 border-0 border-l rounded-l-none text-xs px-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MXN">MXN</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            {discountAmount > 0 && (
+              <Input
+                type="text"
+                {...register("shippingService.discount.concept")}
+                className="text-xs"
+                placeholder="Concepto del descuento"
+              />
+            )}
           </div>
         </CardContent>
       )}

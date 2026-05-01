@@ -1,4 +1,5 @@
 import { UserMenu } from "./UserMenu";
+import { NotificationDrawer } from "./NotificationDrawer";
 import {
   AnimatedThemeToggler,
   SidebarTrigger,
@@ -17,6 +18,7 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-2">
+        <NotificationDrawer />
         <AnimatedThemeToggler className="inline-flex items-center justify-center rounded-md p-2 text-primary-foreground hover:bg-primary-foreground/15" />
         <UserMenu />
       </div>
