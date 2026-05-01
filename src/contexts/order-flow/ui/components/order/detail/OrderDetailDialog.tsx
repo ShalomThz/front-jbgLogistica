@@ -253,6 +253,12 @@ export const OrderDetailDialog = ({
                   label="Total"
                   value={financials.totalPrice ? formatMoney(financials.totalPrice) : "—"}
                 />
+                {financials.discount.amount && (
+                  <DetailRow
+                    label="Descuento"
+                    value={`-${formatMoney(financials.discount.amount)}${financials.discount.concept ? ` (${financials.discount.concept})` : ""}`}
+                  />
+                )}
                 <DetailRow label="Pagado" value={financials.isPaid ? "Sí" : "No"} />
               </div>
 

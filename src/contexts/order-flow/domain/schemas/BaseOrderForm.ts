@@ -53,6 +53,11 @@ export const baseOrderFormSchema = z.object({
     currency: z.string(),
     costBreakdownCurrency: z.string(),
     costBreakdown: costBreakdownSchema,
+    discount: z.object({
+      amount: z.string(),
+      currency: z.string(),
+      concept: z.string(),
+    }),
   }),
 });
 

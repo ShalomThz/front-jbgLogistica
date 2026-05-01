@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, Info, Tag } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
@@ -47,26 +47,35 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
   const { setValue, control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
 
+  // --- all derived values and hooks must be above any early return ---
   const tariffCurrency = shippingService.tariff?.currency ?? shippingService.currency;
   const costsCurrency = shippingService.costBreakdownCurrency;
   const displayCurrency = shippingService.currency;
+  const discountCurrency = shippingService.discount?.currency ?? displayCurrency;
 
   const needsTariffConversion = tariffCurrency !== displayCurrency;
   const needsCostsConversion = costsCurrency !== displayCurrency;
+  const needsDiscountConversion = discountCurrency !== displayCurrency;
 
   const { exchangeRate: tariffExchange } = useExchangeRate({
     from: tariffCurrency,
     to: displayCurrency,
     enabled: needsTariffConversion,
   });
-  const tariffConversionRate = needsTariffConversion ? tariffExchange?.rate ?? null : 1;
-
   const { exchangeRate: costsExchange } = useExchangeRate({
     from: costsCurrency,
     to: displayCurrency,
     enabled: needsCostsConversion,
   });
+  const { exchangeRate: discountExchange } = useExchangeRate({
+    from: discountCurrency,
+    to: displayCurrency,
+    enabled: needsDiscountConversion,
+  });
+
+  const tariffConversionRate = needsTariffConversion ? tariffExchange?.rate ?? null : 1;
   const costsConversionRate = needsCostsConversion ? costsExchange?.rate ?? null : 1;
+  const discountConversionRate = needsDiscountConversion ? discountExchange?.rate ?? null : 1;
 
   const handleTariffChange = (value: string) => {
     const amount = parseFloat(value) || 0;
@@ -90,10 +99,14 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
     const val = parseFloat(shippingService.costBreakdown[field]);
     return sum + (val > 0 ? val : 0);
   }, 0);
-
+  const discountAmount = parseFloat(shippingService.discount?.amount ?? "") || 0;
+  const convertedDiscount = discountConversionRate !== null ? discountAmount * discountConversionRate : null;
   const convertedTariff = tariffConversionRate !== null ? tariffAmount * tariffConversionRate : null;
   const convertedCosts = costsConversionRate !== null ? costsTotal * costsConversionRate : null;
-  const grandTotal = convertedTariff !== null && convertedCosts !== null ? convertedTariff + convertedCosts : null;
+  const grandTotal =
+    convertedTariff !== null && convertedCosts !== null
+      ? convertedTariff + convertedCosts - (convertedDiscount ?? 0)
+      : null;
 
   return (
     <div className="space-y-4">
@@ -148,6 +161,19 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
               </div>
             );
           })}
+
+          {/* Descuento (read-only, entered in AdditionalCostsCard) */}
+          {discountAmount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Tag className="size-3" />
+                {shippingService.discount?.concept || "Descuento"}
+              </span>
+              <span className="text-red-600">
+                -${discountAmount.toFixed(2)} {discountCurrency}
+              </span>
+            </div>
+          )}
 
           <div className="my-2 border-t-2 border-dashed border-muted-foreground/40" />
 

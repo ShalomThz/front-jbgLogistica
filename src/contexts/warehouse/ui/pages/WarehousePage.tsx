@@ -222,7 +222,7 @@ export const WarehousePage = () => {
     const grouped = new Map<string, PackageListViewPrimitives[]>();
 
     filtered.forEach((pkg) => {
-      const key = pkg.groupId ?? "__ungrouped__";
+      const key = pkg.groupId ?? `__ungrouped__:${pkg.customer.id}:${pkg.store.id}`;
       const current = grouped.get(key) ?? [];
       current.push(pkg);
       grouped.set(key, current);
@@ -362,7 +362,7 @@ export const WarehousePage = () => {
               </TableRow>
             ) : (
               groupedPackages.map(([groupKey, groupItems]) => {
-                const isUngrouped = groupKey === "__ungrouped__";
+                const isUngrouped = groupKey.startsWith("__ungrouped__");
                 const groupStatus = groupItems.every((item) => item.status === groupItems[0].status)
                   ? groupItems[0].status
                   : null;

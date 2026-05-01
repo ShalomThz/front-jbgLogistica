@@ -3,6 +3,15 @@ import type { HQOrderFormValues } from "../domain/schemas/HQOrderForm";
 import type { PartnerOrderFormValues } from "../domain/schemas/PartnerOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
 
+const buildDiscountPayload = (discount: HQOrderFormValues["shippingService"]["discount"]) => {
+  const amount = parseFloat(discount.amount);
+  if (!amount || amount <= 0) return undefined;
+  return {
+    amount: { amount, currency: discount.currency },
+    concept: discount.concept.trim() || null,
+  };
+};
+
 export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: string) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
@@ -18,6 +27,7 @@ export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: s
     destination: { ...recipientContact, address: recipientAddress },
     pickupAtAddress: formValues.pickupAtAddress,
     customerSignature: formValues.customerSignature,
+    discount: buildDiscountPayload(formValues.shippingService.discount),
   });
 };
 
