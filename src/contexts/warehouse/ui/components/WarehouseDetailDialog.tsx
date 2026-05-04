@@ -11,7 +11,7 @@ import {
   DialogTitle,
   Separator,
 } from "@contexts/shared/shadcn";
-import { ChevronLeft, ChevronRight, Download, Images, Package, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Images, Package, Pencil, Printer, Trash2, X } from "lucide-react";
 import type {
   PackageListViewPrimitives,
   WarehousePackageStatus,
@@ -54,6 +54,8 @@ interface Props {
   onDelete?: (pkg: PackageListViewPrimitives) => void;
   onDownloadReceipt?: (id: string) => void;
   isDownloadingReceipt?: boolean;
+  onPrintReceipt?: (id: string) => void;
+  isPrintingReceipt?: boolean;
 }
 
 export const WarehouseDetailDialog = ({
@@ -65,6 +67,8 @@ export const WarehouseDetailDialog = ({
   onDelete,
   onDownloadReceipt,
   isDownloadingReceipt,
+  onPrintReceipt,
+  isPrintingReceipt,
 }: Props) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const photos = pkg?.photos ?? [];
@@ -200,6 +204,17 @@ export const WarehouseDetailDialog = ({
               >
                 <Download className="mr-1.5 size-4" />
                 {isDownloadingReceipt ? "Generando..." : "Descargar recibo"}
+              </Button>
+            )}
+            {onPrintReceipt && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPrintReceipt(pkg.id)}
+                disabled={isPrintingReceipt}
+              >
+                <Printer className="mr-1.5 size-4" />
+                {isPrintingReceipt ? "Preparando..." : "Imprimir recibo"}
               </Button>
             )}
             {onDelete && (

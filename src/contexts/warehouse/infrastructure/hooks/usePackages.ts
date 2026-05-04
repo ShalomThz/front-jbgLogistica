@@ -76,6 +76,19 @@ export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) =
     },
   });
 
+  const printMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const blob = await packageRepository.getReceipt(id);
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url);
+      if (printWindow) {
+        printWindow.addEventListener("load", () => {
+          printWindow.print();
+        });
+      }
+    },
+  });
+
   return {
     packages,
     pagination,
@@ -109,5 +122,8 @@ export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) =
 
     downloadReceipt: (id: string) => receiptMutation.mutateAsync(id),
     isDownloadingReceipt: receiptMutation.isPending,
+
+    printReceipt: (id: string) => printMutation.mutateAsync(id),
+    isPrintingReceipt: printMutation.isPending,
   };
 };

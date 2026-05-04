@@ -90,6 +90,8 @@ export const WarehousePage = () => {
     isEditingPackageGroup,
     downloadReceipt,
     isDownloadingReceipt,
+    printReceipt,
+    isPrintingReceipt,
   } = usePackages({ page, limit });
 
   const { filters, setFilter, resetFilters, filtered } = useWarehouseFilters(packages);
@@ -519,6 +521,8 @@ export const WarehousePage = () => {
         onDelete={handleDeleteFromDetail}
         onDownloadReceipt={downloadReceipt}
         isDownloadingReceipt={isDownloadingReceipt}
+        onPrintReceipt={printReceipt}
+        isPrintingReceipt={isPrintingReceipt}
       />
       <CreatePackageGroupDialog
         open={createGroupOpen}
