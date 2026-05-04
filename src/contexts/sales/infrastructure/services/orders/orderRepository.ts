@@ -3,6 +3,7 @@ import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http
 import { orderSchema, type OrderPrimitives } from "../../../domain/schemas/order/Order";
 import { orderListViewSchema, type OrderListView } from "../../../domain/schemas/order/OrderListViewSchemas";
 import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../application/order/FindOrderResponse";
+import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -33,7 +34,7 @@ function parseFindOrders(data: unknown): FindOrdersResponse {
 
 export const orderRepository = {
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number } = {},
+    request: Partial<FindOrdersRequest> = {},
   ): Promise<FindOrdersResponse> => {
     const data = await httpClient<unknown>("/order/find", {
       method: "POST",

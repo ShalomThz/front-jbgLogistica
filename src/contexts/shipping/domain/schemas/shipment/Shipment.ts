@@ -5,7 +5,7 @@ import { carrierSchema } from "../value-objects/Carrier";
 import { parcelSchema } from "../value-objects/Parcel";
 import { rateSchema } from "../value-objects/Rate";
 import { shippingLabelSchema } from "../value-objects/ShippingLabel";
-import { shipmentStatuses } from "./ShipmentStatues";
+import { shipmentStatuses } from "./ShipmentStatuses";
 import z from "zod";
 
 export const shipmentSchema = z.object({

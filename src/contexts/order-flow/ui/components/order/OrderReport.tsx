@@ -9,11 +9,9 @@ import {
   Download,
   FileText,
   Filter,
-  Package,
   RefreshCw,
   Store,
   TrendingUp,
-  Truck,
 } from "lucide-react";
 import { exportOrderReport } from "@contexts/order-flow/domain/services/exportOrderReport";
 import {
@@ -42,19 +40,22 @@ import {
   TableRow,
   TableCell,
 } from "@contexts/shared/shadcn";
-import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_VARIANT,
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderStatuses } from "@contexts/sales/domain/schemas/order/OrderStatuses";
-import { useOrderFilters } from "../../hooks/orders/useOrderFilters";
-import type {
-  DatePreset,
-  DateSort,
-  NameSort,
-} from "../../hooks/orders/useOrderFilters";
+import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import {
+  useOrderTableFilters,
+  type DatePreset,
+  type DateSort,
+  type NameSort,
+  type OrderCriteria,
+} from "../../hooks/orders/useOrderTableFilters";
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -80,7 +81,7 @@ function DatePickerField({
 }) {
   const selected = parseDate(value);
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <Popover>
         <PopoverTrigger asChild>
@@ -112,19 +113,38 @@ function DatePickerField({
   );
 }
 
-interface Props {
-  orders: OrderListView[];
-  boxNames: Map<string, string>;
-}
+export const OrderReport = () => {
+  const { state: filters, setFilter, reset: resetFilters, criteria } =
+    useOrderTableFilters();
 
-export const OrderReport = ({ orders, boxNames }: Props) => {
-  const { filters, setFilter, resetFilters, filtered, options } =
-    useOrderFilters(orders, { boxNames });
+  const reportCriteria = useMemo<OrderCriteria>(() => {
+    if (filters.statusFilter !== "all") return criteria;
+    return {
+      ...criteria,
+      filters: [
+        ...criteria.filters,
+        { field: "status", filterOperator: "!=", value: "DRAFT" },
+      ],
+    };
+  }, [criteria, filters.statusFilter]);
 
-  const reportOrders = useMemo(
-    () => filtered.filter((o) => o.status !== "DRAFT"),
-    [filtered],
+  const { orders: reportOrders } = useOrders(reportCriteria);
+
+  const { stores: allStores } = useStores({ page: 1, limit: 100 });
+  const { boxes: allBoxes } = useBoxes();
+
+  const options = useMemo(
+    () => ({
+      stores: allStores
+        .map((s) => ({ id: s.id, name: s.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      boxes: allBoxes
+        .map((b) => ({ id: b.id, name: b.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }),
+    [allStores, allBoxes],
   );
+
   const reportStatuses = useMemo(
     () => orderStatuses.filter((s) => s !== "DRAFT"),
     [],
@@ -211,8 +231,6 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
       filters.statusFilter,
       filters.storeFilter,
       filters.paymentFilter,
-      filters.customerFilter,
-      filters.providerFilter,
       filters.boxFilter,
       filters.dateFilter,
     ].filter((v) => v !== "all").length +
@@ -220,9 +238,13 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
     (filters.dateSort !== "desc" ? 1 : 0);
 
   const activeRing = (v: string, def = "all") =>
-    v !== def ? "ring-2 ring-primary/40" : "";
+    v !== def
+      ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
+      : "";
   const activeSortRing = (v: string) =>
-    v !== "none" ? "ring-2 ring-primary/40" : "";
+    v !== "none"
+      ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
+      : "";
 
   const paidShare =
     stats.totalOrders > 0
@@ -232,8 +254,12 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
   return (
     <div className="space-y-6">
       {/* Action bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-        <Button variant="outline" onClick={resetFilters} className="gap-1.5">
+      <div className="flex flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-end">
+        <Button
+          variant="ghost"
+          onClick={resetFilters}
+          className="h-10 gap-2 text-muted-foreground hover:text-foreground"
+        >
           <RefreshCw className="size-4" />
           Limpiar
         </Button>
@@ -242,7 +268,7 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
           onValueChange={(v) => setFilter("storeFilter", v)}
         >
           <SelectTrigger
-            className={`w-full sm:w-[200px] ${activeRing(filters.storeFilter)}`}
+            className={`h-10 w-full gap-2 sm:w-[220px] ${activeRing(filters.storeFilter)}`}
           >
             <Store className="size-4 text-muted-foreground" />
             <SelectValue placeholder="Tienda" />
@@ -259,7 +285,7 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
         <Button
           disabled={reportOrders.length === 0}
           onClick={() => exportOrderReport(reportOrders, stats)}
-          className="gap-1.5"
+          className="h-10 gap-2 shadow-sm transition-shadow hover:shadow-md"
         >
           <Download className="size-4" />
           Exportar XLSX
@@ -282,17 +308,19 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
         </CardHeader>
         <Separator />
         <CardContent className="pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <CalendarDays className="size-3.5" />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Periodo
               </Label>
               <Select
                 value={filters.dateFilter}
                 onValueChange={(v) => setFilter("dateFilter", v as DatePreset)}
               >
-                <SelectTrigger className={activeRing(filters.dateFilter)}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(filters.dateFilter)}`}
+                >
+                  <CalendarDays className="size-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -321,16 +349,18 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
               </>
             )}
 
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Filter className="size-3.5" />
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Estado
               </Label>
               <Select
                 value={filters.statusFilter}
                 onValueChange={(v) => setFilter("statusFilter", v)}
               >
-                <SelectTrigger className={activeRing(filters.statusFilter)}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(filters.statusFilter)}`}
+                >
+                  <Filter className="size-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -342,16 +372,18 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <CreditCard className="size-3.5" />
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Pago
               </Label>
               <Select
                 value={filters.paymentFilter}
                 onValueChange={(v) => setFilter("paymentFilter", v)}
               >
-                <SelectTrigger className={activeRing(filters.paymentFilter)}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(filters.paymentFilter)}`}
+                >
+                  <CreditCard className="size-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -362,62 +394,18 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Package className="size-3.5" />
-                Cliente
-              </Label>
-              <Select
-                value={filters.customerFilter}
-                onValueChange={(v) => setFilter("customerFilter", v)}
-              >
-                <SelectTrigger className={activeRing(filters.customerFilter)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los clientes</SelectItem>
-                  {options.customers.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Truck className="size-3.5" />
-                Proveedor
-              </Label>
-              <Select
-                value={filters.providerFilter}
-                onValueChange={(v) => setFilter("providerFilter", v)}
-              >
-                <SelectTrigger className={activeRing(filters.providerFilter)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los proveedores</SelectItem>
-                  {options.providers.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <BoxIcon className="size-3.5" />
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Caja
               </Label>
               <Select
                 value={filters.boxFilter}
                 onValueChange={(v) => setFilter("boxFilter", v)}
               >
-                <SelectTrigger className={activeRing(filters.boxFilter)}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(filters.boxFilter)}`}
+                >
+                  <BoxIcon className="size-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -431,16 +419,18 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ArrowDownAZ className="size-3.5" />
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Ordenar por nombre
               </Label>
               <Select
                 value={filters.nameSort}
                 onValueChange={(v) => setFilter("nameSort", v as NameSort)}
               >
-                <SelectTrigger className={activeSortRing(filters.nameSort)}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeSortRing(filters.nameSort)}`}
+                >
+                  <ArrowDownAZ className="size-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -451,9 +441,8 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Clock className="size-3.5" />
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Ordenar por fecha
               </Label>
               <Select
@@ -461,10 +450,13 @@ export const OrderReport = ({ orders, boxNames }: Props) => {
                 onValueChange={(v) => setFilter("dateSort", v as DateSort)}
               >
                 <SelectTrigger
-                  className={
-                    filters.dateSort !== "desc" ? "ring-2 ring-primary/40" : ""
-                  }
+                  className={`h-10 gap-2 transition-colors ${
+                    filters.dateSort !== "desc"
+                      ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
+                      : ""
+                  }`}
                 >
+                  <Clock className="size-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -33,19 +33,23 @@ const filterOperators = [
   "BETWEEN_NUMBERS",
 ] as const;
 
-const filterOperatorSchema = z.enum(filterOperators);
+export const filterOperatorSchema = z.enum(filterOperators);
 
-const directions = ["ASC", "DESC"] as const;
+export const directions = ["ASC", "DESC"] as const;
+
+export const filterSchema = z.object({
+  field: z.string(),
+  filterOperator: filterOperatorSchema,
+  value: z.unknown(),
+});
+
+export type Filter = z.infer<typeof filterSchema>;
+export type FilterOperator = z.infer<typeof filterOperatorSchema>;
+export type Direction = (typeof directions)[number];
 
 export function createCriteriaSchema<T extends z.ZodRawShape>(
   schema: z.ZodObject<T>,
 ) {
-  const filterSchema = z.object({
-    field: z.string(),
-    filterOperator: filterOperatorSchema,
-    value: z.unknown(),
-  });
-
   const topLevelFields = Object.keys(schema.shape) as [string, ...string[]];
 
   const filterOrderSchema = z.object({
@@ -58,5 +62,6 @@ export function createCriteriaSchema<T extends z.ZodRawShape>(
     order: filterOrderSchema.optional(),
     limit: z.number().optional(),
     offset: z.number().optional(),
+    search: z.string().min(1).optional(),
   });
 }
