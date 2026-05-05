@@ -49,22 +49,6 @@ import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 
-const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
-  WAREHOUSE: "En bodega",
-  SHIPPED: "Enviado",
-  DELIVERED: "Entregado",
-  REPACKED: "Reempacado",
-  AUTHORIZED: "Autorizado",
-};
-
-const STATUS_VARIANT: Record<WarehousePackageStatus, "default" | "secondary" | "outline"> = {
-  WAREHOUSE: "secondary",
-  SHIPPED: "outline",
-  DELIVERED: "default",
-  REPACKED: "secondary",
-  AUTHORIZED: "default",
-};
-
 const LIMIT_OPTIONS = [10, 20, 50];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -382,11 +366,15 @@ export const WarehousePage = () => {
                 const samplePkg = groupItems[0];
                 const isExpanded = isUngrouped || expandedGroups.has(groupKey);
 
+                const groupRowBgClass = groupStatus
+                  ? STATUS_CONFIG[groupStatus].rowBgClass
+                  : "bg-muted/40 hover:bg-muted/40";
+
                 return (
                   <Fragment key={groupKey}>
                     <TableRow
                       className={cn(
-                        "bg-muted/40 hover:bg-muted/40",
+                        groupRowBgClass,
                         !isUngrouped && "cursor-pointer",
                       )}
                       onClick={!isUngrouped ? () => toggleGroup(groupKey) : undefined}
@@ -417,8 +405,11 @@ export const WarehousePage = () => {
                               {samplePkg.customer.name} · {samplePkg.store.name}
                             </span>
                             {groupStatus && (
-                              <Badge variant={STATUS_VARIANT[groupStatus]} className="text-xs">
-                                {STATUS_LABELS[groupStatus]}
+                              <Badge
+                                variant="outline"
+                                className={cn("text-xs", STATUS_CONFIG[groupStatus].badgeClass)}
+                              >
+                                {STATUS_CONFIG[groupStatus].label}
                               </Badge>
                             )}
                           </div>
@@ -484,11 +475,11 @@ export const WarehousePage = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {(Object.keys(STATUS_LABELS) as WarehousePackageStatus[]).map((s) => (
+                                {warehousePackageStatuses.map((s) => (
                                   <SelectItem key={s} value={s} className="text-xs">
-                                    <Badge variant={STATUS_VARIANT[s]} className="text-xs">
-                                      {STATUS_LABELS[s]}
-                                    </Badge>
+                                    <span className={cn("font-medium", STATUS_CONFIG[s].textClass)}>
+                                      {STATUS_CONFIG[s].label}
+                                    </span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
