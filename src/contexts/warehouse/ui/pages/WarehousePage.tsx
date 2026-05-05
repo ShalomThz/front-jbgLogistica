@@ -18,6 +18,7 @@ import {
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -108,6 +109,16 @@ export const WarehousePage = () => {
     status: WarehousePackageStatus;
   } | null>(null);
   const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
 
   const handleCreate = async (data: CreatePackageRequest) => {
     await createPackage(data);
@@ -176,9 +187,9 @@ export const WarehousePage = () => {
     });
   };
 
-  const handleCreateGroup = async (invoiceNumber?: string) => {
+  const handleCreateGroup = async () => {
     try {
-      const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
+      const group = await createPackageGroup({ packageIds: selectedPackageIds });
       setGroupInvoiceMap((prev) => ({
         ...prev,
         [group.id]: group.invoiceNumber,
@@ -264,7 +275,7 @@ export const WarehousePage = () => {
           <Button
             variant="outline"
             onClick={() => setCreateGroupOpen(true)}
-            disabled={selectedPackageIds.length < 1 || isCreatingPackageGroup}
+            disabled={selectedPackageIds.length < 2 || isCreatingPackageGroup}
           >
             Agrupar paquetes seleccionados ({selectedPackageIds.length})
           </Button>
@@ -369,13 +380,28 @@ export const WarehousePage = () => {
                   ? groupItems[0].status
                   : null;
                 const samplePkg = groupItems[0];
+                const isExpanded = isUngrouped || expandedGroups.has(groupKey);
 
                 return (
                   <Fragment key={groupKey}>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableRow
+                      className={cn(
+                        "bg-muted/40 hover:bg-muted/40",
+                        !isUngrouped && "cursor-pointer",
+                      )}
+                      onClick={!isUngrouped ? () => toggleGroup(groupKey) : undefined}
+                    >
                       <TableCell colSpan={8}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-sm">
+                            {!isUngrouped && (
+                              <ChevronDown
+                                className={cn(
+                                  "size-4 text-muted-foreground transition-transform",
+                                  !isExpanded && "-rotate-90",
+                                )}
+                              />
+                            )}
                             <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
                               {isUngrouped
                                 ? "Sin grupo"
@@ -402,7 +428,7 @@ export const WarehousePage = () => {
                               size="sm"
                               variant="ghost"
                               className="h-7 px-2"
-                              onClick={() => openEditGroup(samplePkg)}
+                              onClick={(e) => { e.stopPropagation(); openEditGroup(samplePkg); }}
                             >
                               Editar grupo
                             </Button>
@@ -411,7 +437,7 @@ export const WarehousePage = () => {
                       </TableCell>
                     </TableRow>
 
-                    {groupItems.map((p) => (
+                    {isExpanded && groupItems.map((p) => (
                       <TableRow
                         key={p.id}
                         className="cursor-pointer"
@@ -526,7 +552,7 @@ export const WarehousePage = () => {
       />
       <CreatePackageGroupDialog
         open={createGroupOpen}
-        selectedCount={selectedPackageIds.length}
+        selectedPackages={packages.filter((p) => selectedPackageIds.includes(p.id))}
         isLoading={isCreatingPackageGroup}
         onClose={() => setCreateGroupOpen(false)}
         onConfirm={handleCreateGroup}

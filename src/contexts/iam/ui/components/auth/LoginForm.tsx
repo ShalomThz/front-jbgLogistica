@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import {
   loginRequestSchema,
   type LoginRequestPrimitives,
@@ -9,6 +11,7 @@ import { Button, Input, Label } from "@contexts/shared/shadcn";
 
 export const LoginForm = () => {
   const { login, loginError, isLoggingIn, resetLoginError } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -52,14 +55,30 @@ export const LoginForm = () => {
 
       <div className="space-y-2">
         <Label htmlFor="password">Contraseña</Label>
-        <Input
-          id="password"
-          type="password"
-          disabled={isLoggingIn}
-          placeholder="••••••••"
-          aria-invalid={!!errors.password}
-          {...register("password")}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            disabled={isLoggingIn}
+            placeholder="••••••••"
+            aria-invalid={!!errors.password}
+            className="pr-10"
+            {...register("password")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            disabled={isLoggingIn}
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            className="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-muted-foreground hover:text-foreground disabled:opacity-50"
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
         {errors.password && (
           <p className="text-xs text-destructive">{errors.password.message}</p>
         )}
