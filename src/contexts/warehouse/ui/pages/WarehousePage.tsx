@@ -18,6 +18,7 @@ import {
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -48,22 +49,6 @@ import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 
-const STATUS_LABELS: Record<WarehousePackageStatus, string> = {
-  WAREHOUSE: "En bodega",
-  SHIPPED: "Enviado",
-  DELIVERED: "Entregado",
-  REPACKED: "Reempacado",
-  AUTHORIZED: "Autorizado",
-};
-
-const STATUS_VARIANT: Record<WarehousePackageStatus, "default" | "secondary" | "outline"> = {
-  WAREHOUSE: "secondary",
-  SHIPPED: "outline",
-  DELIVERED: "default",
-  REPACKED: "secondary",
-  AUTHORIZED: "default",
-};
-
 const LIMIT_OPTIONS = [10, 20, 50];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -90,6 +75,8 @@ export const WarehousePage = () => {
     isEditingPackageGroup,
     downloadReceipt,
     isDownloadingReceipt,
+    printReceipt,
+    isPrintingReceipt,
   } = usePackages({ page, limit });
 
   const { filters, setFilter, resetFilters, filtered } = useWarehouseFilters(packages);
@@ -106,6 +93,16 @@ export const WarehousePage = () => {
     status: WarehousePackageStatus;
   } | null>(null);
   const [groupInvoiceMap, setGroupInvoiceMap] = useState<Record<string, string | undefined>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
 
   const handleCreate = async (data: CreatePackageRequest) => {
     await createPackage(data);
@@ -174,9 +171,9 @@ export const WarehousePage = () => {
     });
   };
 
-  const handleCreateGroup = async (invoiceNumber?: string) => {
+  const handleCreateGroup = async () => {
     try {
-      const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
+      const group = await createPackageGroup({ packageIds: selectedPackageIds });
       setGroupInvoiceMap((prev) => ({
         ...prev,
         [group.id]: group.invoiceNumber,
@@ -262,7 +259,7 @@ export const WarehousePage = () => {
           <Button
             variant="outline"
             onClick={() => setCreateGroupOpen(true)}
-            disabled={selectedPackageIds.length < 1 || isCreatingPackageGroup}
+            disabled={selectedPackageIds.length < 2 || isCreatingPackageGroup}
           >
             Agrupar paquetes seleccionados ({selectedPackageIds.length})
           </Button>
@@ -367,13 +364,32 @@ export const WarehousePage = () => {
                   ? groupItems[0].status
                   : null;
                 const samplePkg = groupItems[0];
+                const isExpanded = isUngrouped || expandedGroups.has(groupKey);
+
+                const groupRowBgClass = groupStatus
+                  ? STATUS_CONFIG[groupStatus].rowBgClass
+                  : "bg-muted/40 hover:bg-muted/40";
 
                 return (
                   <Fragment key={groupKey}>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableRow
+                      className={cn(
+                        groupRowBgClass,
+                        !isUngrouped && "cursor-pointer",
+                      )}
+                      onClick={!isUngrouped ? () => toggleGroup(groupKey) : undefined}
+                    >
                       <TableCell colSpan={8}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-sm">
+                            {!isUngrouped && (
+                              <ChevronDown
+                                className={cn(
+                                  "size-4 text-muted-foreground transition-transform",
+                                  !isExpanded && "-rotate-90",
+                                )}
+                              />
+                            )}
                             <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
                               {isUngrouped
                                 ? "Sin grupo"
@@ -389,8 +405,11 @@ export const WarehousePage = () => {
                               {samplePkg.customer.name} · {samplePkg.store.name}
                             </span>
                             {groupStatus && (
-                              <Badge variant={STATUS_VARIANT[groupStatus]} className="text-xs">
-                                {STATUS_LABELS[groupStatus]}
+                              <Badge
+                                variant="outline"
+                                className={cn("text-xs", STATUS_CONFIG[groupStatus].badgeClass)}
+                              >
+                                {STATUS_CONFIG[groupStatus].label}
                               </Badge>
                             )}
                           </div>
@@ -400,7 +419,7 @@ export const WarehousePage = () => {
                               size="sm"
                               variant="ghost"
                               className="h-7 px-2"
-                              onClick={() => openEditGroup(samplePkg)}
+                              onClick={(e) => { e.stopPropagation(); openEditGroup(samplePkg); }}
                             >
                               Editar grupo
                             </Button>
@@ -409,7 +428,7 @@ export const WarehousePage = () => {
                       </TableCell>
                     </TableRow>
 
-                    {groupItems.map((p) => (
+                    {isExpanded && groupItems.map((p) => (
                       <TableRow
                         key={p.id}
                         className="cursor-pointer"
@@ -456,11 +475,11 @@ export const WarehousePage = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {(Object.keys(STATUS_LABELS) as WarehousePackageStatus[]).map((s) => (
+                                {warehousePackageStatuses.map((s) => (
                                   <SelectItem key={s} value={s} className="text-xs">
-                                    <Badge variant={STATUS_VARIANT[s]} className="text-xs">
-                                      {STATUS_LABELS[s]}
-                                    </Badge>
+                                    <span className={cn("font-medium", STATUS_CONFIG[s].textClass)}>
+                                      {STATUS_CONFIG[s].label}
+                                    </span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -519,10 +538,12 @@ export const WarehousePage = () => {
         onDelete={handleDeleteFromDetail}
         onDownloadReceipt={downloadReceipt}
         isDownloadingReceipt={isDownloadingReceipt}
+        onPrintReceipt={printReceipt}
+        isPrintingReceipt={isPrintingReceipt}
       />
       <CreatePackageGroupDialog
         open={createGroupOpen}
-        selectedCount={selectedPackageIds.length}
+        selectedPackages={packages.filter((p) => selectedPackageIds.includes(p.id))}
         isLoading={isCreatingPackageGroup}
         onClose={() => setCreateGroupOpen(false)}
         onConfirm={handleCreateGroup}

@@ -146,9 +146,9 @@ export const CustomerWarehousePage = () => {
     setSelectedPackageIds([]);
   };
 
-  const handleCreateGroup = async (invoiceNumber?: string) => {
+  const handleCreateGroup = async () => {
     try {
-      const group = await createPackageGroup({ packageIds: selectedPackageIds, invoiceNumber });
+      const group = await createPackageGroup({ packageIds: selectedPackageIds });
       setGroupInvoiceMap((prev) => ({ ...prev, [group.id]: group.invoiceNumber }));
       setCreateGroupOpen(false);
       exitSelectionMode();
@@ -521,7 +521,7 @@ export const CustomerWarehousePage = () => {
       />
       <CreatePackageGroupDialog
         open={createGroupOpen}
-        selectedCount={selectedPackageIds.length}
+        selectedPackages={packages.filter((p) => selectedPackageIds.includes(p.id))}
         isLoading={isCreatingPackageGroup}
         onClose={() => setCreateGroupOpen(false)}
         onConfirm={handleCreateGroup}

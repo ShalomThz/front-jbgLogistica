@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -13,25 +14,44 @@ interface UseOrdersOptions {
   page?: number;
   limit?: number;
   enabled?: boolean;
-  filters?: unknown[];
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useOrders = ({ page = 1, limit = 10, enabled = true, filters = [] }: UseOrdersOptions = {}) => {
+export const useOrders = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const offset =
-    page !== undefined && limit !== undefined ? (page - 1) * limit : undefined;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
-  if (user && !orderPolicies.listAll(user)) {
-    filters.push({ field: "store.id", filterOperator: "=", value: user.storeId });
-  }
+  const effectiveFilters: Filter[] =
+    user && !orderPolicies.listAll(user)
+      ? [...filters, { field: "store.id", filterOperator: "=", value: user.storeId }]
+      : filters;
 
-  const { data, isLoading, error, refetch } =
-    useQuery<FindOrdersResponse>({
-      queryKey: [...ORDERS_QUERY_KEY, { page, limit, storeId: user?.storeId }],
-      queryFn: () => orderRepository.find({ filters, limit, offset }),
-      enabled,
-    });
+  const { data, isLoading, error, refetch } = useQuery<FindOrdersResponse>({
+    queryKey: [
+      ...ORDERS_QUERY_KEY,
+      { page, limit, search, filters: effectiveFilters, order, storeId: user?.storeId },
+    ],
+    queryFn: () =>
+      orderRepository.find({
+        filters: effectiveFilters,
+        search,
+        order,
+        limit,
+        offset,
+      }),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
 
   const orders = data?.data ?? [];
   const pagination = data?.pagination ?? null;

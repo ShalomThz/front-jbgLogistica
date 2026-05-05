@@ -81,7 +81,10 @@ export {
 export { AnimatedThemeToggler } from './animated-theme-toggler'
 export { BackgroundGradientAnimation } from './background-gradient-animation'
 export { Globe } from './globe'
+export { DottedMap } from './dotted-map'
+export type { DottedMapProps, Marker as DottedMapMarker } from './dotted-map'
 export { EncryptedText } from './encrypted-text'
+export { MorphingText } from './morphing-text'
 export { LoaderOne, LoaderTwo, LoaderThree, LoaderFour, LoaderFive } from './loader'
 export {
   Table,

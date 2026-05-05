@@ -8,32 +8,42 @@ import type {
 
 export const STATUS_CONFIG: Record<
   WarehousePackageStatus,
-  { label: string; badgeClass: string; borderClass: string }
+  { label: string; badgeClass: string; borderClass: string; rowBgClass: string; textClass: string }
 > = {
   WAREHOUSE: {
     label: "En bodega",
-    badgeClass: "bg-blue-100 text-blue-700 border border-blue-200",
-    borderClass: "border-l-blue-400",
+    badgeClass: "bg-gray-100 text-gray-700 border border-gray-200",
+    borderClass: "border-l-gray-400",
+    rowBgClass: "bg-gray-50 hover:bg-gray-100",
+    textClass: "text-gray-700",
   },
   AUTHORIZED: {
     label: "Autorizado",
     badgeClass: "bg-blue-100 text-blue-700 border border-blue-200",
     borderClass: "border-l-blue-400",
+    rowBgClass: "bg-blue-50 hover:bg-blue-100",
+    textClass: "text-blue-700",
   },
   SHIPPED: {
     label: "Enviado",
-    badgeClass: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-    borderClass: "border-l-emerald-400",
+    badgeClass: "bg-amber-100 text-amber-700 border border-amber-200",
+    borderClass: "border-l-amber-400",
+    rowBgClass: "bg-amber-50 hover:bg-amber-100",
+    textClass: "text-amber-700",
   },
   DELIVERED: {
     label: "Entregado",
     badgeClass: "bg-emerald-100 text-emerald-700 border border-emerald-200",
     borderClass: "border-l-emerald-400",
+    rowBgClass: "bg-emerald-50 hover:bg-emerald-100",
+    textClass: "text-emerald-700",
   },
   REPACKED: {
     label: "Reempacado",
-    badgeClass: "bg-gray-100 text-gray-600 border border-gray-200",
-    borderClass: "border-l-gray-300",
+    badgeClass: "bg-violet-100 text-violet-700 border border-violet-200",
+    borderClass: "border-l-violet-400",
+    rowBgClass: "bg-violet-50 hover:bg-violet-100",
+    textClass: "text-violet-700",
   },
 };
 

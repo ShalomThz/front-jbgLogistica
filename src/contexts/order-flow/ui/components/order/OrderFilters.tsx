@@ -5,11 +5,9 @@ import {
   Clock,
   CreditCard,
   Filter,
-  Package,
   RefreshCw,
   Search,
   Store,
-  Truck,
 } from "lucide-react";
 import {
   Button,
@@ -32,21 +30,21 @@ import {
   SheetTrigger,
 } from "@contexts/shared/shadcn";
 import type {
-  OrderFiltersState,
-  OrderFilterOptions,
+  OrderTableFilterState,
+  OrderTableFilterOptions,
   DatePreset,
   NameSort,
   DateSort,
-} from "../../hooks/orders/useOrderFilters";
+} from "../../hooks/orders/useOrderTableFilters";
 
 interface OrderFiltersProps {
-  filters: OrderFiltersState;
-  options: OrderFilterOptions;
+  filters: OrderTableFilterState;
+  options: OrderTableFilterOptions;
   limit: number;
   limitOptions: number[];
-  setFilter: <K extends keyof OrderFiltersState>(
+  setFilter: <K extends keyof OrderTableFilterState>(
     key: K,
-    value: OrderFiltersState[K],
+    value: OrderTableFilterState[K],
   ) => void;
   onLimitChange: (value: number) => void;
   onResetAndRefetch: () => void;
@@ -109,13 +107,11 @@ function DatePickerField({
   );
 }
 
-const countActiveFilters = (filters: OrderFiltersState): number =>
+const countActiveFilters = (filters: OrderTableFilterState): number =>
   [
     filters.statusFilter,
     filters.storeFilter,
     filters.paymentFilter,
-    filters.customerFilter,
-    filters.providerFilter,
     filters.boxFilter,
     filters.dateFilter,
   ].filter((v) => v !== "all").length +
@@ -302,56 +298,6 @@ export const OrderFilters = ({
                   <SelectItem value="all">Todos los pagos</SelectItem>
                   <SelectItem value="paid">Pagado</SelectItem>
                   <SelectItem value="unpaid">No pagado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Package className="size-3.5" />
-                Cliente
-              </Label>
-              <Select
-                value={filters.customerFilter}
-                onValueChange={(v) => setFilter("customerFilter", v)}
-              >
-                <SelectTrigger
-                  className={activeSelectClass(filters.customerFilter)}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los clientes</SelectItem>
-                  {options.customers.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Truck className="size-3.5" />
-                Proveedor
-              </Label>
-              <Select
-                value={filters.providerFilter}
-                onValueChange={(v) => setFilter("providerFilter", v)}
-              >
-                <SelectTrigger
-                  className={activeSelectClass(filters.providerFilter)}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los proveedores</SelectItem>
-                  {options.providers.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Users } from "lucide-react";
@@ -22,8 +22,13 @@ import { shipmentRepository } from "@contexts/shipping/infrastructure/services/s
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
-import { useOrderFilters } from "../hooks/orders/useOrderFilters";
+import {
+  applyClientNameSort,
+  useOrderTableFilters,
+  type OrderTableFilterOptions,
+} from "../hooks/orders/useOrderTableFilters";
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
@@ -39,6 +44,12 @@ export const OrdersPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
 
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useOrderTableFilters();
+
+  useEffect(() => {
+    setPage(1);
+  }, [criteria]);
+
   const {
     orders,
     pagination,
@@ -47,27 +58,36 @@ export const OrdersPage = () => {
     refetch,
     deleteOrder,
     isDeleting,
-  } = useOrders({ page, limit });
-
-  const { orders: allOrders } = useOrders();
+  } = useOrders({ page, limit, ...criteria });
 
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
   const { boxes: allBoxes } = useBoxes();
+  const { stores: allStores } = useStores({ page: 1, limit: 100 });
 
-  const boxNames = useMemo(
-    () => new Map(allBoxes.map((b) => [b.id, b.name])),
-    [allBoxes],
+  const options = useMemo<OrderTableFilterOptions>(
+    () => ({
+      stores: allStores
+        .map((s) => ({ id: s.id, name: s.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      boxes: allBoxes
+        .map((b) => ({ id: b.id, name: b.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }),
+    [allStores, allBoxes],
   );
 
-  const { filters, setFilter, resetFilters, filtered, options } = useOrderFilters(orders, { boxNames });
+  const visibleOrders = useMemo(
+    () => applyClientNameSort(orders, filters.nameSort),
+    [orders, filters.nameSort],
+  );
 
   const {
     selectedOrderId,
     selectedOrder,
     handleOpenDialog,
     handleCloseDialog,
-  } = useOrderDialog(orders);
+  } = useOrderDialog(visibleOrders);
 
   const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
@@ -192,7 +212,7 @@ export const OrdersPage = () => {
       />
 
       <OrdersTable
-        orders={filtered}
+        orders={visibleOrders}
         canEdit={canEdit}
         canEditHQ={canEditHQ}
         canDelete={canDelete}
@@ -240,7 +260,7 @@ export const OrdersPage = () => {
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <OrderReport orders={allOrders} boxNames={boxNames} />
+          <OrderReport />
         </TabsContent>
       </Tabs>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Button,
     Dialog,
@@ -48,6 +48,10 @@ export function EditPackageGroupDialog({
 }: Props) {
     const [invoiceNumber, setInvoiceNumber] = useState("");
     const [status, setStatus] = useState<WarehousePackageStatus>(initialStatus);
+
+    useEffect(() => {
+        if (open) setStatus(initialStatus);
+    }, [open, initialStatus]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
