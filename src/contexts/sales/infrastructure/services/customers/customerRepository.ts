@@ -1,6 +1,7 @@
 import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
 import { customerSchema, type CustomerPrimitives, type CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 import { findCustomersResponseSchema, type FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
+import type { FindCustomersRequest } from "../../../application/customer/FindCustomersRequest";
 
 export type UpdateCustomerRequest = Partial<CreateCustomerRequest>;
 
@@ -13,11 +14,11 @@ export interface ProvisionAccessResponse {
 
 export const customerRepository = {
   find: async (
-    request: { filters: unknown[]; limit?: number; offset?: number },
+    request: Partial<FindCustomersRequest> = {},
   ): Promise<FindCustomersResponsePrimitives> => {
     const data = await httpClient<unknown>("/customer/find", {
       method: "POST",
-      body: JSON.stringify({ ...request }),
+      body: JSON.stringify({ filters: [], ...request }),
     });
     return findCustomersResponseSchema.parse(data);
   },

@@ -10,9 +10,9 @@ interface UseStoresOptions {
   limit?: number;
 }
 
-export const useStores = ({ page = 1, limit = 10 }: UseStoresOptions = {}) => {
+export const useStores = ({ page = 1, limit }: UseStoresOptions = {}) => {
   const queryClient = useQueryClient();
-  const offset = (page - 1) * limit;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
   const {
     data,
@@ -26,7 +26,8 @@ export const useStores = ({ page = 1, limit = 10 }: UseStoresOptions = {}) => {
 
   const stores = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateStoreRequestPrimitives) => storeRepository.create(data),

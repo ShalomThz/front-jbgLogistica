@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, MapPin, KeyRound } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
@@ -21,7 +21,8 @@ import { CustomerPortalAccessDialog } from "../components/customer/CustomerPorta
 import { CustomerFilters } from "../components/customer/CustomerFilters";
 import { exportCustomers } from "@contexts/sales/domain/services/exportCustomers";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
-import { useCustomerFilters } from "../hooks/useCustomerFilters";
+import { useCustomerFilters, type CustomerFilterOptions } from "../hooks/useCustomerFilters";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
@@ -32,6 +33,14 @@ const LIMIT_OPTIONS = [10, 20, 50];
 export const CustomersPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
+
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useCustomerFilters();
+
+  const [prevCriteria, setPrevCriteria] = useState(criteria);
+  if (criteria !== prevCriteria) {
+    setPrevCriteria(criteria);
+    setPage(1);
+  }
 
   const {
     customers,
@@ -47,12 +56,24 @@ export const CustomersPage = () => {
     isDeleting,
     provisionAccess,
     isProvisioning,
-  } = useCustomers({ page, limit });
+  } = useCustomers({ page, limit, ...criteria });
 
   const { user } = useAuth();
   const canListAll = user ? customerPolicies.listAll(user) : false;
+  const { stores: allStores } = useStores();
 
-  const { filters, setFilter, resetFilters, filtered, options } = useCustomerFilters(customers);
+  const options = useMemo<CustomerFilterOptions>(() => {
+    const citySet = new Set<string>();
+    for (const c of customers) {
+      if (c.address.city) citySet.add(c.address.city);
+    }
+    return {
+      stores: allStores
+        .map((s) => ({ id: s.id, name: s.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      cities: Array.from(citySet).sort(),
+    };
+  }, [allStores, customers]);
 
   const [selected, setSelected] = useState<CustomerListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -124,7 +145,7 @@ export const CustomersPage = () => {
           setPage(1);
         }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportCustomers(filtered)}
+        onExport={() => exportCustomers(customers)}
       />
 
       <div className="rounded-lg border">
@@ -141,14 +162,14 @@ export const CustomersPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {customers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   No se encontraron clientes.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((c) => (
+              customers.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c)}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.store.name}</TableCell>

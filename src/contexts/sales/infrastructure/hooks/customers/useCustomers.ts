@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import type { FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
 import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
 import { customerRepository, type UpdateCustomerRequest } from "../../services/customers/customerRepository";
@@ -10,22 +11,28 @@ const CUSTOMERS_QUERY_KEY = ["customers"];
 interface UseCustomersOptions {
   page?: number;
   limit?: number;
-  search?: string;
   enabled?: boolean;
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true }: UseCustomersOptions = {}) => {
+export const useCustomers = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseCustomersOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const offset = (page - 1) * limit;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
-  const filters: unknown[] = [];
-  if (search) {
-    filters.push({ field: "name", filterOperator: "LIKE", value: search });
-  }
-  if (user && !customerPolicies.listAll(user)) {
-    filters.push({ field: "store.id", filterOperator: "=", value: user.storeId });
-  }
+  const effectiveFilters: Filter[] =
+    user && !customerPolicies.listAll(user)
+      ? [...filters, { field: "store.id", filterOperator: "=", value: user.storeId }]
+      : filters;
 
   const {
     data,
@@ -33,14 +40,26 @@ export const useCustomers = ({ page = 1, limit = 10, search = "", enabled = true
     error,
     refetch,
   } = useQuery<FindCustomersResponsePrimitives>({
-    queryKey: [...CUSTOMERS_QUERY_KEY, { page, limit, search, storeId: user?.storeId }],
-    queryFn: () => customerRepository.find({ filters, limit, offset }),
-    enabled: enabled && (search === "" || search.length >= 2),
+    queryKey: [
+      ...CUSTOMERS_QUERY_KEY,
+      { page, limit, search, filters: effectiveFilters, order, storeId: user?.storeId },
+    ],
+    queryFn: () =>
+      customerRepository.find({
+        filters: effectiveFilters,
+        search,
+        order,
+        limit,
+        offset,
+      }),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 
   const customers = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateCustomerRequest) => customerRepository.create(data),
