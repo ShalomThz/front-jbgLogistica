@@ -39,7 +39,7 @@ export const NewHQOrderPage = (props: NewHQOrderPageProps = {}) => {
 const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber, storeId }: NewHQOrderPageProps) => {
   const navigate = useNavigate();
   const flow = useHQOrderFlow({ initialValues, orderId, storeId });
-  const { stores } = useStores({});
+  const { stores } = useStores();
 
   const handleCreateBlank = useCallback(() => {
     navigate("/orders/new/hq", { replace: true, state: null });

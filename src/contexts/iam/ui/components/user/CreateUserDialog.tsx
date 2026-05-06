@@ -75,7 +75,7 @@ function getDefaults(): FormValues {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function CreateUserDialog({ open, onClose, onSave, isLoading }: Props) {
-  const { stores, isLoading: isLoadingStores } = useStores({ page: 1, limit: 100 });
+  const { stores, isLoading: isLoadingStores } = useStores();
   const [showPassword, setShowPassword] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
 

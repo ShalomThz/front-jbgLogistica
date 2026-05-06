@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { storeRepository, type UpdateStoreRequest } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import { USERS_QUERY_KEY } from "../users/useUsers";
 
 const STORES_QUERY_KEY = ["stores"];
@@ -9,9 +10,20 @@ const STORES_QUERY_KEY = ["stores"];
 interface UseStoresOptions {
   page?: number;
   limit?: number;
+  enabled?: boolean;
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useStores = ({ page = 1, limit }: UseStoresOptions = {}) => {
+export const useStores = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseStoresOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
@@ -21,8 +33,11 @@ export const useStores = ({ page = 1, limit }: UseStoresOptions = {}) => {
     error,
     refetch,
   } = useQuery<FindStoresResponsePrimitives>({
-    queryKey: [...STORES_QUERY_KEY, { page, limit }],
-    queryFn: () => storeRepository.find({ filters: [], limit, offset }),
+    queryKey: [...STORES_QUERY_KEY, { page, limit, search, filters, order }],
+    queryFn: () =>
+      storeRepository.find({ filters, search, order, limit, offset }),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 
   const stores = data?.data ?? [];

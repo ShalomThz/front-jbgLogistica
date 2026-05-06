@@ -33,7 +33,7 @@ export const NewPartnerOrderPage = (props: NewPartnerOrderPageProps = {}) => {
 const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }: NewPartnerOrderPageProps) => {
   const navigate = useNavigate();
   const flow = usePartnerOrderFlow({ initialValues, orderId, storeId });
-  const { stores } = useStores({ limit: 100 });
+  const { stores } = useStores();
 
   const handleCreateBlank = useCallback(() => {
     navigate("/orders/new/partner", { replace: true, state: null });

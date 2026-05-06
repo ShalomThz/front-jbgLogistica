@@ -68,7 +68,7 @@ export const CustomerFormDialog = ({
   customer,
   isLoading,
 }: Props) => {
-  const { stores } = useStores({ page: 1, limit: 100 });
+  const { stores } = useStores();
 
   const form = useForm<FormInput>({
     resolver: zodResolver(createCustomerRequestSchema),

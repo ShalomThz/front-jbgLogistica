@@ -63,7 +63,7 @@ export const OrdersPage = () => {
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
   const { boxes: allBoxes } = useBoxes();
-  const { stores: allStores } = useStores({ page: 1, limit: 100 });
+  const { stores: allStores } = useStores();
 
   const options = useMemo<OrderTableFilterOptions>(
     () => ({

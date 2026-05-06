@@ -130,7 +130,7 @@ export const OrderReport = () => {
 
   const { orders: reportOrders } = useOrders(reportCriteria);
 
-  const { stores: allStores } = useStores({ page: 1, limit: 100 });
+  const { stores: allStores } = useStores();
   const { boxes: allBoxes } = useBoxes();
 
   const options = useMemo(

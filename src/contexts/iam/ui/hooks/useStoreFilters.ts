@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 
 export type NameSort = "none" | "asc" | "desc";
 export type DateSort = "none" | "asc" | "desc";
@@ -10,52 +11,62 @@ export interface StoreFiltersState {
   dateSort: DateSort;
 }
 
-export function useStoreFilters(stores: StoreListViewPrimitives[]) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [nameSort, setNameSort] = useState<NameSort>("none");
-  const [dateSort, setDateSort] = useState<DateSort>("desc");
+export interface StoreCriteria {
+  search?: string;
+  filters: Filter[];
+  order?: { field: string; direction: Direction };
+}
 
-  const filtered = useMemo(() => {
-    const result = stores.filter(
-      (s) =>
-        searchQuery === "" ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+const initialState: StoreFiltersState = {
+  searchQuery: "",
+  nameSort: "none",
+  dateSort: "desc",
+};
 
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
+export function useStoreFilters() {
+  const [state, setState] = useState<StoreFiltersState>(initialState);
+  const debouncedSearch = useDebouncedValue(state.searchQuery, 300);
 
-    return result;
-  }, [stores, searchQuery, nameSort, dateSort]);
-
-  const filters: StoreFiltersState = {
-    searchQuery,
-    nameSort,
-    dateSort,
+  const setFilter = <K extends keyof StoreFiltersState>(
+    key: K,
+    value: StoreFiltersState[K],
+  ) => {
+    setState((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "nameSort" && value !== "none") next.dateSort = "none";
+      if (key === "dateSort" && value !== "none") next.nameSort = "none";
+      return next;
+    });
   };
 
-  const setFilter = <K extends keyof StoreFiltersState>(key: K, value: StoreFiltersState[K]) => {
-    if (key === "nameSort" && value !== "none") setDateSort("none");
-    if (key === "dateSort" && value !== "none") setNameSort("none");
+  const reset = () => setState(initialState);
 
-    const map = {
-      searchQuery: setSearchQuery,
-      nameSort: setNameSort,
-      dateSort: setDateSort,
-    } as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (map[key] as any)(value);
+  const criteria = useMemo<StoreCriteria>(
+    () => toCriteria(state, debouncedSearch),
+    [state, debouncedSearch],
+  );
+
+  return { state, setFilter, reset, criteria };
+}
+
+function toCriteria(
+  state: StoreFiltersState,
+  debouncedSearch: string,
+): StoreCriteria {
+  const order =
+    state.nameSort === "asc"
+      ? { field: "name", direction: "ASC" as const }
+      : state.nameSort === "desc"
+        ? { field: "name", direction: "DESC" as const }
+        : state.dateSort === "asc"
+          ? { field: "createdAt", direction: "ASC" as const }
+          : state.dateSort === "desc"
+            ? { field: "createdAt", direction: "DESC" as const }
+            : undefined;
+
+  return {
+    search: debouncedSearch.trim() || undefined,
+    filters: [],
+    order,
   };
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setNameSort("none");
-    setDateSort("desc");
-  };
-
-  return { filters, setFilter, resetFilters, filtered };
 }

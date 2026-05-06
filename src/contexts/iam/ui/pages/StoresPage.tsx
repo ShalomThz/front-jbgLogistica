@@ -26,6 +26,14 @@ export const StoresPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useStoreFilters();
+
+  const [prevCriteria, setPrevCriteria] = useState(criteria);
+  if (criteria !== prevCriteria) {
+    setPrevCriteria(criteria);
+    setPage(1);
+  }
+
   const {
     stores,
     pagination,
@@ -38,9 +46,7 @@ export const StoresPage = () => {
     isUpdating,
     deleteStore,
     isDeleting,
-  } = useStores({ page, limit });
-
-  const { filters, setFilter, resetFilters, filtered } = useStoreFilters(stores);
+  } = useStores({ page, limit, ...criteria });
 
   const [selected, setSelected] = useState<StoreListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -105,7 +111,7 @@ export const StoresPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportStores(filtered)}
+        onExport={() => exportStores(stores)}
       />
       <div className="rounded-lg border">
         <Table>
@@ -120,7 +126,7 @@ export const StoresPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {stores.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -130,7 +136,7 @@ export const StoresPage = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((s) => (
+              stores.map((s) => (
                 <TableRow
                   key={s.id}
                   className="cursor-pointer"

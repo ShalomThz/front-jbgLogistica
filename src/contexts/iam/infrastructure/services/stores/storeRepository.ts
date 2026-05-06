@@ -12,11 +12,11 @@ export type UpdateStoreRequest = Partial<CreateStoreRequestPrimitives>;
 
 export const storeRepository = {
   find: async (
-    request: FindStoresRequestPrimitives,
+    request: Partial<FindStoresRequestPrimitives> = {},
   ): Promise<FindStoresResponsePrimitives> => {
     const data = await httpClient<unknown>("/store/find", {
       method: "POST",
-      body: JSON.stringify(request),
+      body: JSON.stringify({ filters: [], ...request }),
     });
     return findStoresResponseSchema.parse(data);
   },
