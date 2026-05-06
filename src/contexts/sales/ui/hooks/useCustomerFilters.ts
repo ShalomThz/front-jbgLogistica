@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 
 export type DatePreset = "all" | "today" | "week" | "month" | "3months" | "custom";
 export type NameSort = "none" | "asc" | "desc";
@@ -17,149 +18,131 @@ export interface CustomerFiltersState {
   dateTo: string;
 }
 
+export interface CustomerCriteria {
+  search?: string;
+  filters: Filter[];
+  order?: { field: string; direction: Direction };
+}
+
 export interface CustomerFilterOptions {
   stores: { id: string; name: string }[];
   cities: string[];
 }
 
-export function useCustomerFilters(customers: CustomerListViewPrimitives[]) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [storeFilter, setStoreFilter] = useState("all");
-  const [cityFilter, setCityFilter] = useState("all");
-  const [portalFilter, setPortalFilter] = useState("all");
-  const [nameSort, setNameSort] = useState<NameSort>("none");
-  const [dateSort, setDateSort] = useState<DateSort>("desc");
-  const [dateFilter, setDateFilter] = useState<DatePreset>("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+const initialState: CustomerFiltersState = {
+  searchQuery: "",
+  storeFilter: "all",
+  cityFilter: "all",
+  portalFilter: "all",
+  nameSort: "none",
+  dateSort: "desc",
+  dateFilter: "all",
+  dateFrom: "",
+  dateTo: "",
+};
 
-  const options = useMemo<CustomerFilterOptions>(() => {
-    const storeMap = new Map<string, string>();
-    const citySet = new Set<string>();
+export function useCustomerFilters() {
+  const [state, setState] = useState<CustomerFiltersState>(initialState);
+  const debouncedSearch = useDebouncedValue(state.searchQuery, 300);
 
-    for (const c of customers) {
-      storeMap.set(c.store.id, c.store.name);
-      if (c.address.city) citySet.add(c.address.city);
-    }
-
-    return {
-      stores: Array.from(storeMap, ([id, name]) => ({ id, name })).sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
-      cities: Array.from(citySet).sort(),
-    };
-  }, [customers]);
-
-  const filtered = useMemo(() => {
-    const result = customers.filter((c) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        c.name.toLowerCase().includes(query) ||
-        c.company.toLowerCase().includes(query) ||
-        c.phone.includes(searchQuery) ||
-        c.email.toLowerCase().includes(query);
-
-      const matchesStore = storeFilter === "all" || c.store.id === storeFilter;
-      const matchesCity = cityFilter === "all" || c.address.city === cityFilter;
-      const matchesPortal =
-        portalFilter === "all" ||
-        (portalFilter === "with" && c.user !== null) ||
-        (portalFilter === "without" && c.user === null);
-      const matchesDate = checkDateFilter(c.createdAt, dateFilter, dateFrom, dateTo);
-
-      return matchesSearch && matchesStore && matchesCity && matchesPortal && matchesDate;
+  const setFilter = <K extends keyof CustomerFiltersState>(
+    key: K,
+    value: CustomerFiltersState[K],
+  ) => {
+    setState((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "nameSort" && value !== "none") next.dateSort = "none";
+      if (key === "dateSort" && value !== "none") next.nameSort = "none";
+      return next;
     });
-
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-
-    return result;
-  }, [customers, searchQuery, storeFilter, cityFilter, portalFilter, nameSort, dateSort, dateFilter, dateFrom, dateTo]);
-
-  const filters: CustomerFiltersState = {
-    searchQuery,
-    storeFilter,
-    cityFilter,
-    portalFilter,
-    nameSort,
-    dateSort,
-    dateFilter,
-    dateFrom,
-    dateTo,
   };
 
-  const setFilter = <K extends keyof CustomerFiltersState>(key: K, value: CustomerFiltersState[K]) => {
-    if (key === "nameSort" && value !== "none") setDateSort("none");
-    if (key === "dateSort" && value !== "none") setNameSort("none");
+  const reset = () => setState(initialState);
 
-    const map = {
-      searchQuery: setSearchQuery,
-      storeFilter: setStoreFilter,
-      cityFilter: setCityFilter,
-      portalFilter: setPortalFilter,
-      nameSort: setNameSort,
-      dateSort: setDateSort,
-      dateFilter: setDateFilter,
-      dateFrom: setDateFrom,
-      dateTo: setDateTo,
-    } as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (map[key] as any)(value);
-  };
+  const criteria = useMemo<CustomerCriteria>(
+    () => toCriteria(state, debouncedSearch),
+    [state, debouncedSearch],
+  );
 
-  const resetFilters = () => {
-    setSearchQuery("");
-    setStoreFilter("all");
-    setCityFilter("all");
-    setPortalFilter("all");
-    setNameSort("none");
-    setDateSort("desc");
-    setDateFilter("all");
-    setDateFrom("");
-    setDateTo("");
-  };
-
-  return { filters, setFilter, resetFilters, filtered, options };
+  return { state, setFilter, reset, criteria };
 }
 
-function checkDateFilter(
-  createdAt: string,
+function toCriteria(
+  state: CustomerFiltersState,
+  debouncedSearch: string,
+): CustomerCriteria {
+  const filters: Filter[] = [];
+
+  if (state.storeFilter !== "all") {
+    filters.push({ field: "store.id", filterOperator: "=", value: state.storeFilter });
+  }
+  if (state.cityFilter !== "all") {
+    filters.push({ field: "address.city", filterOperator: "=", value: state.cityFilter });
+  }
+  if (state.portalFilter === "with") {
+    filters.push({ field: "user", filterOperator: "IS_NOT_NULL", value: null });
+  } else if (state.portalFilter === "without") {
+    filters.push({ field: "user", filterOperator: "IS_NULL", value: null });
+  }
+
+  pushDateFilter(filters, state.dateFilter, state.dateFrom, state.dateTo);
+
+  const order =
+    state.nameSort === "asc"
+      ? { field: "name", direction: "ASC" as const }
+      : state.nameSort === "desc"
+        ? { field: "name", direction: "DESC" as const }
+        : state.dateSort === "asc"
+          ? { field: "createdAt", direction: "ASC" as const }
+          : state.dateSort === "desc"
+            ? { field: "createdAt", direction: "DESC" as const }
+            : undefined;
+
+  return {
+    search: debouncedSearch.trim() || undefined,
+    filters,
+    order,
+  };
+}
+
+function pushDateFilter(
+  filters: Filter[],
   preset: DatePreset,
   dateFrom: string,
   dateTo: string,
-): boolean {
-  if (preset === "all") return true;
+) {
+  if (preset === "all") return;
 
-  const date = new Date(createdAt);
-  const now = new Date();
-
-  if (preset === "today") return date.toDateString() === now.toDateString();
-
+  if (preset === "today") {
+    filters.push({ field: "createdAt", filterOperator: "IS_TODAY", value: null });
+    return;
+  }
   if (preset === "week") {
-    const weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return date >= weekAgo;
+    filters.push({ field: "createdAt", filterOperator: "IN_LAST_DAYS", value: 7 });
+    return;
   }
-
   if (preset === "month") {
-    const monthAgo = new Date(now);
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    return date >= monthAgo;
+    filters.push({ field: "createdAt", filterOperator: "IN_LAST_DAYS", value: 30 });
+    return;
   }
-
   if (preset === "3months") {
-    const threeMonthsAgo = new Date(now);
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    return date >= threeMonthsAgo;
+    filters.push({ field: "createdAt", filterOperator: "IN_LAST_DAYS", value: 90 });
+    return;
   }
-
   if (preset === "custom") {
-    if (dateFrom && date < new Date(dateFrom + "T00:00:00")) return false;
-    if (dateTo && date > new Date(dateTo + "T23:59:59")) return false;
+    if (dateFrom) {
+      filters.push({
+        field: "createdAt",
+        filterOperator: "AFTER",
+        value: new Date(dateFrom + "T00:00:00").toISOString(),
+      });
+    }
+    if (dateTo) {
+      filters.push({
+        field: "createdAt",
+        filterOperator: "BEFORE",
+        value: new Date(dateTo + "T23:59:59").toISOString(),
+      });
+    }
   }
-
-  return true;
 }
