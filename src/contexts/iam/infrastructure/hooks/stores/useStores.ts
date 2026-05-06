@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { storeRepository, type UpdateStoreRequest } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
+import { USERS_QUERY_KEY } from "../users/useUsers";
 
 const STORES_QUERY_KEY = ["stores"];
 
@@ -41,6 +42,7 @@ export const useStores = ({ page = 1, limit }: UseStoresOptions = {}) => {
       storeRepository.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: STORES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY });
     },
   });
 
