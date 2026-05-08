@@ -278,14 +278,13 @@ export const OrdersTable = ({
                 </TableCell>
                 <TotalShippingCell financials={order.financials} createdAt={order.createdAt} />
                 <TotalBilledCell financials={order.financials} createdAt={order.createdAt} />
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         <MoreHorizontal className="size-4" />
                       </Button>
