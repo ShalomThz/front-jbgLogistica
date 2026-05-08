@@ -3,6 +3,10 @@ import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxe
 import { boxRepository } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
 import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 import { CustomerPickerCombobox } from "@contexts/sales/ui/components/customer/CustomerPickerCombobox";
+import { CustomerFormDialog } from "@contexts/sales/ui/components/customer/CustomerFormDialog";
+import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
+import type { CreateCustomerRequest } from "@contexts/sales/application/customer/CreateCustomerRequest";
+import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Button,
@@ -22,7 +26,7 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Camera, Eraser, Pencil, Plus, Ruler, Trash2, Truck, User } from "lucide-react";
+import { Box, Camera, Eraser, Pencil, Plus, Ruler, Trash2, Truck, User, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
@@ -90,8 +94,11 @@ type Props = {
 export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props) {
   const { user } = useAuth();
   const { createBox, updateBox } = useBoxes({ enabled: false });
+  const { createCustomer, isCreating: isCreatingCustomer } = useCustomers({ enabled: false });
+  const canCreateCustomer = user ? customerPolicies.create(user) : false;
 
   const [isProcessingBox, setIsProcessingBox] = useState(false);
+  const [customerFormOpen, setCustomerFormOpen] = useState(false);
 
   const {
     register,
@@ -141,6 +148,17 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
   const handleClose = () => {
     onClose();
+  };
+
+  const handleCreateCustomer = async (data: CreateCustomerRequest) => {
+    try {
+      const created = await createCustomer(data);
+      setValue("customerId", created.id, { shouldValidate: true });
+      setCustomerFormOpen(false);
+      toast.success("Cliente creado correctamente");
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleBoxSelect = (index: number, box: BoxPrimitives) => {
@@ -245,6 +263,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
   const isBusy = isLoading || isProcessingBox;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="sm:max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
@@ -260,31 +279,47 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
               <SectionHeader icon={<User className="size-4" />} title="Identificación" />
 
               <FormField label="Cliente *" error={errors.customerId?.message}>
-                <Controller
-                  name="customerId"
-                  control={control}
-                  render={({ field }) => (
-                    <CustomerPickerCombobox
-                      value={field.value || undefined}
-                      onChange={(c) => field.onChange(c.id)}
-                      error={!!errors.customerId}
-                      triggerLabel={(c) => (
-                        <span className="flex items-center gap-2 truncate">
-                          <User className="size-4 shrink-0" />
-                          <span className="truncate">{c.name}</span>
-                          <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
-                        </span>
-                      )}
-                      itemLabel={(c) => (
-                        <span className="flex items-center gap-2 truncate">
-                          <User className="size-4 shrink-0" />
-                          <span className="truncate">{c.name}</span>
-                          <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
-                        </span>
+                <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <Controller
+                      name="customerId"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomerPickerCombobox
+                          value={field.value || undefined}
+                          onChange={(c) => field.onChange(c.id)}
+                          error={!!errors.customerId}
+                          triggerLabel={(c) => (
+                            <span className="flex items-center gap-2 truncate">
+                              <User className="size-4 shrink-0" />
+                              <span className="truncate">{c.name}</span>
+                              <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
+                            </span>
+                          )}
+                          itemLabel={(c) => (
+                            <span className="flex items-center gap-2 truncate">
+                              <User className="size-4 shrink-0" />
+                              <span className="truncate">{c.name}</span>
+                              <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
+                            </span>
+                          )}
+                        />
                       )}
                     />
+                  </div>
+                  {canCreateCustomer && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => setCustomerFormOpen(true)}
+                      title="Crear cliente"
+                    >
+                      <UserPlus className="size-4" />
+                    </Button>
                   )}
-                />
+                </div>
               </FormField>
 
               <FormField label="Factura oficial" error={errors.officialInvoice?.message}>
@@ -489,6 +524,13 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
         </form>
       </DialogContent>
     </Dialog>
+    <CustomerFormDialog
+      open={customerFormOpen}
+      onClose={() => setCustomerFormOpen(false)}
+      onSave={handleCreateCustomer}
+      isLoading={isCreatingCustomer}
+    />
+    </>
   );
 }
 
