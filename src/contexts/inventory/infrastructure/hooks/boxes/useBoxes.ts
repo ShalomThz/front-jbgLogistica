@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { boxRepository, type UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
 import type { CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { FindBoxesResponsePrimitives } from "@contexts/inventory/application/FindBoxesResponse";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 
 const BOXES_QUERY_KEY = ["boxes"];
 
@@ -9,11 +10,21 @@ interface UseBoxesOptions {
   page?: number;
   limit?: number;
   enabled?: boolean;
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useBoxes = ({ page = 1, limit, enabled = true }: UseBoxesOptions = {}) => {
+export const useBoxes = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseBoxesOptions = {}) => {
   const queryClient = useQueryClient();
-  const offset = limit ? (page - 1) * limit : undefined;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
   const {
     data,
@@ -21,14 +32,17 @@ export const useBoxes = ({ page = 1, limit, enabled = true }: UseBoxesOptions = 
     error,
     refetch,
   } = useQuery<FindBoxesResponsePrimitives>({
-    queryKey: [...BOXES_QUERY_KEY, { page, limit }],
-    queryFn: () => boxRepository.find({ filters: [], limit, offset }),
+    queryKey: [...BOXES_QUERY_KEY, { page, limit, search, filters, order }],
+    queryFn: () =>
+      boxRepository.find({ filters, search, order, limit, offset }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 
   const boxes = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination && limit ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateBoxRequestPrimitives) => boxRepository.create(data),

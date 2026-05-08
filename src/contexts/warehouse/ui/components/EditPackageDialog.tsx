@@ -1,12 +1,8 @@
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { boxRepository } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
+import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 import {
   Button,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -15,19 +11,15 @@ import {
   DialogTitle,
   Input,
   Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Camera, Check, ChevronsUpDown, Eraser, Package, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Box, Camera, Eraser, Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -41,6 +33,7 @@ import {
   type UpdatePackageRequest,
   type WarehousePackageStatus,
 } from "../../domain/WarehousePackageSchema";
+import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -108,8 +101,7 @@ type Props = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Props) {
-  const { boxes: inventoryBoxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes();
-  const [boxPopovers, setBoxPopovers] = useState<boolean[]>([]);
+  const { createBox, updateBox } = useBoxes({ enabled: false });
   const [isProcessingBox, setIsProcessingBox] = useState(false);
 
   const {
@@ -127,44 +119,57 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
 
   const { fields, append, remove } = useFieldArray({ control, name: "boxes" });
 
+  const watchedBoxes = watch("boxes");
+  const selectedBoxIdsKey = watchedBoxes
+    .map((b) => b?.boxId)
+    .filter((id): id is string => !!id)
+    .join(",");
+
+  const selectedBoxFilters = useMemo(() => {
+    if (!selectedBoxIdsKey) return [];
+    return [
+      {
+        field: "id",
+        filterOperator: "IN" as const,
+        value: selectedBoxIdsKey.split(","),
+      },
+    ];
+  }, [selectedBoxIdsKey]);
+
+  const { boxes: selectedBoxesLookup } = useBoxes({
+    filters: selectedBoxFilters,
+    enabled: !!selectedBoxIdsKey,
+  });
+
+  const findSelectedBox = (boxId: string | null | undefined) =>
+    boxId ? selectedBoxesLookup.find((b) => b.id === boxId) : undefined;
+
   useEffect(() => {
     if (open) {
-      const defaults = getDefaults(pkg);
-      reset(defaults);
-      setBoxPopovers(defaults.boxes.map(() => false));
+      reset(getDefaults(pkg));
     }
   }, [open, pkg.id, reset]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync boxNames from inventory once loaded
+  // Sync boxNames from lookup once loaded
   useEffect(() => {
-    if (!inventoryBoxes.length) return;
+    if (!selectedBoxesLookup.length) return;
     pkg.boxes.forEach((pkgBox, i) => {
-      const found = inventoryBoxes.find((b) => b.id === pkgBox.boxId);
+      const found = selectedBoxesLookup.find((b) => b.id === pkgBox.boxId);
       if (found) setValue(`boxes.${i}.boxName`, found.name);
     });
-  }, [inventoryBoxes, pkg.boxes, setValue]);
+  }, [selectedBoxesLookup, pkg.boxes, setValue]);
 
   const handleClose = () => {
-    setBoxPopovers([]);
     onClose();
   };
 
-  const setBoxPopover = (index: number, value: boolean) => {
-    setBoxPopovers((prev) => {
-      const next = [...prev];
-      next[index] = value;
-      return next;
-    });
-  };
-
-  const handleBoxSelect = (index: number, box: (typeof inventoryBoxes)[number]) => {
+  const handleBoxSelect = (index: number, box: BoxPrimitives) => {
     setValue(`boxes.${index}.boxId`, box.id, { shouldValidate: true, shouldDirty: true });
     setValue(`boxes.${index}.boxName`, box.name, { shouldDirty: true });
     setValue(`boxes.${index}.dimensions.length`, box.dimensions.length, { shouldValidate: true, shouldDirty: true });
     setValue(`boxes.${index}.dimensions.width`, box.dimensions.width, { shouldValidate: true, shouldDirty: true });
     setValue(`boxes.${index}.dimensions.height`, box.dimensions.height, { shouldValidate: true, shouldDirty: true });
     setValue(`boxes.${index}.dimensions.unit`, box.dimensions.unit as "cm" | "in", { shouldDirty: true });
-    setBoxPopover(index, false);
   };
 
   const handleBoxClear = (index: number) => {
@@ -176,8 +181,18 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
     setValue(`boxes.${index}.dimensions.unit`, "cm", { shouldDirty: true });
   };
 
+  const findBoxByName = async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const result = await boxRepository.find({
+      filters: [{ field: "name", filterOperator: "=", value: trimmed }],
+      limit: 1,
+    });
+    return result.data[0] ?? null;
+  };
+
   const processBoxEntry = async (entry: BoxEntry): Promise<string> => {
-    const selectedBox = inventoryBoxes.find((b) => b.id === entry.boxId);
+    const selectedBox = entry.boxId ? findSelectedBox(entry.boxId) : undefined;
     const nameChanged = !!(selectedBox && entry.boxName && entry.boxName !== selectedBox.name);
     const dimsChanged = !!(selectedBox && (
       entry.dimensions.length !== selectedBox.dimensions.length ||
@@ -200,7 +215,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
       return entry.boxId;
     }
 
-    const existing = inventoryBoxes.find((b) => b.name.toLowerCase() === entry.boxName.toLowerCase());
+    const existing = await findBoxByName(entry.boxName);
     if (existing) {
       toast.success(`Caja "${entry.boxName}" ya existía, vinculada`);
       return existing.id;
@@ -306,10 +321,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
-                append(defaultBox());
-                setBoxPopovers((p) => [...p, false]);
-              }}
+              onClick={() => append(defaultBox())}
             >
               <Plus className="size-3 mr-1" /> Añadir caja
             </Button>
@@ -317,7 +329,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
 
           {fields.map((field, index) => {
             const watchedEntry = watch(`boxes.${index}`);
-            const selectedBox = inventoryBoxes.find((b) => b.id === watchedEntry?.boxId);
+            const selectedBox = findSelectedBox(watchedEntry?.boxId);
             const nameChanged = !!(selectedBox && watchedEntry?.boxName && watchedEntry.boxName !== selectedBox.name);
             const dimsChanged = !!(selectedBox && watchedEntry && (
               watchedEntry.dimensions.length !== selectedBox.dimensions.length ||
@@ -343,10 +355,7 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
                       variant="ghost"
                       size="icon"
                       className="size-6 text-muted-foreground hover:text-destructive"
-                      onClick={() => {
-                        remove(index);
-                        setBoxPopovers((p) => p.filter((_, i) => i !== index));
-                      }}
+                      onClick={() => remove(index)}
                     >
                       <Trash2 className="size-3" />
                     </Button>
@@ -363,44 +372,26 @@ export function EditPackageDialog({ open, onClose, pkg, onSave, isLoading }: Pro
                       </Button>
                     )}
                   </div>
-                  <Popover open={boxPopovers[index]} onOpenChange={(v) => setBoxPopover(index, v)}>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal text-xs h-8">
-                        {isLoadingBoxes ? (
-                          <span className="text-muted-foreground">Cargando...</span>
-                        ) : selectedBox ? (
-                          <span className="flex items-center gap-1.5">
-                            <Box className="size-3" />
-                            {selectedBox.name} — {selectedBox.dimensions.length}×{selectedBox.dimensions.width}×{selectedBox.dimensions.height} {selectedBox.dimensions.unit}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">Buscar caja existente...</span>
-                        )}
-                        <ChevronsUpDown className="ml-2 size-3 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar por nombre..." />
-                        <CommandList>
-                          <CommandEmpty>No se encontraron cajas.</CommandEmpty>
-                          <CommandGroup>
-                            {inventoryBoxes.map((box) => (
-                              <CommandItem key={box.id} value={box.name} onSelect={() => handleBoxSelect(index, box)}>
-                                <Check className={cn("mr-2 size-4", watchedEntry?.boxId === box.id ? "opacity-100" : "opacity-0")} />
-                                <div>
-                                  <div className="font-medium text-sm">{box.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {box.dimensions.length}×{box.dimensions.width}×{box.dimensions.height} {box.dimensions.unit}
-                                  </div>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <BoxPickerCombobox
+                    value={watchedEntry?.boxId ?? undefined}
+                    onChange={(box) => handleBoxSelect(index, box)}
+                    placeholder="Buscar caja existente..."
+                    className="text-xs h-8"
+                    triggerLabel={(b) => (
+                      <span className="flex items-center gap-1.5">
+                        <Box className="size-3" />
+                        {b.name} — {b.dimensions.length}×{b.dimensions.width}×{b.dimensions.height} {b.dimensions.unit}
+                      </span>
+                    )}
+                    itemLabel={(b) => (
+                      <div>
+                        <div className="font-medium text-sm">{b.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {b.dimensions.length}×{b.dimensions.width}×{b.dimensions.height} {b.dimensions.unit}
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
 
                 <FormField label="Nombre de la caja *" error={boxErrors?.boxName?.message}>

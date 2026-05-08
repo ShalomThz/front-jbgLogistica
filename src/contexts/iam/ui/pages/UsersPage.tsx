@@ -40,6 +40,14 @@ export const UsersPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useUserFilters();
+
+  const [prevCriteria, setPrevCriteria] = useState(criteria);
+  if (criteria !== prevCriteria) {
+    setPrevCriteria(criteria);
+    setPage(1);
+  }
+
   const {
     users,
     pagination,
@@ -52,9 +60,7 @@ export const UsersPage = () => {
     isUpdating,
     deleteUser,
     isDeleting,
-  } = useUsers({ page, limit });
-
-  const { filters, setFilter, resetFilters, filtered } = useUserFilters(users);
+  } = useUsers({ page, limit, ...criteria });
 
   const [selected, setSelected] = useState<UserListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -128,7 +134,7 @@ export const UsersPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportUsers(filtered)}
+        onExport={() => exportUsers(users)}
       />
       <div className="rounded-lg border">
         <Table>
@@ -145,7 +151,7 @@ export const UsersPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {users.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -155,7 +161,7 @@ export const UsersPage = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((u) => (
+              users.map((u) => (
                 <TableRow
                   key={u.id}
                   className="cursor-pointer"

@@ -2,13 +2,14 @@ import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/invent
 import { boxSchema } from "@contexts/inventory/domain/schemas/box/Box";
 import type { FindBoxesResponsePrimitives } from "@contexts/inventory/application/FindBoxesResponse";
 import { findBoxesResponseSchema } from "@contexts/inventory/application/FindBoxesResponse";
+import type { FindBoxesRequestPrimitives } from "@contexts/inventory/application/FindBoxesRequest";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 
 export type UpdateBoxRequest = Partial<CreateBoxRequestPrimitives>;
 
 export const boxRepository = {
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number } = {},
+    request: Partial<FindBoxesRequestPrimitives> = {},
   ): Promise<FindBoxesResponsePrimitives> => {
     const data = await httpClient<unknown>("/box/find", {
       method: "POST",

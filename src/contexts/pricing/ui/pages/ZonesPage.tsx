@@ -26,6 +26,14 @@ export const ZonesPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useZoneFilters();
+
+  const [prevCriteria, setPrevCriteria] = useState(criteria);
+  if (criteria !== prevCriteria) {
+    setPrevCriteria(criteria);
+    setPage(1);
+  }
+
   const {
     zones,
     pagination,
@@ -38,9 +46,7 @@ export const ZonesPage = () => {
     isUpdating,
     deleteZone,
     isDeleting,
-  } = useZones({ page, limit });
-
-  const { filters, setFilter, resetFilters, filtered } = useZoneFilters(zones);
+  } = useZones({ page, limit, ...criteria });
 
   const [selected, setSelected] = useState<ZonePrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -105,7 +111,7 @@ export const ZonesPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportZones(filtered)}
+        onExport={() => exportZones(zones)}
       />
       <div className="rounded-lg border">
         <Table>
@@ -118,14 +124,14 @@ export const ZonesPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {zones.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                   No se encontraron zonas.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((z) => (
+              zones.map((z) => (
                 <TableRow key={z.id} className="cursor-pointer" onClick={() => setSelected(z)}>
                   <TableCell className="font-medium">{z.name}</TableCell>
                   <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">

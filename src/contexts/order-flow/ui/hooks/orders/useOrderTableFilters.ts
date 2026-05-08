@@ -32,11 +32,6 @@ export interface OrderCriteria {
   order?: { field: string; direction: Direction };
 }
 
-export interface OrderTableFilterOptions {
-  stores: { id: string; name: string }[];
-  boxes: { id: string; name: string }[];
-}
-
 const initialState: OrderTableFilterState = {
   searchQuery: "",
   statusFilter: "all",

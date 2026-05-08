@@ -2,7 +2,7 @@ import {
   registerUserRequestSchema,
   type RegisterUserRequestPrimitives,
 } from "@contexts/iam/application/user/RegisterUserRequest";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { StorePickerCombobox } from "@contexts/iam/ui/components/store/StorePickerCombobox";
 import { FormField } from "@contexts/iam/ui/components/user/FormField";
 import { PasswordToggle } from "@contexts/iam/ui/components/user/PasswordToggle";
 import {
@@ -14,17 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator
 } from "@contexts/shared/shadcn";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IdCard, Search, Store, User } from "lucide-react";
+import { IdCard, User } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 const createDriverUserFormSchema = registerUserRequestSchema.extend({
@@ -65,9 +60,7 @@ export function CreateDriverUserDialog({
   onSave,
   isLoading,
 }: Props) {
-  const { stores, isLoading: isLoadingStores } = useStores();
   const [showPassword, setShowPassword] = useState(false);
-  const [storeSearch, setStoreSearch] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createDriverUserFormSchema),
@@ -86,18 +79,7 @@ export function CreateDriverUserDialog({
     if (open) reset(getDefaults());
   }, [open, reset]);
 
-  const watchedStoreId = useWatch({ control, name: "storeId" });
-  const selectedStore = stores.find((store) => store.id === watchedStoreId);
-
-  const filteredStores = stores.filter(
-    (store) =>
-      storeSearch === "" ||
-      store.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
-      store.id.toLowerCase().includes(storeSearch.toLowerCase()),
-  );
-
   const handleClose = () => {
-    setStoreSearch("");
     setShowPassword(false);
     onClose();
   };
@@ -194,52 +176,11 @@ export function CreateDriverUserDialog({
                     name="storeId"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger aria-invalid={!!errors.storeId} className="w-full">
-                          <SelectValue placeholder="Seleccionar tienda">
-                            {selectedStore ? (
-                              <span className="flex items-center gap-2 truncate">
-                                <Store className="size-4 shrink-0" />
-                                <span className="truncate">{selectedStore.name}</span>
-                              </span>
-                            ) : (
-                              "Seleccionar tienda"
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <div className="p-2">
-                            <div className="relative">
-                              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                              <Input
-                                placeholder="Buscar tienda..."
-                                value={storeSearch}
-                                onChange={(event) => setStoreSearch(event.target.value)}
-                                className="pl-9"
-                              />
-                            </div>
-                          </div>
-                          {isLoadingStores ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              Cargando tiendas...
-                            </div>
-                          ) : filteredStores.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              No se encontraron tiendas
-                            </div>
-                          ) : (
-                            filteredStores.map((store) => (
-                              <SelectItem key={store.id} value={store.id}>
-                                <span className="flex items-center gap-2 truncate">
-                                  <Store className="size-4 shrink-0" />
-                                  <span className="truncate">{store.name}</span>
-                                  <span className="text-xs text-muted-foreground shrink-0">({store.id})</span>
-                                </span>
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <StorePickerCombobox
+                        value={field.value}
+                        onChange={(s) => field.onChange(s.id)}
+                        error={!!errors.storeId}
+                      />
                     )}
                   />
                 </FormField>

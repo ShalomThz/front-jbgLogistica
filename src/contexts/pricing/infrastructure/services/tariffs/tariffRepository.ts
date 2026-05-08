@@ -2,6 +2,7 @@ import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/T
 import { tariffSchema } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
 import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTariffsResponse";
+import type { FindTariffsRequestPrimitives } from "@contexts/pricing/application/FindTariffsRequest";
 import type { FindTariffPriceRequest } from "@contexts/pricing/application/FindTariffPriceRequest";
 import { moneySchema, type MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { httpClient } from "@contexts/shared/infrastructure/http";
@@ -11,7 +12,7 @@ export type UpdateTariffRequest = CreateTariffRequest;
 
 export const tariffRepository = {
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number } = {},
+    request: Partial<FindTariffsRequestPrimitives> = {},
   ): Promise<FindTariffsResponsePrimitives> => {
     const data = await httpClient<unknown>("/tariff/find", {
       method: "POST",

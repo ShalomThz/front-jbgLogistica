@@ -10,11 +10,11 @@ import type { EditUserRequest } from "../../../application/user/EditUserRequest"
 
 export const userRepository = {
   find: async (
-    request: FindUsersRequestPrimitives,
+    request: Partial<FindUsersRequestPrimitives> = {},
   ): Promise<FindUsersResponsePrimitives> => {
     const data = await httpClient<unknown>("/user/find", {
       method: "POST",
-      body: JSON.stringify(request),
+      body: JSON.stringify({ filters: [], ...request }),
     });
     return findUsersResponseSchema.parse(data);
   },

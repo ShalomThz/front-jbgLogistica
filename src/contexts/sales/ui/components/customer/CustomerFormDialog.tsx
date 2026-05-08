@@ -12,11 +12,6 @@ import {
   Button,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@contexts/shared/shadcn";
 import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
@@ -24,7 +19,7 @@ import {
   createCustomerRequestSchema,
   type CreateCustomerRequest,
 } from "@contexts/sales/application/customer/CreateCustomerRequest";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { StorePickerCombobox } from "@contexts/iam/ui/components/store/StorePickerCombobox";
 
 type FormInput = z.input<typeof createCustomerRequestSchema>;
 
@@ -68,7 +63,6 @@ export const CustomerFormDialog = ({
   customer,
   isLoading,
 }: Props) => {
-  const { stores } = useStores();
 
   const form = useForm<FormInput>({
     resolver: zodResolver(createCustomerRequestSchema),
@@ -157,16 +151,11 @@ export const CustomerFormDialog = ({
                 name="registeredByStoreId"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger aria-invalid={!!errors.registeredByStoreId}>
-                      <SelectValue placeholder="Seleccionar tienda" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stores.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <StorePickerCombobox
+                    value={field.value}
+                    onChange={(s) => field.onChange(s.id)}
+                    error={!!errors.registeredByStoreId}
+                  />
                 )}
               />
               {errors.registeredByStoreId && (

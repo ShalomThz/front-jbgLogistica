@@ -33,6 +33,7 @@ import { BoxDeleteDialog } from "../components/box/BoxDeleteDialog";
 import { BoxStockDialog } from "../components/box/BoxStockDialog";
 import { exportBoxes } from "@contexts/inventory/domain/services/exportBoxes";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { useBoxFilters } from "../hooks/useBoxFilters";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 
@@ -44,6 +45,15 @@ export const BoxPage = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
+
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useBoxFilters();
+  const { searchQuery, unitFilter, nameSort, dateSort } = filters;
+
+  const [prevCriteria, setPrevCriteria] = useState(criteria);
+  if (criteria !== prevCriteria) {
+    setPrevCriteria(criteria);
+    setPage(1);
+  }
 
   const {
     boxes,
@@ -57,27 +67,8 @@ export const BoxPage = () => {
     isUpdating,
     deleteBox,
     isDeleting,
-  } = useBoxes({ page, limit });
+  } = useBoxes({ page, limit, ...criteria });
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [unitFilter, setUnitFilter] = useState<string>("all");
-  const [nameSort, setNameSort] = useState<"none" | "asc" | "desc">("none");
-  const [dateSort, setDateSort] = useState<"none" | "asc" | "desc">("desc");
-
-  const handleNameSort = (v: "none" | "asc" | "desc") => {
-    setNameSort(v);
-    if (v !== "none") setDateSort("none");
-  };
-  const handleDateSort = (v: "none" | "asc" | "desc") => {
-    setDateSort(v);
-    if (v !== "none") setNameSort("none");
-  };
-  const resetFilters = () => {
-    setSearchQuery("");
-    setUnitFilter("all");
-    setNameSort("none");
-    setDateSort("desc");
-  };
   const activeFilterCount =
     (unitFilter !== "all" ? 1 : 0) +
     (nameSort !== "none" ? 1 : 0) +
@@ -89,18 +80,6 @@ export const BoxPage = () => {
   const [deleteBoxDialog, setDeleteBoxDialog] = useState<BoxPrimitives | null>(null);
   const [stockBox, setStockBox] = useState<BoxPrimitives | null>(null);
   const [stockOperation, setStockOperation] = useState<StockOperation | null>(null);
-  const filtered = (() => {
-    const result = boxes.filter((b) => {
-      const matchesSearch = searchQuery === "" || b.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesUnit = unitFilter === "all" || b.dimensions.unit === unitFilter;
-      return matchesSearch && matchesUnit;
-    });
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
-    return result;
-  })();
 
   const handleCreate = async (data: CreateBoxRequestPrimitives) => {
     try {
@@ -196,7 +175,7 @@ export const BoxPage = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nombre..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+              <Input placeholder="Buscar por nombre..." value={searchQuery} onChange={(e) => setFilter("searchQuery", e.target.value)} className="pl-9" />
             </div>
             <Select
               value={String(limit)}
@@ -239,7 +218,7 @@ export const BoxPage = () => {
                       <ArrowDownAZ className="size-3.5" />
                       Ordenar por nombre
                     </Label>
-                    <Select value={nameSort} onValueChange={(v) => handleNameSort(v as "none" | "asc" | "desc")}>
+                    <Select value={nameSort} onValueChange={(v) => setFilter("nameSort", v as "none" | "asc" | "desc")}>
                       <SelectTrigger className={nameSort !== "none" ? "ring-2 ring-primary/50" : ""}>
                         <SelectValue />
                       </SelectTrigger>
@@ -255,7 +234,7 @@ export const BoxPage = () => {
                       <Clock className="size-3.5" />
                       Ordenar por fecha
                     </Label>
-                    <Select value={dateSort} onValueChange={(v) => handleDateSort(v as "none" | "asc" | "desc")}>
+                    <Select value={dateSort} onValueChange={(v) => setFilter("dateSort", v as "none" | "asc" | "desc")}>
                       <SelectTrigger className={dateSort !== "none" ? "ring-2 ring-primary/50" : ""}>
                         <SelectValue />
                       </SelectTrigger>
@@ -272,7 +251,7 @@ export const BoxPage = () => {
                       <Filter className="size-3.5" />
                       Unidad
                     </Label>
-                    <Select value={unitFilter} onValueChange={setUnitFilter}>
+                    <Select value={unitFilter} onValueChange={(v) => setFilter("unitFilter", v)}>
                       <SelectTrigger className={unitFilter !== "all" ? "ring-2 ring-primary/50" : ""}>
                         <SelectValue />
                       </SelectTrigger>
@@ -287,7 +266,7 @@ export const BoxPage = () => {
                     <RefreshCw className="size-4" />
                     Limpiar filtros y actualizar
                   </Button>
-                  <Button variant="outline" className="w-full gap-2" onClick={() => exportBoxes(filtered)}>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => exportBoxes(boxes)}>
                     <Download className="size-4" />
                     Exportar XLSX
                   </Button>
@@ -309,7 +288,7 @@ export const BoxPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {boxes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-48 text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -319,7 +298,7 @@ export const BoxPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((b) => (
+                  boxes.map((b) => (
                     <TableRow key={b.id} className={`cursor-pointer${b.stock === 0 ? " bg-destructive/5 hover:bg-destructive/10" : ""}`} onClick={() => setSelected(b)}>
                       <TableCell className="font-medium">{b.name}</TableCell>
                       <TableCell>{b.dimensions.length} x {b.dimensions.width} x {b.dimensions.height}</TableCell>

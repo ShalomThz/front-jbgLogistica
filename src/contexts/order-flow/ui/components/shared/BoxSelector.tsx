@@ -1,30 +1,21 @@
 import {
   Button,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Input,
   Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
 } from "@contexts/shared/shadcn";
-import { Check, ChevronsUpDown, Eraser, Loader2, PackageX, Pencil, Plus } from "lucide-react";
-import { useState } from "react";
+import { Eraser, PackageX, Pencil, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
-import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 import { BoxStockDialog } from "@contexts/inventory/ui/components/box/BoxStockDialog";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 export function BoxSelector() {
   const { setValue, control, formState: { errors } } = useFormContext<BaseOrderFormValues>();
-  const [boxOpen, setBoxOpen] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
-  const { boxes, isLoading: isLoadingBoxes, updateBox, isUpdating } = useBoxes();
+  const { updateBox, isUpdating } = useBoxes({ enabled: false });
 
   const boxId = useWatch<BaseOrderFormValues, "package.boxId">({ name: "package.boxId" });
   const packageType = useWatch<BaseOrderFormValues, "package.packageType">({ name: "package.packageType" });
@@ -34,7 +25,20 @@ export function BoxSelector() {
   const dimensionUnit = useWatch<BaseOrderFormValues, "package.dimensionUnit">({ name: "package.dimensionUnit" });
   const ownership = useWatch<BaseOrderFormValues, "package.ownership">({ name: "package.ownership" });
 
-  const selectedBox = boxes.find((b) => b.id === boxId);
+  const selectedFilters = useMemo(
+    () =>
+      boxId
+        ? [{ field: "id", filterOperator: "=" as const, value: boxId }]
+        : [],
+    [boxId],
+  );
+
+  const { boxes: selectedLookup } = useBoxes({
+    filters: selectedFilters,
+    enabled: !!boxId,
+  });
+  const selectedBox = selectedLookup[0] ?? null;
+
   const isStoreBox = ownership === "STORE";
   const outOfStock = isStoreBox && selectedBox?.stock === 0;
 
@@ -64,6 +68,39 @@ export function BoxSelector() {
     setValue("package.dimensionUnit", "cm");
   };
 
+  const handleSelectBox = (box: BoxPrimitives) => {
+    setValue("package.boxId", box.id, { shouldValidate: true });
+    setValue("package.packageType", box.name);
+    setValue("package.length", box.dimensions.length.toString());
+    setValue("package.width", box.dimensions.width.toString());
+    setValue("package.height", box.dimensions.height.toString());
+    setValue("package.dimensionUnit", box.dimensions.unit);
+  };
+
+  const triggerLabel = (b: BoxPrimitives) => (
+    <span className="flex items-center gap-2">
+      {b.name} — {b.dimensions.length}x{b.dimensions.width}x{b.dimensions.height} {b.dimensions.unit}
+      {isStoreBox && b.stock === 0 && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
+          <PackageX className="size-3" />
+          Sin stock
+        </span>
+      )}
+    </span>
+  );
+
+  const itemLabel = (b: BoxPrimitives) => (
+    <div>
+      <div className="font-medium">{b.name}</div>
+      <div className="text-xs text-muted-foreground">
+        {b.dimensions.length}x{b.dimensions.width}x{b.dimensions.height} {b.dimensions.unit} ·{" "}
+        <span className={isStoreBox && b.stock === 0 ? "text-destructive font-medium" : ""}>
+          Stock: {b.stock}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -80,77 +117,14 @@ export function BoxSelector() {
           </Button>
         )}
       </div>
-      <Popover open={boxOpen} onOpenChange={setBoxOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={boxOpen}
-            className="w-full justify-between font-normal"
-          >
-            {isLoadingBoxes ? (
-              <span className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Cargando cajas...
-              </span>
-            ) : selectedBox ? (
-              <span className="flex items-center gap-2">
-                {selectedBox.name} — {selectedBox.dimensions.length}x{selectedBox.dimensions.width}x{selectedBox.dimensions.height} {selectedBox.dimensions.unit}
-                {outOfStock && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
-                    <PackageX className="size-3" />
-                    Sin stock
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">Buscar caja...</span>
-            )}
-            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Buscar por nombre..." />
-            <CommandList>
-              <CommandEmpty>No se encontraron cajas.</CommandEmpty>
-              <CommandGroup>
-                {boxes.map((box) => (
-                  <CommandItem
-                    key={box.id}
-                    value={box.name}
-                    onSelect={() => {
-                      setValue("package.boxId", box.id, { shouldValidate: true });
-                      setValue("package.packageType", box.name);
-                      setValue("package.length", box.dimensions.length.toString());
-                      setValue("package.width", box.dimensions.width.toString());
-                      setValue("package.height", box.dimensions.height.toString());
-                      setValue("package.dimensionUnit", box.dimensions.unit);
-                      setBoxOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 size-4",
-                        boxId === box.id ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    <div>
-                      <div className="font-medium">{box.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {box.dimensions.length}x{box.dimensions.width}x{box.dimensions.height} {box.dimensions.unit} ·{" "}
-                        <span className={isStoreBox && box.stock === 0 ? "text-destructive font-medium" : ""}>
-                          Stock: {box.stock}
-                        </span>
-                      </div>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <BoxPickerCombobox
+        value={boxId ?? undefined}
+        onChange={handleSelectBox}
+        placeholder="Buscar caja..."
+        error={!!errors.package?.boxId}
+        triggerLabel={triggerLabel}
+        itemLabel={itemLabel}
+      />
       {errors.package?.boxId && <p className="text-sm text-destructive">{errors.package.boxId.message}</p>}
 
       {outOfStock && (
@@ -194,7 +168,7 @@ export function BoxSelector() {
       )}
 
       <BoxStockDialog
-        box={selectedBox ?? null}
+        box={selectedBox}
         operation="add"
         open={stockDialogOpen}
         onClose={() => setStockDialogOpen(false)}

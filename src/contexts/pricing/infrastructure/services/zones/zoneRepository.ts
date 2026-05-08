@@ -2,6 +2,7 @@ import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone"
 import { zoneSchema } from "@contexts/pricing/domain/schemas/zone/Zone";
 import type { FindZonesResponsePrimitives } from "@contexts/pricing/application/FindZonesResponse";
 import { findZonesResponseSchema } from "@contexts/pricing/application/FindZonesResponse";
+import type { FindZonesRequestPrimitives } from "@contexts/pricing/application/FindZonesRequest";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 
 type CreateZoneRequest = Omit<ZonePrimitives, "id" | "createdAt" | "updatedAt">;
@@ -9,7 +10,7 @@ export type UpdateZoneRequest = Partial<CreateZoneRequest>;
 
 export const zoneRepository = {
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number } = {},
+    request: Partial<FindZonesRequestPrimitives> = {},
   ): Promise<FindZonesResponsePrimitives> => {
     const data = await httpClient<unknown>("/zone/find", {
       method: "POST",

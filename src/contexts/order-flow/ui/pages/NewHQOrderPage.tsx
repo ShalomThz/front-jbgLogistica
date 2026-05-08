@@ -4,7 +4,6 @@ import { FormProvider } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
 import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { HQContactStep } from "../components/hq/contact/HQContactStep";
 import { HQPackageStep } from "../components/hq/package/HQPackageStep";
 import { RateStep } from "../components/hq/rate/RateStep";
@@ -39,7 +38,6 @@ export const NewHQOrderPage = (props: NewHQOrderPageProps = {}) => {
 const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCostBreakdown, storeName, partnerOrderNumber, storeId }: NewHQOrderPageProps) => {
   const navigate = useNavigate();
   const flow = useHQOrderFlow({ initialValues, orderId, storeId });
-  const { stores } = useStores();
 
   const handleCreateBlank = useCallback(() => {
     navigate("/orders/new/hq", { replace: true, state: null });
@@ -96,7 +94,6 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
         {flow.step === "contact" && (
           <HQContactStep
             {...(flow.canSelectStore && {
-              stores,
               selectedStoreId: flow.selectedStoreId,
               onStoreChange: flow.setSelectedStoreId,
             })}

@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zoneRepository, type UpdateZoneRequest } from "@contexts/pricing/infrastructure/services/zones/zoneRepository";
 import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 import type { FindZonesResponsePrimitives } from "@contexts/pricing/application/FindZonesResponse";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 
 const ZONES_QUERY_KEY = ["zones"];
 
@@ -10,11 +11,22 @@ type CreateZoneRequest = Omit<ZonePrimitives, "id" | "createdAt" | "updatedAt">;
 interface UseZonesOptions {
   page?: number;
   limit?: number;
+  enabled?: boolean;
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useZones = ({ page = 1, limit = 10 }: UseZonesOptions = {}) => {
+export const useZones = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseZonesOptions = {}) => {
   const queryClient = useQueryClient();
-  const offset = (page - 1) * limit;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
   const {
     data,
@@ -22,13 +34,17 @@ export const useZones = ({ page = 1, limit = 10 }: UseZonesOptions = {}) => {
     error,
     refetch,
   } = useQuery<FindZonesResponsePrimitives>({
-    queryKey: [...ZONES_QUERY_KEY, { page, limit }],
-    queryFn: () => zoneRepository.find({ filters: [], limit, offset }),
+    queryKey: [...ZONES_QUERY_KEY, { page, limit, search, filters, order }],
+    queryFn: () =>
+      zoneRepository.find({ filters, search, order, limit, offset }),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 
   const zones = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateZoneRequest) => zoneRepository.create(data),

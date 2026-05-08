@@ -94,7 +94,7 @@ export const DriversPage = () => {
     updateDriver,
     isUpdating,
   } = useDrivers({ filters: [], page, limit: LIMIT });
-  const { createUser, isCreating } = useUsers({ page: 1, limit: 10 });
+  const { createUser, isCreating } = useUsers({ enabled: false });
 
   const availableCount = drivers.filter((d) => d.status === "AVAILABLE").length;
   const onRouteCount = drivers.filter((d) => d.status === "ON_ROUTE").length;

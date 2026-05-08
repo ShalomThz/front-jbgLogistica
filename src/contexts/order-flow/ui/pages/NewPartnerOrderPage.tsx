@@ -2,7 +2,7 @@ import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft, CheckCircle2, FilePlus2, UserPlus } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { usePartnerOrderFlow } from "../hooks/partner/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/partner/contact/PartnerContactStep";
@@ -33,7 +33,19 @@ export const NewPartnerOrderPage = (props: NewPartnerOrderPageProps = {}) => {
 const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }: NewPartnerOrderPageProps) => {
   const navigate = useNavigate();
   const flow = usePartnerOrderFlow({ initialValues, orderId, storeId });
-  const { stores } = useStores();
+
+  const selectedStoreFilters = useMemo(
+    () =>
+      flow.selectedStoreId && !storeName
+        ? [{ field: "id", filterOperator: "=" as const, value: flow.selectedStoreId }]
+        : [],
+    [flow.selectedStoreId, storeName],
+  );
+
+  const { stores: selectedStoreLookup } = useStores({
+    filters: selectedStoreFilters,
+    enabled: !!flow.selectedStoreId && !storeName,
+  });
 
   const handleCreateBlank = useCallback(() => {
     navigate("/orders/new/partner", { replace: true, state: null });
@@ -53,7 +65,7 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
 
   const title = (() => {
     const action = flow.isEditing ? "Editar Orden" : "Nueva Orden";
-    const name = storeName ?? stores?.find(s => s.id === flow.selectedStoreId)?.name;
+    const name = storeName ?? selectedStoreLookup[0]?.name;
     if (name) return `${action} — ${name}`;
     return `${action} Partner`;
   })();
@@ -88,7 +100,6 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
         {flow.step === "contact" && (
           <PartnerContactStep
             {...(flow.canSelectStore && {
-              stores,
               selectedStoreId: flow.selectedStoreId,
               onStoreChange: flow.setSelectedStoreId,
             })}

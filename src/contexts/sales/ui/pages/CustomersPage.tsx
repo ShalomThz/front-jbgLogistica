@@ -22,7 +22,6 @@ import { CustomerFilters } from "../components/customer/CustomerFilters";
 import { exportCustomers } from "@contexts/sales/domain/services/exportCustomers";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
 import { useCustomerFilters, type CustomerFilterOptions } from "../hooks/useCustomerFilters";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
@@ -60,7 +59,6 @@ export const CustomersPage = () => {
 
   const { user } = useAuth();
   const canListAll = user ? customerPolicies.listAll(user) : false;
-  const { stores: allStores } = useStores();
 
   const options = useMemo<CustomerFilterOptions>(() => {
     const citySet = new Set<string>();
@@ -68,12 +66,9 @@ export const CustomersPage = () => {
       if (c.address.city) citySet.add(c.address.city);
     }
     return {
-      stores: allStores
-        .map((s) => ({ id: s.id, name: s.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
       cities: Array.from(citySet).sort(),
     };
-  }, [allStores, customers]);
+  }, [customers]);
 
   const [selected, setSelected] = useState<CustomerListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);

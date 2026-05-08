@@ -4,25 +4,15 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Input,
   Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   Separator,
   Switch,
 } from "@contexts/shared/shadcn";
-import { ChevronsUpDown, Check, UserPlus, Eraser } from "lucide-react";
+import { UserPlus, Eraser } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch, Controller, type FieldErrors } from "react-hook-form";
-import { cn } from "@contexts/shared/shadcn/lib/utils";
-import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
+import { CustomerPickerCombobox } from "@contexts/sales/ui/components/customer/CustomerPickerCombobox";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
@@ -46,18 +36,9 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
   const form = useFormContext<BaseOrderFormValues>();
   const { register, setValue, control, formState: { errors } } = form;
 
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [addressFormKey, setAddressFormKey] = useState(0);
 
-  const { customers: savedContacts, isLoading: isLoadingContacts } = useCustomers({
-    search,
-    enabled: open && (search === "" || search.length >= 2),
-  });
-
   const contactId = useWatch({ control, name: `${prefix}.id` as "sender.id" | "recipient.id" });
-
-  const selectedContact = savedContacts.find((c) => c.id === contactId);
 
   const handleClear = () => {
     setValue(`${prefix}.id`, null);
@@ -74,7 +55,6 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.address.reference`, "");
     setValue(`${prefix}.address.geolocation`, { latitude: 0, longitude: 0, placeId: null });
     setValue(`${prefix}.save`, false);
-    setSearch("");
     setAddressFormKey((k) => k + 1);
   };
 
@@ -92,7 +72,6 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.address.city`, c.address.city);
     setValue(`${prefix}.address.reference`, c.address.reference);
     setValue(`${prefix}.address.geolocation`, c.address.geolocation ?? { latitude: 0, longitude: 0, placeId: null });
-    setOpen(false);
     setAddressFormKey((k) => k + 1);
   };
 
@@ -123,60 +102,11 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
           <Label className="text-sm font-semibold text-muted-foreground">
             {title}s guardados
           </Label>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between font-normal"
-              >
-                {selectedContact
-                  ? <span className="truncate">{selectedContact.name}</span>
-                  : <span className="text-muted-foreground">Buscar {title.toLowerCase()}...</span>
-                }
-                <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-              <Command shouldFilter={false}>
-                <CommandInput
-                  placeholder={`Buscar por nombre o teléfono...`}
-                  onValueChange={setSearch}
-                />
-                <CommandList>
-                  {isLoadingContacts && (
-                    <div className="py-4 text-center text-sm text-muted-foreground">
-                      Buscando...
-                    </div>
-                  )}
-                  {!isLoadingContacts && (
-                    <CommandEmpty>Sin resultados</CommandEmpty>
-                  )}
-                  <CommandGroup>
-                    {savedContacts.map((c) => (
-                      <CommandItem
-                        key={c.id}
-                        value={c.id}
-                        onSelect={() => handleSelectSaved(c)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 size-4",
-                            contactId === c.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{c.name}</div>
-                          <div className="text-xs text-muted-foreground">{c.phone} · {c.address.city}</div>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <CustomerPickerCombobox
+            value={contactId ?? undefined}
+            onChange={handleSelectSaved}
+            placeholder={`Buscar ${title.toLowerCase()}...`}
+          />
         </div>
 
         <Separator />

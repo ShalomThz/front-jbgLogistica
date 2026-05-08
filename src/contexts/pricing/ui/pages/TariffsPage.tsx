@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
@@ -16,7 +16,7 @@ import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
 import { TariffFilters } from "../components/tariff/TariffFilters";
 import { exportTariffs } from "@contexts/pricing/domain/services/exportTariffs";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
-import { useTariffFilters } from "../hooks/useTariffFilters";
+import { applyClientNameSort, useTariffFilters, type TariffFilterOptions } from "../hooks/useTariffFilters";
 import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
 import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
@@ -32,6 +32,14 @@ export const TariffsPage = () => {
     countries.map((c) => [c.code, c.name]),
   );
 
+  const { state: filters, setFilter, reset: resetFilters, criteria } = useTariffFilters();
+
+  const [prevCriteria, setPrevCriteria] = useState(criteria);
+  if (criteria !== prevCriteria) {
+    setPrevCriteria(criteria);
+    setPage(1);
+  }
+
   const {
     tariffs,
     pagination,
@@ -44,9 +52,26 @@ export const TariffsPage = () => {
     isUpdating,
     deleteTariff,
     isDeleting,
-  } = useTariffs({ page, limit });
+  } = useTariffs({ page, limit, ...criteria });
 
-  const { filters, setFilter, resetFilters, filtered, options } = useTariffFilters(tariffs, { countryNames });
+  const options = useMemo<TariffFilterOptions>(() => {
+    const countrySet = new Map<string, string>();
+    for (const t of tariffs) {
+      if (!countrySet.has(t.destinationCountry)) {
+        countrySet.set(t.destinationCountry, countryNames[t.destinationCountry] ?? t.destinationCountry);
+      }
+    }
+    return {
+      countries: Array.from(countrySet, ([code, name]) => ({ code, name })).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    };
+  }, [tariffs, countryNames]);
+
+  const visibleTariffs = useMemo(
+    () => applyClientNameSort(tariffs, filters.nameSort),
+    [tariffs, filters.nameSort],
+  );
 
   const [selected, setSelected] = useState<TariffListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -112,7 +137,7 @@ export const TariffsPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportTariffs(filtered)}
+        onExport={() => exportTariffs(visibleTariffs)}
       />
       <div className="rounded-lg border">
         <Table>
@@ -126,14 +151,14 @@ export const TariffsPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {visibleTariffs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                   No se encontraron tarifas.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((t) => (
+              visibleTariffs.map((t) => (
                 <TableRow key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
                   <TableCell className="font-medium">{t.zone.name}</TableCell>
                   <TableCell>{countryNames[t.destinationCountry] ?? t.destinationCountry}</TableCell>

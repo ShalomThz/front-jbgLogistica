@@ -18,13 +18,13 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Phone, Search, Shield, Store, User } from "lucide-react";
+import { Phone, Shield, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { editUserRequestSchema, type EditUserRequest } from "../../../application/user/EditUserRequest";
 import type { UserListViewPrimitives } from "../../../domain/schemas/user/User";
 import { type Permission } from "../../../domain/schemas/user/UserRole";
-import { useStores } from "../../../infrastructure/hooks/stores/useStores";
+import { StorePickerCombobox } from "../store/StorePickerCombobox";
 import { ROLE_PRESETS } from "./constants";
 import { FormField } from "./FormField";
 import { PasswordToggle } from "./PasswordToggle";
@@ -55,9 +55,7 @@ function getDefaults(user: UserListViewPrimitives): EditUserRequest {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props) {
-  const { stores, isLoading: isLoadingStores } = useStores();
   const [showPassword, setShowPassword] = useState(false);
-  const [storeSearch, setStoreSearch] = useState("");
 
   const {
     register,
@@ -76,22 +74,12 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
   }, [open, user.id, reset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {
-    setStoreSearch("");
     setShowPassword(false);
     onClose();
   };
 
   const watchedRole = useWatch({ control, name: "role" });
-  const watchedStoreId = useWatch({ control, name: "storeId" });
   const watchedPermissions: Permission[] = watchedRole?.permissions ?? [];
-  const selectedStore = stores.find((s) => s.id === watchedStoreId);
-
-  const filteredStores = stores.filter(
-    (store) =>
-      storeSearch === "" ||
-      store.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
-      store.id.toLowerCase().includes(storeSearch.toLowerCase())
-  );
 
   const handlePresetChange = (name: string) => {
     const preset = ROLE_PRESETS.find((r) => r.name === name);
@@ -204,52 +192,11 @@ export function EditUserDialog({ open, onClose, user, onSave, isLoading }: Props
                   name="storeId"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger aria-invalid={!!errors.storeId}>
-                        <SelectValue placeholder="Seleccionar tienda">
-                          {selectedStore ? (
-                            <span className="flex items-center gap-2">
-                              <Store className="size-4" />
-                              {selectedStore.name}
-                            </span>
-                          ) : (
-                            "Seleccionar tienda"
-                          )}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Buscar tienda..."
-                              value={storeSearch}
-                              onChange={(e) => setStoreSearch(e.target.value)}
-                              className="pl-9"
-                            />
-                          </div>
-                        </div>
-                        {isLoadingStores ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            Cargando tiendas...
-                          </div>
-                        ) : filteredStores.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            No se encontraron tiendas
-                          </div>
-                        ) : (
-                          filteredStores.map((store) => (
-                            <SelectItem key={store.id} value={store.id}>
-                              <span className="flex items-center gap-2">
-                                <Store className="size-4" />
-                                <span>{store.name}</span>
-                                <span className="text-xs text-muted-foreground">({store.id})</span>
-                              </span>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <StorePickerCombobox
+                      value={field.value}
+                      onChange={(s) => field.onChange(s.id)}
+                      error={!!errors.storeId}
+                    />
                   )}
                 />
               </FormField>

@@ -21,13 +21,10 @@ import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objec
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import {
   applyClientNameSort,
   useOrderTableFilters,
-  type OrderTableFilterOptions,
 } from "../hooks/orders/useOrderTableFilters";
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
@@ -62,20 +59,6 @@ export const OrdersPage = () => {
 
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { user } = useAuth();
-  const { boxes: allBoxes } = useBoxes();
-  const { stores: allStores } = useStores();
-
-  const options = useMemo<OrderTableFilterOptions>(
-    () => ({
-      stores: allStores
-        .map((s) => ({ id: s.id, name: s.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-      boxes: allBoxes
-        .map((b) => ({ id: b.id, name: b.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    }),
-    [allStores, allBoxes],
-  );
 
   const visibleOrders = useMemo(
     () => applyClientNameSort(orders, filters.nameSort),
@@ -200,7 +183,6 @@ export const OrdersPage = () => {
         <TabsContent value="orders" className="space-y-4">
       <OrderFilters
         filters={filters}
-        options={options}
         limit={limit}
         limitOptions={LIMIT_OPTIONS}
         setFilter={setFilter}

@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import {
   ArrowDownAZ,
-  Box as BoxIcon,
   CalendarDays,
   Clock,
   CreditCard,
@@ -47,8 +46,8 @@ import {
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderStatuses } from "@contexts/sales/domain/schemas/order/OrderStatuses";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
-import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
-import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
+import { BoxFilterCombobox } from "@contexts/inventory/ui/components/box/BoxFilterCombobox";
 import {
   useOrderTableFilters,
   type DatePreset,
@@ -129,21 +128,6 @@ export const OrderReport = () => {
   }, [criteria, filters.statusFilter]);
 
   const { orders: reportOrders } = useOrders(reportCriteria);
-
-  const { stores: allStores } = useStores();
-  const { boxes: allBoxes } = useBoxes();
-
-  const options = useMemo(
-    () => ({
-      stores: allStores
-        .map((s) => ({ id: s.id, name: s.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-      boxes: allBoxes
-        .map((b) => ({ id: b.id, name: b.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    }),
-    [allStores, allBoxes],
-  );
 
   const reportStatuses = useMemo(
     () => orderStatuses.filter((s) => s !== "DRAFT"),
@@ -263,25 +247,11 @@ export const OrderReport = () => {
           <RefreshCw className="size-4" />
           Limpiar
         </Button>
-        <Select
+        <StoreFilterCombobox
           value={filters.storeFilter}
-          onValueChange={(v) => setFilter("storeFilter", v)}
-        >
-          <SelectTrigger
-            className={`h-10 w-full gap-2 sm:w-[220px] ${activeRing(filters.storeFilter)}`}
-          >
-            <Store className="size-4 text-muted-foreground" />
-            <SelectValue placeholder="Tienda" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las tiendas</SelectItem>
-            {options.stores.map((store) => (
-              <SelectItem key={store.id} value={store.id}>
-                {store.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => setFilter("storeFilter", v)}
+          className="h-10 w-full sm:w-[220px]"
+        />
         <Button
           disabled={reportOrders.length === 0}
           onClick={() => exportOrderReport(reportOrders, stats)}
@@ -398,25 +368,11 @@ export const OrderReport = () => {
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Caja
               </Label>
-              <Select
+              <BoxFilterCombobox
                 value={filters.boxFilter}
-                onValueChange={(v) => setFilter("boxFilter", v)}
-              >
-                <SelectTrigger
-                  className={`h-10 gap-2 transition-colors ${activeRing(filters.boxFilter)}`}
-                >
-                  <BoxIcon className="size-4 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las cajas</SelectItem>
-                  {options.boxes.map((box) => (
-                    <SelectItem key={box.id} value={box.id}>
-                      {box.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => setFilter("boxFilter", v)}
+                className="h-10"
+              />
             </div>
 
             <div className="space-y-1">

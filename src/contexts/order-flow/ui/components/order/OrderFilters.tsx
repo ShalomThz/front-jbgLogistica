@@ -9,6 +9,7 @@ import {
   Search,
   Store,
 } from "lucide-react";
+import { useState } from "react";
 import {
   Button,
   Calendar,
@@ -31,15 +32,15 @@ import {
 } from "@contexts/shared/shadcn";
 import type {
   OrderTableFilterState,
-  OrderTableFilterOptions,
   DatePreset,
   NameSort,
   DateSort,
 } from "../../hooks/orders/useOrderTableFilters";
+import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
+import { BoxFilterCombobox } from "@contexts/inventory/ui/components/box/BoxFilterCombobox";
 
 interface OrderFiltersProps {
   filters: OrderTableFilterState;
-  options: OrderTableFilterOptions;
   limit: number;
   limitOptions: number[];
   setFilter: <K extends keyof OrderTableFilterState>(
@@ -126,7 +127,6 @@ const activeSortClass = (value: string) =>
 
 export const OrderFilters = ({
   filters,
-  options,
   limit,
   limitOptions,
   setFilter,
@@ -134,6 +134,7 @@ export const OrderFilters = ({
   onResetAndRefetch,
 }: OrderFiltersProps) => {
   const activeCount = countActiveFilters(filters);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -162,7 +163,7 @@ export const OrderFilters = ({
         </SelectContent>
       </Select>
 
-      <Sheet>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
           <Button
             variant={activeCount > 0 ? "secondary" : "outline"}
@@ -260,24 +261,11 @@ export const OrderFilters = ({
                 <Store className="size-3.5" />
                 Tienda
               </Label>
-              <Select
+              <StoreFilterCombobox
                 value={filters.storeFilter}
-                onValueChange={(v) => setFilter("storeFilter", v)}
-              >
-                <SelectTrigger
-                  className={activeSelectClass(filters.storeFilter)}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las tiendas</SelectItem>
-                  {options.stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => setFilter("storeFilter", v)}
+                enabled={sheetOpen}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -307,22 +295,11 @@ export const OrderFilters = ({
                 <Box className="size-3.5" />
                 Caja
               </Label>
-              <Select
+              <BoxFilterCombobox
                 value={filters.boxFilter}
-                onValueChange={(v) => setFilter("boxFilter", v)}
-              >
-                <SelectTrigger className={activeSelectClass(filters.boxFilter)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las cajas</SelectItem>
-                  {options.boxes.map((box) => (
-                    <SelectItem key={box.id} value={box.id}>
-                      {box.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => setFilter("boxFilter", v)}
+                enabled={sheetOpen}
+              />
             </div>
 
             <div className="space-y-1.5">

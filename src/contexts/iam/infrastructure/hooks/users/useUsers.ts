@@ -1,19 +1,39 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userRepository } from "@contexts/iam/infrastructure/services/users/userRepository";
 import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/user/RegisterUserRequest";
 import type { FindUsersResponsePrimitives } from "@contexts/iam/application/user/FindUsersResponse";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import type { EditUserRequest } from "../../../application/user/EditUserRequest";
 
 export const USERS_QUERY_KEY = ["users"];
 
+const EMPLOYEE_FILTER: Filter = {
+  field: "type",
+  filterOperator: "=",
+  value: "EMPLOYEE",
+};
+
 interface UseUsersOptions {
   page?: number;
   limit?: number;
+  enabled?: boolean;
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useUsers = ({ page = 1, limit = 10 }: UseUsersOptions = {}) => {
+export const useUsers = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseUsersOptions = {}) => {
   const queryClient = useQueryClient();
-  const offset = (page - 1) * limit;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
+
+  const effectiveFilters: Filter[] = [EMPLOYEE_FILTER, ...filters];
 
   const {
     data,
@@ -21,15 +41,26 @@ export const useUsers = ({ page = 1, limit = 10 }: UseUsersOptions = {}) => {
     error,
     refetch,
   } = useQuery<FindUsersResponsePrimitives>({
-    queryKey: [...USERS_QUERY_KEY, { page, limit }],
-    queryFn: () => userRepository.find({ filters: [
-      {field: "type", filterOperator: "=", value: "EMPLOYEE"}
-    ], limit, offset }),
+    queryKey: [
+      ...USERS_QUERY_KEY,
+      { page, limit, search, filters: effectiveFilters, order },
+    ],
+    queryFn: () =>
+      userRepository.find({
+        filters: effectiveFilters,
+        search,
+        order,
+        limit,
+        offset,
+      }),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 
   const users = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: RegisterUserRequestPrimitives) => userRepository.create(data),

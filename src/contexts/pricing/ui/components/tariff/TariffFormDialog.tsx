@@ -25,7 +25,7 @@ import {
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
-import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
+import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 
 type FormInput = z.input<typeof createTariffRequestSchema>;
 
@@ -64,8 +64,7 @@ interface Props {
 }
 
 export const TariffFormDialog = ({ open, onClose, onSave, tariff, initialValues, isLoading }: Props) => {
-  const { zones } = useZones({ page: 1, limit: 100 });
-  const { boxes } = useBoxes();
+  const { zones } = useZones();
 
   const {
     register,
@@ -135,14 +134,11 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, initialValues,
               name="boxId"
               control={control}
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger aria-invalid={!!errors.boxId}>
-                    <SelectValue placeholder="Seleccionar caja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {boxes.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <BoxPickerCombobox
+                  value={field.value || undefined}
+                  onChange={(b) => field.onChange(b.id)}
+                  error={!!errors.boxId}
+                />
               )}
             />
             {errors.boxId && (

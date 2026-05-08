@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { ArrowDownAZ, CalendarDays, Clock, Download, Filter, KeyRound, MapPin, RefreshCw, Search, Store } from "lucide-react";
+import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
 import {
   Button,
   Calendar,
@@ -116,6 +118,7 @@ export const CustomerFilters = ({
   onExport,
 }: CustomerFiltersProps) => {
   const activeCount = countActiveFilters(filters, showStoreFilter);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -144,7 +147,7 @@ export const CustomerFilters = ({
         </SelectContent>
       </Select>
 
-      <Sheet>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
           <Button
             variant={activeCount > 0 ? "secondary" : "outline"}
@@ -217,19 +220,11 @@ export const CustomerFilters = ({
                   <Store className="size-3.5" />
                   Tienda
                 </Label>
-                <Select value={filters.storeFilter} onValueChange={(v) => setFilter("storeFilter", v)}>
-                  <SelectTrigger className={activeSelectClass(filters.storeFilter)}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las tiendas</SelectItem>
-                    {options.stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id}>
-                        {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <StoreFilterCombobox
+                  value={filters.storeFilter}
+                  onChange={(v) => setFilter("storeFilter", v)}
+                  enabled={sheetOpen}
+                />
               </div>
             )}
 

@@ -25,7 +25,6 @@ export interface CustomerCriteria {
 }
 
 export interface CustomerFilterOptions {
-  stores: { id: string; name: string }[];
   cities: string[];
 }
 

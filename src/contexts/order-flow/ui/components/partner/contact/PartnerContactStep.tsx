@@ -1,30 +1,79 @@
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   Checkbox,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@contexts/shared/shadcn";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useMemo, useState, type UIEvent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
+import { useInfiniteStores } from "@contexts/iam/infrastructure/hooks/stores/useInfiniteStores";
+import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
 import { ContactColumn } from "../../shared/ContactColumn";
 
 interface PartnerContactStepProps {
-  stores?: Pick<StorePrimitives, "id" | "name">[];
   selectedStoreId?: string;
   onStoreChange?: (storeId: string) => void;
 }
 
-export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
+export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
   const { register, control, clearErrors, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const {
+    stores,
+    isLoading: isLoadingStores,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteStores({
+    search: debouncedSearch.trim() || undefined,
+    limit: 10,
+    enabled: storeOpen,
+  });
+
+  const selectedFilters = useMemo(
+    () =>
+      selectedStoreId
+        ? [{ field: "id", filterOperator: "=" as const, value: selectedStoreId }]
+        : [],
+    [selectedStoreId],
+  );
+
+  const { stores: selectedStoreResult } = useStores({
+    filters: selectedFilters,
+    enabled: !!selectedStoreId,
+  });
+
+  const selectedStoreName =
+    stores.find((s) => s.id === selectedStoreId)?.name ??
+    selectedStoreResult[0]?.name;
+
+  const handleListScroll = (e: UIEvent<HTMLDivElement>) => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+      fetchNextPage();
+    }
+  };
 
   return (
     <>
@@ -33,21 +82,72 @@ export function PartnerContactStep({ stores, selectedStoreId, onStoreChange }: P
           <CardTitle className="text-base">Información de la Orden</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-0">
-          {stores && onStoreChange && (
+          {onStoreChange && (
             <div className="space-y-1">
               <Label htmlFor="store-select">Tienda *</Label>
-              <Select value={selectedStoreId} onValueChange={onStoreChange}>
-                <SelectTrigger id="store-select" className="w-full">
-                  <SelectValue placeholder="Selecciona una tienda" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={storeOpen} onOpenChange={setStoreOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="store-select"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={storeOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedStoreName ? (
+                      selectedStoreName
+                    ) : (
+                      <span className="text-muted-foreground">Selecciona una tienda</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Buscar tienda..."
+                      value={search}
+                      onValueChange={setSearch}
+                    />
+                    <CommandList onScroll={handleListScroll}>
+                      {isLoadingStores && (
+                        <div className="py-4 text-center text-sm text-muted-foreground">
+                          Buscando...
+                        </div>
+                      )}
+                      {!isLoadingStores && (
+                        <CommandEmpty>No se encontraron tiendas.</CommandEmpty>
+                      )}
+                      <CommandGroup>
+                        {stores.map((store) => (
+                          <CommandItem
+                            key={store.id}
+                            value={store.id}
+                            onSelect={() => {
+                              onStoreChange(store.id);
+                              setStoreOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 size-4",
+                                selectedStoreId === store.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            {store.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                      {isFetchingNextPage && (
+                        <div className="py-2 text-center text-xs text-muted-foreground">
+                          Cargando más...
+                        </div>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
           <div className="space-y-1">

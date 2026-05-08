@@ -5,33 +5,33 @@ import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebo
 export type NameSort = "none" | "asc" | "desc";
 export type DateSort = "none" | "asc" | "desc";
 
-export interface UserFiltersState {
+export interface BoxFiltersState {
   searchQuery: string;
-  statusFilter: string;
+  unitFilter: string;
   nameSort: NameSort;
   dateSort: DateSort;
 }
 
-export interface UserCriteria {
+export interface BoxCriteria {
   search?: string;
   filters: Filter[];
   order?: { field: string; direction: Direction };
 }
 
-const initialState: UserFiltersState = {
+const initialState: BoxFiltersState = {
   searchQuery: "",
-  statusFilter: "all",
+  unitFilter: "all",
   nameSort: "none",
   dateSort: "desc",
 };
 
-export function useUserFilters() {
-  const [state, setState] = useState<UserFiltersState>(initialState);
+export function useBoxFilters() {
+  const [state, setState] = useState<BoxFiltersState>(initialState);
   const debouncedSearch = useDebouncedValue(state.searchQuery, 300);
 
-  const setFilter = <K extends keyof UserFiltersState>(
+  const setFilter = <K extends keyof BoxFiltersState>(
     key: K,
-    value: UserFiltersState[K],
+    value: BoxFiltersState[K],
   ) => {
     setState((prev) => {
       const next = { ...prev, [key]: value };
@@ -43,7 +43,7 @@ export function useUserFilters() {
 
   const reset = () => setState(initialState);
 
-  const criteria = useMemo<UserCriteria>(
+  const criteria = useMemo<BoxCriteria>(
     () => toCriteria(state, debouncedSearch),
     [state, debouncedSearch],
   );
@@ -52,15 +52,17 @@ export function useUserFilters() {
 }
 
 function toCriteria(
-  state: UserFiltersState,
+  state: BoxFiltersState,
   debouncedSearch: string,
-): UserCriteria {
+): BoxCriteria {
   const filters: Filter[] = [];
 
-  if (state.statusFilter === "active") {
-    filters.push({ field: "isActive", filterOperator: "=", value: true });
-  } else if (state.statusFilter === "inactive") {
-    filters.push({ field: "isActive", filterOperator: "=", value: false });
+  if (state.unitFilter !== "all") {
+    filters.push({
+      field: "dimensions.unit",
+      filterOperator: "=",
+      value: state.unitFilter,
+    });
   }
 
   const order =

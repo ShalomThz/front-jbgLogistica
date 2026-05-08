@@ -1,15 +1,11 @@
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
+import { boxRepository } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
+import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
+import { CustomerPickerCombobox } from "@contexts/sales/ui/components/customer/CustomerPickerCombobox";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Button,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,9 +14,6 @@ import {
   DialogTitle,
   Input,
   Label,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -28,16 +21,16 @@ import {
   SelectValue,
   Separator,
 } from "@contexts/shared/shadcn";
-import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Camera, Check, ChevronsUpDown, Eraser, Pencil, Plus, Ruler, Search, Trash2, Truck, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Box, Camera, Eraser, Pencil, Plus, Ruler, Trash2, Truck, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { dimensionsSchema, dimensionUnits } from "../../../shared/domain/schemas/Dimensions";
 import { weightSchema, weightUnits } from "../../../shared/domain/schemas/Weight";
+import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { CreatePackageRequest } from "../../domain/WarehousePackageSchema";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -96,11 +89,8 @@ type Props = {
 
 export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props) {
   const { user } = useAuth();
-  const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { boxes: inventoryBoxes, createBox, updateBox, isLoading: isLoadingBoxes } = useBoxes();
+  const { createBox, updateBox } = useBoxes({ enabled: false });
 
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [boxPopovers, setBoxPopovers] = useState<boolean[]>([false]);
   const [isProcessingBox, setIsProcessingBox] = useState(false);
 
   const {
@@ -118,45 +108,48 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
   const { fields, append, remove } = useFieldArray({ control, name: "boxes" });
 
+  const watchedBoxes = watch("boxes");
+  const selectedBoxIdsKey = watchedBoxes
+    .map((b) => b?.boxId)
+    .filter((id): id is string => !!id)
+    .join(",");
+
+  const selectedBoxFilters = useMemo(() => {
+    if (!selectedBoxIdsKey) return [];
+    return [
+      {
+        field: "id",
+        filterOperator: "IN" as const,
+        value: selectedBoxIdsKey.split(","),
+      },
+    ];
+  }, [selectedBoxIdsKey]);
+
+  const { boxes: selectedBoxesLookup } = useBoxes({
+    filters: selectedBoxFilters,
+    enabled: !!selectedBoxIdsKey,
+  });
+
+  const findSelectedBox = (boxId: string | null | undefined) =>
+    boxId ? selectedBoxesLookup.find((b) => b.id === boxId) : undefined;
+
   useEffect(() => {
     if (open) {
       reset(getDefaults(user?.storeId ?? ""));
-      setBoxPopovers([false]);
     }
   }, [open, user?.storeId, reset]);
 
   const handleClose = () => {
-    setCustomerSearch("");
-    setBoxPopovers([false]);
     onClose();
   };
 
-  const watchedCustomerId = watch("customerId");
-  const selectedCustomer = customers.find((c) => c.id === watchedCustomerId);
-
-  const filteredCustomers = customers.filter(
-    (c) =>
-      customerSearch === "" ||
-      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      c.company.toLowerCase().includes(customerSearch.toLowerCase()),
-  );
-
-  const setBoxPopover = (index: number, value: boolean) => {
-    setBoxPopovers((prev) => {
-      const next = [...prev];
-      next[index] = value;
-      return next;
-    });
-  };
-
-  const handleBoxSelect = (index: number, box: (typeof inventoryBoxes)[number]) => {
+  const handleBoxSelect = (index: number, box: BoxPrimitives) => {
     setValue(`boxes.${index}.boxId`, box.id, { shouldValidate: true });
     setValue(`boxes.${index}.boxName`, box.name);
     setValue(`boxes.${index}.dimensions.length`, box.dimensions.length, { shouldValidate: true });
     setValue(`boxes.${index}.dimensions.width`, box.dimensions.width, { shouldValidate: true });
     setValue(`boxes.${index}.dimensions.height`, box.dimensions.height, { shouldValidate: true });
     setValue(`boxes.${index}.dimensions.unit`, box.dimensions.unit);
-    setBoxPopover(index, false);
   };
 
   const handleBoxClear = (index: number) => {
@@ -168,8 +161,18 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
     setValue(`boxes.${index}.dimensions.unit`, "cm");
   };
 
+  const findBoxByName = async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const result = await boxRepository.find({
+      filters: [{ field: "name", filterOperator: "=", value: trimmed }],
+      limit: 1,
+    });
+    return result.data[0] ?? null;
+  };
+
   const processBoxEntry = async (entry: BoxEntry): Promise<string> => {
-    const selectedBox = inventoryBoxes.find((b) => b.id === entry.boxId);
+    const selectedBox = entry.boxId ? findSelectedBox(entry.boxId) : undefined;
     const nameChanged = !!(selectedBox && entry.boxName && entry.boxName !== selectedBox.name);
     const dimsChanged = !!(selectedBox && (
       entry.dimensions.length !== selectedBox.dimensions.length ||
@@ -192,7 +195,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
       return entry.boxId;
     }
 
-    const existing = inventoryBoxes.find((b) => b.name.toLowerCase() === entry.boxName.toLowerCase());
+    const existing = await findBoxByName(entry.boxName);
     if (existing) {
       toast.success(`Caja "${entry.boxName}" ya existía, vinculada`);
       return existing.id;
@@ -261,45 +264,25 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                   name="customerId"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger aria-invalid={!!errors.customerId}>
-                        <SelectValue placeholder="Seleccionar cliente">
-                          {selectedCustomer ? (
-                            <span className="flex items-center gap-2">
-                              <User className="size-4" />
-                              {selectedCustomer.name}
-                              <span className="text-xs text-muted-foreground">— {selectedCustomer.company}</span>
-                            </span>
-                          ) : "Seleccionar cliente"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <div className="p-2">
-                          <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Buscar cliente..."
-                              value={customerSearch}
-                              onChange={(e) => setCustomerSearch(e.target.value)}
-                              className="pl-9"
-                            />
-                          </div>
-                        </div>
-                        {isLoadingCustomers ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">Cargando clientes...</div>
-                        ) : filteredCustomers.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">No se encontraron clientes</div>
-                        ) : filteredCustomers.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            <span className="flex items-center gap-2">
-                              <User className="size-4" />
-                              <span>{c.name}</span>
-                              <span className="text-xs text-muted-foreground">— {c.company}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CustomerPickerCombobox
+                      value={field.value || undefined}
+                      onChange={(c) => field.onChange(c.id)}
+                      error={!!errors.customerId}
+                      triggerLabel={(c) => (
+                        <span className="flex items-center gap-2 truncate">
+                          <User className="size-4 shrink-0" />
+                          <span className="truncate">{c.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
+                        </span>
+                      )}
+                      itemLabel={(c) => (
+                        <span className="flex items-center gap-2 truncate">
+                          <User className="size-4 shrink-0" />
+                          <span className="truncate">{c.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
+                        </span>
+                      )}
+                    />
                   )}
                 />
               </FormField>
@@ -332,10 +315,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    append(defaultBox());
-                    setBoxPopovers((p) => [...p, false]);
-                  }}
+                  onClick={() => append(defaultBox())}
                 >
                   <Plus className="size-3 mr-1" /> Añadir caja
                 </Button>
@@ -343,7 +323,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
               {fields.map((field, index) => {
                 const watchedEntry = watch(`boxes.${index}`);
-                const selectedBox = inventoryBoxes.find((b) => b.id === watchedEntry?.boxId);
+                const selectedBox = findSelectedBox(watchedEntry?.boxId);
                 const nameChanged = !!(selectedBox && watchedEntry?.boxName && watchedEntry.boxName !== selectedBox.name);
                 const dimsChanged = !!(selectedBox && watchedEntry && (
                   watchedEntry.dimensions.length !== selectedBox.dimensions.length ||
@@ -369,10 +349,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                           variant="ghost"
                           size="icon"
                           className="size-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => {
-                            remove(index);
-                            setBoxPopovers((p) => p.filter((_, i) => i !== index));
-                          }}
+                          onClick={() => remove(index)}
                         >
                           <Trash2 className="size-3" />
                         </Button>
@@ -389,44 +366,26 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                           </Button>
                         )}
                       </div>
-                      <Popover open={boxPopovers[index]} onOpenChange={(v) => setBoxPopover(index, v)}>
-                        <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal text-xs h-8">
-                            {isLoadingBoxes ? (
-                              <span className="text-muted-foreground">Cargando...</span>
-                            ) : selectedBox ? (
-                              <span className="flex items-center gap-1.5">
-                                <Box className="size-3" />
-                                {selectedBox.name} — {selectedBox.dimensions.length}×{selectedBox.dimensions.width}×{selectedBox.dimensions.height} {selectedBox.dimensions.unit}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">Buscar caja existente...</span>
-                            )}
-                            <ChevronsUpDown className="ml-2 size-3 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar por nombre..." />
-                            <CommandList>
-                              <CommandEmpty>No se encontraron cajas.</CommandEmpty>
-                              <CommandGroup>
-                                {inventoryBoxes.map((box) => (
-                                  <CommandItem key={box.id} value={box.name} onSelect={() => handleBoxSelect(index, box)}>
-                                    <Check className={cn("mr-2 size-4", watchedEntry?.boxId === box.id ? "opacity-100" : "opacity-0")} />
-                                    <div>
-                                      <div className="font-medium text-sm">{box.name}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {box.dimensions.length}×{box.dimensions.width}×{box.dimensions.height} {box.dimensions.unit}
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                      <BoxPickerCombobox
+                        value={watchedEntry?.boxId ?? undefined}
+                        onChange={(box) => handleBoxSelect(index, box)}
+                        placeholder="Buscar caja existente..."
+                        className="text-xs h-8"
+                        triggerLabel={(b) => (
+                          <span className="flex items-center gap-1.5">
+                            <Box className="size-3" />
+                            {b.name} — {b.dimensions.length}×{b.dimensions.width}×{b.dimensions.height} {b.dimensions.unit}
+                          </span>
+                        )}
+                        itemLabel={(b) => (
+                          <div>
+                            <div className="font-medium text-sm">{b.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {b.dimensions.length}×{b.dimensions.width}×{b.dimensions.height} {b.dimensions.unit}
+                            </div>
+                          </div>
+                        )}
+                      />
                     </div>
 
                     <FormField label="Nombre de la caja *" error={boxErrors?.boxName?.message}>

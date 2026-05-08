@@ -1,17 +1,29 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tariffRepository, type UpdateTariffRequest, type CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 
 const TARIFFS_QUERY_KEY = ["tariffs"];
 
 interface UseTariffsOptions {
   page?: number;
   limit?: number;
+  enabled?: boolean;
+  filters?: Filter[];
+  search?: string;
+  order?: { field: string; direction: Direction };
 }
 
-export const useTariffs = ({ page = 1, limit = 10 }: UseTariffsOptions = {}) => {
+export const useTariffs = ({
+  page = 1,
+  limit,
+  enabled = true,
+  filters = [],
+  search,
+  order,
+}: UseTariffsOptions = {}) => {
   const queryClient = useQueryClient();
-  const offset = (page - 1) * limit;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
   const {
     data,
@@ -19,13 +31,17 @@ export const useTariffs = ({ page = 1, limit = 10 }: UseTariffsOptions = {}) => 
     error,
     refetch,
   } = useQuery<FindTariffsResponsePrimitives>({
-    queryKey: [...TARIFFS_QUERY_KEY, { page, limit }],
-    queryFn: () => tariffRepository.find({ filters: [], limit, offset }),
+    queryKey: [...TARIFFS_QUERY_KEY, { page, limit, search, filters, order }],
+    queryFn: () =>
+      tariffRepository.find({ filters, search, order, limit, offset }),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 
   const tariffs = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTariffRequest) => tariffRepository.create(data),

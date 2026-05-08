@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 
 export type NameSort = "none" | "asc" | "desc";
 export type DateSort = "none" | "asc" | "desc";
@@ -10,51 +11,62 @@ export interface ZoneFiltersState {
   dateSort: DateSort;
 }
 
-export function useZoneFilters(zones: ZonePrimitives[]) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [nameSort, setNameSort] = useState<NameSort>("none");
-  const [dateSort, setDateSort] = useState<DateSort>("desc");
+export interface ZoneCriteria {
+  search?: string;
+  filters: Filter[];
+  order?: { field: string; direction: Direction };
+}
 
-  const filtered = useMemo(() => {
-    const result = zones.filter(
-      (z) =>
-        searchQuery === "" ||
-        z.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        z.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+const initialState: ZoneFiltersState = {
+  searchQuery: "",
+  nameSort: "none",
+  dateSort: "desc",
+};
 
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.name.localeCompare(b.name));
-    else if (nameSort === "desc") result.sort((a, b) => b.name.localeCompare(a.name));
+export function useZoneFilters() {
+  const [state, setState] = useState<ZoneFiltersState>(initialState);
+  const debouncedSearch = useDebouncedValue(state.searchQuery, 300);
 
-    return result;
-  }, [zones, searchQuery, nameSort, dateSort]);
-
-  const filters: ZoneFiltersState = {
-    searchQuery,
-    nameSort,
-    dateSort,
+  const setFilter = <K extends keyof ZoneFiltersState>(
+    key: K,
+    value: ZoneFiltersState[K],
+  ) => {
+    setState((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "nameSort" && value !== "none") next.dateSort = "none";
+      if (key === "dateSort" && value !== "none") next.nameSort = "none";
+      return next;
+    });
   };
 
-  const setFilter = <K extends keyof ZoneFiltersState>(key: K, value: ZoneFiltersState[K]) => {
-    if (key === "nameSort" && value !== "none") setDateSort("none");
-    if (key === "dateSort" && value !== "none") setNameSort("none");
+  const reset = () => setState(initialState);
 
-    const map = {
-      searchQuery: setSearchQuery,
-      nameSort: setNameSort,
-      dateSort: setDateSort,
-    } as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (map[key] as any)(value);
+  const criteria = useMemo<ZoneCriteria>(
+    () => toCriteria(state, debouncedSearch),
+    [state, debouncedSearch],
+  );
+
+  return { state, setFilter, reset, criteria };
+}
+
+function toCriteria(
+  state: ZoneFiltersState,
+  debouncedSearch: string,
+): ZoneCriteria {
+  const order =
+    state.nameSort === "asc"
+      ? { field: "name", direction: "ASC" as const }
+      : state.nameSort === "desc"
+        ? { field: "name", direction: "DESC" as const }
+        : state.dateSort === "asc"
+          ? { field: "createdAt", direction: "ASC" as const }
+          : state.dateSort === "desc"
+            ? { field: "createdAt", direction: "DESC" as const }
+            : undefined;
+
+  return {
+    search: debouncedSearch.trim() || undefined,
+    filters: [],
+    order,
   };
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setNameSort("none");
-    setDateSort("desc");
-  };
-
-  return { filters, setFilter, resetFilters, filtered };
 }
