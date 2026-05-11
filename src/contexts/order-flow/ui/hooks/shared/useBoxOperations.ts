@@ -2,7 +2,6 @@ import { useRef, useEffect } from "react";
 import type { UseFormReturn, FieldValues } from "react-hook-form";
 import { toast } from "sonner";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
-import { handleBoxError } from "@contexts/inventory/application/errors/handleBoxError";
 
 interface UseBoxOperationsOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,7 +11,7 @@ interface UseBoxOperationsOptions {
 }
 
 export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBoxOperationsOptions) => {
-  const { boxes, createBox, updateBox, isCreating, isUpdating } = useBoxes({ enabled });
+  const { boxes, updateBox } = useBoxes({ enabled });
 
   const boxSyncedRef = useRef(false);
 
@@ -31,7 +30,6 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
 
   const processBox = async (): Promise<boolean> => {
     const pkg = form.getValues("package");
-    let hasError = false;
 
     if (pkg.ownership === "STORE" && pkg.boxId) {
       const box = boxes.find((b) => b.id === pkg.boxId);
@@ -41,51 +39,8 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
       }
     }
 
-    const dimensions = {
-      length: parseFloat(pkg.length),
-      width: parseFloat(pkg.width),
-      height: parseFloat(pkg.height),
-      unit: pkg.dimensionUnit,
-    };
-
-    if (pkg.boxId) {
-      const originalBox = boxes.find((b) => b.id === pkg.boxId);
-      const nameChanged = originalBox && pkg.packageType && pkg.packageType !== originalBox.name;
-      const dimensionsChanged = originalBox && (
-        dimensions.length !== originalBox.dimensions.length ||
-        dimensions.width !== originalBox.dimensions.width ||
-        dimensions.height !== originalBox.dimensions.height ||
-        dimensions.unit !== originalBox.dimensions.unit
-      );
-
-      if (nameChanged || dimensionsChanged) {
-        try {
-          await updateBox(pkg.boxId, { name: pkg.packageType, dimensions });
-          toast.success(`Caja "${pkg.packageType}" actualizada`, { id: "order-flow" });
-        } catch (error) {
-          hasError = true;
-          handleBoxError(error, { toastId: "order-flow" });
-        }
-      }
-    } else if (pkg.packageType) {
-      const existingBox = boxes.find((b) => b.name === pkg.packageType);
-      if (existingBox) {
-        form.setValue("package.boxId", existingBox.id, { shouldValidate: true });
-        toast.success(`Caja "${pkg.packageType}" ya existente, vinculada`, { id: "order-flow" });
-      } else {
-        try {
-          const created = await createBox({ name: pkg.packageType, dimensions, stock: 1, price: { amount: 0, currency: "USD" } });
-          toast.success(`Caja "${pkg.packageType}" guardada`, { id: "order-flow" });
-          form.setValue("package.boxId", created.id, { shouldValidate: true });
-        } catch (error) {
-          hasError = true;
-          handleBoxError(error, { toastId: "order-flow" });
-        }
-      }
-    }
-
-    return !hasError;
+    return true;
   };
 
-  return { processBox, boxes, updateBox, isProcessing: isCreating || isUpdating };
+  return { processBox, boxes, updateBox, isProcessing: false };
 };
