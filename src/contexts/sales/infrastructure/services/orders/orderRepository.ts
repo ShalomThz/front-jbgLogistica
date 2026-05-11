@@ -1,12 +1,13 @@
-import { ZodError } from "zod";
 import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http/httpClient";
-import { orderSchema, type OrderPrimitives } from "../../../domain/schemas/order/Order";
-import { orderListViewSchema, type OrderListView } from "../../../domain/schemas/order/OrderListViewSchemas";
-import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../application/order/FindOrderResponse";
-import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
+import { ZodError } from "zod";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
+import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../application/order/FindOrderResponse";
+import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
+import type { OrderReportResponse } from "../../../application/order/OrderReportResponse";
+import { orderSchema, type OrderPrimitives } from "../../../domain/schemas/order/Order";
+import { orderListViewSchema, type OrderListView } from "../../../domain/schemas/order/OrderListViewSchemas";
 
 function parseOrder(data: unknown, context: string): OrderPrimitives {
   try {
@@ -84,6 +85,15 @@ export const orderRepository = {
   delete: async (id: string): Promise<void> => {
     await httpClient<unknown>(`/order/${id}`, {
       method: "DELETE",
+    });
+  },
+
+  report: async (
+    request: Partial<Pick<FindOrdersRequest, "filters" | "search">> = {},
+  ): Promise<OrderReportResponse> => {
+    return httpClient<OrderReportResponse>("/order/report", {
+      method: "POST",
+      body: JSON.stringify({ filters: request.filters ?? [], search: request.search }),
     });
   },
 

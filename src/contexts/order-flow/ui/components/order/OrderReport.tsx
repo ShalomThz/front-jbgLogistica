@@ -1,26 +1,20 @@
-import { useMemo } from "react";
-import {
-  ArrowDownAZ,
-  CalendarDays,
-  Clock,
-  CreditCard,
-  DollarSign,
-  Download,
-  FileText,
-  Filter,
-  RefreshCw,
-  Store,
-  TrendingUp,
-} from "lucide-react";
+import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
+import { EmployeeFilterCombobox } from "@contexts/iam/ui/components/user/EmployeeFilterCombobox";
 import { exportOrderReport } from "@contexts/order-flow/domain/services/exportOrderReport";
+import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_VARIANT,
+} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { useOrderReport } from "@contexts/sales/infrastructure/hooks/orders/useOrderReport";
+import {
+  Badge,
   Button,
   Calendar,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Badge,
   Label,
   Popover,
   PopoverContent,
@@ -33,27 +27,29 @@ import {
   SelectValue,
   Separator,
   Table,
-  TableHeader,
   TableBody,
-  TableHead,
-  TableRow,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@contexts/shared/shadcn";
 import {
-  ORDER_STATUS_LABELS,
-  ORDER_STATUS_VARIANT,
-} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
-import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
-import { orderStatuses } from "@contexts/sales/domain/schemas/order/OrderStatuses";
-import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
-import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
-import { BoxFilterCombobox } from "@contexts/inventory/ui/components/box/BoxFilterCombobox";
+  CalendarDays,
+  Download,
+  FileText,
+  Filter,
+  Globe,
+  MapPin,
+  RefreshCw,
+  Store,
+  TrendingUp,
+  Users,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import {
   useOrderTableFilters,
   type DatePreset,
-  type DateSort,
-  type NameSort,
-  type OrderCriteria,
 } from "../../hooks/orders/useOrderTableFilters";
 
 function formatDate(date: Date): string {
@@ -86,7 +82,7 @@ function DatePickerField({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-[180px] justify-start text-left font-normal"
+            className="w-45 justify-start text-left font-normal"
           >
             <CalendarDays className="mr-2 size-4 text-muted-foreground" />
             {selected ? (
@@ -116,124 +112,53 @@ export const OrderReport = () => {
   const { state: filters, setFilter, reset: resetFilters, criteria } =
     useOrderTableFilters();
 
-  const reportCriteria = useMemo<OrderCriteria>(() => {
-    if (filters.statusFilter !== "all") return criteria;
-    return {
-      ...criteria,
-      filters: [
-        ...criteria.filters,
-        { field: "status", filterOperator: "!=", value: "DRAFT" },
-      ],
-    };
-  }, [criteria, filters.statusFilter]);
+  const [createdByFilter, setCreatedByFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
 
-  const { orders: reportOrders } = useOrders(reportCriteria);
+  const reportFilters = [
+    ...criteria.filters,
+    ...(filters.statusFilter === "all"
+      ? [{ field: "status", filterOperator: "!=", value: "DRAFT" } as const]
+      : []),
+    ...(createdByFilter !== "all"
+      ? [{ field: "createdBy.id", filterOperator: "=", value: createdByFilter } as const]
+      : []),
+    ...(countryFilter !== "all"
+      ? [{ field: "destination.address.country", filterOperator: "=", value: countryFilter } as const]
+      : []),
+  ];
 
-  const reportStatuses = useMemo(
-    () => orderStatuses.filter((s) => s !== "DRAFT"),
-    [],
-  );
-
-  const stats = useMemo(() => {
-    const totalOrders = reportOrders.length;
-    const paid = reportOrders.filter((o) => o.financials.isPaid);
-    const unpaid = reportOrders.filter((o) => !o.financials.isPaid);
-
-    const totalRevenue = reportOrders.reduce(
-      (sum, o) => sum + (o.financials.totalPrice?.amount ?? 0),
-      0,
-    );
-    const paidRevenue = paid.reduce(
-      (sum, o) => sum + (o.financials.totalPrice?.amount ?? 0),
-      0,
-    );
-    const unpaidRevenue = unpaid.reduce(
-      (sum, o) => sum + (o.financials.totalPrice?.amount ?? 0),
-      0,
-    );
-
-    const byStatus = reportStatuses.reduce(
-      (acc, status) => {
-        const matching = reportOrders.filter((o) => o.status === status);
-        acc[status] = {
-          count: matching.length,
-          total: matching.reduce(
-            (s, o) => s + (o.financials.totalPrice?.amount ?? 0),
-            0,
-          ),
-        };
-        return acc;
-      },
-      {} as Record<string, { count: number; total: number }>,
-    );
-
-    const byStore = new Map<
-      string,
-      {
-        name: string;
-        count: number;
-        total: number;
-        paid: number;
-        unpaid: number;
-      }
-    >();
-    for (const order of reportOrders) {
-      const existing = byStore.get(order.store.id) ?? {
-        name: order.store.name,
-        count: 0,
-        total: 0,
-        paid: 0,
-        unpaid: 0,
-      };
-      existing.count++;
-      existing.total += order.financials.totalPrice?.amount ?? 0;
-      if (order.financials.isPaid) {
-        existing.paid += order.financials.totalPrice?.amount ?? 0;
-      } else {
-        existing.unpaid += order.financials.totalPrice?.amount ?? 0;
-      }
-      byStore.set(order.store.id, existing);
-    }
-
-    return {
-      totalOrders,
-      totalRevenue,
-      paidCount: paid.length,
-      paidRevenue,
-      unpaidCount: unpaid.length,
-      unpaidRevenue,
-      byStatus,
-      byStore: Array.from(byStore.values()).sort((a, b) => b.total - a.total),
-    };
-  }, [reportOrders, reportStatuses]);
+  const { report, isLoading } = useOrderReport({
+    filters: reportFilters,
+    search: criteria.search,
+  });
 
   const fmt = (amount: number) =>
     `$${amount.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const handleReset = () => {
+    resetFilters();
+    setCreatedByFilter("all");
+    setCountryFilter("all");
+  };
+
   const activeFilterCount =
-    [
-      filters.statusFilter,
-      filters.storeFilter,
-      filters.paymentFilter,
-      filters.boxFilter,
-      filters.dateFilter,
-    ].filter((v) => v !== "all").length +
-    (filters.nameSort !== "none" ? 1 : 0) +
-    (filters.dateSort !== "desc" ? 1 : 0);
+    [filters.statusFilter, filters.storeFilter, filters.dateFilter].filter(
+      (v) => v !== "all",
+    ).length +
+    (createdByFilter !== "all" ? 1 : 0) +
+    (countryFilter !== "all" ? 1 : 0);
 
   const activeRing = (v: string, def = "all") =>
-    v !== def
-      ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
-      : "";
-  const activeSortRing = (v: string) =>
-    v !== "none"
-      ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
-      : "";
+    v !== def ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5" : "";
 
-  const paidShare =
-    stats.totalOrders > 0
-      ? Math.round((stats.paidCount / stats.totalOrders) * 100)
+  const completedCount = report?.byStatus["COMPLETED"] ?? 0;
+  const completedShare =
+    report && report.totalOrders > 0
+      ? Math.round((completedCount / report.totalOrders) * 100)
       : 0;
+
+  const countryOptions = report?.byDestinationCountry ?? [];
 
   return (
     <div className="space-y-6">
@@ -241,7 +166,7 @@ export const OrderReport = () => {
       <div className="flex flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-end">
         <Button
           variant="ghost"
-          onClick={resetFilters}
+          onClick={handleReset}
           className="h-10 gap-2 text-muted-foreground hover:text-foreground"
         >
           <RefreshCw className="size-4" />
@@ -253,8 +178,8 @@ export const OrderReport = () => {
           className="h-10 w-full sm:w-[220px]"
         />
         <Button
-          disabled={reportOrders.length === 0}
-          onClick={() => exportOrderReport(reportOrders, stats)}
+          disabled={!report || report.totalOrders === 0}
+          onClick={() => report && exportOrderReport(report)}
           className="h-10 gap-2 shadow-sm transition-shadow hover:shadow-md"
         >
           <Download className="size-4" />
@@ -278,7 +203,8 @@ export const OrderReport = () => {
         </CardHeader>
         <Separator />
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {/* Period */}
             <div className="space-y-1">
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Periodo
@@ -319,6 +245,7 @@ export const OrderReport = () => {
               </>
             )}
 
+            {/* Status */}
             <div className="space-y-1">
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Estado
@@ -342,83 +269,41 @@ export const OrderReport = () => {
               </Select>
             </div>
 
+            {/* Employee (createdBy) */}
             <div className="space-y-1">
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Pago
+                Empleado
               </Label>
-              <Select
-                value={filters.paymentFilter}
-                onValueChange={(v) => setFilter("paymentFilter", v)}
-              >
-                <SelectTrigger
-                  className={`h-10 gap-2 transition-colors ${activeRing(filters.paymentFilter)}`}
-                >
-                  <CreditCard className="size-4 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los pagos</SelectItem>
-                  <SelectItem value="paid">Pagados</SelectItem>
-                  <SelectItem value="unpaid">No pagados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Caja
-              </Label>
-              <BoxFilterCombobox
-                value={filters.boxFilter}
-                onChange={(v) => setFilter("boxFilter", v)}
-                className="h-10"
+              <EmployeeFilterCombobox
+                value={createdByFilter}
+                onChange={setCreatedByFilter}
+                className={`h-10 ${createdByFilter !== "all" ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5" : ""}`}
               />
             </div>
 
+            {/* Country */}
             <div className="space-y-1">
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Ordenar por nombre
+                País destino
               </Label>
               <Select
-                value={filters.nameSort}
-                onValueChange={(v) => setFilter("nameSort", v as NameSort)}
+                value={countryFilter}
+                onValueChange={setCountryFilter}
+                disabled={countryOptions.length === 0}
               >
                 <SelectTrigger
-                  className={`h-10 gap-2 transition-colors ${activeSortRing(filters.nameSort)}`}
+                  className={`h-10 gap-2 transition-colors ${activeRing(countryFilter)}`}
                 >
-                  <ArrowDownAZ className="size-4 text-muted-foreground" />
-                  <SelectValue />
+                  <Globe className="size-4 text-muted-foreground" />
+                  <SelectValue placeholder="Todos los países" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin orden</SelectItem>
-                  <SelectItem value="asc">A-Z</SelectItem>
-                  <SelectItem value="desc">Z-A</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Ordenar por fecha
-              </Label>
-              <Select
-                value={filters.dateSort}
-                onValueChange={(v) => setFilter("dateSort", v as DateSort)}
-              >
-                <SelectTrigger
-                  className={`h-10 gap-2 transition-colors ${
-                    filters.dateSort !== "desc"
-                      ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5"
-                      : ""
-                  }`}
-                >
-                  <Clock className="size-4 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin orden</SelectItem>
-                  <SelectItem value="desc">Mas reciente</SelectItem>
-                  <SelectItem value="asc">Mas antiguo</SelectItem>
+                  <SelectItem value="all">Todos los países</SelectItem>
+                  {countryOptions.map((c) => (
+                    <SelectItem key={c.country} value={c.country}>
+                      {c.country}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -427,7 +312,7 @@ export const OrderReport = () => {
       </Card>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -438,122 +323,116 @@ export const OrderReport = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="mt-1 text-xs font-mono text-muted-foreground">
-              {fmt(stats.totalRevenue)}
+            <div className="text-2xl font-bold">
+              {isLoading ? "—" : (report?.totalOrders ?? 0)}
+            </div>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">
+              {isLoading ? "" : fmt(report?.totalRevenue ?? 0)}
             </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Ingresos Totales
+            </CardTitle>
+            <div className="rounded-md bg-blue-500/10 p-1.5">
+              <TrendingUp className="size-4 text-blue-600 dark:text-blue-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {isLoading ? "—" : fmt(report?.totalRevenue ?? 0)}
+            </div>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">
+              {isLoading ? "" : `Prom. ${fmt(report?.avgOrderValue ?? 0)}`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Valor Promedio
+            </CardTitle>
+            <div className="rounded-md bg-amber-500/10 p-1.5">
+              <TrendingUp className="size-4 text-amber-600 dark:text-amber-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {isLoading ? "—" : fmt(report?.avgOrderValue ?? 0)}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">por orden</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pagadas
+              Completadas
             </CardTitle>
             <div className="rounded-md bg-green-500/10 p-1.5">
-              <DollarSign className="size-4 text-green-600 dark:text-green-400" />
+              <FileText className="size-4 text-green-600 dark:text-green-400" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {stats.paidCount}
+              {isLoading ? "—" : completedCount}
             </div>
-            <p className="mt-1 text-xs font-mono text-muted-foreground">
-              {fmt(stats.paidRevenue)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              No Pagadas
-            </CardTitle>
-            <div className="rounded-md bg-red-500/10 p-1.5">
-              <DollarSign className="size-4 text-red-600 dark:text-red-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {stats.unpaidCount}
-            </div>
-            <p className="mt-1 text-xs font-mono text-muted-foreground">
-              {fmt(stats.unpaidRevenue)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-indigo-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tasa de Cobro
-            </CardTitle>
-            <div className="rounded-md bg-indigo-500/10 p-1.5">
-              <TrendingUp className="size-4 text-indigo-600 dark:text-indigo-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.totalOrders > 0 ? `${paidShare}%` : "—"}
-            </div>
-            <Progress value={paidShare} className="mt-2 h-1.5" />
+            <Progress value={completedShare} className="mt-2 h-1.5" />
             <p className="mt-1 text-xs text-muted-foreground">
-              {stats.paidCount} de {stats.totalOrders} ordenes
+              {completedShare}% del total
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* By status */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="size-4 text-muted-foreground" />
-            Por Estatus
-          </CardTitle>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {reportStatuses.map((status) => {
-              const data = stats.byStatus[status];
-              const share =
-                stats.totalOrders > 0
-                  ? Math.round((data.count / stats.totalOrders) * 100)
-                  : 0;
-              return (
-                <div
-                  key={status}
-                  className="rounded-lg border bg-card p-3 space-y-2 transition-colors hover:bg-accent/30"
-                >
-                  <div className="flex items-center justify-between">
-                    <Badge
-                      variant={ORDER_STATUS_VARIANT[status as OrderStatus]}
-                    >
-                      {ORDER_STATUS_LABELS[status as OrderStatus]}
-                    </Badge>
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {share}%
-                    </span>
+      {report && Object.keys(report.byStatus).length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Filter className="size-4 text-muted-foreground" />
+              Por Estatus
+            </CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Object.entries(report.byStatus).map(([status, count]) => {
+                const share =
+                  report.totalOrders > 0
+                    ? Math.round((count / report.totalOrders) * 100)
+                    : 0;
+                return (
+                  <div
+                    key={status}
+                    className="space-y-2 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/30"
+                  >
+                    <div className="flex items-center justify-between">
+                      <Badge
+                        variant={ORDER_STATUS_VARIANT[status as OrderStatus]}
+                      >
+                        {ORDER_STATUS_LABELS[status as OrderStatus] ?? status}
+                      </Badge>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {share}%
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold tabular-nums">{count}</p>
+                    <Progress value={share} className="h-1" />
                   </div>
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-2xl font-bold tabular-nums">
-                      {data.count}
-                    </p>
-                    <p className="text-xs font-mono text-muted-foreground">
-                      {fmt(data.total)}
-                    </p>
-                  </div>
-                  <Progress value={share} className="h-1" />
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* By store */}
-      {stats.byStore.length > 0 && (
+      {report && report.byStore.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -563,45 +442,37 @@ export const OrderReport = () => {
           </CardHeader>
           <Separator />
           <CardContent className="pt-4">
-            <div className="rounded-lg border overflow-hidden">
+            <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead>Tienda</TableHead>
                     <TableHead className="text-center">Ordenes</TableHead>
-                    <TableHead className="text-right">Pagado</TableHead>
-                    <TableHead className="text-right">Pendiente</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Ingresos</TableHead>
                     <TableHead className="w-[140px]">Participacion</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stats.byStore.map((store) => {
+                  {report.byStore.map((store) => {
                     const share =
-                      stats.totalRevenue > 0
-                        ? Math.round((store.total / stats.totalRevenue) * 100)
+                      report.totalRevenue > 0
+                        ? Math.round((store.revenue / report.totalRevenue) * 100)
                         : 0;
                     return (
-                      <TableRow key={store.name}>
+                      <TableRow key={store.storeId}>
                         <TableCell className="font-medium">
-                          {store.name}
+                          {store.storeName}
                         </TableCell>
                         <TableCell className="text-center tabular-nums">
                           {store.count}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-green-600 dark:text-green-400">
-                          {fmt(store.paid)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-red-600 dark:text-red-400">
-                          {fmt(store.unpaid)}
-                        </TableCell>
                         <TableCell className="text-right font-mono font-semibold tabular-nums">
-                          {fmt(store.total)}
+                          {fmt(store.revenue)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Progress value={share} className="h-1.5 flex-1" />
-                            <span className="text-xs font-mono text-muted-foreground w-8 text-right">
+                            <span className="w-8 text-right font-mono text-xs text-muted-foreground">
                               {share}%
                             </span>
                           </div>
@@ -615,6 +486,186 @@ export const OrderReport = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* By destination country */}
+      {report && report.byDestinationCountry.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Globe className="size-4 text-muted-foreground" />
+                Por País de Destino
+              </CardTitle>
+              {countryFilter !== "all" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs text-muted-foreground"
+                  onClick={() => setCountryFilter("all")}
+                >
+                  <X className="size-3" />
+                  Limpiar filtro
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-4">
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead>País</TableHead>
+                    <TableHead className="text-center">Ordenes</TableHead>
+                    <TableHead className="text-right">Ingresos</TableHead>
+                    <TableHead className="w-[140px]">Participacion</TableHead>
+                    <TableHead className="w-[60px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.byDestinationCountry.map((row) => {
+                    const isActive = countryFilter === row.country;
+                    const share =
+                      report.totalOrders > 0
+                        ? Math.round((row.count / report.totalOrders) * 100)
+                        : 0;
+                    return (
+                      <TableRow
+                        key={row.country}
+                        className={isActive ? "bg-primary/5" : undefined}
+                      >
+                        <TableCell>
+                          <Badge
+                            variant={isActive ? "default" : "outline"}
+                            className="font-mono"
+                          >
+                            {row.country}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {row.count}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold tabular-nums">
+                          {fmt(row.revenue)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={share} className="h-1.5 flex-1" />
+                            <span className="w-8 text-right font-mono text-xs text-muted-foreground">
+                              {share}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            size="icon"
+                            className="size-7"
+                            title={isActive ? "Limpiar filtro" : `Filtrar por ${row.country}`}
+                            onClick={() =>
+                              setCountryFilter(isActive ? "all" : row.country)
+                            }
+                          >
+                            {isActive ? (
+                              <X className="size-3.5" />
+                            ) : (
+                              <Filter className="size-3.5" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* By destination city + by origin client */}
+      {report &&
+        (report.byDestinationCity.length > 0 ||
+          report.byOriginClient.length > 0) && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {report.byDestinationCity.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <MapPin className="size-4 text-muted-foreground" />
+                    Por Ciudad de Destino
+                  </CardTitle>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-4">
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                          <TableHead>Ciudad</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead className="text-center">Ordenes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {report.byDestinationCity.map((row) => (
+                          <TableRow key={`${row.city}-${row.province}`}>
+                            <TableCell className="font-medium">
+                              {row.city}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {row.province}
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {row.count}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {report.byOriginClient.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Users className="size-4 text-muted-foreground" />
+                    Por Cliente de Origen
+                  </CardTitle>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-4">
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                          <TableHead>Cliente</TableHead>
+                          <TableHead className="text-center">Ordenes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {report.byOriginClient.map((row) => (
+                          <TableRow key={row.name}>
+                            <TableCell className="font-medium">
+                              {row.name}
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {row.count}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
     </div>
   );
 };
