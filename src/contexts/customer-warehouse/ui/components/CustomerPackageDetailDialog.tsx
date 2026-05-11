@@ -91,8 +91,8 @@ export const CustomerPackageDetailDialog = ({ pkg, open, onClose }: Props) => {
           if (!v) onClose();
         }}
       >
-        <DialogContent className="sm:max-w-lg pt-8">
-          <DialogHeader>
+        <DialogContent className="flex flex-col w-[95vw] sm:w-auto sm:max-w-xl md:max-w-2xl max-h-[90vh] pt-8">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Package className="size-5" />
@@ -105,7 +105,7 @@ export const CustomerPackageDetailDialog = ({ pkg, open, onClose }: Props) => {
             <DialogDescription>Ingresado el {createdDate}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
             {photos.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold flex items-center gap-2">
