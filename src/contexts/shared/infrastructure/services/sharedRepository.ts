@@ -16,10 +16,10 @@ export const sharedRepository = {
     return countriesResponseSchema.parse(data);
   },
 
-  autocomplete: async (input: string): Promise<AutocompleteResponse> => {
+  autocomplete: async (input: string, country?: string): Promise<AutocompleteResponse> => {
     const data = await httpClient<unknown>("/address/autocomplete", {
       method: "POST",
-      body: JSON.stringify({ input }),
+      body: JSON.stringify({ input, country }),
     });
     return autocompleteResponseSchema.parse(data);
   },

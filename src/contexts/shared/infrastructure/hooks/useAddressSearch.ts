@@ -6,12 +6,13 @@ const ADDRESS_QUERY_KEY = ["address-autocomplete"];
 
 interface UseAddressSearchOptions {
   input: string;
+  country?: string;
 }
 
-export const useAddressSearch = ({ input }: UseAddressSearchOptions) => {
+export const useAddressSearch = ({ input, country }: UseAddressSearchOptions) => {
   const { data, isLoading, error } = useQuery<AutocompleteResponse>({
-    queryKey: [...ADDRESS_QUERY_KEY, input],
-    queryFn: () => sharedRepository.autocomplete(input),
+    queryKey: [...ADDRESS_QUERY_KEY, input, country],
+    queryFn: () => sharedRepository.autocomplete(input, country),
     enabled: input.length >= 3,
   });
 

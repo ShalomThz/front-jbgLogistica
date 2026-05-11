@@ -5,12 +5,13 @@ import type { PlaceDetailsResponse } from "@contexts/shared/domain/schemas/addre
 
 interface AddressSuggestionsProps {
   query: string;
+  country?: string;
   onSelect: (details: PlaceDetailsResponse) => void;
 }
 
-export function AddressSuggestions({ query, onSelect }: AddressSuggestionsProps) {
+export function AddressSuggestions({ query, country, onSelect }: AddressSuggestionsProps) {
   const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
-  const { suggestions, isLoading, getPlaceDetails, isLoadingDetails } = useAddressSearch({ input: query });
+  const { suggestions, isLoading, getPlaceDetails, isLoadingDetails } = useAddressSearch({ input: query, country });
 
   const dismissed = dismissedQuery === query;
 

@@ -23,6 +23,7 @@ function getFieldError(errors: FieldErrors, path: string): string | undefined {
 export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps) {
   const form = useFormContext();
   const [addressQuery, setAddressQuery] = useState("");
+  const country = useWatch({ control: form.control, name: `${fieldPrefix}.country` });
 
   const geolocation = useWatch({ control: form.control, name: `${fieldPrefix}.geolocation` });
   const isAddressVerified = !!geolocation?.placeId && (geolocation.latitude !== 0 || geolocation.longitude !== 0);
@@ -68,6 +69,7 @@ export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps
       </div>
       <AddressSuggestions
         query={addressQuery}
+        country={country}
         onSelect={handleSelectAddress}
       />
       <AddressForm
