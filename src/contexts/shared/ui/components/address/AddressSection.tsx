@@ -47,6 +47,15 @@ export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps
     form.setValue(`${fieldPrefix}.zip`, details.zip);
     form.setValue(`${fieldPrefix}.country`, details.country);
     form.setValue(`${fieldPrefix}.geolocation`, details.geolocation);
+    form.trigger([
+      `${fieldPrefix}.address1`,
+      `${fieldPrefix}.address2`,
+      `${fieldPrefix}.city`,
+      `${fieldPrefix}.province`,
+      `${fieldPrefix}.zip`,
+      `${fieldPrefix}.country`,
+      `${fieldPrefix}.geolocation`,
+    ]);
   };
 
   return (

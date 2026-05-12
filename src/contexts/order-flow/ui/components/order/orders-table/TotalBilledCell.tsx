@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import {
   Button,
@@ -11,66 +10,38 @@ import {
 } from "@contexts/shared/shadcn";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 
-const COST_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
 const CURRENCIES = ["MXN", "USD", "EUR"] as const;
 
 interface TotalBilledCellProps {
   financials: OrderListView["financials"];
-  createdAt: string;
 }
 
-export function TotalBilledCell({ financials, createdAt }: TotalBilledCellProps) {
-  const { tariff, costBreakdown } = financials;
-  const baseCurrency = tariff?.currency ?? "MXN";
+export function TotalBilledCell({ financials }: TotalBilledCellProps) {
+  const { totalBilled } = financials;
+  const baseCurrency = totalBilled?.currency ?? "MXN";
   const [displayCurrency, setDisplayCurrency] = useState<string>(baseCurrency);
 
-  const costItems = COST_FIELDS
-    .map((f) => costBreakdown[f])
-    .filter((m): m is MoneyPrimitives => m !== null);
-
-  const costsCurrency = costItems[0]?.currency ?? baseCurrency;
-  const needsCostConversion = costItems.length > 0 && costsCurrency !== baseCurrency;
-
-  const costRate = useExchangeRate({
-    from: costsCurrency,
-    to: baseCurrency,
-    enabled: needsCostConversion,
-    date: new Date(createdAt),
-  });
-
-  const costConversionRate = needsCostConversion ? costRate.exchangeRate?.rate ?? null : 1;
-  const costsTotal = costItems.reduce((sum, m) => sum + m.amount, 0);
-  const convertedCosts = costConversionRate !== null ? costsTotal * costConversionRate : null;
-  const grandTotalBase =
-    convertedCosts !== null ? (tariff?.amount ?? 0) + convertedCosts : null;
-
-  const needsDisplayConversion = displayCurrency !== baseCurrency;
-  const displayRate = useExchangeRate({
+  const needsConversion = displayCurrency !== baseCurrency;
+  const { exchangeRate, isLoadingRate, isRateError } = useExchangeRate({
     from: baseCurrency,
     to: displayCurrency,
-    enabled: needsDisplayConversion,
+    enabled: needsConversion,
   });
-  const displayConversionRate = needsDisplayConversion ? displayRate.exchangeRate?.rate ?? null : 1;
-  const grandTotalDisplay =
-    grandTotalBase !== null && displayConversionRate !== null
-      ? grandTotalBase * displayConversionRate
-      : null;
-
-  const isLoading =
-    (needsCostConversion && costRate.isLoadingRate) ||
-    (needsDisplayConversion && displayRate.isLoadingRate);
-  const hasError =
-    (needsCostConversion && costRate.isRateError) ||
-    (needsDisplayConversion && displayRate.isRateError);
+  const rate = needsConversion ? exchangeRate?.rate ?? null : 1;
+  const displayAmount =
+    totalBilled !== null && rate !== null ? totalBilled.amount * rate : null;
 
   const renderAmount = () => {
-    if (isLoading) {
+    if (totalBilled === null) {
+      return "—";
+    }
+    if (needsConversion && isLoadingRate) {
       return <span className="text-xs text-muted-foreground">Calculando...</span>;
     }
-    if (hasError || grandTotalDisplay === null) {
+    if (needsConversion && (isRateError || displayAmount === null)) {
       return <span className="text-xs text-destructive">TC no disponible</span>;
     }
-    return <>${grandTotalDisplay.toFixed(2)} </>;
+    return <>${(displayAmount ?? 0).toFixed(2)} </>;
   };
 
   return (

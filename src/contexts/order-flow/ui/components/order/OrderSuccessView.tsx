@@ -39,12 +39,6 @@ function formatMoney(money: MoneyPrimitives) {
   return `$${money.amount.toFixed(2)} ${money.currency}`;
 }
 
-function sumMoney(...amounts: (MoneyPrimitives | undefined | null)[]): MoneyPrimitives {
-  const totalAmount = amounts.reduce((sum, money) => sum + (money?.amount ?? 0), 0);
-  const currency = amounts.find((money) => money?.currency)?.currency || "USD";
-  return { amount: totalAmount, currency };
-}
-
 const COST_LABELS: Record<string, string> = {
   insurance: "Seguro",
   tools: "Herramientas",
@@ -56,13 +50,14 @@ const COST_LABELS: Record<string, string> = {
 interface OrderSuccessViewProps {
   shipment: ShipmentPrimitives;
   invoiceId?: string | null;
+  totalBilled?: MoneyPrimitives | null;
   onFinish: () => void;
   onCreateBlank?: () => void;
   onCreateSameClient?: () => void;
 }
 
-export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
-  const { provider, rate, label, costBreakdown, finalPrice } = shipment;
+export function OrderSuccessView({ shipment, invoiceId, totalBilled, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
+  const { provider, rate, label, costBreakdown } = shipment;
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
@@ -150,17 +145,6 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateBlank,
       setIsDownloadingInvoice(false);
     }
   };
-
-  const total = finalPrice
-    ? sumMoney(
-        finalPrice,
-        costBreakdown?.additionalCost,
-        costBreakdown?.insurance,
-        costBreakdown?.tape,
-        costBreakdown?.wrap,
-        costBreakdown?.tools,
-      )
-    : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -341,10 +325,10 @@ export function OrderSuccessView({ shipment, invoiceId, onFinish, onCreateBlank,
                   </div>
                 )}
               </div>
-              {total && (
+              {totalBilled && (
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-lg font-bold text-blue-600">{formatMoney(total)}</p>
+                  <p className="text-xs text-muted-foreground">Total facturado</p>
+                  <p className="text-lg font-bold text-blue-600">{formatMoney(totalBilled)}</p>
                 </div>
               )}
             </div>

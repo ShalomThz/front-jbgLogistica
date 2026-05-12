@@ -277,7 +277,7 @@ export const OrdersTable = ({
                   )}
                 </TableCell>
                 <TotalShippingCell financials={order.financials} createdAt={order.createdAt} />
-                <TotalBilledCell financials={order.financials} createdAt={order.createdAt} />
+                <TotalBilledCell financials={order.financials} />
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -135,6 +135,7 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
           <OrderSuccessView
             shipment={flow.fulfilledShipment}
             invoiceId={flow.invoiceId}
+            totalBilled={flow.totalBilled}
             onFinish={flow.goToOrders}
             onCreateBlank={handleCreateBlank}
             onCreateSameClient={handleCreateSameClient}

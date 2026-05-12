@@ -6,6 +6,7 @@ import z from "zod";
 export const orderFinancialsSchema = z.object({
   tariff: moneySchema.nullable(),
   totalPrice: moneySchema.nullable(),
+  totalBilled: moneySchema.nullable().default(null),
   isPaid: z.boolean().default(false),
   costBreakdown: costBreakdownSchema,
   discount: discountSchema,
