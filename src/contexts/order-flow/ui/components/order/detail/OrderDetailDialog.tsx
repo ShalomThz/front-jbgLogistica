@@ -251,7 +251,7 @@ export const OrderDetailDialog = ({
                 <h4 className="text-sm font-semibold mb-2">Financiero</h4>
                 <DetailRow
                   label="Total"
-                  value={financials.totalPrice ? formatMoney(financials.totalPrice) : "—"}
+                  value={financials.totalBilled ? formatMoney(financials.totalBilled) : "—"}
                 />
                 {financials.discount.amount && (
                   <DetailRow

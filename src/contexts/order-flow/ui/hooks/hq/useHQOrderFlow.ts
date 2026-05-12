@@ -87,6 +87,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     isSelectingProvider: submission.isSelectingProvider,
     fulfilledShipment: submission.fulfilledShipment,
     invoiceId: submission.invoiceId,
+    totalBilled: submission.totalBilled,
     tariff: submission.tariff,
     isLoadingTariff: submission.isLoadingTariff,
     tariffError: submission.tariffError,

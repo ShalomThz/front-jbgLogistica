@@ -8,7 +8,9 @@ export const addressSchema = placeDetailsResponseSchema.extend({
   zip: z.string(),
   country: z.string().min(1, "País es requerido"),
   reference: z.string().min(1, "Referencia es requerida").max(25, "Máximo 25 caracteres"),
-}).superRefine((value, ctx) => {
+});
+
+export const createAddressSchema = addressSchema.superRefine((value, ctx) => {
   if (value.country === "MX" && !value.zip) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -16,9 +18,16 @@ export const addressSchema = placeDetailsResponseSchema.extend({
       path: ["zip"],
     });
   }
+  if (value.country === "MX" && !value.address2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Colonia es requerida",
+      path: ["address2"],
+    });
+  }
 });
 
-export const verifiedAddressSchema = addressSchema.superRefine((value, ctx) => {
+export const verifiedAddressSchema = createAddressSchema.superRefine((value, ctx) => {
   const { placeId, latitude, longitude } = value.geolocation;
   const isVerified = !!placeId && (latitude !== 0 || longitude !== 0);
   if (!isVerified) {
@@ -29,8 +38,6 @@ export const verifiedAddressSchema = addressSchema.superRefine((value, ctx) => {
     });
   }
 });
-
-export const createAddressSchema = addressSchema;
 
 export type AddressPrimitives = z.infer<typeof addressSchema>;
 export type CreateAddressPrimitives = z.infer<typeof createAddressSchema>;

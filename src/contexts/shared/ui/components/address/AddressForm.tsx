@@ -45,10 +45,11 @@ function getFieldError(errors: FieldErrors, path: string): string | undefined {
 }
 
 export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: AddressFormProps) {
-  const { register, setValue, control, formState: { errors } } = useFormContext();
+  const { register, setValue, control, trigger, formState: { errors } } = useFormContext();
   const country = useWatch({ control, name: `${fieldPrefix}.country` });
   const labels = country === "MX" ? MX_LABELS : GENERIC_LABELS;
   const zipRequired = country === "MX";
+  const address2Required = country === "MX";
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -71,6 +72,7 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
                 field.onChange(code);
                 setValue(`${fieldPrefix}.province`, "");
                 onFieldCommit();
+                trigger([`${fieldPrefix}.zip`, `${fieldPrefix}.address2`]);
               }}
             />
           )}
@@ -107,15 +109,19 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
         )}
       </div>
       <div>
-        <Label htmlFor={`${labelPrefix}-address2`}>{labels.address2}</Label>
+        <Label htmlFor={`${labelPrefix}-address2`}>{labels.address2}{address2Required ? " *" : ""}</Label>
         <Input
           id={`${labelPrefix}-address2`}
+          aria-invalid={!!getFieldError(errors, `${fieldPrefix}.address2`)}
           placeholder={labels.address2Placeholder}
           {...register(`${fieldPrefix}.address2`, {
             onBlur: onFieldCommit,
           })}
           onKeyDown={handleKeyDown}
         />
+        {getFieldError(errors, `${fieldPrefix}.address2`) && (
+          <p className="text-sm text-destructive">{getFieldError(errors, `${fieldPrefix}.address2`)}</p>
+        )}
       </div>
       <div>
         <Label htmlFor={`${labelPrefix}-zip`}>{labels.zip}{zipRequired ? " *" : ""}</Label>

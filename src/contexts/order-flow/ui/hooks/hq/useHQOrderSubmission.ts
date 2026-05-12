@@ -258,6 +258,7 @@ export const useHQOrderSubmission = ({
     isSelectingProvider,
     fulfilledShipment,
     invoiceId: orderData?.invoiceId ?? null,
+    totalBilled: orderData?.financials.totalBilled ?? null,
     tariff,
     isLoadingTariff,
     tariffError,
