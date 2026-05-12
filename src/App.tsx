@@ -2,6 +2,7 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { CustomerLayout, DashboardLayout } from "@contexts/shared/ui/layouts";
 import { routes } from "@contexts/shared/ui/router";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { useWebSocketEvents } from "@contexts/shared/infrastructure/websocket/useWebSocketEvents";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation, useRoutes, useSearchParams } from "react-router-dom";
 
@@ -11,6 +12,7 @@ const PublicTrackingPage = lazy(() => import("@contexts/shipping/ui/pages/Public
 
 function App() {
   const { isLoading, isAuthenticated, isCustomer } = useAuth();
+  useWebSocketEvents();
   const location = useLocation();
   const routeElement = useRoutes(routes);
   const isPublicTrackingRoute = location.pathname.startsWith("/tracking/");

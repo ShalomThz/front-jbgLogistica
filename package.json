@@ -41,6 +41,7 @@
     "react-hook-form": "^7.71.2",
     "react-router-dom": "^7.13.1",
     "react-signature-canvas": "1.1.0-alpha.2",
+    "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
     "svg-dotted-map": "^2.1.0",
     "tailwind-merge": "^3.5.0",
