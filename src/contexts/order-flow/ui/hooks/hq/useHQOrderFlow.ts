@@ -68,6 +68,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
   const isNextDisabled = submission.isCreating || isSaving || isProcessingBox;
 
   return {
+    orderId: submission.orderId,
     form,
     step,
     stepIndex,

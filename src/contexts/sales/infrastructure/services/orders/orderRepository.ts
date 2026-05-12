@@ -97,7 +97,7 @@ export const orderRepository = {
     });
   },
 
-  getInvoicePdf: async (invoiceId: string): Promise<Blob> => {
-    return httpClientBlob(`/invoice/${invoiceId}/pdf`);
+  getInvoicePdf: async (orderId: string): Promise<Blob> => {
+    return httpClientBlob(`/invoice/${orderId}/pdf`);
   },
 };

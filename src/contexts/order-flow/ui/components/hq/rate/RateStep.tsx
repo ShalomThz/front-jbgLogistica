@@ -79,6 +79,7 @@ export function RateStep({
       <OrderSuccessView
         shipment={fulfilledShipment}
         onFinish={onFinish}
+        orderId={fulfilledShipment.orderId}
         onCreateBlank={onCreateBlank}
         onCreateSameClient={onCreateSameClient}
       />

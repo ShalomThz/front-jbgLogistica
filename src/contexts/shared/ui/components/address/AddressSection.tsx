@@ -2,8 +2,9 @@ import { Label } from "@contexts/shared/shadcn";
 import { BadgeCheck, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch, type FieldErrors } from "react-hook-form";
-import { AddressSuggestions } from "./AddressSuggestions";
+import type { PlaceDetailsResponse } from "../../../domain/schemas/address/PlaceDetailsResponse";
 import { AddressForm } from "./AddressForm";
+import { AddressSuggestions } from "./AddressSuggestions";
 
 interface AddressSectionProps {
   fieldPrefix: string;
@@ -39,7 +40,7 @@ export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps
     setAddressQuery([address1, address2, city, province, zip, country].filter(Boolean).join(", "));
   };
 
-  const handleSelectAddress = (details: { address1: string; address2: string; city: string; province: string; zip: string; country: string; geolocation: { latitude: number; longitude: number; placeId: string | null } }) => {
+  const handleSelectAddress = (details: PlaceDetailsResponse) => {
     form.setValue(`${fieldPrefix}.address1`, details.address1);
     form.setValue(`${fieldPrefix}.address2`, details.address2);
     form.setValue(`${fieldPrefix}.city`, details.city);

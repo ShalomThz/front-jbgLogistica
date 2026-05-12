@@ -101,10 +101,9 @@ export const OrdersPage = () => {
   };
 
   const handlePrintInvoice = async (order: OrderListView) => {
-    if (!order.invoiceId) return;
     setDownloadingInvoice(order.id);
     try {
-      const blob = await orderRepository.getInvoicePdf(order.invoiceId);
+      const blob = await orderRepository.getInvoicePdf(order.id);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());

@@ -109,15 +109,13 @@ export const OrderDetailDialog = ({
     : false;
 
   const downloadInvoice = async () => {
-    if (!order.invoiceId) return;
-    const invoiceId = order.invoiceId;
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(invoiceId);
+      const blob = await orderRepository.getInvoicePdf(order.id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `factura-${order.id}.pdf`;
+      a.download = `factura-${order.references.orderNumber ?? order.references.partnerOrderNumber}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -146,10 +144,9 @@ export const OrderDetailDialog = ({
   };
 
   const printInvoice = async () => {
-    if (!order.invoiceId) return;
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(order.invoiceId);
+      const blob = await orderRepository.getInvoicePdf(order.id);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());

@@ -49,14 +49,14 @@ const COST_LABELS: Record<string, string> = {
 
 interface OrderSuccessViewProps {
   shipment: ShipmentPrimitives;
-  invoiceId?: string | null;
+  orderId?: string | null;
   totalBilled?: MoneyPrimitives | null;
   onFinish: () => void;
   onCreateBlank?: () => void;
   onCreateSameClient?: () => void;
 }
 
-export function OrderSuccessView({ shipment, invoiceId, totalBilled, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
+export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
   const { provider, rate, label, costBreakdown } = shipment;
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
@@ -118,14 +118,14 @@ export function OrderSuccessView({ shipment, invoiceId, totalBilled, onFinish, o
   };
 
   const handleDownloadInvoice = async () => {
-    if (!invoiceId) return;
+    if (!orderId) return;
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(invoiceId);
+      const blob = await orderRepository.getInvoicePdf(orderId);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `factura-${invoiceId}.pdf`;
+      a.download = `factura-${orderId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -134,10 +134,10 @@ export function OrderSuccessView({ shipment, invoiceId, totalBilled, onFinish, o
   };
 
   const handlePrintInvoice = async () => {
-    if (!invoiceId) return;
+    if (!orderId) return;
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(invoiceId);
+      const blob = await orderRepository.getInvoicePdf(orderId);
       const url = URL.createObjectURL(blob);
       const printWindow = window.open(url, "_blank");
       printWindow?.addEventListener("load", () => printWindow.print());
@@ -272,7 +272,7 @@ export function OrderSuccessView({ shipment, invoiceId, totalBilled, onFinish, o
       )}
 
       {/* Invoice Actions */}
-      {invoiceId && (
+      {orderId && (
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
