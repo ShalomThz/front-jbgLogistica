@@ -5,9 +5,17 @@ export const addressSchema = placeDetailsResponseSchema.extend({
   address1: z.string().min(1, "Calle y número es requerido"),
   city: z.string().min(1, "Ciudad es requerida"),
   province: z.string().min(1, "Estado es requerido"),
-  zip: z.string().min(1, "Código postal es requerido"),
+  zip: z.string(),
   country: z.string().min(1, "País es requerido"),
   reference: z.string().min(1, "Referencia es requerida").max(25, "Máximo 25 caracteres"),
+}).superRefine((value, ctx) => {
+  if (value.country === "MX" && !value.zip) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Código postal es requerido",
+      path: ["zip"],
+    });
+  }
 });
 
 export const verifiedAddressSchema = addressSchema.superRefine((value, ctx) => {
