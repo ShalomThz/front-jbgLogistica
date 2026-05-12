@@ -3,26 +3,25 @@ import {
   Input,
   Label,
 } from "@contexts/shared/shadcn";
-import { Eraser, PackageX, Pencil, Plus } from "lucide-react";
+import { Eraser, PackageX, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
+import { toast } from "sonner";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 import { BoxStockDialog } from "@contexts/inventory/ui/components/box/BoxStockDialog";
+import { BoxFormDialog } from "@contexts/inventory/ui/components/box/BoxFormDialog";
+import { handleBoxError } from "@contexts/inventory/application/errors/handleBoxError";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
+import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 export function BoxSelector() {
   const { setValue, control, formState: { errors } } = useFormContext<BaseOrderFormValues>();
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
-  const { updateBox, isUpdating } = useBoxes({ enabled: false });
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { updateBox, isUpdating, createBox, isCreating } = useBoxes({ enabled: false });
 
   const boxId = useWatch<BaseOrderFormValues, "package.boxId">({ name: "package.boxId" });
-  const packageType = useWatch<BaseOrderFormValues, "package.packageType">({ name: "package.packageType" });
-  const length = useWatch<BaseOrderFormValues, "package.length">({ name: "package.length" });
-  const width = useWatch<BaseOrderFormValues, "package.width">({ name: "package.width" });
-  const height = useWatch<BaseOrderFormValues, "package.height">({ name: "package.height" });
-  const dimensionUnit = useWatch<BaseOrderFormValues, "package.dimensionUnit">({ name: "package.dimensionUnit" });
   const ownership = useWatch<BaseOrderFormValues, "package.ownership">({ name: "package.ownership" });
 
   const selectedFilters = useMemo(
@@ -42,23 +41,6 @@ export function BoxSelector() {
   const isStoreBox = ownership === "STORE";
   const outOfStock = isStoreBox && selectedBox?.stock === 0;
 
-  const nameChanged = selectedBox && packageType && packageType !== selectedBox.name;
-  const dimensionsChanged = selectedBox && (
-    parseFloat(length) !== selectedBox.dimensions.length ||
-    parseFloat(width) !== selectedBox.dimensions.width ||
-    parseFloat(height) !== selectedBox.dimensions.height ||
-    dimensionUnit !== selectedBox.dimensions.unit
-  );
-  const hasChanges = nameChanged || dimensionsChanged;
-
-  const hasData = packageType || length || width || height;
-
-  const statusMessage = !boxId && hasData
-    ? { text: "Se creará una nueva caja al continuar", icon: Plus }
-    : boxId && hasChanges
-      ? { text: "Se actualizará esta caja al continuar", icon: Pencil }
-      : null;
-
   const handleClear = () => {
     setValue("package.boxId", null, { shouldValidate: true });
     setValue("package.packageType", "");
@@ -75,6 +57,17 @@ export function BoxSelector() {
     setValue("package.width", box.dimensions.width.toString());
     setValue("package.height", box.dimensions.height.toString());
     setValue("package.dimensionUnit", box.dimensions.unit);
+  };
+
+  const handleCreateBox = async (data: CreateBoxRequestPrimitives) => {
+    try {
+      const created = await createBox(data);
+      handleSelectBox(created);
+      setCreateDialogOpen(false);
+      toast.success(`Caja "${created.name}" creada`, { id: "order-flow" });
+    } catch (error) {
+      handleBoxError(error, { toastId: "order-flow" });
+    }
   };
 
   const triggerLabel = (b: BoxPrimitives) => (
@@ -117,14 +110,29 @@ export function BoxSelector() {
           </Button>
         )}
       </div>
-      <BoxPickerCombobox
-        value={boxId ?? undefined}
-        onChange={handleSelectBox}
-        placeholder="Buscar caja..."
-        error={!!errors.package?.boxId}
-        triggerLabel={triggerLabel}
-        itemLabel={itemLabel}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <BoxPickerCombobox
+            value={boxId ?? undefined}
+            onChange={handleSelectBox}
+            placeholder="Buscar caja..."
+            error={!!errors.package?.boxId}
+            triggerLabel={triggerLabel}
+            itemLabel={itemLabel}
+          />
+        </div>
+        {isStoreBox && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setCreateDialogOpen(true)}
+            title="Crear caja nueva"
+          >
+            <Plus className="size-4" />
+          </Button>
+        )}
+      </div>
       {errors.package?.boxId && <p className="text-sm text-destructive">{errors.package.boxId.message}</p>}
 
       {outOfStock && (
@@ -153,19 +161,13 @@ export function BoxSelector() {
           render={({ field }) => (
             <Input
               id="package-name"
-              placeholder="Se rellena al seleccionar una caja"
+              placeholder={isStoreBox ? "Se rellena al seleccionar una caja" : "Nombre del paquete"}
+              disabled={isStoreBox}
               {...field}
             />
           )}
         />
       </div>
-
-      {statusMessage && (
-        <p className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-          <statusMessage.icon className="size-3 shrink-0" />
-          {statusMessage.text}
-        </p>
-      )}
 
       <BoxStockDialog
         box={selectedBox}
@@ -174,6 +176,13 @@ export function BoxSelector() {
         onClose={() => setStockDialogOpen(false)}
         onConfirm={(boxId, newStock) => updateBox(boxId, { stock: newStock })}
         isLoading={isUpdating}
+      />
+
+      <BoxFormDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSave={handleCreateBox}
+        isLoading={isCreating}
       />
     </div>
   );

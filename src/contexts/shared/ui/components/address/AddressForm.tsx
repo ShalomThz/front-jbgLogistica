@@ -48,6 +48,7 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
   const { register, setValue, control, formState: { errors } } = useFormContext();
   const country = useWatch({ control, name: `${fieldPrefix}.country` });
   const labels = country === "MX" ? MX_LABELS : GENERIC_LABELS;
+  const zipRequired = country === "MX";
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -117,7 +118,7 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
         />
       </div>
       <div>
-        <Label htmlFor={`${labelPrefix}-zip`}>{labels.zip} *</Label>
+        <Label htmlFor={`${labelPrefix}-zip`}>{labels.zip}{zipRequired ? " *" : ""}</Label>
         <Input
           id={`${labelPrefix}-zip`}
           aria-invalid={!!getFieldError(errors, `${fieldPrefix}.zip`)}

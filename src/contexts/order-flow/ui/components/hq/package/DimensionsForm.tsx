@@ -7,12 +7,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller, useWatch } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { PackagingSelector } from "./PackagingSelector";
 
 export function DimensionsForm() {
   const { register, control, formState: { errors } } = useFormContext<HQOrderFormValues>();
+  const ownership = useWatch<HQOrderFormValues, "package.ownership">({ name: "package.ownership" });
+  const dimensionsReadOnly = ownership === "STORE";
 
   return (
     <div className="space-y-4">
@@ -24,6 +26,7 @@ export function DimensionsForm() {
             id="length"
             aria-invalid={!!errors.package?.length}
             placeholder="0"
+            disabled={dimensionsReadOnly}
             {...register("package.length")}
           />
           {errors.package?.length && <p className="text-sm text-destructive">{errors.package.length.message}</p>}
@@ -34,6 +37,7 @@ export function DimensionsForm() {
             id="width"
             aria-invalid={!!errors.package?.width}
             placeholder="0"
+            disabled={dimensionsReadOnly}
             {...register("package.width")}
           />
           {errors.package?.width && <p className="text-sm text-destructive">{errors.package.width.message}</p>}
@@ -44,6 +48,7 @@ export function DimensionsForm() {
             id="height"
             aria-invalid={!!errors.package?.height}
             placeholder="0"
+            disabled={dimensionsReadOnly}
             {...register("package.height")}
           />
           {errors.package?.height && <p className="text-sm text-destructive">{errors.package.height.message}</p>}
@@ -54,7 +59,7 @@ export function DimensionsForm() {
             control={control}
             name="package.dimensionUnit"
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select value={field.value} onValueChange={field.onChange} disabled={dimensionsReadOnly}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
