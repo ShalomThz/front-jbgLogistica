@@ -33,6 +33,7 @@ jobs:
         run: pnpm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
 
       - name: 📤 Deploy to VPS
         uses: appleboy/scp-action@v0.1.7
