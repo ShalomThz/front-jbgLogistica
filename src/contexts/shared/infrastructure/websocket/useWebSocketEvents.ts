@@ -25,24 +25,24 @@ const EVENT_QUERY_MAP: Record<string, string[]> = {
   customer: ["customers"],
 };
 
-const ACTION_LABEL: Record<string, string> = {
-  created: "creado",
-  updated: "actualizado",
-  deleted: "eliminado",
+const ACTION_SUFFIX: Record<string, { m: string; f: string }> = {
+  created: { m: "creado", f: "creada" },
+  updated: { m: "actualizado", f: "actualizada" },
+  deleted: { m: "eliminado", f: "eliminada" },
 };
 
-const ENTITY_LABEL: Record<string, string> = {
-  zone: "Zona",
-  order: "Orden",
-  package: "Paquete",
-  shipment: "Envío",
-  route: "Ruta",
-  driver: "Conductor",
-  store: "Tienda",
-  user: "Usuario",
-  box: "Caja",
-  tariff: "Tarifa",
-  customer: "Cliente",
+const ENTITY_CONFIG: Record<string, { label: string; gender: "m" | "f" }> = {
+  zone: { label: "Zona", gender: "f" },
+  order: { label: "Orden", gender: "f" },
+  package: { label: "Paquete", gender: "m" },
+  shipment: { label: "Envío", gender: "m" },
+  route: { label: "Ruta", gender: "f" },
+  driver: { label: "Conductor", gender: "m" },
+  store: { label: "Tienda", gender: "f" },
+  user: { label: "Usuario", gender: "m" },
+  box: { label: "Caja", gender: "f" },
+  tariff: { label: "Tarifa", gender: "f" },
+  customer: { label: "Cliente", gender: "m" },
 };
 
 function handleDomainEvent(event: DomainEvent) {
@@ -53,8 +53,10 @@ function handleDomainEvent(event: DomainEvent) {
     queryClient.invalidateQueries({ queryKey });
   }
 
-  const entityLabel = ENTITY_LABEL[entity] ?? entity;
-  const actionLabel = ACTION_LABEL[action] ?? action;
+  const config = ENTITY_CONFIG[entity];
+  const entityLabel = config?.label ?? entity;
+  const gender = config?.gender ?? "m";
+  const actionLabel = ACTION_SUFFIX[action]?.[gender] ?? action;
 
   if (action === "deleted") {
     toast.warning(`${entityLabel} ${actionLabel}`);
