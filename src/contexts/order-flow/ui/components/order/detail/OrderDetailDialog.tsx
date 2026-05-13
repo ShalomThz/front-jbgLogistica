@@ -38,6 +38,7 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
+import { OrderFinancialSection } from "./OrderFinancialSection";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 
 const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
@@ -84,6 +85,7 @@ export const OrderDetailDialog = ({
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("resumen");
   const { boxes } = useBoxes({ enabled: open });
   const { data: signatureData, isLoading: isLoadingSignature } = useMedia(order?.customerSignature);
 
@@ -209,7 +211,7 @@ export const OrderDetailDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="resumen">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList variant="line" className="w-full justify-start">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="contactos">Contactos</TabsTrigger>
@@ -217,22 +219,47 @@ export const OrderDetailDialog = ({
             {isCompleted && shipment && (
               <TabsTrigger value="envio">Envío</TabsTrigger>
             )}
+            {isCompleted && shipment && (
+              <TabsTrigger value="financiero">Financiero</TabsTrigger>
+            )}
           </TabsList>
 
           {/* Resumen */}
           <TabsContent value="resumen" className="space-y-4 mt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Ruta */}
-              <div className="rounded-md border p-3 space-y-1">
-                <h4 className="text-sm font-semibold mb-2">Ruta</h4>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setActiveTab("contactos")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setActiveTab("contactos");
+                  }
+                }}
+                className="rounded-md border border-blue-200 bg-blue-50/60 p-3 space-y-1 cursor-pointer transition-colors hover:bg-blue-100/70 dark:border-blue-900/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
+              >
+                <h4 className="text-sm font-semibold mb-2 text-blue-900 dark:text-blue-200">Ruta</h4>
                 <DetailRow label="Origen" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
                 <DetailRow label="Destino" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
                 <DetailRow label="Recolección" value={order.pickupAtAddress ? "Recolección a domicilio" : "Entregado en sucursal"} />
               </div>
 
               {/* Paquete */}
-              <div className="rounded-md border p-3 space-y-1">
-                <h4 className="text-sm font-semibold mb-2">Paquete</h4>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setActiveTab("paquete")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setActiveTab("paquete");
+                  }
+                }}
+                className="rounded-md border border-amber-200 bg-amber-50/60 p-3 space-y-1 cursor-pointer transition-colors hover:bg-amber-100/70 dark:border-amber-900/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+              >
+                <h4 className="text-sm font-semibold mb-2 text-amber-900 dark:text-amber-200">Paquete</h4>
                 <DetailRow
                   label="Dimensiones"
                   value={`${order.package.dimensions.length}×${order.package.dimensions.width}×${order.package.dimensions.height} ${order.package.dimensions.unit}`}
@@ -244,8 +271,24 @@ export const OrderDetailDialog = ({
               </div>
 
               {/* Financiero */}
-              <div className="rounded-md border p-3 space-y-1">
-                <h4 className="text-sm font-semibold mb-2">Financiero</h4>
+              <div
+                role={isCompleted && shipment ? "button" : undefined}
+                tabIndex={isCompleted && shipment ? 0 : undefined}
+                onClick={() => {
+                  if (isCompleted && shipment) setActiveTab("financiero");
+                }}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && isCompleted && shipment) {
+                    e.preventDefault();
+                    setActiveTab("financiero");
+                  }
+                }}
+                className={cn(
+                  "rounded-md border border-emerald-200 bg-emerald-50/60 p-3 space-y-1 dark:border-emerald-900/50 dark:bg-emerald-950/20",
+                  isCompleted && shipment && "cursor-pointer transition-colors hover:bg-emerald-100/70 dark:hover:bg-emerald-950/40",
+                )}
+              >
+                <h4 className="text-sm font-semibold mb-2 text-emerald-900 dark:text-emerald-200">Financiero</h4>
                 <DetailRow
                   label="Total"
                   value={financials.totalBilled ? formatMoney(financials.totalBilled) : "—"}
@@ -260,7 +303,23 @@ export const OrderDetailDialog = ({
               </div>
 
               {/* Referencias */}
-              <div className="rounded-md border p-3 space-y-1">
+              <div
+                role={isCompleted && shipment ? "button" : undefined}
+                tabIndex={isCompleted && shipment ? 0 : undefined}
+                onClick={() => {
+                  if (isCompleted && shipment) setActiveTab("envio");
+                }}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && isCompleted && shipment) {
+                    e.preventDefault();
+                    setActiveTab("envio");
+                  }
+                }}
+                className={cn(
+                  "rounded-md border p-3 space-y-1",
+                  isCompleted && shipment && "cursor-pointer transition-colors hover:bg-muted/50",
+                )}
+              >
                 <h4 className="text-sm font-semibold mb-2">Referencias</h4>
                 <DetailRow label="N° Factura JBG" value={references.orderNumber ?? "—"} />
                 <DetailRow label="N° Factura Agente" value={references.partnerOrderNumber ?? "—"} />
@@ -368,6 +427,19 @@ export const OrderDetailDialog = ({
           {isCompleted && shipment && (
             <TabsContent value="envio" className="mt-4">
               <OrderShipmentSection shipment={shipment} />
+            </TabsContent>
+          )}
+
+          {/* Financiero */}
+          {isCompleted && shipment && (
+            <TabsContent value="financiero" className="mt-4">
+              <OrderFinancialSection
+                rate={shipment.rate}
+                costBreakdown={shipment.costBreakdown}
+                totalBilled={financials.totalBilled}
+                tariff={financials.tariff}
+                discount={financials.discount}
+              />
             </TabsContent>
           )}
         </Tabs>

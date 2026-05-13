@@ -1,7 +1,5 @@
-import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import { ExternalLink } from "lucide-react";
-import { FinalPriceRow } from "./FinalPriceRow";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -12,21 +10,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatMoney(money: MoneyPrimitives) {
-  return `$${money.amount.toFixed(2)} ${money.currency}`;
-}
-
 const CARRIER_TYPE_LABELS: Record<string, string> = {
   INTERNAL_FLEET: "Flota interna",
   THIRD_PARTY: "Tercero",
-};
-
-const COST_LABELS: Record<string, string> = {
-  insurance: "Seguro",
-  tools: "Herramientas",
-  additionalCost: "Costo adicional",
-  wrap: "Embalaje",
-  tape: "Cinta",
 };
 
 interface OrderShipmentSectionProps {
@@ -36,7 +22,7 @@ interface OrderShipmentSectionProps {
 export const OrderShipmentSection = ({
   shipment,
 }: OrderShipmentSectionProps) => {
-  const { provider, rate, costBreakdown, finalPrice, createdAt } = shipment;
+  const { provider, rate } = shipment;
 
   return (
     <div className="space-y-4">
@@ -76,11 +62,9 @@ export const OrderShipmentSection = ({
 
       {rate && (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Tarifa</h4>
+          <h4 className="text-sm font-semibold">Servicio</h4>
           <div className="rounded-md border p-3 space-y-1">
             <DetailRow label="Servicio" value={rate.serviceName} />
-            <DetailRow label="Precio" value={formatMoney(rate.price)} />
-            <DetailRow label="Seguro" value={formatMoney(rate.insuranceFee)} />
             <DetailRow label="Ocurre" value={rate.isOcurre ? "Sí" : "No"} />
             {rate.estimatedDays != null && (
               <DetailRow
@@ -90,27 +74,6 @@ export const OrderShipmentSection = ({
             )}
           </div>
         </div>
-      )}
-
-      {costBreakdown && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Desglose de costos</h4>
-          <div className="rounded-md border p-3 space-y-1">
-            {Object.entries(costBreakdown).map(([key, value]) =>
-              value ? (
-                <DetailRow
-                  key={key}
-                  label={COST_LABELS[key] ?? key}
-                  value={formatMoney(value)}
-                />
-              ) : null,
-            )}
-          </div>
-        </div>
-      )}
-
-      {finalPrice && (
-        <FinalPriceRow finalPrice={finalPrice} costBreakdown={costBreakdown} createdAt={createdAt}/>
       )}
     </div>
   );
