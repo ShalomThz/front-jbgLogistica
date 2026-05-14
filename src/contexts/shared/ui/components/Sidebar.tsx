@@ -8,6 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@contexts/shared/shadcn/components';
 import { useAuth } from '@contexts/iam/infrastructure/hooks/auth/useAuth';
 import type { Policy } from '@contexts/shared/domain/policies/Policy';
@@ -84,6 +85,11 @@ const navigation: NavSection[] = [
 export const AppSidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const filteredNavigation = navigation
     .map((section) => ({
@@ -97,7 +103,7 @@ export const AppSidebar = () => {
   return (
     <>
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-border">
-        <Link to="/" className="px-2 text-xl font-bold">JBG Cargo Corp</Link>
+        <Link to="/" onClick={handleNavClick} className="px-2 text-xl font-bold">JBG Cargo Corp</Link>
       </SidebarHeader>
       <SidebarContent>
         {filteredNavigation.map((section) => (
@@ -112,7 +118,7 @@ export const AppSidebar = () => {
                       isActive={location.pathname.startsWith(item.href)}
                       className="data-[active=true]:text-primary"
                     >
-                      <Link to={item.href}>
+                      <Link to={item.href} onClick={handleNavClick}>
                         <item.icon className="size-4" />
                         {item.label}
                       </Link>
