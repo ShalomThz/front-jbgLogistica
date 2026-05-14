@@ -65,6 +65,23 @@ const useMorphingText = (texts: string[]) => {
   }, [])
 
   useEffect(() => {
+    // Respect reduced-motion: skip the rAF loop entirely and just show the
+    // first text. The loop animates blur filters every frame, which is costly
+    // on mobile and competes with input rendering.
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+    if (prefersReducedMotion) {
+      const [current1, current2] = [text1Ref.current, text2Ref.current]
+      if (current1 && current2) {
+        current1.textContent = texts[0]
+        current1.style.opacity = "100%"
+        current1.style.filter = "none"
+        current2.style.opacity = "0%"
+      }
+      return
+    }
+
     let animationFrameId: number
 
     const animate = () => {
@@ -84,7 +101,7 @@ const useMorphingText = (texts: string[]) => {
     return () => {
       cancelAnimationFrame(animationFrameId)
     }
-  }, [doMorph, doCooldown])
+  }, [doMorph, doCooldown, texts])
 
   return { text1Ref, text2Ref }
 }
