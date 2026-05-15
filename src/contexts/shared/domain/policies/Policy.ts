@@ -2,21 +2,39 @@ import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
 import type { Permission } from "@contexts/iam/domain/schemas/user/UserRole";
 import type { UserType } from "@contexts/iam/domain/schemas/user/User";
 
-export type Policy = (user: UserPrimitives) => boolean;
+export type PolicyMode = "all" | "any";
 
-export const hasAll =
-  (...permissions: Permission[]): Policy =>
-  (user) => {
-    const set = new Set(user.role.permissions);
-    return permissions.every((p) => set.has(p));
-  };
+export interface PolicyMeta {
+  /** Permissions evaluated by this policy. Empty for non-permission policies. */
+  permissions: Permission[];
+  /** "all" → user must have every permission; "any" → at least one. */
+  mode: PolicyMode;
+}
 
-export const hasAny =
-  (...permissions: Permission[]): Policy =>
-  (user) => {
-    const set = new Set(user.role.permissions);
-    return permissions.some((p) => set.has(p));
-  };
+export type Policy = ((user: UserPrimitives) => boolean) & Partial<PolicyMeta>;
+
+const attachMeta = (
+  fn: (user: UserPrimitives) => boolean,
+  meta: PolicyMeta,
+): Policy => Object.assign(fn, meta);
+
+export const hasAll = (...permissions: Permission[]): Policy =>
+  attachMeta(
+    (user) => {
+      const set = new Set(user.role.permissions);
+      return permissions.every((p) => set.has(p));
+    },
+    { permissions, mode: "all" },
+  );
+
+export const hasAny = (...permissions: Permission[]): Policy =>
+  attachMeta(
+    (user) => {
+      const set = new Set(user.role.permissions);
+      return permissions.some((p) => set.has(p));
+    },
+    { permissions, mode: "any" },
+  );
 
 export const isUserType =
   (...types: UserType[]): Policy =>
@@ -32,3 +50,17 @@ export const anyOf =
   (...policies: Policy[]): Policy =>
   (user) =>
     policies.some((p) => p(user));
+
+/**
+ * Returns the permissions a failing policy required but the user doesn't have.
+ * Empty when the policy carries no permission metadata (composed policies,
+ * isUserType, etc.) — callers should fall back to a generic message.
+ */
+export const missingPermissions = (
+  policy: Policy,
+  user: UserPrimitives,
+): Permission[] => {
+  if (!policy.permissions || policy.permissions.length === 0) return [];
+  const set = new Set(user.role.permissions);
+  return policy.permissions.filter((p) => !set.has(p));
+};
