@@ -5,7 +5,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="col-span-2 text-sm">{value}</span>
+      <span className="col-span-2 min-w-0 text-sm break-words">{value}</span>
     </div>
   );
 }
