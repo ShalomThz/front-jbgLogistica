@@ -158,8 +158,8 @@ export const OrdersPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Órdenes</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold">Órdenes</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
@@ -208,11 +208,11 @@ export const OrdersPage = () => {
       />
 
       {pagination && total > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             Mostrando {from}-{to} de {total}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
             <Button
               variant="outline"
               size="sm"

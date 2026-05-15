@@ -52,7 +52,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="col-span-2 text-sm">{value}</span>
+      <span className="col-span-2 min-w-0 text-sm break-words">{value}</span>
     </div>
   );
 }
@@ -177,19 +177,28 @@ export const OrderDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto pt-8">
+      <DialogContent className="flex! flex-col gap-0! p-0! sm:max-w-3xl max-h-[90vh] overflow-hidden">
         {pendingRoute ? (
-          <PageLoader text="Redirigiendo..." />
-        ) : (<>
+          <div className="p-6">
+            <PageLoader text="Redirigiendo..." />
+          </div>
+        ) : (
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex min-h-0 flex-1 flex-col gap-0!"
+        >
+        {/* Header box - static */}
+        <div className="shrink-0 border-b px-4 pt-8 pb-2 sm:px-6">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="break-words">
             Orden{" "}
             {[references.orderNumber, references.partnerOrderNumber]
               .filter(Boolean)
               .map((n) => `#${n}`)
               .join(" · ") || order.id}
           </DialogTitle>
-          <DialogDescription className="text-sm flex items-center justify-between">
+          <DialogDescription className="text-sm flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span>Tienda <span className="font-semibold text-foreground">{order.store.name}</span></span>
             <TooltipProvider>
               <Tooltip>
@@ -211,21 +220,26 @@ export const OrderDetailDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList variant="line" className="w-full justify-start">
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="contactos">Contactos</TabsTrigger>
-            <TabsTrigger value="paquete">Paquete</TabsTrigger>
+          <TabsList
+            variant="line"
+            className="mt-4 w-full justify-start overflow-x-auto"
+          >
+            <TabsTrigger value="resumen" className="flex-none">Resumen</TabsTrigger>
+            <TabsTrigger value="contactos" className="flex-none">Contactos</TabsTrigger>
+            <TabsTrigger value="paquete" className="flex-none">Paquete</TabsTrigger>
             {isCompleted && shipment && (
-              <TabsTrigger value="envio">Envío</TabsTrigger>
+              <TabsTrigger value="envio" className="flex-none">Envío</TabsTrigger>
             )}
             {isCompleted && shipment && (
-              <TabsTrigger value="financiero">Financiero</TabsTrigger>
+              <TabsTrigger value="financiero" className="flex-none">Financiero</TabsTrigger>
             )}
           </TabsList>
+        </div>
 
+        {/* Content box - scrolls vertically and horizontally */}
+        <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
           {/* Resumen */}
-          <TabsContent value="resumen" className="space-y-4 mt-4">
+          <TabsContent value="resumen" className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Ruta */}
               <div
@@ -355,7 +369,7 @@ export const OrderDetailDialog = ({
           </TabsContent>
 
           {/* Contactos */}
-          <TabsContent value="contactos" className="mt-4">
+          <TabsContent value="contactos">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold">Origen</h4>
@@ -398,7 +412,7 @@ export const OrderDetailDialog = ({
           </TabsContent>
 
           {/* Paquete */}
-          <TabsContent value="paquete" className="mt-4">
+          <TabsContent value="paquete">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Detalle del paquete</h4>
               <div className="rounded-md border p-3 space-y-1">
@@ -425,14 +439,14 @@ export const OrderDetailDialog = ({
 
           {/* Envío */}
           {isCompleted && shipment && (
-            <TabsContent value="envio" className="mt-4">
+            <TabsContent value="envio">
               <OrderShipmentSection shipment={shipment} />
             </TabsContent>
           )}
 
           {/* Financiero */}
           {isCompleted && shipment && (
-            <TabsContent value="financiero" className="mt-4">
+            <TabsContent value="financiero">
               <OrderFinancialSection
                 rate={shipment.rate}
                 costBreakdown={shipment.costBreakdown}
@@ -442,13 +456,18 @@ export const OrderDetailDialog = ({
               />
             </TabsContent>
           )}
-        </Tabs>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t p-4 sm:p-6">
           {shipment?.label && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isDownloadingLabel}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isDownloadingLabel}
+                  className="w-full sm:w-auto"
+                >
                   <Tag className="mr-1.5 size-4" />
                   Etiqueta
                   <ChevronDown className="ml-1 size-3" />
@@ -496,7 +515,12 @@ export const OrderDetailDialog = ({
           {order.invoiceId && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isDownloadingInvoice}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isDownloadingInvoice}
+                  className="w-full sm:w-auto"
+                >
                   <FileText className="mr-1.5 size-4" />
                   Factura
                   <ChevronDown className="ml-1 size-3" />
@@ -519,7 +543,7 @@ export const OrderDetailDialog = ({
               variant="outline"
               onClick={() => onCancelShipment?.(shipment.id)}
               disabled={isCancelling}
-              className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-400 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
+              className="w-full sm:w-auto border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-400 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
             >
               <Ban className="size-4" />
               {isCancelling ? "Cancelando..." : "Cancelar envío"}
@@ -530,6 +554,7 @@ export const OrderDetailDialog = ({
               variant="destructive"
               onClick={() => onDelete?.(order)}
               disabled={isDeleting}
+              className="w-full sm:w-auto"
             >
               <Trash2 className="size-4" />
               Eliminar
@@ -539,7 +564,7 @@ export const OrderDetailDialog = ({
             order.type === "PARTNER" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button disabled={!isEditable}>
+                  <Button disabled={!isEditable} className="w-full sm:w-auto">
                     <Pencil className="size-4" />
                     Editar
                     <ChevronDown className="size-3" />
@@ -577,6 +602,7 @@ export const OrderDetailDialog = ({
                   setPendingRoute(`/orders/${order.id}/edit`);
                   onClose();
                 }}
+                className="w-full sm:w-auto"
               >
                 <Pencil className="size-4" />
                 Editar
@@ -584,7 +610,8 @@ export const OrderDetailDialog = ({
             )
           )}
         </DialogFooter>
-        </>)}
+        </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );
