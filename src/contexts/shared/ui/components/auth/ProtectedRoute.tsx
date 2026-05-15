@@ -1,7 +1,12 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import type { Policy } from "@contexts/shared/domain/policies/Policy";
+import { toast } from "sonner";
+import {
+  missingPermissions,
+  type Policy,
+} from "@contexts/shared/domain/policies/Policy";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { humanizePermissions } from "@contexts/iam/ui/utils/humanizePermissions";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 
 interface ProtectedRouteProps {
@@ -19,6 +24,29 @@ export const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const { user, isLoading, isAuthenticated } = useAuth();
 
+  const denied = !!(policy && user && !policy(user));
+
+  // Toast lives in an effect so it fires once per denial, not on every render.
+  const toastedRef = useRef(false);
+  useEffect(() => {
+    if (!denied || !policy || !user || toastedRef.current) return;
+    toastedRef.current = true;
+
+    const missing = missingPermissions(policy, user);
+    if (missing.length === 0) {
+      toast.error("Permisos insuficientes para acceder a esta sección.");
+      return;
+    }
+
+    const labels = humanizePermissions(missing);
+    const message =
+      policy.mode === "any"
+        ? `Permisos insuficientes. Necesitas alguno de: ${labels}`
+        : `Permisos insuficientes. Falta: ${labels}`;
+
+    toast.error(message);
+  }, [denied, policy, user]);
+
   if (isLoading) {
     return fallback ?? <PageLoader />;
   }
@@ -27,7 +55,7 @@ export const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (policy && user && !policy(user)) {
+  if (denied) {
     return <Navigate to={redirectTo} replace />;
   }
 
