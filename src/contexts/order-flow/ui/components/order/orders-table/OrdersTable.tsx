@@ -141,7 +141,10 @@ export const OrdersTable = ({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {order.shipment?.provider?.providerName ?? "—"}
+                      <div className="font-medium">{order.shipment?.provider?.providerName ?? "—"} </div>
+                      <div className="text-xs text-muted-foreground">
+                        {order.shipment?.label?.trackingNumber ?? "No. de guía no disponible"}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
