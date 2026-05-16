@@ -142,7 +142,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
               )}
             </div>
             <div>
-              <Label htmlFor={`${title}-email`}>Correo electrónico *</Label>
+              <Label htmlFor={`${title}-email`}>Correo electrónico </Label>
               <Input
                 id={`${title}-email`}
                 type="email"
