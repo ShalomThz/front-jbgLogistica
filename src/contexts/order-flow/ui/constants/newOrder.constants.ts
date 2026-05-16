@@ -5,7 +5,7 @@ const emptyContactWithAddress = {
   id: null,
   name: "",
   company: "",
-  email: "",
+  email: null,
   phone: "",
   address: {
     country: "MX",

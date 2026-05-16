@@ -9,7 +9,7 @@ export const contactWithAddressSchema = z.object({
   id: z.string().nullable(),
   name: z.string().min(1, "El nombre es requerido"),
   company: z.string().min(1, "La empresa es requerida"),
-  email: z.string().min(1, "El correo es requerido").email("El correo no es válido"),
+  email: z.string("El correo no es válido").nullable(),
   phone: z.string().min(1, "El teléfono es requerido"),
   address: verifiedAddressSchema,
   save: z.boolean(),
