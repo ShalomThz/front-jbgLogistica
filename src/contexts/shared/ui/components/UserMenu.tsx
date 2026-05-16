@@ -19,15 +19,15 @@ export const UserMenu = () => {
   const navigate = useNavigate();
   const canAccessSettings = user && settingsPolicies.view(user);
 
-  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
+  const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : "??";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="flex items-center gap-3 text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium">{user?.email}</p>
-            <p className="text-xs text-primary-foreground/70">{user?.role.name}</p>
+            <p className="text-sm font-medium">{user?.name}</p>
+            <p className="text-xs text-primary-foreground/70">{user?.email}</p>
           </div>
           <Avatar className="h-8 w-8">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
