@@ -45,6 +45,7 @@ import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
 import { WarehouseFilters } from "../components/WarehouseFilters";
 import { exportWarehousePackages } from "@contexts/warehouse/domain/services/exportWarehousePackages";
 import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
+import { usePackageDialog } from "../hooks/usePackageDialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,13 @@ export const WarehousePage = () => {
 
   const { filters, setFilter, resetFilters, filtered } = useWarehouseFilters(packages);
 
-  const [selected, setSelected] = useState<PackageListViewPrimitives | null>(null);
+  // URL-driven detail dialog (`?packageId=<id>`) so the QR on the printed
+  // receipt can deep-link straight into the package details.
+  const {
+    selectedPackage: selected,
+    handleOpenDialog: openDetail,
+    handleCloseDialog: closeDetail,
+  } = usePackageDialog(packages);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPkg, setEditPkg] = useState<PackageListViewPrimitives | null>(null);
   const [deletePkg, setDeletePkg] = useState<PackageListViewPrimitives | null>(null);
@@ -206,12 +213,12 @@ export const WarehousePage = () => {
   };
 
   const handleEditFromDetail = (pkg: PackageListViewPrimitives) => {
-    setSelected(null);
+    closeDetail();
     setEditPkg(pkg);
   };
 
   const handleDeleteFromDetail = (pkg: PackageListViewPrimitives) => {
-    setSelected(null);
+    closeDetail();
     setDeletePkg(pkg);
   };
 
@@ -432,7 +439,7 @@ export const WarehousePage = () => {
                       <TableRow
                         key={p.id}
                         className="cursor-pointer"
-                        onClick={() => setSelected(p)}
+                        onClick={() => openDetail(p)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           {p.status === "WAREHOUSE" && !p.groupId ? (
@@ -532,7 +539,7 @@ export const WarehousePage = () => {
       <WarehouseDetailDialog
         pkg={selected}
         open={!!selected}
-        onClose={() => setSelected(null)}
+        onClose={closeDetail}
         onEdit={handleEditFromDetail}
         onEditGroup={openEditGroup}
         onDelete={handleDeleteFromDetail}
