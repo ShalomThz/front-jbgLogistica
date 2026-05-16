@@ -29,12 +29,12 @@ import {
 import { exportBoxSales } from "@contexts/inventory/domain/services/exportBoxSales";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
+import { useBoxSaleDialog } from "@contexts/inventory/ui/hooks/useBoxSaleDialog";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
-import type { BoxSaleListViewPrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSaleListView";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -98,7 +98,12 @@ export const BoxSalePage = () => {
 
   const [completedSale, setCompletedSale] = useState<BoxSalePrimitives | null>(null);
   const [saleStockInfo, setSaleStockInfo] = useState<StockInfo[]>([]);
-  const [selectedSale, setSelectedSale] = useState<BoxSaleListViewPrimitives | null>(null);
+  // URL-driven dialog (`?saleId=…`) so the receipt QR can deep-link here.
+  const {
+    selectedSale,
+    handleOpenDialog: openSaleDialog,
+    handleCloseDialog: closeSaleDialog,
+  } = useBoxSaleDialog(sales);
 
   const filtered = useMemo(
     () =>
@@ -503,7 +508,7 @@ export const BoxSalePage = () => {
                 </TableRow>
               ) : (
                 sales.map((sale) => (
-                  <TableRow key={sale.id} className="cursor-pointer" onClick={() => setSelectedSale(sale)}>
+                  <TableRow key={sale.id} className="cursor-pointer" onClick={() => openSaleDialog(sale)}>
                     <TableCell className="font-mono text-xs">
                       {sale.id.slice(0, 8).toUpperCase()}
                     </TableCell>
@@ -581,7 +586,7 @@ export const BoxSalePage = () => {
       <BoxSaleDetailDialog
         sale={selectedSale}
         open={!!selectedSale}
-        onClose={() => setSelectedSale(null)}
+        onClose={closeSaleDialog}
         onDownloadReceipt={downloadReceipt}
         isDownloadingReceipt={isDownloadingReceipt}
         onPrintReceipt={printReceipt}
