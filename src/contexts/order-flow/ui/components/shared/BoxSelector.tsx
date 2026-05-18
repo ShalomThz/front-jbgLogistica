@@ -163,7 +163,9 @@ export function BoxSelector() {
         operation="add"
         open={stockDialogOpen}
         onClose={() => setStockDialogOpen(false)}
-        onConfirm={(boxId, newStock) => updateBox(boxId, { stock: newStock })}
+        onConfirm={async (boxId, newStock) => {
+          await updateBox(boxId, { stock: newStock });
+        }}
         isLoading={isUpdating}
       />
 
