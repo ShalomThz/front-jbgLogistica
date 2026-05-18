@@ -3,7 +3,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Input,
   Label,
   Select,
   SelectContent,
@@ -22,8 +21,17 @@ interface PartnerPackageStepProps {
   onEditContacts: () => void;
 }
 
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="text-sm font-medium tabular-nums">{value || "—"}</p>
+    </div>
+  );
+}
+
 export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) {
-  const { register, control, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
+  const { control } = useFormContext<PartnerOrderFormValues>();
   const pkg = useWatch<PartnerOrderFormValues, "package">({ name: "package" });
 
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
@@ -89,57 +97,13 @@ export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) 
             <div className="space-y-4">
               <BoxSelector />
 
-              {/* Inline dimensions (no weight, no quantity) */}
-              <div className="space-y-4">
+              {/* Inline dimensions — always derived from the selected box */}
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
                 <div className="grid grid-cols-4 gap-3">
-                  <div>
-                    <Label htmlFor="length">Largo *</Label>
-                    <Input
-                      id="length"
-                      aria-invalid={!!errors.package?.length}
-                      placeholder="0"
-                      {...register("package.length")}
-                    />
-                    {errors.package?.length && <p className="text-sm text-destructive">{errors.package.length.message}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="width">Ancho *</Label>
-                    <Input
-                      id="width"
-                      aria-invalid={!!errors.package?.width}
-                      placeholder="0"
-                      {...register("package.width")}
-                    />
-                    {errors.package?.width && <p className="text-sm text-destructive">{errors.package.width.message}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="height">Alto *</Label>
-                    <Input
-                      id="height"
-                      aria-invalid={!!errors.package?.height}
-                      placeholder="0"
-                      {...register("package.height")}
-                    />
-                    {errors.package?.height && <p className="text-sm text-destructive">{errors.package.height.message}</p>}
-                  </div>
-                  <div>
-                    <Label>Unidad</Label>
-                    <Controller
-                      control={control}
-                      name="package.dimensionUnit"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cm">cm</SelectItem>
-                            <SelectItem value="in">in</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
+                  <ReadOnlyField label="Largo" value={pkg.length} />
+                  <ReadOnlyField label="Ancho" value={pkg.width} />
+                  <ReadOnlyField label="Alto" value={pkg.height} />
+                  <ReadOnlyField label="Unidad" value={pkg.dimensionUnit} />
                 </div>
               </div>
             </div>

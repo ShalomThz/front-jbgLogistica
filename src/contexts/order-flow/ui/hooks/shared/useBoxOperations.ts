@@ -31,7 +31,12 @@ export const useBoxOperations = ({ form, initialValues, enabled = true }: UseBox
   const processBox = async (): Promise<boolean> => {
     const pkg = form.getValues("package");
 
-    if (pkg.ownership === "STORE" && pkg.boxId) {
+    if (!pkg.boxId) {
+      toast.error("Selecciona una caja antes de continuar.", { id: "order-flow" });
+      return false;
+    }
+
+    if (pkg.ownership === "STORE") {
       const box = boxes.find((b) => b.id === pkg.boxId);
       if (box && box.stock === 0) {
         toast.error("La caja no tiene stock. Agrega stock antes de continuar.", { id: "order-flow" });

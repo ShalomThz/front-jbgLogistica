@@ -52,7 +52,7 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
   orderType: "HQ",
   package: {
     productSearch: "",
-    boxId: null,
+    boxId: "",
     ownership: "CUSTOMER",
     packageType: "",
     length: "",
@@ -79,7 +79,7 @@ export const partnerOrderDefaultValues: PartnerOrderFormValues = {
   ...baseDefaults,
   orderType: "PARTNER",
   package: {
-    boxId: null,
+    boxId: "",
     ownership: "CUSTOMER",
     packageType: "",
     length: "",

@@ -18,7 +18,7 @@ export const contactWithAddressSchema = z.object({
 // --- Base package (shared dimensions) ---
 
 export const basePackageSchema = z.object({
-  boxId: z.string().nullable(),
+  boxId: z.string().min(1, "Selecciona una caja"),
   ownership: z.enum(ownershipTypes),
   packageType: z.string(),
   length: z.string().refine((v) => parseFloat(v) > 0, "El largo debe ser mayor a 0"),

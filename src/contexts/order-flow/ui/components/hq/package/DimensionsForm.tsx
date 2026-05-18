@@ -7,69 +7,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { useFormContext, Controller, useWatch } from "react-hook-form";
+import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { PackagingSelector } from "./PackagingSelector";
 
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="text-sm font-medium tabular-nums">{value || "—"}</p>
+    </div>
+  );
+}
+
 export function DimensionsForm() {
   const { register, control, formState: { errors } } = useFormContext<HQOrderFormValues>();
-  const ownership = useWatch<HQOrderFormValues, "package.ownership">({ name: "package.ownership" });
-  const dimensionsReadOnly = ownership === "STORE";
+  const pkg = useWatch<HQOrderFormValues, "package">({ name: "package" });
 
   return (
     <div className="space-y-4">
-      {/* Dimensions */}
-      <div className="grid grid-cols-4 gap-3">
-        <div>
-          <Label htmlFor="length">Largo *</Label>
-          <Input
-            id="length"
-            aria-invalid={!!errors.package?.length}
-            placeholder="0"
-            disabled={dimensionsReadOnly}
-            {...register("package.length")}
-          />
-          {errors.package?.length && <p className="text-sm text-destructive">{errors.package.length.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="width">Ancho *</Label>
-          <Input
-            id="width"
-            aria-invalid={!!errors.package?.width}
-            placeholder="0"
-            disabled={dimensionsReadOnly}
-            {...register("package.width")}
-          />
-          {errors.package?.width && <p className="text-sm text-destructive">{errors.package.width.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="height">Alto *</Label>
-          <Input
-            id="height"
-            aria-invalid={!!errors.package?.height}
-            placeholder="0"
-            disabled={dimensionsReadOnly}
-            {...register("package.height")}
-          />
-          {errors.package?.height && <p className="text-sm text-destructive">{errors.package.height.message}</p>}
-        </div>
-        <div>
-          <Label>Unidad</Label>
-          <Controller
-            control={control}
-            name="package.dimensionUnit"
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange} disabled={dimensionsReadOnly}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cm">cm</SelectItem>
-                  <SelectItem value="in">in</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
+      {/* Dimensions — always derived from the selected box */}
+      <div className="rounded-md border bg-muted/30 px-3 py-2">
+        <div className="grid grid-cols-4 gap-3">
+          <ReadOnlyField label="Largo" value={pkg.length} />
+          <ReadOnlyField label="Ancho" value={pkg.width} />
+          <ReadOnlyField label="Alto" value={pkg.height} />
+          <ReadOnlyField label="Unidad" value={pkg.dimensionUnit} />
         </div>
       </div>
 

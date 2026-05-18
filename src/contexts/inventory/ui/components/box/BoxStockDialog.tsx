@@ -10,7 +10,7 @@ interface Props {
   operation: StockOperation | null;
   open: boolean;
   onClose: () => void;
-  onConfirm: (boxId: string, newStock: number) => void;
+  onConfirm: (boxId: string, newStock: number) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -29,12 +29,11 @@ export const BoxStockDialog = ({ box, operation, open, onClose, onConfirm, isLoa
   const newTotal = isAdd ? currentStock + qty : currentStock - qty;
   const isValid = qty > 0 && newTotal >= 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isValid) {
-      onConfirm(box.id, newTotal);
-      onClose();
-    }
+    if (!isValid) return;
+    await onConfirm(box.id, newTotal);
+    onClose();
   };
 
   return (

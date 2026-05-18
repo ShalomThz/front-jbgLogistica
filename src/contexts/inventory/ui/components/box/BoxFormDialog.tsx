@@ -30,7 +30,7 @@ type FormInput = z.input<typeof createBoxRequestSchema>;
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: CreateBoxRequestPrimitives) => void;
+  onSave: (data: CreateBoxRequestPrimitives) => Promise<void>;
   box?: BoxPrimitives | null;
   isLoading?: boolean;
 }
@@ -74,9 +74,9 @@ export const BoxFormDialog = ({
     if (open) reset(getDefaults(box));
   }, [open, box, reset]);
 
-  const onSubmit = handleSubmit((values) =>
-    onSave(values as CreateBoxRequestPrimitives),
-  );
+  const onSubmit = handleSubmit(async (values) => {
+    await onSave(values as CreateBoxRequestPrimitives);
+  });
 
   const isEdit = !!box;
 

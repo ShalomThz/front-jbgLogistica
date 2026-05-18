@@ -46,23 +46,24 @@ export const useBoxes = ({
 
   const createMutation = useMutation({
     mutationFn: (data: CreateBoxRequestPrimitives) => boxRepository.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BOXES_QUERY_KEY });
+    onSuccess: async () => {
+      // Await so mutateAsync only resolves once paginated + infinite caches are refreshed.
+      await queryClient.invalidateQueries({ queryKey: BOXES_QUERY_KEY });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateBoxRequest }) =>
       boxRepository.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BOXES_QUERY_KEY });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: BOXES_QUERY_KEY });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => boxRepository.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BOXES_QUERY_KEY });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: BOXES_QUERY_KEY });
     },
   });
 

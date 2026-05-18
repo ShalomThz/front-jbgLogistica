@@ -1,11 +1,10 @@
 import {
   Button,
-  Input,
   Label,
 } from "@contexts/shared/shadcn";
 import { Eraser, PackageX, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useFormContext, useWatch, Controller } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
@@ -16,13 +15,14 @@ import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/Ne
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 export function BoxSelector() {
-  const { setValue, control, formState: { errors } } = useFormContext<BaseOrderFormValues>();
+  const { setValue, formState: { errors } } = useFormContext<BaseOrderFormValues>();
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { updateBox, isUpdating, createBox, isCreating } = useBoxes({ enabled: false });
 
   const boxId = useWatch<BaseOrderFormValues, "package.boxId">({ name: "package.boxId" });
   const ownership = useWatch<BaseOrderFormValues, "package.ownership">({ name: "package.ownership" });
+  const packageType = useWatch<BaseOrderFormValues, "package.packageType">({ name: "package.packageType" });
 
   const selectedFilters = useMemo(
     () =>
@@ -42,12 +42,12 @@ export function BoxSelector() {
   const outOfStock = isStoreBox && selectedBox?.stock === 0;
 
   const handleClear = () => {
-    setValue("package.boxId", null, { shouldValidate: true });
+    setValue("package.boxId", "", { shouldValidate: true });
     setValue("package.packageType", "");
     setValue("package.length", "");
     setValue("package.width", "");
     setValue("package.height", "");
-    setValue("package.dimensionUnit", "cm");
+    setValue("package.dimensionUnit", "in");
   };
 
   const handleSelectBox = (box: BoxPrimitives) => {
@@ -113,7 +113,7 @@ export function BoxSelector() {
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <BoxPickerCombobox
-            value={boxId ?? undefined}
+            value={boxId || undefined}
             onChange={handleSelectBox}
             placeholder="Buscar caja..."
             error={!!errors.package?.boxId}
@@ -121,17 +121,15 @@ export function BoxSelector() {
             itemLabel={itemLabel}
           />
         </div>
-        {isStoreBox && (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setCreateDialogOpen(true)}
-            title="Crear caja nueva"
-          >
-            <Plus className="size-4" />
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setCreateDialogOpen(true)}
+          title="Crear caja nueva"
+        >
+          <Plus className="size-4" />
+        </Button>
       </div>
       {errors.package?.boxId && <p className="text-sm text-destructive">{errors.package.boxId.message}</p>}
 
@@ -154,19 +152,10 @@ export function BoxSelector() {
       )}
 
       <div className="space-y-1 mt-4">
-        <Label htmlFor="package-name">Nombre del paquete</Label>
-        <Controller
-          control={control}
-          name="package.packageType"
-          render={({ field }) => (
-            <Input
-              id="package-name"
-              placeholder={isStoreBox ? "Se rellena al seleccionar una caja" : "Nombre del paquete"}
-              disabled={isStoreBox}
-              {...field}
-            />
-          )}
-        />
+        <Label className="text-xs text-muted-foreground">Nombre del paquete</Label>
+        <p className="text-sm font-medium">
+          {packageType || <span className="text-muted-foreground italic">Se rellena al seleccionar una caja</span>}
+        </p>
       </div>
 
       <BoxStockDialog
