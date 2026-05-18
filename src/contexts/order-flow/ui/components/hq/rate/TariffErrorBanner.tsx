@@ -5,10 +5,9 @@ interface TariffErrorBannerProps {
   zoneId: string;
   destinationCountry: string;
   boxId: string;
-  onCreated?: () => void;
 }
 
-export function TariffErrorBanner({ zoneId, destinationCountry, boxId, onCreated }: TariffErrorBannerProps) {
+export function TariffErrorBanner({ zoneId, destinationCountry, boxId }: TariffErrorBannerProps) {
   const canCreate = !!zoneId && !!destinationCountry && !!boxId;
 
   return (
@@ -24,7 +23,6 @@ export function TariffErrorBanner({ zoneId, destinationCountry, boxId, onCreated
             zoneId={zoneId}
             destinationCountry={destinationCountry}
             boxId={boxId}
-            onCreated={onCreated}
             variant="outline"
           />
         )}

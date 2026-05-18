@@ -2,8 +2,8 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { tariffRepository, type UpdateTariffRequest, type CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
 import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
-
-const TARIFFS_QUERY_KEY = ["tariffs"];
+import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { tariffKeys } from "./tariffKeys";
 
 interface UseTariffsOptions {
   page?: number;
@@ -25,44 +25,62 @@ export const useTariffs = ({
   const queryClient = useQueryClient();
   const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<FindTariffsResponsePrimitives>({
-    queryKey: [...TARIFFS_QUERY_KEY, { page, limit, search, filters, order }],
-    queryFn: () =>
-      tariffRepository.find({ filters, search, order, limit, offset }),
+  const { data, isLoading, error, refetch } = useQuery<FindTariffsResponsePrimitives>({
+    queryKey: tariffKeys.list({ page, limit, search, filters, order }),
+    queryFn: () => tariffRepository.find({ filters, search, order, limit, offset }),
     enabled,
     placeholderData: keepPreviousData,
   });
 
   const tariffs = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages =
-    pagination && limit ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages = pagination && limit ? Math.ceil(pagination.total / limit) : 1;
+
+  /**
+   * The backend returns the full tariff in the create/update response, so we
+   * seed `useTariffPrice`'s cache with the known price to avoid an extra
+   * round-trip and the flash of "no tariff" while `invalidateQueries` refetches.
+   */
+  const seedPriceCache = (tariff: TariffPrimitives) =>
+    queryClient.setQueryData(
+      tariffKeys.price({
+        zoneId: tariff.originZoneId,
+        destinationCountry: tariff.destinationCountry,
+        boxId: tariff.boxId,
+      }),
+      tariff.price,
+    );
+
+  const invalidateAll = () =>
+    queryClient.invalidateQueries({ queryKey: tariffKeys.all });
+
+  const invalidateLists = () =>
+    queryClient.invalidateQueries({ queryKey: tariffKeys.lists() });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateTariffRequest) => tariffRepository.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TARIFFS_QUERY_KEY });
+    mutationFn: tariffRepository.create,
+    onSuccess: async (tariff) => {
+      // Backend rejects duplicates (TariffAlreadyExistsError), so the seed can't
+      // collide with a stale price cache — invalidating lists is enough.
+      seedPriceCache(tariff);
+      await invalidateLists();
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTariffRequest }) =>
       tariffRepository.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TARIFFS_QUERY_KEY });
+    onSuccess: async (tariff) => {
+      // Update may change zone/country/box, leaving the previous price-cache key
+      // stale; safer to invalidate everything under "tariffs".
+      seedPriceCache(tariff);
+      await invalidateAll();
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => tariffRepository.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TARIFFS_QUERY_KEY });
-    },
+    onSuccess: invalidateAll,
   });
 
   return {
@@ -73,8 +91,7 @@ export const useTariffs = ({
     error: error?.message ?? null,
     refetch,
 
-    createTariff: (data: CreateTariffRequest) =>
-      createMutation.mutateAsync(data),
+    createTariff: (data: CreateTariffRequest) => createMutation.mutateAsync(data),
     isCreating: createMutation.isPending,
     createError: createMutation.error?.message ?? null,
 

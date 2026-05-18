@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { tariffRepository } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import { tariffKeys } from "./tariffKeys";
 
 interface UseTariffPriceOptions {
   zoneId: string;
@@ -16,7 +17,7 @@ export const useTariffPrice = ({
   enabled = true,
 }: UseTariffPriceOptions) => {
   const { data, isLoading, error, refetch } = useQuery<MoneyPrimitives>({
-    queryKey: ["tariffs", "price", { zoneId, destinationCountry, boxId }],
+    queryKey: tariffKeys.price({ zoneId, destinationCountry, boxId }),
     queryFn: () => tariffRepository.findPrice({ zoneId, destinationCountry, boxId }),
     enabled: enabled && !!zoneId && !!destinationCountry && !!boxId,
     retry: false,

@@ -79,7 +79,10 @@ export const TariffFormDialog = ({ open, onClose, onSave, tariff, initialValues,
 
   useEffect(() => {
     if (open) reset(getDefaults(tariff, initialValues));
-  }, [open, tariff, initialValues, reset]);
+    // Only re-seed on open transitions; `initialValues` from callers is often a
+    // fresh object literal each render and would otherwise wipe user input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const onSubmit = handleSubmit(async (values) => {
     await onSave(values as CreateTariffRequestPrimitives);

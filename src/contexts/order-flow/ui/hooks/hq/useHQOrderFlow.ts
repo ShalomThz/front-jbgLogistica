@@ -92,7 +92,6 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     tariff: submission.tariff,
     isLoadingTariff: submission.isLoadingTariff,
     tariffError: submission.tariffError,
-    refetchTariff: submission.refetchTariff,
     tariffZoneId: submission.tariffZoneId,
     tariffDestinationCountry: submission.tariffDestinationCountry,
     tariffBoxId: submission.tariffBoxId,

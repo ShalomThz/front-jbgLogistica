@@ -27,7 +27,8 @@ export function CreateTariffButton({
   label = "Crear tarifa",
 }: CreateTariffButtonProps) {
   const [open, setOpen] = useState(false);
-  const { createTariff, isCreating } = useTariffs();
+  // enabled:false — only need the mutation, don't fire the list query.
+  const { createTariff, isCreating } = useTariffs({ enabled: false });
 
   const handleSave = async (data: CreateTariffRequestPrimitives) => {
     try {

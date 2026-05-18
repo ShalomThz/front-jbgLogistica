@@ -40,7 +40,6 @@ interface RateStepProps {
   tariffZoneId: string;
   tariffDestinationCountry: string;
   tariffBoxId: string;
-  onTariffCreated?: () => void;
 }
 
 export function RateStep({
@@ -65,7 +64,6 @@ export function RateStep({
   tariffZoneId,
   tariffDestinationCountry,
   tariffBoxId,
-  onTariffCreated,
 }: RateStepProps) {
   const { setValue } = useFormContext<HQOrderFormValues>();
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
@@ -104,7 +102,6 @@ export function RateStep({
             zoneId={tariffZoneId}
             destinationCountry={tariffDestinationCountry}
             boxId={tariffBoxId}
-            onCreated={onTariffCreated}
           />
         )}
         {showJBGFallback && <JBGFallbackBanner />}

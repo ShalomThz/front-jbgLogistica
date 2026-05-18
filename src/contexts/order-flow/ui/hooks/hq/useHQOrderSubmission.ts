@@ -79,7 +79,6 @@ export const useHQOrderSubmission = ({
     tariffPrice,
     isLoadingPrice: isLoadingTariff,
     priceError: tariffError,
-    refetchPrice: refetchTariff,
   } = useTariffPrice({
     zoneId,
     destinationCountry: destinationCountry ?? "",
@@ -262,7 +261,6 @@ export const useHQOrderSubmission = ({
     tariff,
     isLoadingTariff,
     tariffError,
-    refetchTariff,
     tariffZoneId: zoneId,
     tariffDestinationCountry: destinationCountry ?? "",
     tariffBoxId: boxId ?? "",
