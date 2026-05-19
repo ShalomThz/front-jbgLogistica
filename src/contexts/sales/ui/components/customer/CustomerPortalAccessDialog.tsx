@@ -54,7 +54,7 @@ export const CustomerPortalAccessDialog = ({
 
   // Sync email when the customer changes (different customer opened without unmounting)
   useEffect(() => {
-    if (customer) setEmail(customer.email);
+    if (customer) setEmail(customer.email ?? "");
   }, [customer?.id]);
 
   const hasAccess = !!customer?.user;
