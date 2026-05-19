@@ -222,7 +222,7 @@ export const BoxSalePage = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[calc(100vh-220px)] overflow-y-auto pr-2">
             {filtered.map((box) => {
               const qty = getCartQty(box.id);
               const outOfStock = box.stock === 0;
