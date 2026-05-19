@@ -25,6 +25,7 @@ import {
   Warehouse,
   Package,
   Receipt,
+  History,
   DollarSign,
   MapPin,
   Store,
@@ -61,6 +62,7 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Inventario de Cajas', href: '/boxes', icon: Package, policy: boxPolicies.manage },
       { label: 'Venta de Cajas', href: '/box-sales', icon: Receipt, policy: boxPolicies.sell },
+      { label: 'Historial Venta de Cajas', href: '/box-sales-history', icon: History, policy: boxPolicies.listSales },
     ],
   },
   {
@@ -115,7 +117,10 @@ export const AppSidebar = () => {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname.startsWith(item.href)}
+                      isActive={
+                        location.pathname === item.href ||
+                        location.pathname.startsWith(`${item.href}/`)
+                      }
                       className="data-[active=true]:text-primary"
                     >
                       <Link to={item.href} onClick={handleNavClick}>

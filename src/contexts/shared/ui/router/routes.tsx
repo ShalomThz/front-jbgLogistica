@@ -27,6 +27,7 @@ const CustomerWarehousePage = lazy(() => import("@/contexts/customer-warehouse/u
 // Inventory
 const BoxPage = lazy(() => import("@contexts/inventory/ui/pages/BoxPage").then(m => ({ default: m.BoxPage })));
 const BoxSalePage = lazy(() => import("@contexts/inventory/ui/pages/BoxSalePage").then(m => ({ default: m.BoxSalePage })));
+const BoxSalesHistoryPage = lazy(() => import("@contexts/inventory/ui/pages/BoxSalesHistoryPage").then(m => ({ default: m.BoxSalesHistoryPage })));
 
 // Shipping
 const DeliveryRoutesPage = lazy(() => import("@contexts/shipping/ui/pages/DeliveryRoutesPage").then(m => ({ default: m.DeliveryRoutesPage })));
@@ -139,6 +140,17 @@ export const routes: RouteObject[] = [
       <ProtectedRoute policy={boxPolicies.sell}>
         <Suspense fallback={<PageLoader />}>
           <BoxSalePage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+
+  {
+    path: "/box-sales-history",
+    element: (
+      <ProtectedRoute policy={boxPolicies.listSales}>
+        <Suspense fallback={<PageLoader />}>
+          <BoxSalesHistoryPage />
         </Suspense>
       </ProtectedRoute>
     ),
