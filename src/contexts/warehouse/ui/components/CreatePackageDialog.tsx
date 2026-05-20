@@ -44,6 +44,7 @@ const boxEntrySchema = z.object({
   boxName: z.string().min(1, "Nombre de la caja requerido"),
   dimensions: dimensionsSchema.extend({ unit: z.enum(dimensionUnits) }),
   weight: weightSchema.extend({ unit: z.enum(weightUnits) }),
+  count: z.number().int().min(1, "Mínimo 1").max(99, "Máximo 99"),
 });
 
 const createFormSchema = z.object({
@@ -65,6 +66,7 @@ const defaultBox = (): BoxEntry => ({
   boxName: "",
   dimensions: { length: 0, width: 0, height: 0, unit: "cm" },
   weight: { value: 0, unit: "kg" },
+  count: 1,
 });
 
 function getDefaults(storeId: string): FormValues {
@@ -245,11 +247,13 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
         providerName: values.providerName,
         deliveryPerson: values.providerDeliveryPerson,
         supplierInvoice: values.supplierInvoice || undefined,
-        boxes: values.boxes.map((entry, i) => ({
-          boxId: resolvedBoxIds[i],
-          dimensions: entry.dimensions,
-          weight: entry.weight,
-        })),
+        boxes: values.boxes.flatMap((entry, i) =>
+          Array.from({ length: entry.count }, () => ({
+            boxId: resolvedBoxIds[i],
+            dimensions: entry.dimensions,
+            weight: entry.weight,
+          }))
+        ),
         officialInvoice: values.officialInvoice,
         photos: values.photos,
       });
@@ -345,7 +349,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
             {/* ── Columna 2: Cajas ── */}
             <div className="space-y-4 lg:px-6 pb-4 lg:pb-0 pt-4 lg:pt-0 border-t lg:border-t-0 overflow-y-auto">
               <div className="flex items-center justify-between">
-                <SectionHeader icon={<Box className="size-4" />} title={`Cajas (${fields.length})`} />
+                <SectionHeader icon={<Box className="size-4" />} title={`Cajas (${watchedBoxes.reduce((sum, b) => sum + (b?.count ?? 1), 0)})`} />
                 <Button
                   type="button"
                   variant="outline"
@@ -377,18 +381,33 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                 return (
                   <div key={field.id} className="rounded-md border p-3 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase">Caja {index + 1}</span>
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
-                      )}
+                      <span className="text-xs font-semibold text-muted-foreground uppercase">
+                        Caja {index + 1}
+                        {(watchedBoxes[index]?.count ?? 1) > 1 && (
+                          <span className="ml-1.5 text-primary normal-case font-medium">×{watchedBoxes[index]?.count}</span>
+                        )}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-xs text-muted-foreground">Cantidad</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="99"
+                          className="h-6 w-14 text-xs text-center px-1"
+                          {...register(`boxes.${index}.count`, { valueAsNumber: true })}
+                        />
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => remove(index)}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Box picker */}
