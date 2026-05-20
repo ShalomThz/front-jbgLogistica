@@ -38,6 +38,13 @@ export const OrderActionsMenu = ({
   onDelete,
 }: OrderActionsMenuProps) => {
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
+  // The invoice is generated on demand from the order, so it is available
+  // once the order has been priced (numbered + tariff + billed total).
+  const canPrintInvoice = Boolean(
+    order.references.orderNumber &&
+      order.financials.tariff &&
+      order.financials.totalBilled,
+  );
 
   return (
     <DropdownMenu>
@@ -65,7 +72,7 @@ export const OrderActionsMenu = ({
             Completar venta
           </DropdownMenuItem>
         )}
-        {(order.shipment?.label || order.invoiceId) && (
+        {(order.shipment?.label || canPrintInvoice) && (
           <>
             <DropdownMenuSeparator />
             {order.shipment?.label && (
@@ -88,7 +95,7 @@ export const OrderActionsMenu = ({
                 </DropdownMenuItem>
               </>
             )}
-            {order.invoiceId && (
+            {canPrintInvoice && (
               <DropdownMenuItem
                 disabled={downloadingInvoice === order.id}
                 onClick={() => onPrintInvoice(order)}

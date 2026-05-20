@@ -102,6 +102,11 @@ export const OrderDetailDialog = ({
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const isCompleted = order.status === "COMPLETED";
+  // The invoice is generated on demand from the order, so it is available
+  // once the order has been priced (numbered + tariff + billed total).
+  const canPrintInvoice = Boolean(
+    references.orderNumber && financials.tariff && financials.totalBilled,
+  );
 
   const canEditPartner = user ? orderPolicies.editPartner(user) : false;
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
@@ -512,7 +517,7 @@ export const OrderDetailDialog = ({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {order.invoiceId && (
+          {canPrintInvoice && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
