@@ -10,7 +10,6 @@ export const orderListViewSchema = orderSchema
     store: storeSchema,
     createdBy: userListViewSchema,
     shipment: shipmentSchema.nullable(),
-    invoiceId: z.string().nullable(),
   });
 
 export type OrderListView = z.infer<typeof orderListViewSchema>;
