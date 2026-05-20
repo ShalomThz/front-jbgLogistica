@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { useHQSettings } from "@contexts/settings/infrastructure/hooks/useSkydropxSettings";
+import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
+import type { WarehouseAddressPrimitives } from "@contexts/shipping/domain/schemas/value-objects/WarehouseAddress";
 import { useHQOrderFlowForm, type HQOrderStep } from "./useHQOrderFlowForm";
 import { useContactSave } from "../shared/useContactSave";
 import { useBoxOperations } from "../shared/useBoxOperations";
@@ -21,6 +24,14 @@ interface UseHQOrderFlowOptions {
   storeId?: string;
 }
 
+const toWarehouseAddressPrimitives = (addr: HQSkydropxAddressItemResponse): WarehouseAddressPrimitives => ({
+  name: addr.name,
+  company: addr.company,
+  email: addr.email,
+  phone: addr.phone,
+  address: addr.address,
+});
+
 export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFlowOptions = {}) => {
   const [step, setStep] = useState<HQOrderStep>("contact");
   const { user } = useAuth();
@@ -28,11 +39,25 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
   const canSelectStore = user ? orderPolicies.createHQ(user) : false;
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
 
+  const { skydropxAddresses, isLoading: isLoadingAddresses } = useHQSettings();
+  // null means "user hasn't explicitly picked one yet — use the default"
+  const [selectedWarehouseAddress, setSelectedWarehouseAddress] = useState<HQSkydropxAddressItemResponse | null>(null);
+
+  const effectiveWarehouseAddress = useMemo(
+    () => selectedWarehouseAddress ?? skydropxAddresses.find((a) => a.isSelected) ?? skydropxAddresses[0] ?? null,
+    [selectedWarehouseAddress, skydropxAddresses],
+  );
+
+  const warehouseAddress = useMemo(
+    () => (effectiveWarehouseAddress ? toWarehouseAddressPrimitives(effectiveWarehouseAddress) : null),
+    [effectiveWarehouseAddress],
+  );
+
   const { form, validateStep } = useHQOrderFlowForm({ initialValues });
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
   const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
-  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox, storeId: selectedStoreId });
+  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox, storeId: selectedStoreId, warehouseAddress: warehouseAddress });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -97,6 +122,10 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     canSelectStore,
     selectedStoreId,
     setSelectedStoreId,
+    warehouseAddresses: skydropxAddresses,
+    selectedWarehouseAddress: effectiveWarehouseAddress,
+    setSelectedWarehouseAddress,
+    isLoadingAddresses,
     markAsPaid: submission.markAsPaid,
     setMarkAsPaid: submission.setMarkAsPaid,
   };

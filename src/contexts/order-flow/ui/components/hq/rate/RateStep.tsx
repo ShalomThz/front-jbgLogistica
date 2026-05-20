@@ -1,20 +1,22 @@
-import { useFormContext, useWatch } from "react-hook-form";
-import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
-import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
-import { RateTable } from "./RateTable";
-import { AdditionalCostsCard } from "./AdditionalCostsCard";
+import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
+import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
+import { useFormContext, useWatch } from "react-hook-form";
+import { OrderSuccessView } from "../../order/OrderSuccessView";
 import { SignatureCard } from "../../shared/SignatureCard";
-import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
-import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
-import { OrderTotalCard } from "./OrderTotalCard";
-import { TariffLoadingBanner } from "./TariffLoadingBanner";
-import { TariffErrorBanner } from "./TariffErrorBanner";
+import { AdditionalCostsCard } from "./AdditionalCostsCard";
 import { JBGFallbackBanner } from "./JBGFallbackBanner";
 import { JBGHintBanner } from "./JBGHintBanner";
-import { OrderSuccessView } from "../../order/OrderSuccessView";
+import { OrderTotalCard } from "./OrderTotalCard";
+import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
+import { RateTable } from "./RateTable";
+import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
+import { TariffErrorBanner } from "./TariffErrorBanner";
+import { TariffLoadingBanner } from "./TariffLoadingBanner";
+import { WarehouseAddressSelector } from "./WarehouseAddressSelector";
 
 const JBG_RATE_ID = "JBG_RATE";
 
@@ -40,6 +42,11 @@ interface RateStepProps {
   tariffZoneId: string;
   tariffDestinationCountry: string;
   tariffBoxId: string;
+  onTariffCreated?: () => void;
+  warehouseAddresses: HQSkydropxAddressItemResponse[];
+  selectedWarehouseAddress: HQSkydropxAddressItemResponse | null;
+  onWarehouseAddressChange: (address: HQSkydropxAddressItemResponse) => void;
+  isLoadingAddresses: boolean;
 }
 
 export function RateStep({
@@ -64,6 +71,10 @@ export function RateStep({
   tariffZoneId,
   tariffDestinationCountry,
   tariffBoxId,
+  warehouseAddresses,
+  selectedWarehouseAddress,
+  onWarehouseAddressChange,
+  isLoadingAddresses,
 }: RateStepProps) {
   const { setValue } = useFormContext<HQOrderFormValues>();
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
@@ -96,6 +107,12 @@ export function RateStep({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
+        <WarehouseAddressSelector
+          addresses={warehouseAddresses}
+          selectedAddress={selectedWarehouseAddress}
+          onSelect={onWarehouseAddressChange}
+          isLoading={isLoadingAddresses}
+        />
         {showTariffLoading && <TariffLoadingBanner />}
         {showTariffError && (
           <TariffErrorBanner

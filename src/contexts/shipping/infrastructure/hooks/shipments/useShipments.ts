@@ -64,10 +64,13 @@ export const useShipments = ({
   };
 };
 
+import type { WarehouseAddressPrimitives } from "../../../domain/schemas/value-objects/WarehouseAddress";
+
 interface UseShipmentRatesOptions {
   shipmentId: string;
   enabled?: boolean;
   additionalData?: Record<string, string>;
+  warehouseAddress: WarehouseAddressPrimitives | null;
 }
 
 export const useShipmentActions = () => {
@@ -116,19 +119,29 @@ export const useShipmentActions = () => {
   };
 };
 
+const EMPTY_RATES: RatePrimitives[] = [];
+
 export const useShipmentRates = ({
   shipmentId,
   enabled = true,
   additionalData,
+  warehouseAddress,
 }: UseShipmentRatesOptions) => {
   const { data, isFetching, error, refetch } = useQuery<RatePrimitives[]>({
-    queryKey: [...SHIPMENTS_QUERY_KEY, shipmentId, "rates", additionalData],
-    queryFn: () => shipmentRepository.getRates({ shipmentId, additionalData }),
-    enabled: enabled && !!shipmentId,
+    queryKey: [shipmentId, "rates", additionalData, warehouseAddress],
+    queryFn: () =>
+      shipmentRepository.getRates({
+        shipmentId,
+        additionalData: additionalData ?? {},
+        warehouseAddress: warehouseAddress!,
+      }),
+    enabled: enabled && !!shipmentId && !!warehouseAddress,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   return {
-    rates: data ?? [],
+    rates: data ?? EMPTY_RATES,
     isLoading: isFetching,
     error: error?.message ?? null,
     refetch,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewO
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
+import type { WarehouseAddressPrimitives } from "@contexts/shipping/domain/schemas/value-objects/WarehouseAddress";
 import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
@@ -32,6 +33,7 @@ interface UseHQOrderSubmissionOptions {
   boxes: BoxPrimitives[];
   updateBox: (id: string, data: UpdateBoxRequest) => Promise<BoxPrimitives>;
   storeId?: string;
+  warehouseAddress: WarehouseAddressPrimitives | null;
 }
 
 export const useHQOrderSubmission = ({
@@ -42,6 +44,7 @@ export const useHQOrderSubmission = ({
   boxes,
   updateBox,
   storeId,
+  warehouseAddress,
 }: UseHQOrderSubmissionOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -95,6 +98,15 @@ export const useHQOrderSubmission = ({
     control: form.control,
     name: "package.consignmentNotePackagingCode",
   });
+
+  const additionalData = useMemo(
+    () => ({
+      consignment_note_class_code: consignmentNoteClassCode ?? "",
+      consignment_note_packaging_code: consignmentNotePackagingCode ?? "",
+    }),
+    [consignmentNoteClassCode, consignmentNotePackagingCode],
+  );
+
   const {
     rates,
     isLoading: isLoadingRates,
@@ -102,11 +114,9 @@ export const useHQOrderSubmission = ({
     refetch: refetchRates,
   } = useShipmentRates({
     shipmentId: shipmentId ?? "",
-    enabled: !!shipmentId && step === "rate",
-    additionalData: {
-      consignment_note_class_code: consignmentNoteClassCode,
-      consignment_note_packaging_code: consignmentNotePackagingCode,
-    },
+    enabled: !!shipmentId && step === "rate" && !!warehouseAddress,
+    additionalData,
+    warehouseAddress,
   });
 
   const selectedRate = useWatch({
@@ -151,9 +161,6 @@ export const useHQOrderSubmission = ({
           return;
         }
         setShipmentId(shipment.id);
-        queryClient.invalidateQueries({
-          queryKey: ["shipments", shipment.id, "rates"],
-        });
         form.setValue("shippingService.selectedRate", null);
         setFulfilledShipment(null);
         setStep("rate");

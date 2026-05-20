@@ -50,12 +50,12 @@ export const shipmentRepository = {
   getRates: async (
     request: GetShipmentRatesRequest,
   ): Promise<RatePrimitives[]> => {
-    const { shipmentId, additionalData } = request;
+    const { shipmentId, additionalData, warehouseAddress } = request;
     const data = await httpClient<unknown>(
       `/shipment/${shipmentId}/rates`,
       {
         method: "POST",
-        body: JSON.stringify({ additionalData }),
+        body: JSON.stringify({ additionalData, warehouseAddress }),
       },
     );
     return z.array(rateSchema).parse(data);

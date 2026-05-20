@@ -7,6 +7,7 @@ import { rateSchema } from "../value-objects/Rate";
 import { shippingLabelSchema } from "../value-objects/ShippingLabel";
 import { shipmentStatuses } from "./ShipmentStatuses";
 import z from "zod";
+import { warehouseAddressSchema } from "../value-objects/WarehouseAddress";
 
 export const shipmentSchema = z.object({
   id: z.string(),
@@ -17,7 +18,8 @@ export const shipmentSchema = z.object({
   status: z.enum(shipmentStatuses),
   finalPrice: moneySchema.nullable(),
   costBreakdown: costBreakdownSchema.nullable(),
-  additionalData: z.record(z.string(), z.string()).optional(),
+  additionalData: z.record(z.string(), z.string()),
+  warehouseAddress: warehouseAddressSchema.nullable(),
   parcel: parcelSchema,
   ...aggregateRootSchema.shape,
 });

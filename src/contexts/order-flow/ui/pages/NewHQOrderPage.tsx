@@ -1,17 +1,17 @@
+import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { Button } from "@contexts/shared/shadcn";
 import { ArrowLeft } from "lucide-react";
+import { useCallback } from "react";
 import { FormProvider } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
-import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
+import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import { HQContactStep } from "../components/hq/contact/HQContactStep";
 import { HQPackageStep } from "../components/hq/package/HQPackageStep";
 import { RateStep } from "../components/hq/rate/RateStep";
 import { OrderSuccessView } from "../components/order/OrderSuccessView";
 import { StepIndicator } from "../components/shared/StepIndicator";
-import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
-import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
+import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
 
 interface NewHQOrderPageProps {
   initialValues?: HQOrderFormValues;
@@ -127,6 +127,10 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
             tariffZoneId={flow.tariffZoneId}
             tariffDestinationCountry={flow.tariffDestinationCountry}
             tariffBoxId={flow.tariffBoxId}
+            warehouseAddresses={flow.warehouseAddresses}
+            selectedWarehouseAddress={flow.selectedWarehouseAddress}
+            onWarehouseAddressChange={flow.setSelectedWarehouseAddress}
+            isLoadingAddresses={flow.isLoadingAddresses}
           />
         )}
 
