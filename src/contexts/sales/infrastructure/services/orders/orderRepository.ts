@@ -89,11 +89,15 @@ export const orderRepository = {
   },
 
   report: async (
-    request: Partial<Pick<FindOrdersRequest, "filters" | "search">> = {},
+    request: Partial<Pick<FindOrdersRequest, "filters" | "search">> & { currency?: string } = {},
   ): Promise<OrderReportResponse> => {
     return httpClient<OrderReportResponse>("/order/report", {
       method: "POST",
-      body: JSON.stringify({ filters: request.filters ?? [], search: request.search }),
+      body: JSON.stringify({
+        filters: request.filters ?? [],
+        search: request.search,
+        currency: request.currency ?? "USD",
+      }),
     });
   },
 

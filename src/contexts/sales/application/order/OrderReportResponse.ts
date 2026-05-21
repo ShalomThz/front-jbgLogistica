@@ -23,6 +23,7 @@ export interface OrderReportByClient {
 }
 
 export interface OrderReportResponse {
+  currency: string;
   totalOrders: number;
   totalRevenue: number;
   avgOrderValue: number;

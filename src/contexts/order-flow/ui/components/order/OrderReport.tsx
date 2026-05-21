@@ -114,6 +114,7 @@ export const OrderReport = () => {
 
   const [createdByFilter, setCreatedByFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [currency, setCurrency] = useState<"USD" | "MXN">("USD");
 
   const reportFilters = [
     ...criteria.filters,
@@ -131,15 +132,22 @@ export const OrderReport = () => {
   const { report, isLoading } = useOrderReport({
     filters: reportFilters,
     search: criteria.search,
+    currency,
   });
 
   const fmt = (amount: number) =>
-    `$${amount.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: report?.currency ?? currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
 
   const handleReset = () => {
     resetFilters();
     setCreatedByFilter("all");
     setCountryFilter("all");
+    setCurrency("USD");
   };
 
   const activeFilterCount =
@@ -147,7 +155,8 @@ export const OrderReport = () => {
       (v) => v !== "all",
     ).length +
     (createdByFilter !== "all" ? 1 : 0) +
-    (countryFilter !== "all" ? 1 : 0);
+    (countryFilter !== "all" ? 1 : 0) +
+    (currency !== "USD" ? 1 : 0);
 
   const activeRing = (v: string, def = "all") =>
     v !== def ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5" : "";
@@ -304,6 +313,28 @@ export const OrderReport = () => {
                       {c.country}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Currency */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Moneda
+              </Label>
+              <Select
+                value={currency}
+                onValueChange={(v) => setCurrency(v as "USD" | "MXN")}
+              >
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(currency, "USD")}`}
+                >
+                  <TrendingUp className="size-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD — Dólar</SelectItem>
+                  <SelectItem value="MXN">MXN — Peso mexicano</SelectItem>
                 </SelectContent>
               </Select>
             </div>
