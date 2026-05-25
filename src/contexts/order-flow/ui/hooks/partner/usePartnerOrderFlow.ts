@@ -29,7 +29,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   const { user } = useAuth();
 
   // TODO: cambiar a CAN_SELECT_STORE cuando se cree el permiso
-  const canSelectStore = user ? orderPolicies.createHQ(user) : false;
+  //const canSelectStore = user ? orderPolicies.createHQ(user) : false;
+  const canSelectStore = true;
 
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
 

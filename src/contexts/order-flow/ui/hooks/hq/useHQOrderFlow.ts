@@ -36,7 +36,8 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
   const [step, setStep] = useState<HQOrderStep>("contact");
   const { user } = useAuth();
 
-  const canSelectStore = user ? orderPolicies.createHQ(user) : false;
+  // const canSelectStore = user ? orderPolicies.createHQ(user) : false;
+  const canSelectStore = true;
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
 
   const { skydropxAddresses, isLoading: isLoadingAddresses } = useHQSettings();
