@@ -42,6 +42,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
 
   const handleClear = () => {
     setValue(`${prefix}.id`, null);
+    setValue(`${prefix}.customerNumber`, null);
     setValue(`${prefix}.name`, "");
     setValue(`${prefix}.company`, "");
     setValue(`${prefix}.email`, "");
@@ -60,6 +61,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
 
   const handleSelectSaved = (c: CustomerListViewPrimitives) => {
     setValue(`${prefix}.id`, c.id);
+    setValue(`${prefix}.customerNumber`, c.customerNumber);
     setValue(`${prefix}.name`, c.name);
     setValue(`${prefix}.company`, c.company);
     setValue(`${prefix}.email`, c.email);

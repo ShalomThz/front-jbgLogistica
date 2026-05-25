@@ -1,8 +1,10 @@
 import * as XLSX from "xlsx";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 
 export function exportCustomers(customers: CustomerListViewPrimitives[]) {
   const rows = customers.map((c) => ({
+    "No. Cliente": formatCustomerNumber(c.customerNumber),
     Nombre: c.name,
     Empresa: c.company,
     Email: c.email,

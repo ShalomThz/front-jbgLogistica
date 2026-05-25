@@ -1,6 +1,7 @@
 import { Pencil, Trash2, MapPin } from "lucide-react";
 import { Badge, Separator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } from "@contexts/shared/shadcn";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 
 const STATUS_LABELS: Record<string, string> = { ACTIVE: "Activo", INACTIVE: "Inactivo" };
 const STATUS_VARIANT: Record<string, "default" | "outline"> = { ACTIVE: "default", INACTIVE: "outline" };
@@ -34,7 +35,10 @@ export const CustomerDetailDialog = ({ customer, open, onClose, onEdit, onDelete
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>{customer.name}</span>
-            <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABELS[status]}</Badge>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono text-muted-foreground">{formatCustomerNumber(customer.customerNumber)}</span>
+              <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABELS[status]}</Badge>
+            </div>
           </DialogTitle>
           <DialogDescription>Cliente desde {createdDate}</DialogDescription>
         </DialogHeader>

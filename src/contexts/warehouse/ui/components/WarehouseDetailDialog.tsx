@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import {
   Badge,
   Button,
@@ -12,6 +11,8 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import { ChevronLeft, ChevronRight, Download, Images, Package, Pencil, Printer, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   PackageListViewPrimitives,
   WarehousePackageStatus,
@@ -171,6 +172,9 @@ export const WarehouseDetailDialog = ({
                 <DetailRow label="Repartidor proveedor" value={pkg.providerDetails.deliveryPerson} />
                 <DetailRow label="Factura proveedor" value={pkg.providerDetails.supplierInvoice ?? undefined} />
                 <DetailRow label="Cliente" value={pkg.customer.name} />
+                {pkg.customer.customerNumber != null && (
+                  <DetailRow label="No. Cliente" value={formatCustomerNumber(pkg.customer.customerNumber)} />
+                )}
                 <DetailRow label="Tienda" value={pkg.store.name} />
                 <DetailRow label="Registrado por" value={pkg.user.name} />
               </div>

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 export const customerSchema = z.object({
   id: z.string(),
+  customerNumber: z.number().int().positive(),
   name: z.string().min(1, "Customer name is required"),
   company: z.string().min(1, "Company is required"),
   email: optionalEmailSchema,
@@ -19,6 +20,7 @@ export type CustomerPrimitives = z.infer<typeof customerSchema>;
 
 export const createCustomerSchema = customerSchema.omit({
   id: true,
+  customerNumber: true,
   createdAt: true,
   updatedAt: true,
   address: true,

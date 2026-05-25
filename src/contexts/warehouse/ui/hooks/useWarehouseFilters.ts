@@ -1,3 +1,4 @@
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 import { useMemo, useState } from "react";
 import type { PackageListViewPrimitives } from "../../domain/WarehousePackageSchema";
 
@@ -11,31 +12,22 @@ export interface WarehouseFiltersState {
   dateSort: DateSort;
 }
 
-export function useWarehouseFilters(packages: PackageListViewPrimitives[]) {
+export interface WarehouseCriteria {
+  search?: string;
+}
+
+export function useWarehouseFilters() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [nameSort, setNameSort] = useState<NameSort>("none");
   const [dateSort, setDateSort] = useState<DateSort>("desc");
 
-  const filtered = useMemo(() => {
-    const result = packages.filter((p) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        p.id.toLowerCase().includes(query) ||
-        p.officialInvoice?.toLowerCase().includes(query) ||
-        p.provider.name.toLowerCase().includes(query) ||
-        p.customer.name.toLowerCase().includes(query) ||
-        p.customer.email.toLowerCase().includes(query);
-      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
 
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    return result;
-  }, [packages, searchQuery, statusFilter, dateSort]);
+  const criteria = useMemo<WarehouseCriteria>(
+    () => ({ search: debouncedSearch.trim() || undefined }),
+    [debouncedSearch],
+  );
 
   const filters: WarehouseFiltersState = {
     searchQuery,
@@ -65,5 +57,19 @@ export function useWarehouseFilters(packages: PackageListViewPrimitives[]) {
     setDateSort("desc");
   };
 
-  return { filters, setFilter, resetFilters, filtered };
+  return { filters, setFilter, resetFilters, criteria };
+}
+
+export function applyWarehouseFilters(
+  packages: PackageListViewPrimitives[],
+  filters: Pick<WarehouseFiltersState, "statusFilter" | "dateSort">,
+): PackageListViewPrimitives[] {
+  const result = packages.filter((p) =>
+    filters.statusFilter === "all" || p.status === filters.statusFilter,
+  );
+
+  if (filters.dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  else if (filters.dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return result;
 }

@@ -26,6 +26,7 @@ import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -147,6 +148,7 @@ export const CustomersPage = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-28 hidden sm:table-cell">#</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Tienda</TableHead>
               <TableHead className="hidden sm:table-cell">Telefono</TableHead>
@@ -159,13 +161,14 @@ export const CustomersPage = () => {
           <TableBody>
             {customers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No se encontraron clientes.
                 </TableCell>
               </TableRow>
             ) : (
               customers.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c)}>
+                  <TableCell className="hidden sm:table-cell font-mono text-xs text-muted-foreground">{formatCustomerNumber(c.customerNumber)}</TableCell>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.store.name}</TableCell>
                   <TableCell className="hidden sm:table-cell">{c.phone}</TableCell>

@@ -17,7 +17,7 @@ import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http
 
 export const packageRepository = {
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number, order?: { field: string, direction: "ASC" | "DESC" } } = {},
+    request: { search?: string; filters?: unknown[]; limit?: number; offset?: number; order?: { field: string; direction: "ASC" | "DESC" } } = {},
   ): Promise<FindPackagesResponsePrimitives> => {
     const data = await httpClient<unknown>("/package/find", {
       method: "POST",

@@ -1,4 +1,7 @@
+import { STATUS_CONFIG } from "@/contexts/customer-warehouse/ui/components/PackageCard";
 import { usePackages } from "@/contexts/warehouse/infrastructure/hooks/usePackages";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Badge,
   Button,
@@ -15,8 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { exportWarehousePackages } from "@contexts/warehouse/domain/services/exportWarehousePackages";
 import {
   ChevronDown,
   ChevronLeft,
@@ -24,8 +28,9 @@ import {
   Plus,
   RefreshCw,
 } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { EditPackageGroupRequest } from "../../domain/PackageGroupSchema";
 import type {
   CreatePackageRequest,
   PackageListViewPrimitives,
@@ -33,19 +38,15 @@ import type {
   WarehousePackageStatus,
 } from "../../domain/WarehousePackageSchema";
 import { warehousePackageStatuses } from "../../domain/WarehousePackageSchema";
-import { cn } from "@contexts/shared/shadcn/lib/utils";
-import { STATUS_CONFIG } from "@/contexts/customer-warehouse/ui/components/PackageCard";
-import type { EditPackageGroupRequest } from "../../domain/PackageGroupSchema";
 import { CreatePackageDialog } from "../components/CreatePackageDialog";
 import { CreatePackageGroupDialog } from "../components/CreatePackageGroupDialog";
-import { EditPackageGroupDialog } from "../components/EditPackageGroupDialog";
 import { EditPackageDialog } from "../components/EditPackageDialog";
+import { EditPackageGroupDialog } from "../components/EditPackageGroupDialog";
 import { WarehouseDeleteDialog } from "../components/WarehouseDeleteDialog";
 import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
 import { WarehouseFilters } from "../components/WarehouseFilters";
-import { exportWarehousePackages } from "@contexts/warehouse/domain/services/exportWarehousePackages";
-import { useWarehouseFilters } from "../hooks/useWarehouseFilters";
 import { usePackageDialog } from "../hooks/usePackageDialog";
+import { applyWarehouseFilters, useWarehouseFilters } from "../hooks/useWarehouseFilters";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,10 @@ const LIMIT_OPTIONS = [10, 20, 50];
 export const WarehousePage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
+
+  const { filters, setFilter, resetFilters, criteria } = useWarehouseFilters();
+
+  useEffect(() => { setPage(1); }, [criteria.search]);
 
   const {
     packages,
@@ -78,9 +83,12 @@ export const WarehousePage = () => {
     isDownloadingReceipt,
     printReceipt,
     isPrintingReceipt,
-  } = usePackages({ page, limit });
+  } = usePackages({ page, limit, search: criteria.search });
 
-  const { filters, setFilter, resetFilters, filtered } = useWarehouseFilters(packages);
+  const filtered = useMemo(
+    () => applyWarehouseFilters(packages, filters),
+    [packages, filters],
+  );
 
   // URL-driven detail dialog (`?packageId=<id>`) so the QR on the printed
   // receipt can deep-link straight into the package details.
@@ -352,6 +360,7 @@ export const WarehousePage = () => {
               <TableHead className="hidden sm:table-cell">Tienda</TableHead>
               <TableHead className="hidden md:table-cell">Proveedor</TableHead>
               <TableHead className="hidden lg:table-cell">Cliente</TableHead>
+              <TableHead className="hidden xl:table-cell">No. Cliente</TableHead>
               <TableHead className="hidden xl:table-cell">Email cliente</TableHead>
               <TableHead className="hidden md:table-cell">Peso</TableHead>
               <TableHead>Estado</TableHead>
@@ -360,7 +369,7 @@ export const WarehousePage = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   No se encontraron paquetes.
                 </TableCell>
               </TableRow>
@@ -386,7 +395,7 @@ export const WarehousePage = () => {
                       )}
                       onClick={!isUngrouped ? () => toggleGroup(groupKey) : undefined}
                     >
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-sm">
                             {!isUngrouped && (
@@ -462,6 +471,9 @@ export const WarehousePage = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
                           {p.customer.name}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">
+                          {p.customer.customerNumber != null ? formatCustomerNumber(p.customer.customerNumber) : "—"}
                         </TableCell>
                         <TableCell className="hidden xl:table-cell text-sm">
                           {p.customer.email}

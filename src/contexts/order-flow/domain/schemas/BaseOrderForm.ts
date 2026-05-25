@@ -8,6 +8,7 @@ import { optionalEmailSchema } from "@contexts/shared/domain/schemas/Email";
 
 export const contactWithAddressSchema = z.object({
   id: z.string().nullable(),
+  customerNumber: z.number().nullable().optional(),
   name: z.string().min(1, "El nombre es requerido"),
   company: z.string().min(1, "La empresa es requerida"),
   email: optionalEmailSchema,

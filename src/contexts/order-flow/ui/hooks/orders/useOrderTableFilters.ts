@@ -47,7 +47,7 @@ const initialState: OrderTableFilterState = {
 
 export function useOrderTableFilters() {
   const [state, setState] = useState<OrderTableFilterState>(initialState);
-  const debouncedSearch = useDebouncedValue(state.searchQuery, 300);
+  const debouncedSearch = useDebouncedValue(state.searchQuery, 100);
 
   const setFilter = <K extends keyof OrderTableFilterState>(
     key: K,

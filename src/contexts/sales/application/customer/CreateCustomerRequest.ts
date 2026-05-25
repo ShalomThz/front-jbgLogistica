@@ -5,6 +5,7 @@ import type z from "zod";
 export const createCustomerRequestSchema = customerSchema
   .omit({
     id: true,
+    customerNumber: true,
     createdAt: true,
     updatedAt: true,
     address: true,

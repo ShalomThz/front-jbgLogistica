@@ -36,6 +36,7 @@ import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { OrderFinancialSection } from "./OrderFinancialSection";
@@ -380,6 +381,9 @@ export const OrderDetailDialog = ({
                 <h4 className="text-sm font-semibold">Origen</h4>
                 <div className="rounded-md border p-3 space-y-1">
                   <DetailRow label="Nombre" value={origin.name} />
+                  {origin.customerNumber != null && (
+                    <DetailRow label="No. Cliente" value={formatCustomerNumber(origin.customerNumber)} />
+                  )}
                   <DetailRow label="Empresa" value={origin.company || "—"} />
                   <DetailRow label="Teléfono" value={origin.phone} />
                   <DetailRow label="Email" value={origin.email || "—"} />
@@ -399,6 +403,9 @@ export const OrderDetailDialog = ({
                 <h4 className="text-sm font-semibold">Destino</h4>
                 <div className="rounded-md border p-3 space-y-1">
                   <DetailRow label="Nombre" value={destination.name} />
+                  {destination.customerNumber != null && (
+                    <DetailRow label="No. Cliente" value={formatCustomerNumber(destination.customerNumber)} />
+                  )}
                   <DetailRow label="Empresa" value={destination.company || "—"} />
                   <DetailRow label="Teléfono" value={destination.phone} />
                   <DetailRow label="Email" value={destination.email || "—"} />

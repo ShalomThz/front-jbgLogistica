@@ -41,7 +41,7 @@ export const packageListViewSchema = z.object({
   id: z.string(),
   provider: providerSummarySchema,
   user: entitySummarySchema,
-  customer: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+  customer: z.object({ id: z.string(), name: z.string(), email: z.string(), customerNumber: z.number().nullable().optional() }),
   store: entitySummarySchema,
   providerDetails: providerDetailsSchema,
   boxes: z.array(packageBoxSchema).min(1),

@@ -12,15 +12,16 @@ const PACKAGES_QUERY_KEY = ["packages"];
 interface UsePackagesOptions {
   page?: number;
   limit?: number;
+  search?: string;
 }
 
-export const usePackages = ({ page = 1, limit = 10 }: UsePackagesOptions = {}) => {
+export const usePackages = ({ page = 1, limit = 10, search }: UsePackagesOptions = {}) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
   const { data, isLoading, error, refetch } = useQuery<FindPackagesResponsePrimitives>({
-    queryKey: [...PACKAGES_QUERY_KEY, { page, limit }],
-    queryFn: () => packageRepository.find({ filters: [], limit, offset, order: { field: "createdAt", direction: "DESC" } }),
+    queryKey: [...PACKAGES_QUERY_KEY, { page, limit, search }],
+    queryFn: () => packageRepository.find({ search, filters: [], limit, offset, order: { field: "createdAt", direction: "DESC" } }),
   });
 
   const packages = data?.data ?? [];
