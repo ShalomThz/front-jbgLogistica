@@ -16,13 +16,17 @@ export interface WarehouseCriteria {
   search?: string;
 }
 
-export function useWarehouseFilters() {
+interface UseWarehouseFiltersOptions {
+  onSearchChange?: () => void;
+}
+
+export function useWarehouseFilters({ onSearchChange }: UseWarehouseFiltersOptions = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [nameSort, setNameSort] = useState<NameSort>("none");
   const [dateSort, setDateSort] = useState<DateSort>("desc");
 
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const debouncedSearch = useDebouncedValue(searchQuery, 500);
 
   const criteria = useMemo<WarehouseCriteria>(
     () => ({ search: debouncedSearch.trim() || undefined }),
@@ -39,6 +43,7 @@ export function useWarehouseFilters() {
   const setFilter = <K extends keyof WarehouseFiltersState>(key: K, value: WarehouseFiltersState[K]) => {
     if (key === "nameSort" && value !== "none") setDateSort("none");
     if (key === "dateSort" && value !== "none") setNameSort("none");
+    if (key === "searchQuery") onSearchChange?.();
 
     const map = {
       searchQuery: setSearchQuery,
@@ -55,6 +60,7 @@ export function useWarehouseFilters() {
     setStatusFilter("all");
     setNameSort("none");
     setDateSort("desc");
+    onSearchChange?.();
   };
 
   return { filters, setFilter, resetFilters, criteria };

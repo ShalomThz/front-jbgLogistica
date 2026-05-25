@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { packageRepository } from "@/contexts/warehouse/infrastructure/services/packageRepository";
 import type { CreatePackageRequest, UpdatePackageRequest } from "@/contexts/warehouse/domain/WarehousePackageSchema";
 import type { FindPackagesResponsePrimitives } from "@/contexts/warehouse/application/FindPackagesResponse";
@@ -19,9 +19,10 @@ export const usePackages = ({ page = 1, limit = 10, search }: UsePackagesOptions
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
-  const { data, isLoading, error, refetch } = useQuery<FindPackagesResponsePrimitives>({
+  const { data, isLoading, isFetching, error, refetch } = useQuery<FindPackagesResponsePrimitives>({
     queryKey: [...PACKAGES_QUERY_KEY, { page, limit, search }],
     queryFn: () => packageRepository.find({ search, filters: [], limit, offset, order: { field: "createdAt", direction: "DESC" } }),
+    placeholderData: keepPreviousData,
   });
 
   const packages = data?.data ?? [];
@@ -95,6 +96,7 @@ export const usePackages = ({ page = 1, limit = 10, search }: UsePackagesOptions
     pagination,
     totalPages,
     isLoading,
+    isFetching,
     error: error?.message ?? null,
     refetch,
 

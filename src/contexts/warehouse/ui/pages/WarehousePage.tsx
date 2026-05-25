@@ -59,15 +59,16 @@ export const WarehousePage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
-  const { filters, setFilter, resetFilters, criteria } = useWarehouseFilters();
-
-  useEffect(() => { setPage(1); }, [criteria.search]);
+  const { filters, setFilter, resetFilters, criteria } = useWarehouseFilters({
+    onSearchChange: () => setPage(1),
+  });
 
   const {
     packages,
     pagination,
     totalPages,
     isLoading,
+    isFetching,
     refetch,
     createPackage,
     isCreating,
@@ -258,7 +259,7 @@ export const WarehousePage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4 transition-opacity duration-200", isFetching && "opacity-60 pointer-events-none")}>
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
