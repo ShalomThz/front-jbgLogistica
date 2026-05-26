@@ -1,14 +1,13 @@
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
-import { useQuery } from "@tanstack/react-query";
-import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
-import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
-import { usePartnerOrderFlowForm, type PartnerOrderStep } from "./usePartnerOrderFlowForm";
-import { useContactSave } from "../shared/useContactSave";
 import { useBoxOperations } from "../shared/useBoxOperations";
+import { useContactSave } from "../shared/useContactSave";
+import { usePartnerOrderFlowForm, type PartnerOrderStep } from "./usePartnerOrderFlowForm";
 import { usePartnerOrderSubmission } from "./usePartnerOrderSubmission";
 
 const STEPS: { key: PartnerOrderStep; label: string }[] = [
