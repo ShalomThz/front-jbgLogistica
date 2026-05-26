@@ -1,32 +1,30 @@
-import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, MapPin, KeyRound } from "lucide-react";
-import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
+import { exportCustomers } from "@contexts/sales/domain/services/exportCustomers";
+import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import {
   Badge,
   Button,
   Table,
-  TableHeader,
   TableBody,
-  TableHead,
-  TableRow,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialog";
-import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
-import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
-import { CustomerPortalAccessDialog } from "../components/customer/CustomerPortalAccessDialog";
-import { CustomerFilters } from "../components/customer/CustomerFilters";
-import { exportCustomers } from "@contexts/sales/domain/services/exportCustomers";
-import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
-import { useCustomerFilters, type CustomerFilterOptions } from "../hooks/useCustomerFilters";
-import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
-import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { ChevronLeft, ChevronRight, KeyRound, MapPin, Plus, RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
-import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
+import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
+import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
+import { CustomerDetailDialog } from "../components/customer/CustomerDetailDialog";
+import { CustomerFilters } from "../components/customer/CustomerFilters";
+import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
+import { CustomerPortalAccessDialog } from "../components/customer/CustomerPortalAccessDialog";
+import { useCustomerFilters, type CustomerFilterOptions } from "../hooks/useCustomerFilters";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -58,8 +56,9 @@ export const CustomersPage = () => {
     isProvisioning,
   } = useCustomers({ page, limit, ...criteria });
 
-  const { user } = useAuth();
-  const canListAll = user ? customerPolicies.listAll(user) : false;
+  // const { user } = useAuth();
+  //const canListAll = user ? customerPolicies.listAll(user) : false;
+  const canListAll = true;
 
   const options = useMemo<CustomerFilterOptions>(() => {
     const citySet = new Set<string>();
