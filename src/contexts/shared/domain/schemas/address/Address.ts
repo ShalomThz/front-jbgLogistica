@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { geolocationSchema } from './Geolocation';
+import { responseGeolocationSchema } from './Geolocation';
 import { placeDetailsResponseSchema } from './PlaceDetailsResponse';
 
 export const addressSchema = placeDetailsResponseSchema.extend({
@@ -19,7 +19,7 @@ export const responseAddressSchema = z.object({
   zip: z.string().optional().default(""),
   country: z.string().optional().default(""),
   reference: z.string().optional().default(""),
-  geolocation: geolocationSchema.optional().default({
+  geolocation: responseGeolocationSchema.optional().default({
     latitude: 0,
     longitude: 0,
     placeId: null,
