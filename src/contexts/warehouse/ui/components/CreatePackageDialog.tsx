@@ -6,7 +6,11 @@ import { CustomerPickerCombobox } from "@contexts/sales/ui/components/customer/C
 import { CustomerFormDialog } from "@contexts/sales/ui/components/customer/CustomerFormDialog";
 import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/useCustomers";
 import type { CreateCustomerRequest } from "@contexts/sales/application/customer/CreateCustomerRequest";
+import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
+import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
+import { optionalEmailSchema } from "@contexts/shared/domain/schemas/Email";
+import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Button,
@@ -29,7 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Box, Camera, Eraser, Pencil, Plus, Ruler, Trash2, Truck, User, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PhotosInput } from "./PhotosInput";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { Controller, FormProvider, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { dimensionsSchema, dimensionUnits } from "../../../shared/domain/schemas/Dimensions";
@@ -47,8 +51,18 @@ const boxEntrySchema = z.object({
   count: z.number().int().min(1, "Mínimo 1").max(99, "Máximo 99"),
 });
 
+const customerInlineSchema = z.object({
+  id: z.string().min(1, "Selecciona un cliente"),
+  customerNumber: z.number().nullable().optional(),
+  name: z.string().min(1, "Nombre requerido"),
+  company: z.string().min(1, "Empresa requerida"),
+  email: optionalEmailSchema,
+  phone: z.string().min(1, "Teléfono requerido"),
+  address: createAddressSchema,
+});
+
 const createFormSchema = z.object({
-  customerId: z.string().min(1, "Selecciona un cliente"),
+  customer: customerInlineSchema,
   storeId: z.string().min(1, "Tienda requerida"),
   providerName: z.string().min(1, "Nombre del proveedor requerido"),
   officialInvoice: z.string().optional(),
@@ -60,6 +74,45 @@ const createFormSchema = z.object({
 
 type FormValues = z.infer<typeof createFormSchema>;
 type BoxEntry = z.infer<typeof boxEntrySchema>;
+type CustomerInline = z.infer<typeof customerInlineSchema>;
+
+const emptyCustomer = (): CustomerInline => ({
+  id: "",
+  customerNumber: null,
+  name: "",
+  company: "",
+  email: null,
+  phone: "",
+  address: {
+    address1: "",
+    address2: "",
+    city: "",
+    province: "",
+    zip: "",
+    country: "MX",
+    reference: "",
+    geolocation: { latitude: 0, longitude: 0, placeId: null },
+  },
+});
+
+const customerFromListView = (c: CustomerListViewPrimitives): CustomerInline => ({
+  id: c.id,
+  customerNumber: c.customerNumber,
+  name: c.name,
+  company: c.company,
+  email: c.email ?? null,
+  phone: c.phone,
+  address: {
+    address1: c.address.address1,
+    address2: c.address.address2,
+    city: c.address.city,
+    province: c.address.province,
+    zip: c.address.zip,
+    country: c.address.country,
+    reference: c.address.reference,
+    geolocation: c.address.geolocation,
+  },
+});
 
 const defaultBox = (): BoxEntry => ({
   boxId: null,
@@ -71,7 +124,7 @@ const defaultBox = (): BoxEntry => ({
 
 function getDefaults(storeId: string): FormValues {
   return {
-    customerId: "",
+    customer: emptyCustomer(),
     storeId,
     providerName: "",
     officialInvoice: "",
@@ -96,12 +149,21 @@ type Props = {
 export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props) {
   const { user } = useAuth();
   const { createBox, updateBox } = useBoxes({ enabled: false });
-  const { createCustomer, isCreating: isCreatingCustomer } = useCustomers({ enabled: false });
+  const {
+    createCustomer,
+    updateCustomer,
+    isCreating: isCreatingCustomer,
+    isUpdating: isUpdatingCustomer,
+  } = useCustomers({ enabled: false });
   const canCreateCustomer = user ? customerPolicies.create(user) : false;
 
   const [isProcessingBox, setIsProcessingBox] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
 
+  const form = useForm<FormValues>({
+    resolver: zodResolver(createFormSchema),
+    defaultValues: getDefaults(user?.storeId ?? ""),
+  });
   const {
     register,
     control,
@@ -109,15 +171,15 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
     reset,
     setValue,
     watch,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(createFormSchema),
-    defaultValues: getDefaults(user?.storeId ?? ""),
-  });
+    getValues,
+    formState: { errors, dirtyFields },
+  } = form;
 
   const { fields, append, remove } = useFieldArray({ control, name: "boxes" });
 
   const watchedBoxes = watch("boxes");
+  const selectedCustomerId = watch("customer.id");
+
   const selectedBoxIdsKey = watchedBoxes
     .map((b) => b?.boxId)
     .filter((id): id is string => !!id)
@@ -152,10 +214,36 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
     onClose();
   };
 
+  const handleSelectCustomer = (c: CustomerListViewPrimitives) => {
+    reset(
+      { ...getValues(), customer: customerFromListView(c) },
+      { keepDefaultValues: false },
+    );
+  };
+
+  const handleClearCustomer = () => {
+    reset(
+      { ...getValues(), customer: emptyCustomer() },
+      { keepDefaultValues: false },
+    );
+  };
+
   const handleCreateCustomer = async (data: CreateCustomerRequest) => {
     try {
       const created = await createCustomer(data);
-      setValue("customerId", created.id, { shouldValidate: true });
+      handleSelectCustomer({
+        id: created.id,
+        customerNumber: created.customerNumber,
+        name: created.name,
+        company: created.company,
+        email: created.email,
+        phone: created.phone,
+        address: created.address,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+        store: { id: created.registeredByStoreId } as CustomerListViewPrimitives["store"],
+        user: null,
+      });
       setCustomerFormOpen(false);
       toast.success("Cliente creado correctamente");
     } catch (err) {
@@ -240,9 +328,31 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
     setIsProcessingBox(false);
 
+    const customerDirty = dirtyFields.customer;
+    const customerChanged =
+      !!customerDirty &&
+      ["name", "company", "phone", "address"].some(
+        (k) => (customerDirty as Record<string, unknown>)[k],
+      );
+
+    if (customerChanged) {
+      try {
+        await updateCustomer(values.customer.id, {
+          name: values.customer.name,
+          company: values.customer.company,
+          phone: values.customer.phone,
+          address: values.customer.address,
+        });
+        toast.success(`Datos del cliente "${values.customer.name}" actualizados`);
+      } catch (err) {
+        toast.error(parseApiError(err));
+        return;
+      }
+    }
+
     try {
       await onSave({
-        customerId: values.customerId,
+        customerId: values.customer.id,
         storeId: values.storeId,
         providerName: values.providerName,
         deliveryPerson: values.providerDeliveryPerson,
@@ -264,7 +374,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
     }
   });
 
-  const isBusy = isLoading || isProcessingBox;
+  const isBusy = isLoading || isProcessingBox || isUpdatingCustomer;
 
   return (
     <>
@@ -275,42 +385,49 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
           <DialogDescription>Ingresa los datos del nuevo paquete en bodega.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} noValidate className="flex flex-col overflow-hidden flex-1">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr] gap-0 lg:gap-0 lg:divide-x overflow-y-auto flex-1 pr-1">
+        <FormProvider {...form}>
+          <form onSubmit={onSubmit} noValidate className="flex flex-col overflow-hidden flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr] gap-0 lg:gap-0 lg:divide-x overflow-y-auto flex-1 pr-1">
 
-            {/* ── Columna 1: Identificación y Proveedor ── */}
-            <div className="space-y-4 lg:pr-6 pb-4 lg:pb-0  px-2">
-              <SectionHeader icon={<User className="size-4" />} title="Identificación" />
+            {/* ── Columna 1: Cliente + Proveedor ── */}
+            <div className="space-y-4 lg:pr-6 pb-4 lg:pb-0 px-2 min-w-0">
+              <SectionHeader icon={<User className="size-4" />} title="Cliente" />
 
-              <FormField label="Cliente *" error={errors.customerId?.message}>
+              <FormField label="Buscar cliente *" error={errors.customer?.id?.message}>
                 <div className="flex gap-2">
                   <div className="flex-1 min-w-0">
-                    <Controller
-                      name="customerId"
-                      control={control}
-                      render={({ field }) => (
-                        <CustomerPickerCombobox
-                          value={field.value || undefined}
-                          onChange={(c) => field.onChange(c.id)}
-                          error={!!errors.customerId}
-                          triggerLabel={(c) => (
-                            <span className="flex items-center gap-2 truncate">
-                              <User className="size-4 shrink-0" />
-                              <span className="truncate">{c.name}</span>
-                              <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
-                            </span>
-                          )}
-                          itemLabel={(c) => (
-                            <span className="flex items-center gap-2 truncate">
-                              <User className="size-4 shrink-0" />
-                              <span className="truncate">{c.name}</span>
-                              <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
-                            </span>
-                          )}
-                        />
+                    <CustomerPickerCombobox
+                      value={selectedCustomerId || undefined}
+                      onChange={handleSelectCustomer}
+                      error={!!errors.customer?.id}
+                      triggerLabel={(c) => (
+                        <span className="flex items-center gap-2 truncate">
+                          <User className="size-4 shrink-0" />
+                          <span className="truncate">{c.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
+                        </span>
+                      )}
+                      itemLabel={(c) => (
+                        <span className="flex items-center gap-2 truncate">
+                          <User className="size-4 shrink-0" />
+                          <span className="truncate">{c.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">— {c.company}</span>
+                        </span>
                       )}
                     />
                   </div>
+                  {selectedCustomerId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={handleClearCustomer}
+                      title="Quitar cliente"
+                    >
+                      <Eraser className="size-4" />
+                    </Button>
+                  )}
                   {canCreateCustomer && (
                     <Button
                       type="button"
@@ -326,9 +443,24 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                 </div>
               </FormField>
 
-              <FormField label="Factura oficial" error={errors.officialInvoice?.message}>
-                <Input id="officialInvoice" placeholder="FAC-2025-001" {...register("officialInvoice")} />
-              </FormField>
+              {selectedCustomerId && (
+                <>
+                  <div className="grid grid-cols-2 gap-3 min-w-0">
+                    <FormField label="Nombre *" error={errors.customer?.name?.message}>
+                      <Input {...register("customer.name")} aria-invalid={!!errors.customer?.name} />
+                    </FormField>
+                    <FormField label="Empresa *" error={errors.customer?.company?.message}>
+                      <Input {...register("customer.company")} aria-invalid={!!errors.customer?.company} />
+                    </FormField>
+                  </div>
+                  <FormField label="Teléfono *" error={errors.customer?.phone?.message}>
+                    <Input {...register("customer.phone")} aria-invalid={!!errors.customer?.phone} />
+                  </FormField>
+                  <div className="border-t pt-3">
+                    <AddressSection fieldPrefix="customer.address" labelPrefix="Cliente" />
+                  </div>
+                </>
+              )}
 
               <Separator />
               <SectionHeader icon={<Truck className="size-4" />} title="Proveedor" />
@@ -344,10 +476,14 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
               <FormField label="Factura del proveedor" error={errors.supplierInvoice?.message}>
                 <Input id="supplierInvoice" placeholder="Ej: PROV-2025-001" {...register("supplierInvoice")} />
               </FormField>
+
+              <FormField label="Factura oficial" error={errors.officialInvoice?.message}>
+                <Input id="officialInvoice" placeholder="FAC-2025-001" {...register("officialInvoice")} />
+              </FormField>
             </div>
 
             {/* ── Columna 2: Cajas ── */}
-            <div className="space-y-4 lg:px-6 pb-4 lg:pb-0 pt-4 lg:pt-0 border-t lg:border-t-0 overflow-y-auto">
+            <div className="space-y-4 lg:px-6 pb-4 lg:pb-0 pt-4 lg:pt-0 border-t lg:border-t-0 overflow-y-auto min-w-0">
               <div className="flex items-center justify-between">
                 <SectionHeader icon={<Box className="size-4" />} title={`Cajas (${watchedBoxes.reduce((sum, b) => sum + (b?.count ?? 1), 0)})`} />
                 <Button
@@ -521,7 +657,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
             </div>
 
             {/* ── Columna 3: Fotos ── */}
-            <div className="space-y-4 lg:pl-6 pt-4 lg:pt-0 border-t lg:border-t-0">
+            <div className="space-y-4 lg:pl-6 pt-4 lg:pt-0 border-t lg:border-t-0 min-w-0">
               <SectionHeader icon={<Camera className="size-4" />} title="Fotos" />
               <p className="text-xs text-muted-foreground">Agrega hasta 4 fotos del paquete recibido.</p>
               <Controller
@@ -541,6 +677,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
             <Button type="submit" disabled={isBusy}>{isBusy ? "Guardando..." : "Registrar"}</Button>
           </DialogFooter>
         </form>
+        </FormProvider>
       </DialogContent>
     </Dialog>
     <CustomerFormDialog
@@ -557,10 +694,10 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
 function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <Label>{label}</Label>
+    <div className="space-y-1 min-w-0">
+      <Label className="truncate block">{label}</Label>
       {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive break-words">{error}</p>}
     </div>
   );
 }
