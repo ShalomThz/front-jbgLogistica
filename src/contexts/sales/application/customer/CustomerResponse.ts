@@ -4,6 +4,9 @@ import { responseAddressSchema } from "@contexts/shared/domain/schemas/address/A
 import { z } from "zod";
 
 export const customerResponseSchema = customerSchema.extend({
+  name: z.string().optional().default(""),
+  company: z.string().optional().default(""),
+  phone: z.string().optional().default(""),
   address: responseAddressSchema,
 });
 
