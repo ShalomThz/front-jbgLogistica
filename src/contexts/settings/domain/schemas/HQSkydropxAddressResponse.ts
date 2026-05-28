@@ -1,11 +1,9 @@
 import z from "zod";
-import { addressSchema } from "../../../shared/domain/schemas/address/Address";
+import { responseAddressSchema } from "../../../shared/domain/schemas/address/Address";
 import { hqSkydropxBaseSchema } from "./HQSkydropxAddressBase";
 
 export const hqSkydropxAddressItemResponseSchema = hqSkydropxBaseSchema.extend({
-  address: addressSchema.safeExtend({
-    reference: z.string(),
-  }),
+  address: responseAddressSchema,
   isSelected: z.boolean(),
 });
 

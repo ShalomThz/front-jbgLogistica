@@ -1,8 +1,8 @@
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { useBoxOperations } from "../shared/useBoxOperations";

@@ -1,6 +1,10 @@
 import { ZodError } from "zod";
 import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
-import { customerSchema, type CustomerPrimitives, type CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
+import type { CreateCustomerRequest } from "../../../domain/schemas/customer/Customer";
+import {
+  customerResponseSchema,
+  type CustomerResponsePrimitives,
+} from "../../../application/customer/CustomerResponse";
 import { findCustomersResponseSchema, type FindCustomersResponsePrimitives } from "../../../application/customer/FindCustomersResponse";
 import type { FindCustomersRequest } from "../../../application/customer/FindCustomersRequest";
 
@@ -29,9 +33,9 @@ function parseFindCustomers(data: unknown): FindCustomersResponsePrimitives {
   }
 }
 
-function parseCustomer(data: unknown, context: string): CustomerPrimitives {
+function parseCustomer(data: unknown, context: string): CustomerResponsePrimitives {
   try {
-    return customerSchema.parse(data);
+    return customerResponseSchema.parse(data);
   } catch (error) {
     if (error instanceof ZodError) {
       console.error(`[customerRepository] Parse error in ${context}:`, error.issues);
@@ -52,7 +56,7 @@ export const customerRepository = {
     return parseFindCustomers(data);
   },
 
-  create: async (customer: CreateCustomerRequest): Promise<CustomerPrimitives> => {
+  create: async (customer: CreateCustomerRequest): Promise<CustomerResponsePrimitives> => {
     const data = await httpClient<unknown>("/customer", {
       method: "POST",
       body: JSON.stringify(customer),
@@ -60,7 +64,7 @@ export const customerRepository = {
     return parseCustomer(data, "create");
   },
 
-  update: async (id: string, customer: UpdateCustomerRequest): Promise<CustomerPrimitives> => {
+  update: async (id: string, customer: UpdateCustomerRequest): Promise<CustomerResponsePrimitives> => {
     const data = await httpClient<unknown>(`/customer/${id}`, {
       method: "PUT",
       body: JSON.stringify(customer),

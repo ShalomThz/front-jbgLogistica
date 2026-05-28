@@ -8,26 +8,26 @@ import {
 } from "../../../application/route/FindRoutesResponse";
 import type { RecordDeliveryAttemptRequest } from "../../../application/route/RecordDeliveryAttemptRequest";
 import {
-  routeSchema,
-  type RoutePrimitives,
-} from "../../../domain/schemas/route/Route";
+  routeResponseSchema,
+  type RouteResponsePrimitives,
+} from "../../../application/route/RouteResponse";
 
 export const routeRepository = {
-  create: async (request: CreateRouteRequest): Promise<RoutePrimitives> => {
+  create: async (request: CreateRouteRequest): Promise<RouteResponsePrimitives> => {
     const data = await httpClient<unknown>("/route", {
       method: "POST",
       body: JSON.stringify(request),
     });
 
-    return routeSchema.parse(data);
+    return routeResponseSchema.parse(data);
   },
 
-  optimize: async (routeId: string): Promise<RoutePrimitives> => {
+  optimize: async (routeId: string): Promise<RouteResponsePrimitives> => {
     const data = await httpClient<unknown>(`/route/${routeId}/optimize`, {
       method: "POST",
     });
 
-    return routeSchema.parse(data);
+    return routeResponseSchema.parse(data);
   },
 
   find: async (request: FindRoutesRequest): Promise<FindRoutesResponse> => {
@@ -39,9 +39,9 @@ export const routeRepository = {
     return findRoutesResponseSchema.parse(data);
   },
 
-  getById: async (routeId: string): Promise<RoutePrimitives> => {
+  getById: async (routeId: string): Promise<RouteResponsePrimitives> => {
     const data = await httpClient<unknown>(`/route/${routeId}`);
-    return routeSchema.parse(data);
+    return routeResponseSchema.parse(data);
   },
 
   cancel: async (routeId: string): Promise<void> => {
@@ -50,9 +50,9 @@ export const routeRepository = {
     });
   },
 
-  getActiveForDriver: async (): Promise<RoutePrimitives | null> => {
+  getActiveForDriver: async (): Promise<RouteResponsePrimitives | null> => {
     const data = await httpClient<unknown>("/driver/me/route/active");
-    return z.nullable(routeSchema).parse(data);
+    return z.nullable(routeResponseSchema).parse(data);
   },
 
   start: async (routeId: string): Promise<void> => {

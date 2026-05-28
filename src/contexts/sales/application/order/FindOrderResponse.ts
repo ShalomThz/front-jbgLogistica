@@ -1,9 +1,9 @@
-import { orderListViewSchema } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { orderListViewResponseSchema } from "@contexts/sales/application/order/OrderResponse";
 import { paginationSchema } from "@contexts/shared/domain/schemas/Pagination";
 import { z } from "zod";
 
 export const findOrdersResponseSchema = z.object({
-  data: z.array(orderListViewSchema),
+  data: z.array(orderListViewResponseSchema),
   pagination: paginationSchema,
 });
 
