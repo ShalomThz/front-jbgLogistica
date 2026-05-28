@@ -6,12 +6,16 @@ import type { EditOrderRequest } from "../../../application/order/EditOrderReque
 import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../application/order/FindOrderResponse";
 import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
 import type { OrderReportResponse } from "../../../application/order/OrderReportResponse";
-import { orderSchema, type OrderPrimitives } from "../../../domain/schemas/order/Order";
-import { orderListViewSchema, type OrderListView } from "../../../domain/schemas/order/OrderListViewSchemas";
+import {
+  orderListViewResponseSchema,
+  orderResponseSchema,
+  type OrderListViewResponse,
+  type OrderResponsePrimitives,
+} from "../../../application/order/OrderResponse";
 
-function parseOrder(data: unknown, context: string): OrderPrimitives {
+function parseOrder(data: unknown, context: string): OrderResponsePrimitives {
   try {
-    return orderSchema.parse(data);
+    return orderResponseSchema.parse(data);
   } catch (error) {
     if (error instanceof ZodError) {
       console.error(`[orderRepository] Parse error in ${context}:`, error.issues);
@@ -44,10 +48,10 @@ export const orderRepository = {
     return parseFindOrders(data);
   },
 
-  findById: async (id: string): Promise<OrderListView> => {
+  findById: async (id: string): Promise<OrderListViewResponse> => {
     const data = await httpClient<unknown>(`/order/${id}`);
     try {
-      return orderListViewSchema.parse(data);
+      return orderListViewResponseSchema.parse(data);
     } catch (error) {
       if (error instanceof ZodError) {
         console.error(`[orderRepository] Parse error in findById(${id}):`, error.issues);
@@ -57,7 +61,7 @@ export const orderRepository = {
     }
   },
 
-  createHQ: async (order: CreateHQOrderRequest): Promise<OrderPrimitives> => {
+  createHQ: async (order: CreateHQOrderRequest): Promise<OrderResponsePrimitives> => {
     const data = await httpClient<unknown>("/order/hq", {
       method: "POST",
       body: JSON.stringify(order),
@@ -74,7 +78,7 @@ export const orderRepository = {
 
   createPartner: async (
     order: CreatePartnerOrderRequest,
-  ): Promise<OrderPrimitives> => {
+  ): Promise<OrderResponsePrimitives> => {
     const data = await httpClient<unknown>("/order/partner", {
       method: "POST",
       body: JSON.stringify(order),

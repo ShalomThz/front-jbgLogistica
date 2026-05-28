@@ -1,7 +1,9 @@
-import type { StorePrimitives } from "@contexts/iam/domain/schemas/store/Store";
-import { storeSchema } from "@contexts/iam/domain/schemas/store/Store";
-import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
-import { storeListViewSchema } from "@contexts/iam/domain/schemas/store/StoreListView";
+import {
+  storeListViewResponseSchema,
+  storeResponseSchema,
+  type StoreListViewResponsePrimitives,
+  type StoreResponsePrimitives,
+} from "@contexts/iam/application/store/StoreResponse";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 import type { FindStoresRequestPrimitives } from "@contexts/iam/application/store/FindStoresRequest";
 import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
@@ -21,30 +23,30 @@ export const storeRepository = {
     return findStoresResponseSchema.parse(data);
   },
 
-  getById: async (id: string): Promise<StoreListViewPrimitives> => {
+  getById: async (id: string): Promise<StoreListViewResponsePrimitives> => {
     const data = await httpClient<unknown>(`/store/${id}`);
-    return storeListViewSchema.parse(data);
+    return storeListViewResponseSchema.parse(data);
   },
 
   create: async (
     store: CreateStoreRequestPrimitives,
-  ): Promise<StorePrimitives> => {
+  ): Promise<StoreResponsePrimitives> => {
     const data = await httpClient<unknown>("/store", {
       method: "POST",
       body: JSON.stringify(store),
     });
-    return storeSchema.parse(data);
+    return storeResponseSchema.parse(data);
   },
 
   update: async (
     id: string,
     store: UpdateStoreRequest,
-  ): Promise<StorePrimitives> => {
+  ): Promise<StoreResponsePrimitives> => {
     const data = await httpClient<unknown>(`/store/${id}`, {
       method: "PUT",
       body: JSON.stringify(store),
     });
-    return storeSchema.parse(data);
+    return storeResponseSchema.parse(data);
   },
 
   delete: async (id: string): Promise<void> => {

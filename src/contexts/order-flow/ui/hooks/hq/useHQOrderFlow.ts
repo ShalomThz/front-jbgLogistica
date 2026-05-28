@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
-import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { useHQSettings } from "@contexts/settings/infrastructure/hooks/useSkydropxSettings";
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
 import type { WarehouseAddressPrimitives } from "@contexts/shipping/domain/schemas/value-objects/WarehouseAddress";

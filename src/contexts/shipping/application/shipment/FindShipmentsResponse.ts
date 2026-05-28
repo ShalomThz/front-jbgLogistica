@@ -1,9 +1,9 @@
-import { shipmentSchema } from "@contexts/shipping/domain/schemas/shipment/Shipment";
+import { shipmentResponseSchema } from "@contexts/shipping/application/shipment/ShipmentResponse";
 import { paginationSchema } from "@contexts/shared/domain/schemas/Pagination";
 import { z } from "zod";
 
 export const findShipmentsResponseSchema = z.object({
-  data: z.array(shipmentSchema),
+  data: z.array(shipmentResponseSchema),
   pagination: paginationSchema,
 });
 

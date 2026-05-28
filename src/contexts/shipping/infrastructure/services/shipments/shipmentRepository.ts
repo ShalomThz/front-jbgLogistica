@@ -1,8 +1,8 @@
 import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http/httpClient";
 import {
-  shipmentSchema,
-  type ShipmentPrimitives,
-} from "../../../domain/schemas/shipment/Shipment";
+  shipmentResponseSchema,
+  type ShipmentResponsePrimitives,
+} from "../../../application/shipment/ShipmentResponse";
 import {
   findShipmentsResponseSchema,
   type FindShipmentsResponse,
@@ -27,7 +27,7 @@ export const shipmentRepository = {
     return findShipmentsResponseSchema.parse(data);
   },
 
-  findByOrderId: async (orderId: string): Promise<ShipmentPrimitives | null> => {
+  findByOrderId: async (orderId: string): Promise<ShipmentResponsePrimitives | null> => {
     const data = await httpClient<unknown>("/shipment/find", {
       method: "POST",
       body: JSON.stringify({
@@ -39,12 +39,12 @@ export const shipmentRepository = {
     return response.data[0] ?? null;
   },
 
-  fulfill: async (shipmentId: string): Promise<ShipmentPrimitives> => {
+  fulfill: async (shipmentId: string): Promise<ShipmentResponsePrimitives> => {
     const data = await httpClient<unknown>(
       `/shipment/${shipmentId}/fulfill`,
       { method: "POST" },
     );
-    return shipmentSchema.parse(data);
+    return shipmentResponseSchema.parse(data);
   },
 
   getRates: async (
@@ -63,7 +63,7 @@ export const shipmentRepository = {
 
   selectProvider: async (
     request: SelectShipmentProviderRequest,
-  ): Promise<ShipmentPrimitives> => {
+  ): Promise<ShipmentResponsePrimitives> => {
     const { shipmentId, ...body } = request;
     const data = await httpClient<unknown>(
       `/shipment/${shipmentId}/provider`,
@@ -72,7 +72,7 @@ export const shipmentRepository = {
         body: JSON.stringify(body),
       },
     );
-    return shipmentSchema.parse(data);
+    return shipmentResponseSchema.parse(data);
   },
 
   getLabel: async (
