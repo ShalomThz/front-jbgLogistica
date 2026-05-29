@@ -8,9 +8,6 @@ import { useCustomers } from "@contexts/sales/infrastructure/hooks/customers/use
 import type { CreateCustomerRequest } from "@contexts/sales/application/customer/CreateCustomerRequest";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
-import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
-import { optionalEmailSchema } from "@contexts/shared/domain/schemas/Email";
-import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Button,
@@ -51,18 +48,12 @@ const boxEntrySchema = z.object({
   count: z.number().int().min(1, "Mínimo 1").max(99, "Máximo 99"),
 });
 
-const customerInlineSchema = z.object({
+const customerSelectionSchema = z.object({
   id: z.string().min(1, "Selecciona un cliente"),
-  customerNumber: z.number().nullable().optional(),
-  name: z.string().min(1, "Nombre requerido"),
-  company: z.string().min(1, "Empresa requerida"),
-  email: optionalEmailSchema,
-  phone: z.string().min(1, "Teléfono requerido"),
-  address: createAddressSchema,
 });
 
 const createFormSchema = z.object({
-  customer: customerInlineSchema,
+  customer: customerSelectionSchema,
   storeId: z.string().min(1, "Tienda requerida"),
   providerName: z.string().min(1, "Nombre del proveedor requerido"),
   officialInvoice: z.string().optional(),
@@ -74,45 +65,6 @@ const createFormSchema = z.object({
 
 type FormValues = z.infer<typeof createFormSchema>;
 type BoxEntry = z.infer<typeof boxEntrySchema>;
-type CustomerInline = z.infer<typeof customerInlineSchema>;
-
-const emptyCustomer = (): CustomerInline => ({
-  id: "",
-  customerNumber: null,
-  name: "",
-  company: "",
-  email: null,
-  phone: "",
-  address: {
-    address1: "",
-    address2: "",
-    city: "",
-    province: "",
-    zip: "",
-    country: "MX",
-    reference: "",
-    geolocation: { latitude: 0, longitude: 0, placeId: null },
-  },
-});
-
-const customerFromListView = (c: CustomerListViewPrimitives): CustomerInline => ({
-  id: c.id,
-  customerNumber: c.customerNumber,
-  name: c.name,
-  company: c.company,
-  email: c.email ?? null,
-  phone: c.phone,
-  address: {
-    address1: c.address.address1,
-    address2: c.address.address2,
-    city: c.address.city,
-    province: c.address.province,
-    zip: c.address.zip,
-    country: c.address.country,
-    reference: c.address.reference,
-    geolocation: c.address.geolocation,
-  },
-});
 
 const defaultBox = (): BoxEntry => ({
   boxId: null,
@@ -124,7 +76,7 @@ const defaultBox = (): BoxEntry => ({
 
 function getDefaults(storeId: string): FormValues {
   return {
-    customer: emptyCustomer(),
+    customer: { id: "" },
     storeId,
     providerName: "",
     officialInvoice: "",
@@ -149,12 +101,7 @@ type Props = {
 export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props) {
   const { user } = useAuth();
   const { createBox, updateBox } = useBoxes({ enabled: false });
-  const {
-    createCustomer,
-    updateCustomer,
-    isCreating: isCreatingCustomer,
-    isUpdating: isUpdatingCustomer,
-  } = useCustomers({ enabled: false });
+  const { createCustomer, isCreating: isCreatingCustomer } = useCustomers({ enabled: false });
   const canCreateCustomer = user ? customerPolicies.create(user) : false;
 
   const [isProcessingBox, setIsProcessingBox] = useState(false);
@@ -171,8 +118,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
     reset,
     setValue,
     watch,
-    getValues,
-    formState: { errors, dirtyFields },
+    formState: { errors },
   } = form;
 
   const { fields, append, remove } = useFieldArray({ control, name: "boxes" });
@@ -215,35 +161,17 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
   };
 
   const handleSelectCustomer = (c: CustomerListViewPrimitives) => {
-    reset(
-      { ...getValues(), customer: customerFromListView(c) },
-      { keepDefaultValues: false },
-    );
+    setValue("customer.id", c.id, { shouldValidate: true });
   };
 
   const handleClearCustomer = () => {
-    reset(
-      { ...getValues(), customer: emptyCustomer() },
-      { keepDefaultValues: false },
-    );
+    setValue("customer.id", "", { shouldValidate: true });
   };
 
   const handleCreateCustomer = async (data: CreateCustomerRequest) => {
     try {
       const created = await createCustomer(data);
-      handleSelectCustomer({
-        id: created.id,
-        customerNumber: created.customerNumber,
-        name: created.name,
-        company: created.company,
-        email: created.email,
-        phone: created.phone,
-        address: created.address,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-        store: { id: created.registeredByStoreId } as CustomerListViewPrimitives["store"],
-        user: null,
-      });
+      setValue("customer.id", created.id, { shouldValidate: true });
       setCustomerFormOpen(false);
       toast.success("Cliente creado correctamente");
     } catch (err) {
@@ -328,28 +256,6 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
     setIsProcessingBox(false);
 
-    const customerDirty = dirtyFields.customer;
-    const customerChanged =
-      !!customerDirty &&
-      ["name", "company", "phone", "address"].some(
-        (k) => (customerDirty as Record<string, unknown>)[k],
-      );
-
-    if (customerChanged) {
-      try {
-        await updateCustomer(values.customer.id, {
-          name: values.customer.name,
-          company: values.customer.company,
-          phone: values.customer.phone,
-          address: values.customer.address,
-        });
-        toast.success(`Datos del cliente "${values.customer.name}" actualizados`);
-      } catch (err) {
-        toast.error(parseApiError(err));
-        return;
-      }
-    }
-
     try {
       await onSave({
         customerId: values.customer.id,
@@ -374,7 +280,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
     }
   });
 
-  const isBusy = isLoading || isProcessingBox || isUpdatingCustomer;
+  const isBusy = isLoading || isProcessingBox;
 
   return (
     <>
@@ -442,25 +348,6 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
                   )}
                 </div>
               </FormField>
-
-              {selectedCustomerId && (
-                <>
-                  <div className="grid grid-cols-2 gap-3 min-w-0">
-                    <FormField label="Nombre *" error={errors.customer?.name?.message}>
-                      <Input {...register("customer.name")} aria-invalid={!!errors.customer?.name} />
-                    </FormField>
-                    <FormField label="Empresa *" error={errors.customer?.company?.message}>
-                      <Input {...register("customer.company")} aria-invalid={!!errors.customer?.company} />
-                    </FormField>
-                  </div>
-                  <FormField label="Teléfono *" error={errors.customer?.phone?.message}>
-                    <Input {...register("customer.phone")} aria-invalid={!!errors.customer?.phone} />
-                  </FormField>
-                  <div className="border-t pt-3">
-                    <AddressSection fieldPrefix="customer.address" labelPrefix="Cliente" />
-                  </div>
-                </>
-              )}
 
               <Separator />
               <SectionHeader icon={<Truck className="size-4" />} title="Proveedor" />
