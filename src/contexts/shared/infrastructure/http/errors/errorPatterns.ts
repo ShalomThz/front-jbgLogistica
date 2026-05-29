@@ -3,7 +3,8 @@
  * Remove entries as the backend migrates to structured { code, message } responses.
  */
 export const messageFallbacks: Array<{ pattern: RegExp; code: string }> = [
-  { pattern: /email.*already.*taken|already.*taken.*email/i, code: "EMAIL_ALREADY_TAKEN" },
+  { pattern: /email.*already.*(taken|in use)|already.*(taken|in use).*email/i, code: "EMAIL_ALREADY_TAKEN" },
+  { pattern: /phone.*already.*(taken|in use)|already.*(taken|in use).*phone/i, code: "PHONE_ALREADY_TAKEN" },
   { pattern: /order.*same partner order number.*already exists/i, code: "ORDER_DUPLICATE_PARTNER_NUMBER" },
   { pattern: /order.*same references.*already exists/i, code: "ORDER_DUPLICATE_REFERENCES" },
   { pattern: /box with same dimensions already exists/i, code: "BOX_DIMENSIONS_ALREADY_EXIST" },
