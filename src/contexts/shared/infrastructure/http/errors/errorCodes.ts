@@ -6,6 +6,11 @@ export const errorTranslations: Record<string, Record<Lang, string>> = {
     en: "Email is already taken",
     pt: "O e-mail já está em uso",
   },
+  PHONE_ALREADY_TAKEN: {
+    es: "El número de teléfono ya está en uso",
+    en: "Phone number is already in use",
+    pt: "O número de telefone já está em uso",
+  },
   BOX_NAME_ALREADY_EXISTS: {
     es: "Ya existe una caja con ese nombre",
     en: "A box with that name already exists",

@@ -15,8 +15,10 @@ import {
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { ChevronLeft, ChevronRight, KeyRound, MapPin, Plus, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import type { CreateCustomerRequest } from "../../application/customer/CreateCustomerRequest";
 import { useCustomers } from "../../infrastructure/hooks/customers/useCustomers";
 import { CustomerDeleteDialog } from "../components/customer/CustomerDeleteDialog";
@@ -77,22 +79,37 @@ export const CustomersPage = () => {
   const [accessCustomer, setAccessCustomer] = useState<CustomerListViewPrimitives | null>(null);
 
   const handleCreate = async (data: CreateCustomerRequest) => {
-    await createCustomer(data);
-    setFormOpen(false);
-    setPage(1);
+    try {
+      await createCustomer(data);
+      toast.success("Cliente creado correctamente");
+      setFormOpen(false);
+      setPage(1);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleUpdate = async (data: CreateCustomerRequest) => {
     if (!editCustomer) return;
-    await updateCustomer(editCustomer.id, data);
-    setEditCustomer(null);
+    try {
+      await updateCustomer(editCustomer.id, data);
+      toast.success("Cliente actualizado correctamente");
+      setEditCustomer(null);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteCustomerDialog) return;
-    await deleteCustomer(deleteCustomerDialog.id);
-    setDeleteCustomerDialog(null);
-    setPage(1);
+    try {
+      await deleteCustomer(deleteCustomerDialog.id);
+      toast.success("Cliente eliminado correctamente");
+      setDeleteCustomerDialog(null);
+      setPage(1);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleEditFromDetail = (customer: CustomerListViewPrimitives) => {

@@ -98,7 +98,7 @@ export const CustomerFormDialog = ({
           <form onSubmit={onSubmit} noValidate className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
+                <Label htmlFor="name">Nombre *</Label>
                 <Input
                   id="name"
                   aria-invalid={!!errors.name}
@@ -109,7 +109,7 @@ export const CustomerFormDialog = ({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company">Empresa</Label>
+                <Label htmlFor="company">Empresa *</Label>
                 <Input
                   id="company"
                   aria-invalid={!!errors.company}
@@ -134,7 +134,7 @@ export const CustomerFormDialog = ({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono</Label>
+                <Label htmlFor="phone">Teléfono *</Label>
                 <Input
                   id="phone"
                   aria-invalid={!!errors.phone}
@@ -146,7 +146,7 @@ export const CustomerFormDialog = ({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Tienda</Label>
+              <Label>Tienda *</Label>
               <Controller
                 name="registeredByStoreId"
                 control={control}

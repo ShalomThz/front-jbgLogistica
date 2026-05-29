@@ -1,6 +1,6 @@
 import { customerSchema } from "@contexts/sales/domain/schemas/customer/Customer";
 import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
-import type z from "zod";
+import { z } from "zod";
 
 export const createCustomerRequestSchema = customerSchema
   .omit({
@@ -11,6 +11,7 @@ export const createCustomerRequestSchema = customerSchema
     address: true,
   })
   .extend({
+    registeredByStoreId: z.string().min(1, "Tienda es requerida"),
     address: createAddressSchema,
   });
 
