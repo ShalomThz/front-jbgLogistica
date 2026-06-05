@@ -25,11 +25,13 @@ export const ROLE_PRESETS: { name: string; permissions: Permission[] }[] = [
       "CAN_VIEW_PARTNER_ORDERS",
       "CAN_CREATE_PARTNER_ORDERS",
       "CAN_EDIT_PARTNER_ORDERS",
-      "CAN_DELETE_PARTNER_ORDERS",
       "CAN_LIST_CUSTOMERS",
       "CAN_VIEW_CUSTOMERS",
       "CAN_CREATE_CUSTOMERS",
       "CAN_EDIT_CUSTOMERS",
+      "CAN_CREATE_BOXES",
+      "CAN_SELL_BOXES",
+      "CAN_LIST_BOX_SALES",
     ],
   },
   {
@@ -89,6 +91,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_DELETE_BOXES: "Eliminar cajas",
   CAN_SELL_BOXES: "Vender cajas",
   CAN_LIST_BOX_SALES: "Listar ventas de cajas",
+  CAN_LIST_ALL_BOX_SALES: "Listar todas las ventas de cajas",
 
   // Warehouse
   CAN_LIST_PACKAGES: "Listar paquetes",
@@ -172,7 +175,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_EDIT_BOXES: "Modificar los datos de una caja existente.",
   CAN_DELETE_BOXES: "Eliminar permanentemente un tipo de caja.",
   CAN_SELL_BOXES: "Registrar la venta de una caja a un cliente.",
-  CAN_LIST_BOX_SALES: "Ver el historial de ventas de cajas.",
+  CAN_LIST_BOX_SALES: "Ver el historial de ventas de cajas de su propia tienda.",
+  CAN_LIST_ALL_BOX_SALES: "Ver el historial de ventas de cajas de todas las tiendas. Requiere listar ventas de cajas.",
 
   // Warehouse
   CAN_LIST_PACKAGES: "Ver la lista de paquetes en bodega.",
@@ -258,6 +262,7 @@ export const PERMISSION_GROUPS: {
         "CAN_DELETE_BOXES",
         "CAN_SELL_BOXES",
         "CAN_LIST_BOX_SALES",
+        "CAN_LIST_ALL_BOX_SALES",
       ],
     },
     {

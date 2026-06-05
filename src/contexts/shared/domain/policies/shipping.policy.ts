@@ -10,5 +10,5 @@ export const shippingPolicies = {
   cancel: hasAll("CAN_CANCEL_SHIPMENTS"),
   manageRoute: hasAll("CAN_LIST_SHIPMENTS"),
   manageDriver: hasAll("CAN_LIST_SHIPMENTS"),
-  driverRoute: isUserType("EMPLOYEE", "DRIVER"),
+  driverRoute: isUserType("DRIVER"),
 };

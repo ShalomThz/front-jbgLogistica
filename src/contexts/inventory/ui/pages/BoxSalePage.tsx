@@ -158,7 +158,7 @@ export const BoxSalePage = () => {
         })),
         currency: displayCurrency,
         customerName: trimmedCustomer.length > 0 ? trimmedCustomer : undefined,
-        storeId: user.storeId,
+        storeId: user.store.id,
         soldBy: user.id,
       });
       setCart(new Map());

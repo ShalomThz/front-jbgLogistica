@@ -20,6 +20,9 @@ import {
   type CreateCustomerRequest,
 } from "@contexts/sales/application/customer/CreateCustomerRequest";
 import { StorePickerCombobox } from "@contexts/iam/ui/components/store/StorePickerCombobox";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
+import { Store } from "lucide-react";
 
 type FormInput = z.input<typeof createCustomerRequestSchema>;
 
@@ -31,14 +34,17 @@ interface Props {
   isLoading?: boolean;
 }
 
-function getDefaults(customer?: CustomerListViewPrimitives | null): CreateCustomerRequest {
+function getDefaults(
+  customer?: CustomerListViewPrimitives | null,
+  defaultStoreId?: string,
+): CreateCustomerRequest {
   return {
     userId: customer?.user?.id ?? null,
     name: customer?.name ?? "",
     company: customer?.company ?? "",
     email: customer?.email ?? "",
     phone: customer?.phone ?? "",
-    registeredByStoreId: customer?.store.id ?? "",
+    registeredByStoreId: customer?.store.id ?? defaultStoreId ?? "",
     address: {
       address1: customer?.address.address1 ?? "",
       address2: customer?.address.address2 ?? "",
@@ -64,9 +70,14 @@ export const CustomerFormDialog = ({
   isLoading,
 }: Props) => {
 
+  const { user } = useAuth();
+  const canPickStore = user ? iamPolicies.listStores(user) : false;
+  const readOnlyStoreName =
+    customer?.store.name ?? user?.store.name ?? "—";
+
   const form = useForm<FormInput>({
     resolver: zodResolver(createCustomerRequestSchema),
-    defaultValues: getDefaults(customer),
+    defaultValues: getDefaults(customer, user?.store.id),
   });
 
   const {
@@ -78,8 +89,8 @@ export const CustomerFormDialog = ({
   } = form;
 
   useEffect(() => {
-    if (open) reset(getDefaults(customer));
-  }, [open, customer, reset]);
+    if (open) reset(getDefaults(customer, user?.store.id));
+  }, [open, customer, user?.store.id, reset]);
 
   const onSubmit = handleSubmit((values) => onSave(values as CreateCustomerRequest));
 
@@ -147,17 +158,24 @@ export const CustomerFormDialog = ({
             </div>
             <div className="space-y-2">
               <Label>Tienda *</Label>
-              <Controller
-                name="registeredByStoreId"
-                control={control}
-                render={({ field }) => (
-                  <StorePickerCombobox
-                    value={field.value}
-                    onChange={(s) => field.onChange(s.id)}
-                    error={!!errors.registeredByStoreId}
-                  />
-                )}
-              />
+              {canPickStore ? (
+                <Controller
+                  name="registeredByStoreId"
+                  control={control}
+                  render={({ field }) => (
+                    <StorePickerCombobox
+                      value={field.value}
+                      onChange={(s) => field.onChange(s.id)}
+                      error={!!errors.registeredByStoreId}
+                    />
+                  )}
+                />
+              ) : (
+                <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                  <Store className="size-4" />
+                  {readOnlyStoreName}
+                </div>
+              )}
               {errors.registeredByStoreId && (
                 <p className="text-xs text-destructive">{errors.registeredByStoreId.message}</p>
               )}

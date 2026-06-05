@@ -27,6 +27,8 @@ import { CustomerFilters } from "../components/customer/CustomerFilters";
 import { CustomerFormDialog } from "../components/customer/CustomerFormDialog";
 import { CustomerPortalAccessDialog } from "../components/customer/CustomerPortalAccessDialog";
 import { useCustomerFilters, type CustomerFilterOptions } from "../hooks/useCustomerFilters";
+import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -58,9 +60,13 @@ export const CustomersPage = () => {
     isProvisioning,
   } = useCustomers({ page, limit, ...criteria });
 
-  // const { user } = useAuth();
-  //const canListAll = user ? customerPolicies.listAll(user) : false;
-  const canListAll = true;
+  const { user } = useAuth();
+  const canView = user ? customerPolicies.view(user) : false;
+  const canCreate = user ? customerPolicies.create(user) : false;
+  const canEdit = user ? customerPolicies.edit(user) : false;
+  const canDelete = user ? customerPolicies.delete(user) : false;
+  const canProvision = user ? customerPolicies.provisionAccess(user) : false;
+  const canListAll = user ? customerPolicies.listAll(user) : false;
 
   const options = useMemo<CustomerFilterOptions>(() => {
     const citySet = new Set<string>();
@@ -138,10 +144,12 @@ export const CustomersPage = () => {
           <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" />
-            Crear Cliente
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="size-4" />
+              Crear Cliente
+            </Button>
+          )}
         </div>
       </div>
 
@@ -183,7 +191,7 @@ export const CustomersPage = () => {
               </TableRow>
             ) : (
               customers.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer" onClick={() => setSelected(c)}>
+                <TableRow key={c.id} className={canView ? "cursor-pointer" : undefined} onClick={canView ? () => setSelected(c) : undefined}>
                   <TableCell className="hidden sm:table-cell font-mono text-xs text-muted-foreground">{formatCustomerNumber(c.customerNumber)}</TableCell>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.store.name}</TableCell>
@@ -199,24 +207,26 @@ export const CustomersPage = () => {
                     {new Date(c.createdAt).toLocaleDateString("es-MX")}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={c.user ? "text-primary" : "text-muted-foreground"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAccessCustomer(c);
-                          }}
-                        >
-                          <KeyRound className="size-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {c.user ? "Renovar acceso al portal" : "Configurar acceso al portal"}
-                      </TooltipContent>
-                    </Tooltip>
+                    {canProvision && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={c.user ? "text-primary" : "text-muted-foreground"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAccessCustomer(c);
+                            }}
+                          >
+                            <KeyRound className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {c.user ? "Renovar acceso al portal" : "Configurar acceso al portal"}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -258,8 +268,8 @@ export const CustomersPage = () => {
         customer={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
-        onEdit={handleEditFromDetail}
-        onDelete={handleDeleteFromDetail}
+        onEdit={canEdit ? handleEditFromDetail : undefined}
+        onDelete={canDelete ? handleDeleteFromDetail : undefined}
       />
       <CustomerFormDialog
         open={formOpen}

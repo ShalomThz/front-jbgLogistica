@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
 import { boxSaleRepository } from "@contexts/inventory/infrastructure/services/boxSales/boxSaleRepository";
+import type { Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import type { SellBoxRequestPrimitives } from "@contexts/inventory/application/SellBoxRequest";
 import type { FindBoxSalesResponsePrimitives } from "@contexts/inventory/application/FindBoxSalesResponse";
 
@@ -14,11 +17,17 @@ interface UseBoxSalesOptions {
 
 export const useBoxSales = ({ page = 1, limit = 10, enabled = true }: UseBoxSalesOptions = {}) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const offset = (page - 1) * limit;
 
+  const effectiveFilters: Filter[] =
+    user && !boxPolicies.listSalesAll(user)
+      ? [{ field: "store.id", filterOperator: "=", value: user.store.id }]
+      : [];
+
   const { data, isLoading, error, refetch } = useQuery<FindBoxSalesResponsePrimitives>({
-    queryKey: [...BOX_SALES_QUERY_KEY, { page, limit }],
-    queryFn: () => boxSaleRepository.find({ filters: [], limit, offset }),
+    queryKey: [...BOX_SALES_QUERY_KEY, { page, limit, filters: effectiveFilters, storeId: user?.store.id }],
+    queryFn: () => boxSaleRepository.find({ filters: effectiveFilters, limit, offset }),
     enabled,
   });
 

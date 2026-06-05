@@ -17,12 +17,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@contexts/shared/shadcn";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Store } from "lucide-react";
 import { useMemo, useState, type UIEvent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useInfiniteStores } from "@contexts/iam/infrastructure/hooks/stores/useInfiniteStores";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
 import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
@@ -33,6 +35,8 @@ interface OrderReferencesCardProps {
 
 export function OrderReferencesCard({ selectedStoreId, onStoreChange }: OrderReferencesCardProps = {}) {
   const { register, control, clearErrors, formState: { errors } } = useFormContext<BaseOrderFormValues>();
+  const { user } = useAuth();
+  const canPickStore = user ? iamPolicies.listStores(user) : false;
   const [storeOpen, setStoreOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -83,6 +87,7 @@ export function OrderReferencesCard({ selectedStoreId, onStoreChange }: OrderRef
         {onStoreChange && (
           <div className="space-y-1">
             <Label htmlFor="store-select">Tienda *</Label>
+            {canPickStore ? (
             <Popover open={storeOpen} onOpenChange={setStoreOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -146,6 +151,12 @@ export function OrderReferencesCard({ selectedStoreId, onStoreChange }: OrderRef
                 </Command>
               </PopoverContent>
             </Popover>
+            ) : (
+              <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                <Store className="size-4" />
+                {selectedStoreName ?? user?.store.name ?? "—"}
+              </div>
+            )}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
