@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'auth_token';
+export const TOKEN_KEY = 'auth_token';
 
 export const tokenStorage = {
   getToken: (): string | null => localStorage.getItem(TOKEN_KEY),
