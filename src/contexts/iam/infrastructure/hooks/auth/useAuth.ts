@@ -12,9 +12,14 @@ export const useAuth = () => {
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === TOKEN_KEY && e.newValue === null) {
+      if (e.key !== TOKEN_KEY) return;
+
+      if (e.newValue === null) {
         queryClient.setQueryData(AUTH_QUERY_KEY, null);
         queryClient.clear();
+      } else {
+        // Another tab logged in — re-fetch the current user
+        queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
       }
     };
     window.addEventListener("storage", handleStorageChange);
