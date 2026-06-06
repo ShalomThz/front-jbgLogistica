@@ -1,15 +1,32 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authRepository } from "@contexts/iam/infrastructure/services/auth/authRepository";
-import { tokenStorage } from "@contexts/iam/infrastructure/storage/tokenStorage";
+import { tokenStorage, TOKEN_KEY } from "@contexts/iam/infrastructure/storage/tokenStorage";
 import type { LoginRequestPrimitives } from "@contexts/iam/application/login/LoginRequest";
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 
 const AUTH_QUERY_KEY = ["auth", "user"];
 
 export const useAuth = () => {
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading } = useQuery<UserPrimitives | null>({
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key !== TOKEN_KEY) return;
+
+      if (e.newValue === null) {
+        queryClient.setQueryData(AUTH_QUERY_KEY, null);
+        queryClient.clear();
+      } else {
+        // Another tab logged in — re-fetch the current user
+        queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [queryClient]);
+
+  const { data: user, isLoading } = useQuery<UserListViewPrimitives | null>({
     queryKey: AUTH_QUERY_KEY,
     queryFn: async () => {
       const token = tokenStorage.getToken();

@@ -31,14 +31,14 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   //const canSelectStore = user ? orderPolicies.createHQ(user) : false;
   const canSelectStore = true;
 
-  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.store.id);
 
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
   const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
 
-  const activeStoreId = selectedStoreId ?? user?.storeId;
+  const activeStoreId = selectedStoreId ?? user?.store.id;
 
   const { data: store } = useQuery({
     queryKey: ["stores", activeStoreId],

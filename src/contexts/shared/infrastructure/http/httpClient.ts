@@ -1,9 +1,10 @@
 import { ApiError } from "./errors/ApiError";
+import { TOKEN_KEY } from "@contexts/iam/infrastructure/storage/tokenStorage";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const getToken = (): string | null => {
-  return localStorage.getItem("auth_token");
+  return localStorage.getItem(TOKEN_KEY);
 };
 
 export const httpClient = async <T>(
@@ -32,6 +33,10 @@ export const httpClient = async <T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
     const body = await response
       .json()
       .catch(() => ({ message: "Error de servidor" }));

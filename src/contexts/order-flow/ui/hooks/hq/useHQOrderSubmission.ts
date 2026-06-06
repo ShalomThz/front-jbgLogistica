@@ -65,7 +65,7 @@ export const useHQOrderSubmission = ({
   } = useShipmentActions();
   const { data: orderData } = useOrder(orderId);
 
-  const activeStoreId = storeId ?? user?.storeId;
+  const activeStoreId = storeId ?? user?.store.id;
   const { data: store } = useQuery({
     queryKey: ["stores", activeStoreId],
     queryFn: () => storeRepository.getById(activeStoreId!),
@@ -179,7 +179,7 @@ export const useHQOrderSubmission = ({
       try {
         const request = buildHQOrderRequest(
           form.getValues(),
-          storeId ?? user.storeId,
+          storeId ?? user.store.id,
         );
         const order = await createHQOrder(request);
         setOrderId(order.id);

@@ -11,11 +11,16 @@ import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPick
 import { BoxStockDialog } from "@contexts/inventory/ui/components/box/BoxStockDialog";
 import { BoxFormDialog } from "@contexts/inventory/ui/components/box/BoxFormDialog";
 import { handleBoxError } from "@contexts/inventory/application/errors/handleBoxError";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 export function BoxSelector() {
   const { setValue, formState: { errors } } = useFormContext<BaseOrderFormValues>();
+  const { user } = useAuth();
+  const canListBoxes = user ? boxPolicies.list(user) : false;
+  const canCreateBoxes = user ? boxPolicies.create(user) : false;
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { updateBox, isUpdating, createBox, isCreating } = useBoxes({ enabled: false });
@@ -110,27 +115,39 @@ export function BoxSelector() {
           </Button>
         )}
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <BoxPickerCombobox
-            value={boxId || undefined}
-            onChange={handleSelectBox}
-            placeholder="Buscar caja..."
-            error={!!errors.package?.boxId}
-            triggerLabel={triggerLabel}
-            itemLabel={itemLabel}
-          />
+      {canListBoxes ? (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <BoxPickerCombobox
+              value={boxId || undefined}
+              onChange={handleSelectBox}
+              placeholder="Buscar caja..."
+              error={!!errors.package?.boxId}
+              triggerLabel={triggerLabel}
+              itemLabel={itemLabel}
+            />
+          </div>
+          {canCreateBoxes ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setCreateDialogOpen(true)}
+              title="Crear caja nueva"
+            >
+              <Plus className="size-4" />
+            </Button>
+          ) : (
+            <p className="shrink-0 text-xs text-muted-foreground">
+              No tienes permiso para crear cajas
+            </p>
+          )}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => setCreateDialogOpen(true)}
-          title="Crear caja nueva"
-        >
-          <Plus className="size-4" />
-        </Button>
-      </div>
+      ) : (
+        <div className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+          No tienes permiso para ver cajas
+        </div>
+      )}
       {errors.package?.boxId && <p className="text-sm text-destructive">{errors.package.boxId.message}</p>}
 
       {outOfStock && (

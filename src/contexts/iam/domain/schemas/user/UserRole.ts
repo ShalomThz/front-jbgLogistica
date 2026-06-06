@@ -44,6 +44,7 @@ export const PERMISSIONS = [
   "CAN_DELETE_BOXES",
   "CAN_SELL_BOXES",
   "CAN_LIST_BOX_SALES",
+  "CAN_LIST_ALL_BOX_SALES",
 
   // Warehouse
   "CAN_LIST_PACKAGES",

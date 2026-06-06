@@ -1,4 +1,4 @@
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
 import type { Permission } from "@contexts/iam/domain/schemas/user/UserRole";
 import type { UserType } from "@contexts/iam/domain/schemas/user/User";
 
@@ -11,10 +11,10 @@ export interface PolicyMeta {
   mode: PolicyMode;
 }
 
-export type Policy = ((user: UserPrimitives) => boolean) & Partial<PolicyMeta>;
+export type Policy = ((user: UserListViewPrimitives) => boolean) & Partial<PolicyMeta>;
 
 const attachMeta = (
-  fn: (user: UserPrimitives) => boolean,
+  fn: (user: UserListViewPrimitives) => boolean,
   meta: PolicyMeta,
 ): Policy => Object.assign(fn, meta);
 
@@ -58,7 +58,7 @@ export const anyOf =
  */
 export const missingPermissions = (
   policy: Policy,
-  user: UserPrimitives,
+  user: UserListViewPrimitives,
 ): Permission[] => {
   if (!policy.permissions || policy.permissions.length === 0) return [];
   const set = new Set(user.role.permissions);

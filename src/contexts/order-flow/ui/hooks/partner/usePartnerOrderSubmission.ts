@@ -58,7 +58,7 @@ export const usePartnerOrderSubmission = ({
         return;
       }
       try {
-        const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.storeId, tariff);
+        const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.store.id, tariff);
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
         if (markAsPaid) {

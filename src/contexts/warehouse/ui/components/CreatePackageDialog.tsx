@@ -109,7 +109,7 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createFormSchema),
-    defaultValues: getDefaults(user?.storeId ?? ""),
+    defaultValues: getDefaults(user?.store.id ?? ""),
   });
   const {
     register,
@@ -152,9 +152,9 @@ export function CreatePackageDialog({ open, onClose, onSave, isLoading }: Props)
 
   useEffect(() => {
     if (open) {
-      reset(getDefaults(user?.storeId ?? ""));
+      reset(getDefaults(user?.store.id ?? ""));
     }
-  }, [open, user?.storeId, reset]);
+  }, [open, user?.store.id, reset]);
 
   const handleClose = () => {
     onClose();

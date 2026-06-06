@@ -37,7 +37,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
 
   // const canSelectStore = user ? orderPolicies.createHQ(user) : false;
   const canSelectStore = true;
-  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.storeId);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.store.id);
 
   const { skydropxAddresses, isLoading: isLoadingAddresses } = useHQSettings();
   // null means "user hasn't explicitly picked one yet — use the default"

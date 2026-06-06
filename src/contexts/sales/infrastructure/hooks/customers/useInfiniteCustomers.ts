@@ -26,13 +26,13 @@ export const useInfiniteCustomers = ({
 
   const effectiveFilters: Filter[] =
     user && !customerPolicies.listAll(user)
-      ? [...filters, { field: "store.id", filterOperator: "=", value: user.storeId }]
+      ? [...filters, { field: "store.id", filterOperator: "=", value: user.store.id }]
       : filters;
 
   const query = useInfiniteQuery<FindCustomersResponsePrimitives>({
     queryKey: [
       ...INFINITE_CUSTOMERS_QUERY_KEY,
-      { limit, search, filters: effectiveFilters, order, storeId: user?.storeId },
+      { limit, search, filters: effectiveFilters, order, storeId: user?.store.id },
     ],
     queryFn: ({ pageParam = 0 }) =>
       customerRepository.find({

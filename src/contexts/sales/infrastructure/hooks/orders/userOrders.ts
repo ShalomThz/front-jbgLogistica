@@ -33,13 +33,13 @@ export const useOrders = ({
 
   const effectiveFilters: Filter[] =
     user && !orderPolicies.listAll(user)
-      ? [...filters, { field: "store.id", filterOperator: "=", value: user.storeId }]
+      ? [...filters, { field: "store.id", filterOperator: "=", value: user.store.id }]
       : filters;
 
   const { data, isLoading, error, refetch } = useQuery<FindOrdersResponse>({
     queryKey: [
       ...ORDERS_QUERY_KEY,
-      { page, limit, search, filters: effectiveFilters, order, storeId: user?.storeId },
+      { page, limit, search, filters: effectiveFilters, order, storeId: user?.store.id },
     ],
     queryFn: () =>
       orderRepository.find({

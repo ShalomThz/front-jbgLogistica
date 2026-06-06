@@ -1,8 +1,8 @@
 import type { LoginRequestPrimitives } from "@contexts/iam/application/login/LoginRequest";
 import type { LoginResponsePrimitives } from "@contexts/iam/application/login/LoginResponse";
 import { loginResponseSchema } from "@contexts/iam/application/login/LoginResponse";
-import type { UserPrimitives } from "@contexts/iam/domain/schemas/user/User";
-import { userSchema } from "@contexts/iam/domain/schemas/user/User";
+import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
+import { userListViewSchema } from "@contexts/iam/domain/schemas/user/User";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 import { tokenStorage } from "@contexts/iam/infrastructure/storage/tokenStorage";
 
@@ -33,8 +33,8 @@ export const authRepository = {
     }
   },
 
-  getCurrentUser: async (): Promise<UserPrimitives> => {
+  getCurrentUser: async (): Promise<UserListViewPrimitives> => {
     const data = await httpClient<unknown>("/user/current");
-    return userSchema.parse(data);
+    return userListViewSchema.parse(data);
   },
 };

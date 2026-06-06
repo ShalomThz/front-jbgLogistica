@@ -31,7 +31,7 @@ export const useCustomers = ({
 
   const effectiveFilters: Filter[] =
     user && !customerPolicies.listAll(user)
-      ? [...filters, { field: "store.id", filterOperator: "=", value: user.storeId }]
+      ? [...filters, { field: "store.id", filterOperator: "=", value: user.store.id }]
       : filters;
 
   const {
@@ -42,7 +42,7 @@ export const useCustomers = ({
   } = useQuery<FindCustomersResponsePrimitives>({
     queryKey: [
       ...CUSTOMERS_QUERY_KEY,
-      { page, limit, search, filters: effectiveFilters, order, storeId: user?.storeId },
+      { page, limit, search, filters: effectiveFilters, order, storeId: user?.store.id },
     ],
     queryFn: () =>
       customerRepository.find({
