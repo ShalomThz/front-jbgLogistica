@@ -13,4 +13,5 @@ export const buildPackagePayload = (packageData: HQPackageFormData) => ({
     height: parseFloat(packageData.height) || 0,
     unit: packageData.dimensionUnit,
   },
+  photos: packageData.photos,
 });

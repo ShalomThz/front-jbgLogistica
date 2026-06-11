@@ -9,6 +9,7 @@ export const packageSchema = z.object({
   ownership: z.enum(ownershipTypes),
   weight: weightSchema,
   dimensions: dimensionsSchema,
+  photos: z.array(z.string()).max(4).default([]),
 });
 
 export type BoxOwnership = z.infer<typeof packageSchema.shape.ownership>;

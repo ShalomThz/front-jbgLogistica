@@ -94,6 +94,7 @@ export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues 
       height: String(order.package.dimensions.height),
       dimensionUnit: order.package.dimensions.unit,
       weight: String(order.package.weight.value),
+      photos: order.package.photos ?? [],
     },
   };
 }

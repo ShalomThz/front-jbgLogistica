@@ -67,6 +67,7 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
     skydropxSubcategoryId: "",
     consignmentNoteClassCode: "",
     consignmentNotePackagingCode: "",
+    photos: [],
   },
   shippingService: {
     ...baseDefaults.shippingService,
