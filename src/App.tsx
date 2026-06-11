@@ -12,7 +12,7 @@ const PublicTrackingPage = lazy(() => import("@contexts/shipping/ui/pages/Public
 
 function App() {
   const { isLoading, isAuthenticated, isCustomer } = useAuth();
-  useWebSocketEvents();
+  useWebSocketEvents(isAuthenticated);
   const location = useLocation();
   const routeElement = useRoutes(routes);
   const isPublicTrackingRoute = location.pathname.startsWith("/tracking/");
