@@ -65,8 +65,10 @@ function handleDomainEvent(event: DomainEvent) {
   }
 }
 
-export function useWebSocketEvents() {
+export function useWebSocketEvents(enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
+
     const socket = io(import.meta.env.VITE_WS_URL ?? "http://localhost:3000", {
       transports: ["websocket"],
     });
@@ -76,5 +78,5 @@ export function useWebSocketEvents() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [enabled]);
 }

@@ -1,5 +1,13 @@
-import { Camera, SwitchCamera, Upload, X } from "lucide-react";
+import {
+  Camera,
+  HelpCircle,
+  Image as ImageIcon,
+  SwitchCamera,
+  Upload,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import packagePhotoSample from "@/assets/package-photo-sample.png";
 import {
   Button,
   Dialog,
@@ -7,7 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
   Label,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@contexts/shared/shadcn";
+
+const CAPTURE_HINT =
+  "Toma una foto clara del paquete en una superficie plana, asegurándote de que se vean todas sus caras.";
 
 const MAX_PHOTOS = 4;
 
@@ -32,7 +46,9 @@ export function PhotosInput({ value, onChange, disabled }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
 
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment",
+  );
   const [cameraError, setCameraError] = useState<string | null>(null);
 
   const stopStream = useCallback(() => {
@@ -53,7 +69,9 @@ export function PhotosInput({ value, onChange, disabled }: Props) {
           videoRef.current.srcObject = stream;
         }
       } catch {
-        setCameraError("No se pudo acceder a la cámara. Verifica los permisos del navegador.");
+        setCameraError(
+          "No se pudo acceder a la cámara. Verifica los permisos del navegador.",
+        );
       }
     },
     [stopStream],
@@ -85,7 +103,9 @@ export function PhotosInput({ value, onChange, disabled }: Props) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
     const remaining = MAX_PHOTOS - value.length;
-    const base64s = await Promise.all(files.slice(0, remaining).map(fileToBase64));
+    const base64s = await Promise.all(
+      files.slice(0, remaining).map(fileToBase64),
+    );
     onChange([...value, ...base64s]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -174,7 +194,31 @@ export function PhotosInput({ value, onChange, disabled }: Props) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Tomar foto</DialogTitle>
+            <DialogTitle className="flex items-center gap-1.5">
+              Tomar foto
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <HelpCircle className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  avoidCollisions={false}
+                  className="max-w-xs space-y-2 p-2"
+                >
+                  <img
+                    src={packagePhotoSample}
+                    alt="Ejemplo de foto del paquete"
+                    className="w-full rounded-md"
+                  />
+                  <p>{CAPTURE_HINT}</p>
+                </TooltipContent>
+              </Tooltip>
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
@@ -183,37 +227,59 @@ export function PhotosInput({ value, onChange, disabled }: Props) {
                 {cameraError}
               </p>
             ) : (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full rounded-md bg-muted aspect-video object-cover"
-              />
-            )}
+              <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                />
 
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setFacingMode((f) => (f === "user" ? "environment" : "user"))
-                }
-              >
-                <SwitchCamera className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={handleCapture}
-                disabled={!!cameraError}
-              >
-                <Camera className="size-4" />
-                Capturar ({value.length}/{MAX_PHOTOS})
-              </Button>
-            </div>
+                {/* Framing brackets */}
+                <div className="pointer-events-none absolute inset-4">
+                  <span className="absolute left-0 top-0 size-7 rounded-tl-lg border-l-[3px] border-t-[3px] border-white/80" />
+                  <span className="absolute right-0 top-0 size-7 rounded-tr-lg border-r-[3px] border-t-[3px] border-white/80" />
+                  <span className="absolute bottom-0 left-0 size-7 rounded-bl-lg border-b-[3px] border-l-[3px] border-white/80" />
+                  <span className="absolute bottom-0 right-0 size-7 rounded-br-lg border-b-[3px] border-r-[3px] border-white/80" />
+                </div>
+
+                {/* Photo counter */}
+                <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
+                  {value.length}/{MAX_PHOTOS}
+                </span>
+
+                {/* Control bar */}
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-6 py-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Elegir de la galería"
+                    className="text-white/90 transition-colors hover:text-white"
+                  >
+                    <ImageIcon className="size-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCapture}
+                    aria-label="Capturar foto"
+                    className="size-14 rounded-full border-4 border-white/90 bg-white/30 backdrop-blur transition-colors hover:bg-white/50 active:bg-white/70"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFacingMode((f) =>
+                        f === "user" ? "environment" : "user",
+                      )
+                    }
+                    aria-label="Cambiar cámara"
+                    className="text-white/90 transition-colors hover:text-white"
+                  >
+                    <SwitchCamera className="size-6" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
