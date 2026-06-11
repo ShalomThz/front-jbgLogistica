@@ -17,6 +17,7 @@ const hqPackageSchema = basePackageSchema.extend({
   skydropxSubcategoryId: z.string(),
   consignmentNoteClassCode: z.string().min(1, "La clase es requerida"),
   consignmentNotePackagingCode: z.string().min(1, "El empaque es requerido"),
+  photos: z.array(z.string()).max(4),
 }).superRefine((data, ctx) => {
   if (data.weightUnit === "lb" && parseFloat(data.weight) < 2) {
     ctx.addIssue({

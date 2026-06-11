@@ -20,7 +20,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Box, Camera, Eraser, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { PhotosInput } from "./PhotosInput";
+import { PhotosInput } from "@contexts/shared/ui/components";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";

@@ -29,7 +29,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Box, Camera, Eraser, Pencil, Plus, Ruler, Trash2, Truck, User, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { PhotosInput } from "./PhotosInput";
+import { PhotosInput } from "@contexts/shared/ui/components";
 import { Controller, FormProvider, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";

@@ -446,6 +446,28 @@ export const OrderDetailDialog = ({
                   }
                 />
               </div>
+              {order.package.photos.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Fotos</h4>
+                  <div className="grid grid-cols-4 gap-2">
+                    {order.package.photos.map((src, i) => (
+                      <a
+                        key={i}
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="aspect-square rounded-md overflow-hidden border"
+                      >
+                        <img
+                          src={src}
+                          alt={`Foto ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 

@@ -16,6 +16,7 @@ import { Building2, Info, User } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { calculateVolumetricWeight, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
+import { PhotosInput } from "@contexts/shared/ui/components";
 import { BoxSelector } from "../../shared/BoxSelector";
 import { DimensionsForm } from "./DimensionsForm";
 import { ProductTypeSelector } from "./ProductTypeSelector";
@@ -136,6 +137,15 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
 
           <Separator />
           <ProductTypeSelector />
+
+          <Separator />
+          <Controller
+            control={control}
+            name="package.photos"
+            render={({ field }) => (
+              <PhotosInput value={field.value} onChange={field.onChange} />
+            )}
+          />
         </CardContent>
       </Card>
 
