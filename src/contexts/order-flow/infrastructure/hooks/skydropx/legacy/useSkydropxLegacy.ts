@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import type { SkydropxCatalogItem } from "../services/SkydropxCatalog";
-import { skydropxRepository } from "../services/skydropxRepository";
+import type { SkydropxCatalogItem } from "@contexts/order-flow/infrastructure/services/skydropx/legacy/SkydropxLegacyCatalog";
+import { skydropxLegacyRepository } from "@contexts/order-flow/infrastructure/services/skydropx/legacy/skydropxLegacyRepository";
 
-const SKYDROPX_QUERY_KEY = ["skydropx"];
+const SKYDROPX_QUERY_KEY = ["skydropx", "legacy"];
 
 export const useSkydropxCategories = () => {
   const { data, isLoading, error, refetch } = useQuery<SkydropxCatalogItem[]>({
     queryKey: [...SKYDROPX_QUERY_KEY, "categories"],
-    queryFn: () => skydropxRepository.getCategories(),
+    queryFn: () => skydropxLegacyRepository.getCategories(),
   });
 
   return {
@@ -21,7 +21,7 @@ export const useSkydropxCategories = () => {
 export const useSkydropxSubcategories = (categoryId: string | null) => {
   const { data, isLoading, error, refetch } = useQuery<SkydropxCatalogItem[]>({
     queryKey: [...SKYDROPX_QUERY_KEY, "subcategories", categoryId],
-    queryFn: () => skydropxRepository.getSubcategories(categoryId!),
+    queryFn: () => skydropxLegacyRepository.getSubcategories(categoryId!),
     enabled: !!categoryId,
   });
 
@@ -36,7 +36,7 @@ export const useSkydropxSubcategories = (categoryId: string | null) => {
 export const useSkydropxClasses = (subcategoryId: string | null) => {
   const { data, isLoading, error, refetch } = useQuery<SkydropxCatalogItem[]>({
     queryKey: [...SKYDROPX_QUERY_KEY, "classes", subcategoryId],
-    queryFn: () => skydropxRepository.getClasses(subcategoryId!),
+    queryFn: () => skydropxLegacyRepository.getClasses(subcategoryId!),
     enabled: !!subcategoryId,
   });
 
@@ -51,7 +51,7 @@ export const useSkydropxClasses = (subcategoryId: string | null) => {
 export const useSkydropxPackagings = () => {
   const { data, isLoading, error, refetch } = useQuery<SkydropxCatalogItem[]>({
     queryKey: [...SKYDROPX_QUERY_KEY, "packagings"],
-    queryFn: () => skydropxRepository.getPackagings(),
+    queryFn: () => skydropxLegacyRepository.getPackagings(),
   });
 
   return {

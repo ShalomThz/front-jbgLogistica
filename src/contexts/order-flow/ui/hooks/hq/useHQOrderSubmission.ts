@@ -24,6 +24,15 @@ import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
 import type { HQOrderStep } from "./useHQOrderFlowForm";
 
+// The carrier generates the label asynchronously; poll the fulfill until it is
+// FULFILLED or a real error occurs (cap ~3 min so it never loops forever).
+const FULFILL_POLL_INTERVAL_MS = 4_000;
+const MAX_FULFILL_POLLS = 45;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export type ShipmentPhase = "selecting" | "fulfilling";
+
 interface UseHQOrderSubmissionOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<HQOrderFormValues, any, any>;
@@ -62,7 +71,12 @@ export const useHQOrderSubmission = ({
     fulfillShipment,
     selectProvider,
     isSelectingProvider,
+    isFulfilling,
   } = useShipmentActions();
+  const [isProcessingShipment, setIsProcessingShipment] = useState(false);
+  const [shipmentError, setShipmentError] = useState<string | null>(null);
+  const [shipmentPhase, setShipmentPhase] =
+    useState<ShipmentPhase>("selecting");
   const { data: orderData } = useOrder(orderId);
 
   const activeStoreId = storeId ?? user?.store.id;
@@ -134,7 +148,10 @@ export const useHQOrderSubmission = ({
     if (tariff) form.setValue("shippingService.tariff", tariff);
   }, [tariff, form]);
 
-  const goToOrders = () => navigate("/orders");
+  const goToOrders = () =>
+    navigate("/orders", {
+      state: orderId ? { highlightOrderId: orderId } : undefined,
+    });
 
   const onError = (error: unknown) =>
     handleOrderError(error, {
@@ -210,11 +227,32 @@ export const useHQOrderSubmission = ({
       return;
     }
 
+    setIsProcessingShipment(true);
+    setShipmentError(null);
+    setShipmentPhase("selecting");
     try {
-      // First select provider and fulfill
+      // First select the provider.
       const request = buildSelectProviderRequest(shipmentId, shippingService);
       await selectProvider(request);
-      const result = await fulfillShipment(shipmentId);
+
+      // Then poll the fulfill until the carrier finishes the label. A real
+      // error throws (-> caught below); `in_progress` just returns the shipment
+      // still not FULFILLED, so we wait and try again.
+      setShipmentPhase("fulfilling");
+      let result = await fulfillShipment(shipmentId);
+      let attempts = 0;
+      while (result.status !== "FULFILLED" && attempts < MAX_FULFILL_POLLS) {
+        await sleep(FULFILL_POLL_INTERVAL_MS);
+        result = await fulfillShipment(shipmentId);
+        attempts += 1;
+      }
+
+      if (result.status !== "FULFILLED") {
+        setShipmentError(
+          "La guía está tardando más de lo normal. Vuelve a intentarlo en unos minutos.",
+        );
+        return;
+      }
 
       // Then if we have an orderId, update the order to save the signature
       if (orderId) {
@@ -246,9 +284,14 @@ export const useHQOrderSubmission = ({
       }
     } catch (error) {
       console.error("Error selecting provider:", error);
-      toast.error(parseApiError(error), { id: "order-flow" });
+      // Surfaced in the fulfillment dialog (retry / change carrier), not a toast.
+      setShipmentError(parseApiError(error));
+    } finally {
+      setIsProcessingShipment(false);
     }
   };
+
+  const clearShipmentError = () => setShipmentError(null);
 
   return {
     orderId,
@@ -262,6 +305,11 @@ export const useHQOrderSubmission = ({
     refetchRates,
     isCreating,
     isSelectingProvider,
+    isFulfilling,
+    isProcessingShipment,
+    shipmentPhase,
+    shipmentError,
+    clearShipmentError,
     fulfilledShipment,
     totalBilled: orderData?.financials.totalBilled ?? null,
     tariff,

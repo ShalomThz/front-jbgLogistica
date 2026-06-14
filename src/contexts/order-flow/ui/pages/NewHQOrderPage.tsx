@@ -9,6 +9,7 @@ import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import { HQContactStep } from "../components/hq/contact/HQContactStep";
 import { HQPackageStep } from "../components/hq/package/HQPackageStep";
 import { RateStep } from "../components/hq/rate/RateStep";
+import { FulfillmentLoadingDialog } from "../components/hq/rate/FulfillmentLoadingDialog";
 import { OrderSuccessView } from "../components/order/OrderSuccessView";
 import { StepIndicator } from "../components/shared/StepIndicator";
 import { useHQOrderFlow } from "../hooks/hq/useHQOrderFlow";
@@ -112,7 +113,7 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
             onRefetch={flow.refetchRates}
             onSubmit={flow.selectAndFulfill}
             onBack={flow.handleBack}
-            isSubmitting={flow.isSelectingProvider}
+            isSubmitting={flow.isProcessingShipment}
             fulfilledShipment={flow.fulfilledShipment}
             onFinish={flow.goToOrders}
             onCreateBlank={handleCreateBlank}
@@ -145,6 +146,14 @@ const NewHQOrderPageInner = ({ initialValues, orderId, partnerPrice, partnerCost
           />
         )}
       </FormProvider>
+
+      <FulfillmentLoadingDialog
+        open={flow.isProcessingShipment || !!flow.shipmentError}
+        phase={flow.shipmentPhase}
+        error={flow.shipmentError}
+        onRetry={flow.selectAndFulfill}
+        onChangeCarrier={flow.clearShipmentError}
+      />
 
       {/* Bottom Navigation */}
       {flow.step !== "rate" && flow.step !== "success" && (

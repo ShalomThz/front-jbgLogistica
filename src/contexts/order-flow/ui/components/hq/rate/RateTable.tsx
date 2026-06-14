@@ -11,29 +11,9 @@ import { Eraser, RefreshCw, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 
+import { CARRIER_LOGOS } from "@contexts/shared/ui/components/carrierLogos";
+
 const JBG_RATE_ID = "JBG_RATE";
-
-import ampmLogo from "@/assets/carriers/ampm.png";
-import dhlLogo from "@/assets/carriers/dhl.png";
-import estafetaLogo from "@/assets/carriers/estafeta.png";
-import fedexLogo from "@/assets/carriers/fedex.png";
-import jtExpressLogo from "@/assets/carriers/jt-express.png";
-import ninetyMinutesLogo from "@/assets/carriers/ninetyminutes.png";
-import paquetexpressLogo from "@/assets/carriers/paquetexpress.png";
-import redpackLogo from "@/assets/carriers/redpack.png";
-import upsLogo from "@/assets/carriers/ups.jpeg";
-
-const CARRIER_LOGOS: Record<string, string> = {
-  AMPM: ampmLogo,
-  DHL: dhlLogo,
-  ESTAFETA: estafetaLogo,
-  FEDEX: fedexLogo,
-  "J&T EXPRESS": jtExpressLogo,
-  "99 MINUTOS": ninetyMinutesLogo,
-  PAQUETEXPRESS: paquetexpressLogo,
-  REDPACK: redpackLogo,
-  UPS: upsLogo,
-};
 
 const parseServiceName = (serviceName: string) => {
   const parts = serviceName.split(" - ");

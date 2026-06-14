@@ -6,6 +6,7 @@ import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
+import { CancelShipmentDialog } from "../CancelShipmentDialog";
 import {
   Button,
   Dialog,
@@ -85,6 +86,7 @@ export const OrderDetailDialog = ({
   const { user } = useAuth();
   const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [cancelShipmentOpen, setCancelShipmentOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("resumen");
   const { boxes } = useBoxes({ enabled: open });
@@ -575,13 +577,24 @@ export const OrderDetailDialog = ({
           {shipment && order.status !== "CANCELLED" && (
             <Button
               variant="outline"
-              onClick={() => onCancelShipment?.(shipment.id)}
+              onClick={() => setCancelShipmentOpen(true)}
               disabled={isCancelling}
               className="w-full sm:w-auto border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-400 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
             >
               <Ban className="size-4" />
               {isCancelling ? "Cancelando..." : "Cancelar envío"}
             </Button>
+          )}
+          {shipment && (
+            <CancelShipmentDialog
+              open={cancelShipmentOpen}
+              onClose={() => setCancelShipmentOpen(false)}
+              onConfirm={() => {
+                setCancelShipmentOpen(false);
+                onCancelShipment?.(shipment.id);
+              }}
+              isLoading={isCancelling}
+            />
           )}
           {userCanDelete && (
             <Button

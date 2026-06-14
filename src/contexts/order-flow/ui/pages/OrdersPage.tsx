@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Users } from "lucide-react";
 import {
@@ -37,6 +37,9 @@ const LIMIT_OPTIONS = [10, 20, 50];
 
 export const OrdersPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const highlightOrderId = (location.state as { highlightOrderId?: string } | null)
+    ?.highlightOrderId;
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
@@ -194,6 +197,7 @@ export const OrdersPage = () => {
 
       <OrdersTable
         orders={visibleOrders}
+        highlightOrderId={highlightOrderId}
         canEdit={canEdit}
         canEditHQ={canEditHQ}
         canDelete={canDelete}

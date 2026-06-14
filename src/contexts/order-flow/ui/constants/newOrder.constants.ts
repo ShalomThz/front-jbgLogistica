@@ -63,8 +63,6 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
     weightUnit: "lb",
     productType: "",
     savePackage: false,
-    skydropxCategoryId: "",
-    skydropxSubcategoryId: "",
     consignmentNoteClassCode: "",
     consignmentNotePackagingCode: "",
     photos: [],

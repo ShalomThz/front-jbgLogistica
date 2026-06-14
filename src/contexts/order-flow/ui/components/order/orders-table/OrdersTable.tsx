@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
 import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
+import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { Printer } from "lucide-react";
 import { TotalBilledCell } from "./TotalBilledCell";
 import { TotalShippingCell } from "./TotalShippingCell";
@@ -26,6 +27,7 @@ import { OrderCard } from "./OrderCard";
 
 interface OrdersTableProps {
   orders: OrderListView[];
+  highlightOrderId?: string;
   canEdit: (order: OrderListView) => boolean;
   canEditHQ: boolean;
   canDelete: (order: OrderListView) => boolean;
@@ -41,6 +43,7 @@ interface OrdersTableProps {
 
 export const OrdersTable = ({
   orders,
+  highlightOrderId,
   canEdit,
   canEditHQ,
   canDelete,
@@ -66,6 +69,7 @@ export const OrdersTable = ({
             <OrderCard
               key={order.id}
               order={order}
+              isHighlighted={order.id === highlightOrderId}
               canEdit={canEdit(order)}
               canEditHQ={canEditHQ}
               canDelete={canDelete(order)}
@@ -116,7 +120,7 @@ export const OrdersTable = ({
               orders.map((order) => (
                 <TableRow
                   key={order.id}
-                  className={`cursor-pointer ${order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
+                  className={`cursor-pointer ${order.id === highlightOrderId ? "animate-flash-order " : ""}${order.status === "CANCELLED" ? "bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25" : order.status === "PENDING_HQ_PROCESS" ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-500/15 dark:hover:bg-yellow-500/25" : order.status === "COMPLETED" ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25" : ""}`}
                   onClick={() => onOpenDetail(order)}
                 >
                   <TableCell className="hidden md:table-cell text-xs max-w-35">
@@ -141,7 +145,10 @@ export const OrdersTable = ({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div className="font-medium">{order.shipment?.provider?.providerName ?? "—"} </div>
+                      <div className="flex items-center gap-2 font-medium">
+                        <CarrierLogo name={order.shipment?.provider?.providerName} />
+                        <span>{order.shipment?.provider?.providerName ?? "—"}</span>
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {order.shipment?.label?.trackingNumber ?? "No. de guía no disponible"}
                       </div>
