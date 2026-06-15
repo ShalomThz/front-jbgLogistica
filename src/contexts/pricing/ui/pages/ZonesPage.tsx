@@ -113,9 +113,9 @@ export const ZonesPage = () => {
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
         onExport={() => exportZones(zones)}
       />
-      <div className="rounded-lg border">
+      <div className="rounded-lg border [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead className="hidden sm:table-cell">Descripción</TableHead>

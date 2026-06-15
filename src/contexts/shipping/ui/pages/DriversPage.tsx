@@ -190,9 +190,9 @@ export const DriversPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl border">
+          <div className="rounded-xl border [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
                   <TableHead>Conductor</TableHead>
                   <TableHead>Licencia</TableHead>

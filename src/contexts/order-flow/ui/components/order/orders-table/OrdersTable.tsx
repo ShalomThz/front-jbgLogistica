@@ -87,7 +87,7 @@ export const OrdersTable = ({
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden max-h-[calc(100vh-20rem)] overflow-auto rounded-lg border md:block">
+      <div className="hidden rounded-lg border md:block [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>

@@ -168,9 +168,9 @@ export const CustomersPage = () => {
         onExport={() => exportCustomers(customers)}
       />
 
-      <div className="rounded-lg border">
+      <div className="rounded-lg border [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead className="w-28 hidden sm:table-cell">#</TableHead>
               <TableHead>Nombre</TableHead>
