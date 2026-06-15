@@ -2,7 +2,7 @@ import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
 import {
   skydropxCatalogItemSchema,
   type SkydropxCatalogItem,
-} from "./SkydropxLegacyCatalog";
+} from "@contexts/order-flow/domain/schemas/skydropx/SkydropxLegacyCatalog";
 import { z } from "zod";
 
 const catalogResponseSchema = z.object({

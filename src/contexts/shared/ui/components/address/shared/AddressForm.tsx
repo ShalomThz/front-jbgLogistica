@@ -5,7 +5,7 @@ import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
 interface AddressFormProps {
   fieldPrefix: string;
   labelPrefix: string;
-  onFieldCommit: () => void;
+  onFieldCommit?: () => void;
 }
 
 const MX_LABELS = {
@@ -44,8 +44,8 @@ function getFieldError(errors: FieldErrors, path: string): string | undefined {
   return current?.message as string | undefined;
 }
 
-export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: AddressFormProps) {
-  const { register, setValue, control, trigger, formState: { errors } } = useFormContext();
+export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit = () => {} }: AddressFormProps) {
+  const { register, control, trigger, formState: { errors } } = useFormContext();
   const country = useWatch({ control, name: `${fieldPrefix}.country` });
   const labels = country === "MX" ? MX_LABELS : GENERIC_LABELS;
   const zipRequired = country === "MX";
@@ -70,13 +70,15 @@ export function AddressForm({ fieldPrefix, labelPrefix, onFieldCommit }: Address
               value={field.value}
               onChange={(code) => {
                 field.onChange(code);
-                setValue(`${fieldPrefix}.province`, "");
                 onFieldCommit();
                 trigger([`${fieldPrefix}.zip`, `${fieldPrefix}.address2`]);
               }}
             />
           )}
         />
+        {getFieldError(errors, `${fieldPrefix}.country`) && (
+          <p className="text-sm text-destructive">{getFieldError(errors, `${fieldPrefix}.country`)}</p>
+        )}
       </div>
       <div>
         <Label htmlFor={`${labelPrefix}-province`}>{labels.province} *</Label>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { SkydropxCatalogItem } from "@contexts/order-flow/infrastructure/services/skydropx/legacy/SkydropxLegacyCatalog";
+import type { SkydropxCatalogItem } from "@contexts/order-flow/domain/schemas/skydropx/SkydropxLegacyCatalog";
 import { skydropxLegacyRepository } from "@contexts/order-flow/infrastructure/services/skydropx/legacy/skydropxLegacyRepository";
 
 const SKYDROPX_QUERY_KEY = ["skydropx", "legacy"];
