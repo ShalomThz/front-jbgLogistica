@@ -154,7 +154,7 @@ export const BoxPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full min-h-0 gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Inventario de Cajas</h1>
         <div className="flex gap-2">
@@ -171,7 +171,7 @@ export const BoxPage = () => {
           </Button>
         </div>
       </div>
-      <div className="space-y-4">
+      <div className="flex flex-col flex-1 min-h-0 gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
@@ -274,7 +274,7 @@ export const BoxPage = () => {
               </SheetContent>
             </Sheet>
           </div>
-          <div className="rounded-lg border [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
+          <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>

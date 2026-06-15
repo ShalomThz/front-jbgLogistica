@@ -59,7 +59,7 @@ export const OrdersTable = ({
   return (
     <>
       {/* Mobile: card list */}
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 md:hidden min-h-0 overflow-auto">
         {orders.length === 0 ? (
           <div className="rounded-lg border p-6 text-center text-muted-foreground">
             No se encontraron órdenes.
@@ -87,7 +87,7 @@ export const OrdersTable = ({
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden rounded-lg border md:block [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
+      <div className="hidden rounded-lg border md:block min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>

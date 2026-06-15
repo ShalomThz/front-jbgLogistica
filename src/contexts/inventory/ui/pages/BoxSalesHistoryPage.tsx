@@ -44,7 +44,7 @@ export const BoxSalesHistoryPage = () => {
   } = useBoxSaleDialog(sales);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full min-h-0 gap-4">
       <h1 className="text-2xl font-bold">Historial Venta de Cajas</h1>
 
       <div className="flex items-center justify-end gap-2">
@@ -72,7 +72,7 @@ export const BoxSalesHistoryPage = () => {
         </Select>
       </div>
 
-      <div className="rounded-lg border [&>div]:max-h-[calc(100vh-20rem)] [&>div]:overflow-auto">
+      <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
