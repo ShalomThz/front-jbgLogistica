@@ -1,10 +1,7 @@
 import { useMemo } from "react";
 import { GoogleMap, Marker, Polyline, useJsApiLoader } from "@react-google-maps/api";
-import type { Libraries } from "@react-google-maps/api";
 import type { RoutePrimitives } from "../../../domain/schemas/route/Route";
-
-// IMPORTANT: must be module-level to avoid remount on every render
-const LIBRARIES: Libraries = ["geometry"];
+import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from "./googleMapsConfig";
 
 const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" };
 
@@ -16,8 +13,8 @@ interface RouteMapProps {
 
 export const RouteMap = ({ route }: RouteMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
-    libraries: LIBRARIES,
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
   const center = useMemo(

@@ -1,10 +1,10 @@
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { useWebSocketEvents } from "@contexts/shared/infrastructure/websocket/useWebSocketEvents";
+import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { CustomerLayout, DashboardLayout } from "@contexts/shared/ui/layouts";
 import { routes } from "@contexts/shared/ui/router";
-import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { useWebSocketEvents } from "@contexts/shared/infrastructure/websocket/useWebSocketEvents";
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes, useLocation, useRoutes, useSearchParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useRoutes } from "react-router-dom";
 
 const LoginPage = lazy(() => import("@contexts/iam/ui/pages/LoginPage").then(m => ({ default: m.LoginPage })));
 const CustomerWarehousePage = lazy(() => import("@/contexts/customer-warehouse/ui/pages/CustomerWarehousePage").then(m => ({ default: m.CustomerWarehousePage })));
@@ -17,20 +17,7 @@ function App() {
   const routeElement = useRoutes(routes);
   const isPublicTrackingRoute = location.pathname.startsWith("/tracking/");
 
-  const [searchParams] = useSearchParams();
-  const selectedOrderId = searchParams.get("orderId");
   const { user } = useAuth()
-
-  if (user?.type === "DRIVER" && selectedOrderId) {
-    return <DashboardLayout>
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><PageLoader /></div>}>
-        <Routes>
-          <Route path="*" element={<Navigate to={"/stop/driver/"+selectedOrderId} replace />} />
-        </Routes>
-      </Suspense>
-    </DashboardLayout>
-  }
-
 
   if (isLoading) {
     return (
@@ -56,6 +43,17 @@ function App() {
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><PageLoader /></div>}>
         <LoginPage />
       </Suspense>
+    );
+  }
+
+  if (user?.type === "DRIVER") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-background p-4 text-center">
+        <p className="text-lg font-semibold">Cuenta de conductor</p>
+        <p className="text-muted-foreground">
+          Las rutas de entrega se gestionan desde la aplicación JBG Drivers.
+        </p>
+      </div>
     );
   }
 

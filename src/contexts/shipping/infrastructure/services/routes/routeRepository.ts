@@ -33,7 +33,7 @@ export const routeRepository = {
   find: async (request: FindRoutesRequest): Promise<FindRoutesResponse> => {
     const data = await httpClient<unknown>("/route/find", {
       method: "POST",
-      body: JSON.stringify({ ...request, filters: [] }),
+      body: JSON.stringify(request),
     });
 
     return findRoutesResponseSchema.parse(data);
