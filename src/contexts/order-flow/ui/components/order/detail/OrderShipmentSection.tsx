@@ -43,11 +43,11 @@ export const OrderShipmentSection = ({
         <div className="space-y-2">
           <h4 className="text-sm font-semibold">Tracking</h4>
           <div className="rounded-md border p-3 space-y-1">
-            <DetailRow label="N° Guía" value={shipment.label.trackingNumber} />
+            <DetailRow label="N° Guía" value={shipment.label.trackingNumber ?? "—"} />
             <div className="grid grid-cols-3 gap-2">
               <span className="text-sm text-muted-foreground">Rastreo</span>
               <a
-                href={shipment.provider?.type === "INTERNAL_FLEET" ? `/tracking/${shipment.label.trackingNumber}` : shipment.label.trackingUrl}
+                href={shipment.provider?.type === "INTERNAL_FLEET" ? `/tracking/${shipment.label.trackingNumber}` : (shipment.label.trackingUrl ?? undefined)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="col-span-2 text-sm text-primary underline inline-flex items-center gap-1"

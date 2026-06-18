@@ -366,7 +366,7 @@ export const OrderDetailDialog = ({
             {shipment?.label && (
               <div className="rounded-md border p-3 space-y-1">
                 <h4 className="text-sm font-semibold mb-2">Guía</h4>
-                <DetailRow label="N° Guía" value={shipment.label.trackingNumber} />
+                <DetailRow label="N° Guía" value={shipment.label.trackingNumber ?? "—"} />
                 {shipment.provider && (
                   <DetailRow label="Proveedor" value={shipment.provider.providerName} />
                 )}

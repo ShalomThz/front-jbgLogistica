@@ -165,7 +165,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-muted-foreground">Número de guía</p>
                 <p className="mt-0.5 truncate text-lg font-bold tracking-wide">
-                  {label.trackingNumber}
+                  {label.trackingNumber ?? "No disponible"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {label.provider} · {new Date(label.generatedAt).toLocaleDateString()}
@@ -176,7 +176,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
                   variant="outline"
                   size="icon"
                   className="size-8"
-                  onClick={() => copyToClipboard(label.trackingNumber, "N° de guía")}
+                  onClick={() => label.trackingNumber && copyToClipboard(label.trackingNumber, "N° de guía")}
                   title="Copiar guía"
                 >
                   <ClipboardCopy className="size-3.5" />
@@ -194,7 +194,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
                   variant="outline"
                   size="icon"
                   className="size-8"
-                  onClick={() => window.open(label.trackingUrl, "_blank")}
+                  onClick={() => label.trackingUrl && window.open(label.trackingUrl, "_blank")}
                   title="Ver rastreo"
                 >
                   <ExternalLink className="size-3.5" />
