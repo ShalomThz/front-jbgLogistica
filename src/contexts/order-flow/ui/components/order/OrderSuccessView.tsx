@@ -79,8 +79,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
 
   const handleDownloadLabel = async (variant: LabelVariant) => {
     if (!label) return;
-    const isLocal = label.documentUrl.startsWith("/");
-    if (!isLocal) {
+    if (label.documentUrl && !label.documentUrl.startsWith("/")) {
       window.open(label.documentUrl, "_blank");
       return;
     }
@@ -100,8 +99,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
 
   const handlePrintLabel = async (variant: LabelVariant) => {
     if (!label) return;
-    const isLocal = label.documentUrl.startsWith("/");
-    if (!isLocal) {
+    if (label.documentUrl && !label.documentUrl.startsWith("/")) {
       const printWindow = window.open(label.documentUrl, "_blank");
       printWindow?.print();
       return;

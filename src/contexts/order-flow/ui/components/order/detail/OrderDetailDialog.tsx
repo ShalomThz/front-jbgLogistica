@@ -133,7 +133,7 @@ export const OrderDetailDialog = ({
 
   const downloadLabel = async (variant: LabelVariant) => {
     if (!shipment?.label) return;
-    if (!shipment.label.documentUrl.startsWith("/")) {
+    if (shipment.label.documentUrl && !shipment.label.documentUrl.startsWith("/")) {
       window.open(shipment.label.documentUrl, "_blank");
       return;
     }
@@ -165,7 +165,7 @@ export const OrderDetailDialog = ({
 
   const printLabel = async (variant: LabelVariant) => {
     if (!shipment?.label) return;
-    if (!shipment.label.documentUrl.startsWith("/")) {
+    if (shipment.label.documentUrl && !shipment.label.documentUrl.startsWith("/")) {
       const printWindow = window.open(shipment.label.documentUrl, "_blank");
       printWindow?.print();
       return;
