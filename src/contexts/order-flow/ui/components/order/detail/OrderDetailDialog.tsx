@@ -135,7 +135,7 @@ export const OrderDetailDialog = ({
 
   const downloadLabel = async (variant: LabelVariant) => {
     if (!shipment?.label) return;
-    if (!shipment.label.documentUrl.startsWith("/")) {
+    if (shipment.label.documentUrl && !shipment.label.documentUrl.startsWith("/")) {
       window.open(shipment.label.documentUrl, "_blank");
       return;
     }
@@ -167,7 +167,7 @@ export const OrderDetailDialog = ({
 
   const printLabel = async (variant: LabelVariant) => {
     if (!shipment?.label) return;
-    if (!shipment.label.documentUrl.startsWith("/")) {
+    if (shipment.label.documentUrl && !shipment.label.documentUrl.startsWith("/")) {
       const printWindow = window.open(shipment.label.documentUrl, "_blank");
       printWindow?.print();
       return;
@@ -368,7 +368,7 @@ export const OrderDetailDialog = ({
             {shipment?.label && (
               <div className="rounded-md border p-3 space-y-1">
                 <h4 className="text-sm font-semibold mb-2">Guía</h4>
-                <DetailRow label="N° Guía" value={shipment.label.trackingNumber} />
+                <DetailRow label="N° Guía" value={shipment.label.trackingNumber ?? "—"} />
                 {shipment.provider && (
                   <DetailRow label="Proveedor" value={shipment.provider.providerName} />
                 )}

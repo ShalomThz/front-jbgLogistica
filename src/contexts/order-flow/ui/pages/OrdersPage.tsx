@@ -89,7 +89,7 @@ export const OrdersPage = () => {
     setDownloadingLabel(order.id);
     try {
       const label = shipment.label;
-      if (!label.documentUrl.startsWith("/")) {
+      if (label.documentUrl && !label.documentUrl.startsWith("/")) {
         const printWindow = window.open(label.documentUrl, "_blank");
         printWindow?.print();
         return;
