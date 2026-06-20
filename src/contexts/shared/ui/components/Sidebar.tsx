@@ -30,7 +30,6 @@ import {
   MapPin,
   Store,
   UserCog,
-  Truck,
   Route,
   IdCard,
 } from 'lucide-react';
@@ -70,7 +69,6 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Rutas', href: '/routes', icon: Route, policy: shippingPolicies.manageRoute },
       { label: 'Conductores', href: '/drivers', icon: IdCard, policy: shippingPolicies.manageDriver },
-      { label: 'Mi ruta', href: '/driver-workspace', icon: Truck, policy: shippingPolicies.driverRoute },
       { label: 'Tarifas', href: '/tariffs', icon: DollarSign, policy: pricingPolicies.manageTariffs },
       { label: 'Zonas', href: '/zones', icon: MapPin, policy: pricingPolicies.manageZones },
     ],

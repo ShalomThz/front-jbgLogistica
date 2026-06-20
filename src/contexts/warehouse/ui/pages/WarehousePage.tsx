@@ -259,7 +259,7 @@ export const WarehousePage = () => {
   }
 
   return (
-    <div className={cn("space-y-4 transition-opacity duration-200", isFetching && "opacity-60 pointer-events-none")}>
+    <div className={cn("flex flex-col h-full min-h-0 gap-4 transition-opacity duration-200", isFetching && "opacity-60 pointer-events-none")}>
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
@@ -352,9 +352,9 @@ export const WarehousePage = () => {
       </div>
 
       {/* ── Table ── */}
-      <div className="rounded-lg border">
+      <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead className="w-10" />
               <TableHead>Factura</TableHead>

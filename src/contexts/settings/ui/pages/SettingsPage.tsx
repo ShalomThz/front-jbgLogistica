@@ -21,7 +21,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 import { parseApiError } from "../../../shared/infrastructure/http";
-import { AddressSection } from "../../../shared/ui/components/address/AddressSection";
+import { AddressAutocompleteSection } from "../../../shared/ui/components/address";
 import type { HQSkydropxAddressItemResponse } from "../../domain/schemas/HQSkydropxAddressResponse";
 import {
   saveSkydropxAddressesSchema,
@@ -206,7 +206,7 @@ function AddressEditForm({ index }: { index: number }) {
       </div>
 
       <div className="border-t pt-4">
-        <AddressSection
+        <AddressAutocompleteSection
           fieldPrefix={`skydropxAddresses.${index}.address`}
           labelPrefix="Dirección"
         />

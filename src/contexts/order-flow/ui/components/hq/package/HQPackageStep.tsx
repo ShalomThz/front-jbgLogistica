@@ -33,9 +33,9 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <div className="flex flex-col lg:flex-row lg:items-start gap-6 flex-1 min-h-0 overflow-auto">
       {/* Left column */}
-      <Card className="flex-3 shadow-md shadow-primary/20">
+      <Card className="lg:flex-3 shadow-md shadow-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Dimensiones y tipo de producto</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -150,7 +150,7 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
       </Card>
 
       {/* Right column: shipping summary */}
-      <div className="flex-1 space-y-4">
+      <div className="lg:flex-1 lg:sticky lg:top-0 space-y-4">
         <ShippingSummary onEditContacts={onEditContacts} />
       </div>
     </div>

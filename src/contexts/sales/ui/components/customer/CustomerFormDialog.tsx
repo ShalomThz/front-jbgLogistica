@@ -13,7 +13,7 @@ import {
   Input,
   Label,
 } from "@contexts/shared/shadcn";
-import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
+import { AddressFormSection } from "@contexts/shared/ui/components/address";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import {
   createCustomerRequestSchema,
@@ -181,7 +181,7 @@ export const CustomerFormDialog = ({
               )}
             </div>
             <div className="border-t pt-4">
-              <AddressSection fieldPrefix="address" labelPrefix="Cliente" />
+              <AddressFormSection fieldPrefix="address" labelPrefix="Cliente" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>

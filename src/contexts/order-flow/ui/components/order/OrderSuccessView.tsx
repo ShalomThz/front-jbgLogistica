@@ -4,6 +4,11 @@ import {
   Button,
   Card,
   CardContent,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -17,11 +22,15 @@ import {
   Download,
   ExternalLink,
   FilePlus2,
+  MapPin,
   Printer,
   Share2,
   Truck,
+  User,
   UserPlus,
 } from "lucide-react";
+import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { toast } from "sonner";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
@@ -60,6 +69,13 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
   const { provider, rate, label, costBreakdown } = shipment;
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(true);
+
+  const { data: order } = useOrder(orderId ?? undefined);
+  const { user } = useAuth();
+  const effectiveTotalBilled = totalBilled ?? order?.financials.totalBilled ?? null;
+  const totalShipping = order?.financials.totalPrice ?? null;
+  const photos = order?.package.photos ?? [];
 
   const copyToClipboard = (text: string, description: string) => {
     navigator.clipboard.writeText(text);
@@ -145,18 +161,157 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      {/* Success Banner */}
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-950/30">
-        <CheckCircle2 className="mx-auto size-12 text-green-600" />
-        <h2 className="mt-3 text-xl font-bold text-green-700 dark:text-green-400">
-          Envío creado exitosamente
-        </h2>
-        <p className="mt-1 text-sm text-green-600/80 dark:text-green-400/70">
-          La guía ha sido generada y el envío está listo
-        </p>
+    <div className="flex flex-1 flex-col min-h-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-4">
+        <div className="flex size-11 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+          <CheckCircle2 className="size-6 text-green-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Resumen de la venta</h1>
+          <p className="text-sm text-muted-foreground">
+            La guía fue generada y el envío está listo
+          </p>
+        </div>
       </div>
 
+      {/* Content */}
+      <div className="flex-1 min-h-0 space-y-6 overflow-auto">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+      {/* Columna 1: Resumen del envío */}
+      <Card className="h-fit">
+        <CardContent className="space-y-4 pt-6">
+          {/* Title + vendor */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold">Detalle del envío</p>
+            {user && (
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <User className="size-3.5" />
+                Vendió: {user.name}
+              </p>
+            )}
+          </div>
+
+          {/* Cliente / Destinatario */}
+          {order && (
+            <>
+              <Separator />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-0.5">
+                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                    <User className="size-3.5" />
+                    Cliente
+                  </p>
+                  <p className="truncate text-sm font-medium">{order.origin.name}</p>
+                  {order.origin.company && (
+                    <p className="truncate text-xs text-muted-foreground">{order.origin.company}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">{order.origin.phone}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                    <MapPin className="size-3.5" />
+                    Destinatario
+                  </p>
+                  <p className="truncate text-sm font-medium">{order.destination.name}</p>
+                  {order.destination.company && (
+                    <p className="truncate text-xs text-muted-foreground">{order.destination.company}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">{order.destination.phone}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {order.destination.address.city}, {order.destination.address.province}
+                  </p>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Provider + Service */}
+          {(provider || rate) && (
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                {provider && (
+                  <div className="flex items-center gap-2">
+                    <Truck className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{provider.providerName}</span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {CARRIER_TYPE_LABELS[provider.type] ?? provider.type}
+                    </Badge>
+                  </div>
+                )}
+                {rate && (
+                  <div className="ml-6 space-y-0.5">
+                    <p className="text-sm">{rate.serviceName}</p>
+                    {rate.estimatedDays != null && (
+                      <p className="text-xs text-muted-foreground">
+                        {rate.estimatedDays} día{rate.estimatedDays !== 1 ? "s" : ""} hábil{rate.estimatedDays !== 1 ? "es" : ""}
+                      </p>
+                    )}
+                    {rate.isOcurre && (
+                      <Badge variant="outline" className="text-[10px]">Ocurre</Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Cost Breakdown (collapsible feel — always visible but compact) */}
+          {costBreakdown && (
+            <>
+              <Separator />
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground">Desglose</p>
+                {rate && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Envío</span>
+                    <span>{formatMoney(rate.price)}</span>
+                  </div>
+                )}
+                {rate && rate.insuranceFee.amount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Seguro (paquetería)</span>
+                    <span>{formatMoney(rate.insuranceFee)}</span>
+                  </div>
+                )}
+                {Object.entries(costBreakdown).map(([key, value]) =>
+                  value && value.amount > 0 ? (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{COST_LABELS[key] ?? key}</span>
+                      <span>{formatMoney(value)}</span>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Totals */}
+          {(totalShipping || effectiveTotalBilled) && (
+            <>
+              <Separator />
+              <div className="space-y-1.5">
+                {totalShipping && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total guía</span>
+                    <span className="font-semibold">{formatMoney(totalShipping)}</span>
+                  </div>
+                )}
+                {effectiveTotalBilled && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Total facturado</span>
+                    <span className="text-lg font-bold text-blue-600">{formatMoney(effectiveTotalBilled)}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Columna 2: detalle, acciones y navegación */}
+      <div className="space-y-6">
       {/* Tracking Hero */}
       {label && (
         <Card>
@@ -293,79 +448,37 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
         </div>
       )}
 
-      {/* Shipment Summary */}
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          {/* Provider + Service */}
-          {(provider || rate) && (
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                {provider && (
-                  <div className="flex items-center gap-2">
-                    <Truck className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{provider.providerName}</span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {CARRIER_TYPE_LABELS[provider.type] ?? provider.type}
-                    </Badge>
-                  </div>
-                )}
-                {rate && (
-                  <div className="ml-6 space-y-0.5">
-                    <p className="text-sm">{rate.serviceName}</p>
-                    {rate.estimatedDays != null && (
-                      <p className="text-xs text-muted-foreground">
-                        {rate.estimatedDays} día{rate.estimatedDays !== 1 ? "s" : ""} hábil{rate.estimatedDays !== 1 ? "es" : ""}
-                      </p>
-                    )}
-                    {rate.isOcurre && (
-                      <Badge variant="outline" className="text-[10px]">Ocurre</Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-              {totalBilled && (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total facturado</p>
-                  <p className="text-lg font-bold text-blue-600">{formatMoney(totalBilled)}</p>
-                </div>
-              )}
+      {/* Fotos del paquete (al fondo de la columna 2) */}
+      {photos.length > 0 && (
+        <Card>
+          <CardContent className="space-y-2 pt-6">
+            <p className="text-xs font-semibold text-muted-foreground">Fotos del paquete</p>
+            <div className="flex flex-wrap gap-3">
+              {photos.map((url, i) => (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block size-24 overflow-hidden rounded-lg border"
+                >
+                  <img
+                    src={url}
+                    alt={`Foto del paquete ${i + 1}`}
+                    className="size-full object-cover transition-transform hover:scale-105"
+                  />
+                </a>
+              ))}
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
+      </div>
+      </div>
+      </div>
 
-          {/* Cost Breakdown (collapsible feel — always visible but compact) */}
-          {costBreakdown && (
-            <>
-              <Separator />
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground">Desglose</p>
-                {rate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Envío</span>
-                    <span>{formatMoney(rate.price)}</span>
-                  </div>
-                )}
-                {rate && rate.insuranceFee.amount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Seguro (paquetería)</span>
-                    <span>{formatMoney(rate.insuranceFee)}</span>
-                  </div>
-                )}
-                {Object.entries(costBreakdown).map(([key, value]) =>
-                  value && value.amount > 0 ? (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{COST_LABELS[key] ?? key}</span>
-                      <span>{formatMoney(value)}</span>
-                    </div>
-                  ) : null,
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Navigation */}
-      <div className="flex flex-wrap justify-between gap-3">
+      {/* Footer */}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <div className="flex flex-wrap gap-2">
           {onCreateBlank && (
             <Button variant="outline" className="gap-2" onClick={onCreateBlank}>
@@ -374,11 +487,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
             </Button>
           )}
           {onCreateSameClient && (
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={onCreateSameClient}
-            >
+            <Button variant="outline" className="gap-2" onClick={onCreateSameClient}>
               <UserPlus className="size-4" />
               Nueva orden del mismo cliente
             </Button>
@@ -388,6 +497,27 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
           Ir a órdenes
         </Button>
       </div>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="border-green-200 bg-green-50 sm:max-w-md dark:border-green-800 dark:bg-green-950/30">
+          <DialogHeader className="items-center text-center">
+            <CheckCircle2 className="size-14 text-green-600" />
+            <DialogTitle className="text-xl text-green-700 dark:text-green-400">
+              Creado exitosamente
+            </DialogTitle>
+            <DialogDescription className="text-green-600/80 dark:text-green-400/70">
+              La guía ha sido generada y el envío está listo.
+            </DialogDescription>
+          </DialogHeader>
+          <Button
+            className="mt-2 bg-green-600 hover:bg-green-700"
+            onClick={() => setShowSuccessDialog(false)}
+          >
+            Ver resumen
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

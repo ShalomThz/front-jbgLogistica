@@ -13,9 +13,7 @@ const hqPackageSchema = basePackageSchema.extend({
   weightUnit: z.enum(weightUnits),
   productType: z.string(),
   savePackage: z.boolean(),
-  skydropxCategoryId: z.string(),
-  skydropxSubcategoryId: z.string(),
-  consignmentNoteClassCode: z.string().min(1, "La clase es requerida"),
+  consignmentNoteClassCode: z.string().min(1, "La carta porte es requerida"),
   consignmentNotePackagingCode: z.string().min(1, "El empaque es requerido"),
   photos: z.array(z.string()).max(4),
 }).superRefine((data, ctx) => {

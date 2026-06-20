@@ -114,7 +114,7 @@ export const UsersPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full min-h-0 gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <div className="flex gap-2">
@@ -136,9 +136,9 @@ export const UsersPage = () => {
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
         onExport={() => exportUsers(users)}
       />
-      <div className="rounded-lg border">
+      <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead>Usuario</TableHead>
               <TableHead>Rol</TableHead>

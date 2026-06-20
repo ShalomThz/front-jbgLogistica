@@ -2,18 +2,19 @@ import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
 import {
   skydropxCatalogItemSchema,
   type SkydropxCatalogItem,
-} from "./SkydropxCatalog";
+} from "@contexts/order-flow/domain/schemas/skydropx/SkydropxLegacyCatalog";
 import { z } from "zod";
 
 const catalogResponseSchema = z.object({
   data: z.array(skydropxCatalogItemSchema),
 });
 
-export const skydropxRepository = {
+export const skydropxLegacyRepository = {
   getCategories: async (): Promise<SkydropxCatalogItem[]> => {
-    const data = await httpClient<unknown>("/skydropx/data?type=category", {
-      method: "POST",
-    });
+    const data = await httpClient<unknown>(
+      "/skydropx/legacy/data?type=category",
+      { method: "POST" },
+    );
     return catalogResponseSchema.parse(data).data;
   },
 
@@ -21,7 +22,7 @@ export const skydropxRepository = {
     categoryId: string,
   ): Promise<SkydropxCatalogItem[]> => {
     const data = await httpClient<unknown>(
-      `/skydropx/data?type=subcategory&id=${categoryId}`,
+      `/skydropx/legacy/data?type=subcategory&id=${categoryId}`,
       { method: "POST" },
     );
     return catalogResponseSchema.parse(data).data;
@@ -31,16 +32,17 @@ export const skydropxRepository = {
     subcategoryId: string,
   ): Promise<SkydropxCatalogItem[]> => {
     const data = await httpClient<unknown>(
-      `/skydropx/data?type=class&id=${subcategoryId}`,
+      `/skydropx/legacy/data?type=class&id=${subcategoryId}`,
       { method: "POST" },
     );
     return catalogResponseSchema.parse(data).data;
   },
 
   getPackagings: async (): Promise<SkydropxCatalogItem[]> => {
-    const data = await httpClient<unknown>("/skydropx/data?type=packagings", {
-      method: "POST",
-    });
+    const data = await httpClient<unknown>(
+      "/skydropx/legacy/data?type=packagings",
+      { method: "POST" },
+    );
     return catalogResponseSchema.parse(data).data;
   },
 };

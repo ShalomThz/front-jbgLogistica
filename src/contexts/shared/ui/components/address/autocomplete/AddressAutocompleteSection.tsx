@@ -2,11 +2,11 @@ import { Label } from "@contexts/shared/shadcn";
 import { BadgeCheck, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useFormContext, useWatch, type FieldErrors } from "react-hook-form";
-import type { PlaceDetailsResponse } from "../../../domain/schemas/address/PlaceDetailsResponse";
-import { AddressForm } from "./AddressForm";
+import type { PlaceDetailsResponse } from "@contexts/shared/domain/schemas/address/PlaceDetailsResponse";
+import { AddressForm } from "../shared/AddressForm";
 import { AddressSuggestions } from "./AddressSuggestions";
 
-interface AddressSectionProps {
+interface AddressAutocompleteSectionProps {
   fieldPrefix: string;
   labelPrefix: string;
 }
@@ -21,7 +21,7 @@ function getFieldError(errors: FieldErrors, path: string): string | undefined {
   return current?.message as string | undefined;
 }
 
-export function AddressSection({ fieldPrefix, labelPrefix }: AddressSectionProps) {
+export function AddressAutocompleteSection({ fieldPrefix, labelPrefix }: AddressAutocompleteSectionProps) {
   const form = useFormContext();
   const [addressQuery, setAddressQuery] = useState("");
   const country = useWatch({ control: form.control, name: `${fieldPrefix}.country` });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Users } from "lucide-react";
 import {
@@ -37,6 +37,9 @@ const LIMIT_OPTIONS = [10, 20, 50];
 
 export const OrdersPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const highlightOrderId = (location.state as { highlightOrderId?: string } | null)
+    ?.highlightOrderId;
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
@@ -157,7 +160,7 @@ export const OrdersPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full min-h-0 gap-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl sm:text-2xl font-bold">Órdenes</h1>
         <div className="flex gap-2">
@@ -173,13 +176,13 @@ export const OrdersPage = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="orders">
+      <Tabs defaultValue="orders" className="flex-1 min-h-0">
         <TabsList>
           <TabsTrigger value="orders">Ordenes</TabsTrigger>
           <TabsTrigger value="reports">Reportes</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="orders" className="space-y-4">
+        <TabsContent value="orders" className="flex-1 min-h-0 flex flex-col gap-4">
       <OrderFilters
         filters={filters}
         limit={limit}
@@ -194,6 +197,7 @@ export const OrdersPage = () => {
 
       <OrdersTable
         orders={visibleOrders}
+        highlightOrderId={highlightOrderId}
         canEdit={canEdit}
         canEditHQ={canEditHQ}
         canDelete={canDelete}
@@ -240,7 +244,7 @@ export const OrdersPage = () => {
 
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-4">
+        <TabsContent value="reports" className="flex-1 min-h-0 space-y-4 overflow-auto">
           <OrderReport />
         </TabsContent>
       </Tabs>

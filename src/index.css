@@ -180,3 +180,15 @@
     animation: none;
     mix-blend-mode: normal;
 }
+/* Flash a just-created/edited order row when arriving at the orders table. */
+@keyframes flash-order-row {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: var(--flash-order-color); }
+}
+.animate-flash-order {
+  --flash-order-color: rgb(219 234 254); /* blue-100, the completed-row hover */
+  animation: flash-order-row 1.4s ease-in-out 3;
+}
+.dark .animate-flash-order {
+  --flash-order-color: rgb(59 130 246 / 0.25); /* blue-500/25 (dark hover) */
+}

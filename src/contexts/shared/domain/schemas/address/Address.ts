@@ -7,7 +7,10 @@ export const addressSchema = placeDetailsResponseSchema.extend({
   city: z.string().min(1, "Ciudad es requerida"),
   province: z.string().min(1, "Estado es requerido"),
   zip: z.string(),
-  country: z.string().min(1, "País es requerido"),
+  country: z
+    .string()
+    .min(1, "País es requerido")
+    .regex(/^[A-Z]{2}$/, "Selecciona un país"),
   reference: z.string().min(1, "Referencia es requerida").max(25, "Máximo 25 caracteres"),
 });
 

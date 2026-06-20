@@ -134,7 +134,7 @@ export const DriversPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full min-h-0 gap-4">
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
@@ -182,17 +182,17 @@ export const DriversPage = () => {
       </div>
 
       {/* Table */}
-      <Card>
+      <Card className="min-h-0 flex flex-col">
         <CardHeader>
           <CardTitle>Registro de conductores</CardTitle>
           <CardDescription>
             Haz clic en una fila para ver los detalles o editar el perfil.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-xl border">
+        <CardContent className="flex flex-col min-h-0 overflow-hidden">
+          <div className="rounded-xl border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
                   <TableHead>Conductor</TableHead>
                   <TableHead>Licencia</TableHead>

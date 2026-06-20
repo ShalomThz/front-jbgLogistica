@@ -54,6 +54,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
   );
 
   const { form, validateStep } = useHQOrderFlowForm({ initialValues });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
   const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
@@ -111,6 +112,11 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     refetchRates: submission.refetchRates,
     selectAndFulfill: submission.selectAndFulfill,
     isSelectingProvider: submission.isSelectingProvider,
+    isFulfilling: submission.isFulfilling,
+    isProcessingShipment: submission.isProcessingShipment,
+    shipmentPhase: submission.shipmentPhase,
+    shipmentError: submission.shipmentError,
+    clearShipmentError: submission.clearShipmentError,
     fulfilledShipment: submission.fulfilledShipment,
     totalBilled: submission.totalBilled,
     tariff: submission.tariff,

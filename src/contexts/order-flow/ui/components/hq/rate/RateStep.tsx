@@ -105,7 +105,7 @@ export function RateStep({
   const showJBGHint = showRateTable && hasSkydropxRates;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 lg:items-start gap-6 flex-1 min-h-0 overflow-auto">
       <div className="lg:col-span-2 space-y-4">
         <WarehouseAddressSelector
           addresses={warehouseAddresses}
@@ -139,7 +139,7 @@ export function RateStep({
         {selectedRate && <SignatureCard />}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 lg:sticky lg:top-0">
         {partnerPrice && (
           <PartnerBreakdownCard
             partnerPrice={partnerPrice}

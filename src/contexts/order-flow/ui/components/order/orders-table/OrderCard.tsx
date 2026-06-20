@@ -11,6 +11,7 @@ import { OrderPaymentControl } from "./OrderPaymentControl";
 
 interface OrderCardProps {
   order: OrderListView;
+  isHighlighted?: boolean;
   canEdit: boolean;
   canEditHQ: boolean;
   canDelete: boolean;
@@ -28,6 +29,7 @@ const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
 
 export const OrderCard = ({
   order,
+  isHighlighted,
   canEdit,
   canEditHQ,
   canDelete,
@@ -41,15 +43,17 @@ export const OrderCard = ({
   onDelete,
 }: OrderCardProps) => {
   const statusClass =
-    order.status === "PENDING_HQ_PROCESS"
-      ? "bg-yellow-50 dark:bg-yellow-500/15"
-      : order.status === "COMPLETED"
-        ? "bg-blue-50 dark:bg-blue-500/15"
-        : "";
+    order.status === "CANCELLED"
+      ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
+      : order.status === "PENDING_HQ_PROCESS"
+        ? "bg-yellow-50 dark:bg-yellow-500/15"
+        : order.status === "COMPLETED"
+          ? "bg-blue-50 dark:bg-blue-500/15"
+          : "";
 
   return (
     <div
-      className={`cursor-pointer space-y-3 rounded-lg border p-3 ${statusClass}`}
+      className={`cursor-pointer space-y-3 rounded-lg border p-3 ${isHighlighted ? "animate-flash-order " : ""}${statusClass}`}
       onClick={() => onOpenDetail(order)}
     >
       <div className="flex items-start justify-between gap-2">

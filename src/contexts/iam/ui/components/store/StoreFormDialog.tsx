@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { AddressSection } from "@contexts/shared/ui/components/address/AddressSection";
+import { AddressAutocompleteSection } from "@contexts/shared/ui/components/address";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -169,7 +169,7 @@ export const StoreFormDialog = ({
               )}
             </div>
             <div className="border-t pt-4">
-              <AddressSection fieldPrefix="address" labelPrefix="Tienda" />
+              <AddressAutocompleteSection fieldPrefix="address" labelPrefix="Tienda" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
