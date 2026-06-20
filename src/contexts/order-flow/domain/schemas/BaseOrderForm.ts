@@ -10,7 +10,7 @@ export const contactWithAddressSchema = z.object({
   id: z.string().nullable(),
   customerNumber: z.number().nullable().optional(),
   name: z.string().min(1, "El nombre es requerido"),
-  company: z.string().min(1, "La empresa es requerida"),
+  company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
   email: optionalEmailSchema,
   phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
   address: createAddressSchema,
