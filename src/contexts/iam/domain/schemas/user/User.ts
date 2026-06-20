@@ -40,3 +40,15 @@ export const userListViewSchema = userSchema
   });
 
 export type UserListViewPrimitives = z.infer<typeof userListViewSchema>;
+
+// Referencia mínima de usuario para denormalización (createdBy, soldBy, etc.).
+// No incluye `role`/permisos: es un snapshot de identidad, no de autorización,
+// por lo que no se acopla al vocabulario versionado de permisos.
+export const userRefSchema = userSchema.pick({
+  id: true,
+  name: true,
+  email: true,
+  type: true,
+});
+
+export type UserRefPrimitives = z.infer<typeof userRefSchema>;

@@ -9,4 +9,5 @@ export const warehousePolicies = {
   edit: hasAll("CAN_EDIT_PACKAGES"),
   delete: hasAll("CAN_DELETE_PACKAGES"),
   customerView: allOf(hasAll("CAN_VIEW_OWN_PACKAGES"), isUserType("CUSTOMER")),
+  viewReports: hasAll("CAN_VIEW_PACKAGE_REPORTS"),
 };

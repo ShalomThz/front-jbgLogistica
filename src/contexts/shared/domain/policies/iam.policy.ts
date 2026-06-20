@@ -14,4 +14,7 @@ export const iamPolicies = {
   createStore: hasAll("CAN_CREATE_STORES"),
   editStore: hasAll("CAN_EDIT_STORES"),
   deleteStore: hasAll("CAN_DELETE_STORES"),
+
+  viewUserReports: hasAll("CAN_VIEW_USER_REPORTS"),
+  viewStoreReports: hasAll("CAN_VIEW_STORE_REPORTS"),
 };

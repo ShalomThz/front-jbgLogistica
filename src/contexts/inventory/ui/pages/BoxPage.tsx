@@ -36,6 +36,8 @@ import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxe
 import { useBoxFilters } from "../hooks/useBoxFilters";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
 
 type StockOperation = "add" | "subtract";
 
@@ -43,6 +45,8 @@ const LIMIT_OPTIONS = [10, 20, 50];
 
 export const BoxPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canViewReports = user ? boxPolicies.viewReports(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -266,10 +270,12 @@ export const BoxPage = () => {
                     <RefreshCw className="size-4" />
                     Limpiar filtros y actualizar
                   </Button>
-                  <Button variant="outline" className="w-full gap-2" onClick={() => exportBoxes(boxes)}>
-                    <Download className="size-4" />
-                    Exportar XLSX
-                  </Button>
+                  {canViewReports && (
+                    <Button variant="outline" className="w-full gap-2" onClick={() => exportBoxes(boxes)}>
+                      <Download className="size-4" />
+                      Exportar XLSX
+                    </Button>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>

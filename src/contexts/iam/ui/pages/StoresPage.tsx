@@ -19,10 +19,14 @@ import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { useStoreFilters } from "../hooks/useStoreFilters";
 import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
 import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const StoresPage = () => {
+  const { user } = useAuth();
+  const canViewReports = user ? iamPolicies.viewStoreReports(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -111,7 +115,7 @@ export const StoresPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportStores(stores)}
+        onExport={canViewReports ? () => exportStores(stores) : undefined}
       />
       <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>

@@ -1,5 +1,5 @@
 import { storeResponseSchema } from "@contexts/iam/application/store/StoreResponse";
-import { userListViewSchema } from "@contexts/iam/domain/schemas/user/User";
+import { userRefSchema } from "@contexts/iam/domain/schemas/user/User";
 import { orderSchema } from "@contexts/sales/domain/schemas/order/Order";
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { shipmentResponseSchema } from "@contexts/shipping/application/shipment/ShipmentResponse";
@@ -25,7 +25,7 @@ export const orderListViewResponseSchema = orderResponseSchema
   .omit({ storeId: true, createdBy: true })
   .extend({
     store: storeResponseSchema,
-    createdBy: userListViewSchema,
+    createdBy: userRefSchema,
     shipment: shipmentResponseSchema.nullable(),
   });
 

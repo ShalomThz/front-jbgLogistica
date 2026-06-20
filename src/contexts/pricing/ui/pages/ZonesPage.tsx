@@ -19,10 +19,14 @@ import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones"
 import { useZoneFilters } from "../hooks/useZoneFilters";
 import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
 import type { CreateZoneRequestPrimitives } from "@contexts/pricing/domain/schemas/zone/Zone";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const ZonesPage = () => {
+  const { user } = useAuth();
+  const canViewReports = user ? pricingPolicies.viewZoneReports(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -111,7 +115,7 @@ export const ZonesPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportZones(zones)}
+        onExport={canViewReports ? () => exportZones(zones) : undefined}
       />
       <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>
