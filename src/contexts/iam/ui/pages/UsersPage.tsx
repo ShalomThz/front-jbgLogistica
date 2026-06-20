@@ -25,6 +25,7 @@ import type { RegisterUserRequestPrimitives } from "@contexts/iam/application/us
 import type { EditUserRequest } from "../../application/user/EditUserRequest";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -37,6 +38,7 @@ const formatDate = (date: string) =>
 
 export const UsersPage = () => {
   const { user: currentUser } = useAuth();
+  const canViewReports = currentUser ? iamPolicies.viewUserReports(currentUser) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -134,7 +136,7 @@ export const UsersPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportUsers(users)}
+        onExport={canViewReports ? () => exportUsers(users) : undefined}
       />
       <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>

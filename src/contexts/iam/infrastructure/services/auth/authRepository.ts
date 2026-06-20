@@ -19,10 +19,16 @@ export const authRepository = {
       true,
     );
 
-    const parsed = loginResponseSchema.parse(data);
-    tokenStorage.setToken(parsed.token);
+    const result = loginResponseSchema.safeParse(data);
+    if (!result.success) {
+      console.error("[authRepository] Parse error in login:", result.error.issues);
+      console.error("[authRepository] Raw data received:", data);
+      throw result.error;
+    }
 
-    return parsed;
+    tokenStorage.setToken(result.data.token);
+
+    return result.data;
   },
 
   logout: async (): Promise<void> => {
@@ -35,6 +41,14 @@ export const authRepository = {
 
   getCurrentUser: async (): Promise<UserListViewPrimitives> => {
     const data = await httpClient<unknown>("/user/current");
-    return userListViewSchema.parse(data);
+
+    const result = userListViewSchema.safeParse(data);
+    if (!result.success) {
+      console.error("[authRepository] Parse error in getCurrentUser:", result.error.issues);
+      console.error("[authRepository] Raw data received:", data);
+      throw result.error;
+    }
+
+    return result.data;
   },
 };

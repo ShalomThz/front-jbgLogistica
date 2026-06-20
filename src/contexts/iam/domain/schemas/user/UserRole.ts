@@ -81,8 +81,16 @@ export const PERMISSIONS = [
   "CAN_VIEW_SETTINGS",
   "CAN_EDIT_SETTINGS",
 
-  // Reports
-  "CAN_VIEW_REPORTS",
+  // Reports (per resource)
+  "CAN_VIEW_ORDER_REPORTS",
+  "CAN_VIEW_CUSTOMER_REPORTS",
+  "CAN_VIEW_BOX_REPORTS",
+  "CAN_VIEW_BOX_SALE_REPORTS",
+  "CAN_VIEW_PACKAGE_REPORTS",
+  "CAN_VIEW_USER_REPORTS",
+  "CAN_VIEW_STORE_REPORTS",
+  "CAN_VIEW_TARIFF_REPORTS",
+  "CAN_VIEW_ZONE_REPORTS",
 ] as const;
 
 export const userRoleSchema = z.object({

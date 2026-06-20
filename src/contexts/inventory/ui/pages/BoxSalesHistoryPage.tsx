@@ -19,10 +19,14 @@ import { exportBoxSales } from "@contexts/inventory/domain/services/exportBoxSal
 import { useBoxSales } from "@contexts/inventory/infrastructure/hooks/boxSales/useBoxSales";
 import { useBoxSaleDialog } from "@contexts/inventory/ui/hooks/useBoxSaleDialog";
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const BoxSalesHistoryPage = () => {
+  const { user } = useAuth();
+  const canViewReports = user ? boxPolicies.viewSaleReports(user) : false;
   const [salesPage, setSalesPage] = useState(1);
   const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -48,10 +52,12 @@ export const BoxSalesHistoryPage = () => {
       <h1 className="text-2xl font-bold">Historial Venta de Cajas</h1>
 
       <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => exportBoxSales(sales)}>
-          <Download className="size-4" />
-          Exportar XLSX
-        </Button>
+        {canViewReports && (
+          <Button variant="outline" size="sm" onClick={() => exportBoxSales(sales)}>
+            <Download className="size-4" />
+            Exportar XLSX
+          </Button>
+        )}
         <Select
           value={String(salesLimit)}
           onValueChange={(v) => {

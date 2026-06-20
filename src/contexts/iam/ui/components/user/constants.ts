@@ -10,6 +10,7 @@ import {
   Store,
   UserCog,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import {
   PERMISSIONS,
@@ -44,7 +45,20 @@ export const ROLE_PRESETS: { name: string; permissions: Permission[] }[] = [
       "CAN_EDIT_PACKAGES",
     ],
   },
-  { name: "Auditor", permissions: ["CAN_VIEW_REPORTS"] },
+  {
+    name: "Auditor",
+    permissions: [
+      "CAN_VIEW_ORDER_REPORTS",
+      "CAN_VIEW_CUSTOMER_REPORTS",
+      "CAN_VIEW_BOX_REPORTS",
+      "CAN_VIEW_BOX_SALE_REPORTS",
+      "CAN_VIEW_PACKAGE_REPORTS",
+      "CAN_VIEW_USER_REPORTS",
+      "CAN_VIEW_STORE_REPORTS",
+      "CAN_VIEW_TARIFF_REPORTS",
+      "CAN_VIEW_ZONE_REPORTS",
+    ],
+  },
 ];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -128,8 +142,16 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_VIEW_SETTINGS: "Ver configuración",
   CAN_EDIT_SETTINGS: "Editar configuración",
 
-  // Reports
-  CAN_VIEW_REPORTS: "Ver reportes",
+  // Reports (per resource)
+  CAN_VIEW_ORDER_REPORTS: "Ver reportes de órdenes",
+  CAN_VIEW_CUSTOMER_REPORTS: "Ver reportes de clientes",
+  CAN_VIEW_BOX_REPORTS: "Ver reportes de cajas",
+  CAN_VIEW_BOX_SALE_REPORTS: "Ver reportes de ventas de cajas",
+  CAN_VIEW_PACKAGE_REPORTS: "Ver reportes de bodega",
+  CAN_VIEW_USER_REPORTS: "Ver reportes de usuarios",
+  CAN_VIEW_STORE_REPORTS: "Ver reportes de tiendas",
+  CAN_VIEW_TARIFF_REPORTS: "Ver reportes de tarifas",
+  CAN_VIEW_ZONE_REPORTS: "Ver reportes de zonas",
 };
 
 export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -213,8 +235,16 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_VIEW_SETTINGS: "Ver la configuración general del sistema.",
   CAN_EDIT_SETTINGS: "Modificar la configuración general del sistema.",
 
-  // Reports
-  CAN_VIEW_REPORTS: "Acceder a los reportes y estadísticas del sistema.",
+  // Reports (per resource)
+  CAN_VIEW_ORDER_REPORTS: "Acceder al reporte de órdenes y exportarlo.",
+  CAN_VIEW_CUSTOMER_REPORTS: "Exportar el reporte de clientes.",
+  CAN_VIEW_BOX_REPORTS: "Exportar el reporte de cajas.",
+  CAN_VIEW_BOX_SALE_REPORTS: "Exportar el reporte de ventas de cajas.",
+  CAN_VIEW_PACKAGE_REPORTS: "Exportar el reporte de paquetes en bodega.",
+  CAN_VIEW_USER_REPORTS: "Exportar el reporte de usuarios.",
+  CAN_VIEW_STORE_REPORTS: "Exportar el reporte de tiendas.",
+  CAN_VIEW_TARIFF_REPORTS: "Exportar el reporte de tarifas.",
+  CAN_VIEW_ZONE_REPORTS: "Exportar el reporte de zonas.",
 };
 
 export const PERMISSION_GROUPS: {
@@ -340,7 +370,21 @@ export const PERMISSION_GROUPS: {
       permissions: [
         "CAN_VIEW_SETTINGS",
         "CAN_EDIT_SETTINGS",
-        "CAN_VIEW_REPORTS",
+      ],
+    },
+    {
+      label: "Reportes",
+      icon: BarChart3,
+      permissions: [
+        "CAN_VIEW_ORDER_REPORTS",
+        "CAN_VIEW_CUSTOMER_REPORTS",
+        "CAN_VIEW_BOX_REPORTS",
+        "CAN_VIEW_BOX_SALE_REPORTS",
+        "CAN_VIEW_PACKAGE_REPORTS",
+        "CAN_VIEW_USER_REPORTS",
+        "CAN_VIEW_STORE_REPORTS",
+        "CAN_VIEW_TARIFF_REPORTS",
+        "CAN_VIEW_ZONE_REPORTS",
       ],
     },
   ];

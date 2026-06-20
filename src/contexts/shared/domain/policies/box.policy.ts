@@ -12,4 +12,6 @@ export const boxPolicies = {
   sell: hasAll("CAN_SELL_BOXES"),
   listSales: hasAll("CAN_LIST_BOX_SALES"),
   listSalesAll: hasAll("CAN_LIST_ALL_BOX_SALES"),
+  viewReports: hasAll("CAN_VIEW_BOX_REPORTS"),
+  viewSaleReports: hasAll("CAN_VIEW_BOX_SALE_REPORTS"),
 };

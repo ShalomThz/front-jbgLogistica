@@ -121,6 +121,7 @@ export const OrdersPage = () => {
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
   const canDeletePartner = user ? orderPolicies.deletePartner(user) : false;
   const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
+  const canViewReports = user ? orderPolicies.viewReports(user) : false;
 
   const canEdit = (order: OrderListView) =>
     order.type === "PARTNER" ? canEditPartner : canEditHQ;
@@ -179,7 +180,9 @@ export const OrdersPage = () => {
       <Tabs defaultValue="orders" className="flex-1 min-h-0">
         <TabsList>
           <TabsTrigger value="orders">Ordenes</TabsTrigger>
-          <TabsTrigger value="reports">Reportes</TabsTrigger>
+          {canViewReports && (
+            <TabsTrigger value="reports">Reportes</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="orders" className="flex-1 min-h-0 flex flex-col gap-4">
@@ -244,9 +247,11 @@ export const OrdersPage = () => {
 
         </TabsContent>
 
-        <TabsContent value="reports" className="flex-1 min-h-0 space-y-4 overflow-auto">
-          <OrderReport />
-        </TabsContent>
+        {canViewReports && (
+          <TabsContent value="reports" className="flex-1 min-h-0 space-y-4 overflow-auto">
+            <OrderReport />
+          </TabsContent>
+        )}
       </Tabs>
 
       <OrderDetailDialog

@@ -9,4 +9,5 @@ export const customerPolicies = {
   edit: hasAll("CAN_EDIT_CUSTOMERS"),
   delete: hasAll("CAN_DELETE_CUSTOMERS"),
   provisionAccess: hasAll("CAN_PROVISION_CUSTOMER_ACCESS"),
+  viewReports: hasAll("CAN_VIEW_CUSTOMER_REPORTS"),
 };

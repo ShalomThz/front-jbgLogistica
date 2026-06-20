@@ -20,10 +20,14 @@ import { applyClientNameSort, useTariffFilters, type TariffFilterOptions } from 
 import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
 import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const TariffsPage = () => {
+  const { user } = useAuth();
+  const canViewReports = user ? pricingPolicies.viewTariffReports(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -137,7 +141,7 @@ export const TariffsPage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportTariffs(visibleTariffs)}
+        onExport={canViewReports ? () => exportTariffs(visibleTariffs) : undefined}
       />
       <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
         <Table>

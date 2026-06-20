@@ -67,6 +67,7 @@ export const CustomersPage = () => {
   const canDelete = user ? customerPolicies.delete(user) : false;
   const canProvision = user ? customerPolicies.provisionAccess(user) : false;
   const canListAll = user ? customerPolicies.listAll(user) : false;
+  const canViewReports = user ? customerPolicies.viewReports(user) : false;
 
   const options = useMemo<CustomerFilterOptions>(() => {
     const citySet = new Set<string>();
@@ -165,7 +166,7 @@ export const CustomersPage = () => {
           setPage(1);
         }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportCustomers(customers)}
+        onExport={canViewReports ? () => exportCustomers(customers) : undefined}
       />
 
       <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">

@@ -47,6 +47,8 @@ import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
 import { WarehouseFilters } from "../components/WarehouseFilters";
 import { usePackageDialog } from "../hooks/usePackageDialog";
 import { applyWarehouseFilters, useWarehouseFilters } from "../hooks/useWarehouseFilters";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { warehousePolicies } from "@contexts/shared/domain/policies/warehouse.policy";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -56,6 +58,8 @@ const LIMIT_OPTIONS = [10, 20, 50];
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const WarehousePage = () => {
+  const { user } = useAuth();
+  const canViewReports = user ? warehousePolicies.viewReports(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -294,7 +298,7 @@ export const WarehousePage = () => {
         setFilter={setFilter}
         onLimitChange={(v) => { setLimit(v); setPage(1); }}
         onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={() => exportWarehousePackages(filtered)}
+        onExport={canViewReports ? () => exportWarehousePackages(filtered) : undefined}
       />
 
       {/* ── Status pills ── */}

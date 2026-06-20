@@ -14,4 +14,7 @@ export const pricingPolicies = {
   createZone: hasAll("CAN_CREATE_ZONES"),
   editZone: hasAll("CAN_EDIT_ZONES"),
   deleteZone: hasAll("CAN_DELETE_ZONES"),
+
+  viewTariffReports: hasAll("CAN_VIEW_TARIFF_REPORTS"),
+  viewZoneReports: hasAll("CAN_VIEW_ZONE_REPORTS"),
 };
