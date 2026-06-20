@@ -7,7 +7,7 @@ export const customerSchema = z.object({
   id: z.string(),
   customerNumber: z.number().int().positive(),
   name: z.string().min(1, "Customer name is required"),
-  company: z.string().min(1, "Company is required"),
+  company: z.string().min(3, "Company must be at least 3 characters"),
   email: optionalEmailSchema,
   phone: z.string().min(1, "Phone number is required"),
   registeredByStoreId: z.string(),
