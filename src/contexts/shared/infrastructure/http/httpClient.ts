@@ -28,6 +28,11 @@ export const httpClient = async <T>(
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
+    // Evita el revalidado condicional del navegador (If-None-Match → 304).
+    // El server respondía 304 en GETs (p. ej. /user/current) y, al no estar
+    // 304 en el rango 2xx, `response.ok` era false y se lanzaba como error.
+    // react-query ya gestiona la caché en memoria, así que no perdemos nada.
+    cache: "no-store",
     ...options,
     headers,
   });
@@ -77,6 +82,7 @@ export const httpClientBlob = async (
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
+    cache: "no-store",
     ...options,
     headers,
   });
