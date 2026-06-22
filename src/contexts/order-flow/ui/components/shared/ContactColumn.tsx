@@ -78,7 +78,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
   };
 
   return (
-    <Card className="shadow-md shadow-primary/20">
+    <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-base">
           <span className="flex items-center gap-2">
