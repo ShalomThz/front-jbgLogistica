@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
 import { useAddressSearch } from "@contexts/shared/infrastructure/hooks/useAddressSearch";
 import type { PlaceDetailsResponse } from "@contexts/shared/domain/schemas/address/PlaceDetailsResponse";
@@ -6,18 +5,17 @@ import type { PlaceDetailsResponse } from "@contexts/shared/domain/schemas/addre
 interface AddressSuggestionsProps {
   query: string;
   country?: string;
+  // La lista se oculta cuando la dirección ya está verificada (tiene placeId).
+  // Editar un campo invalida la verificación y vuelve a mostrar sugerencias.
+  dismissed?: boolean;
   onSelect: (details: PlaceDetailsResponse) => void;
 }
 
-export function AddressSuggestions({ query, country, onSelect }: AddressSuggestionsProps) {
-  const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
+export function AddressSuggestions({ query, country, dismissed = false, onSelect }: AddressSuggestionsProps) {
   const { suggestions, isLoading, getPlaceDetails, isLoadingDetails } = useAddressSearch({ input: query, country });
-
-  const dismissed = dismissedQuery === query;
 
   const handleSelect = async (placeId: string) => {
     const details = await getPlaceDetails(placeId);
-    setDismissedQuery(query);
     onSelect(details);
   };
 

@@ -81,7 +81,7 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
 
   return (
     <>
-      <Card className="mb-6 shadow-md shadow-primary/20">
+      <Card className="mb-6 shadow-none transition-shadow focus-within:shadow-md focus-within:shadow-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Información de la Orden</CardTitle>
         </CardHeader>

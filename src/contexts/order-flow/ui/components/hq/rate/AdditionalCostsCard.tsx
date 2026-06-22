@@ -36,7 +36,7 @@ export function AdditionalCostsCard() {
   }, 0);
 
   return (
-    <Card>
+    <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

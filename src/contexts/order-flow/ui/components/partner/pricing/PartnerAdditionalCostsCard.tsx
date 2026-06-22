@@ -29,7 +29,7 @@ export function PartnerAdditionalCostsCard() {
   const costsCurrency = useWatch<PartnerOrderFormValues, "shippingService.costBreakdownCurrency">({ name: "shippingService.costBreakdownCurrency" });
 
   return (
-    <Card className="shadow-md shadow-primary/20">
+    <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
