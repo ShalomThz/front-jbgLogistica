@@ -33,6 +33,7 @@ export const authRepository = {
       throw result.error;
     }
 
+    console.info("%c[auth-debug] login OK → token recibido", "color:#16a34a");
     tokenStorage.setToken(result.data.token);
 
     return result.data;
@@ -47,7 +48,9 @@ export const authRepository = {
   },
 
   getCurrentUser: async (): Promise<UserListViewPrimitives> => {
+    console.info("%c[auth-debug] getCurrentUser → llamando /user/current", "color:#2563eb");
     const data = await httpClient<unknown>("/user/current");
+    console.info("[auth-debug] getCurrentUser → respuesta cruda:", data);
 
     const result = userListViewSchema.safeParse(data);
     if (!result.success) {
@@ -65,6 +68,11 @@ export const authRepository = {
       throw result.error;
     }
 
+    console.info("%c[auth-debug] getCurrentUser OK", "color:#16a34a", {
+      id: result.data.id,
+      type: result.data.type,
+      permisos: result.data.role.permissions.length,
+    });
     return result.data;
   },
 };
