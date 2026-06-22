@@ -39,22 +39,12 @@ export const useAuth = () => {
         // Solo un 401 (token inválido/expirado) cierra sesión. httpClient ya
         // limpia el token en el 401; lo reforzamos aquí por claridad.
         if (error instanceof ApiError && error.status === 401) {
-          console.warn(
-            "[useAuth] getCurrentUser → 401: sesión inválida/expirada, cerrando sesión.",
-            error,
-          );
           tokenStorage.clearToken();
           return null;
         }
-        console.error(
-          "[useAuth] getCurrentUser falló (NO es 401 → se conserva el token). " +
-            "Revisa el detalle de arriba de [authRepository]. Error:",
-          error,
-        );
         // Cualquier otro error (parse Zod por un schema desactualizado, red
         // caída) NO debe expulsar al usuario en silencio: conservamos el token
-        // y propagamos el error para que sea visible y depurable, en vez de un
-        // logout fantasma.
+        // y propagamos el error.
         throw error;
       }
     },
