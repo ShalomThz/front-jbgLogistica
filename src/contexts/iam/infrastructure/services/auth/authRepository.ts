@@ -21,8 +21,15 @@ export const authRepository = {
 
     const result = loginResponseSchema.safeParse(data);
     if (!result.success) {
-      console.error("[authRepository] Parse error in login:", result.error.issues);
-      console.error("[authRepository] Raw data received:", data);
+      console.group("%c[authRepository] login: parse FAILED", "color:#dc2626;font-weight:bold");
+      result.error.issues.forEach((issue) => {
+        console.error(
+          `• ${issue.path.join(".") || "(root)"} → ${issue.message}`,
+          issue,
+        );
+      });
+      console.error("Raw data received:", data);
+      console.groupEnd();
       throw result.error;
     }
 
@@ -44,8 +51,17 @@ export const authRepository = {
 
     const result = userListViewSchema.safeParse(data);
     if (!result.success) {
-      console.error("[authRepository] Parse error in getCurrentUser:", result.error.issues);
-      console.error("[authRepository] Raw data received:", data);
+      console.group("%c[authRepository] getCurrentUser: parse FAILED", "color:#dc2626;font-weight:bold");
+      result.error.issues.forEach((issue) => {
+        const received =
+          "received" in issue ? ` (recibido: ${JSON.stringify(issue.received)})` : "";
+        console.error(
+          `• ${issue.path.join(".") || "(root)"} → ${issue.message}${received}`,
+          issue,
+        );
+      });
+      console.error("Raw data received:", data);
+      console.groupEnd();
       throw result.error;
     }
 

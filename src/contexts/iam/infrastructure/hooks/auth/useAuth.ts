@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authRepository } from "@contexts/iam/infrastructure/services/auth/authRepository";
+import { ApiError } from "@contexts/shared/infrastructure/http";
 import { tokenStorage, TOKEN_KEY } from "@contexts/iam/infrastructure/storage/tokenStorage";
 import type { LoginRequestPrimitives } from "@contexts/iam/application/login/LoginRequest";
 import type { UserListViewPrimitives } from "@contexts/iam/domain/schemas/user/User";
@@ -26,7 +27,7 @@ export const useAuth = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [queryClient]);
 
-  const { data: user, isLoading } = useQuery<UserListViewPrimitives | null>({
+  const { data: user, isLoading, error: sessionError } = useQuery<UserListViewPrimitives | null>({
     queryKey: AUTH_QUERY_KEY,
     queryFn: async () => {
       const token = tokenStorage.getToken();
@@ -34,9 +35,27 @@ export const useAuth = () => {
 
       try {
         return await authRepository.getCurrentUser();
-      } catch {
-        tokenStorage.clearToken();
-        return null;
+      } catch (error) {
+        // Solo un 401 (token inválido/expirado) cierra sesión. httpClient ya
+        // limpia el token en el 401; lo reforzamos aquí por claridad.
+        if (error instanceof ApiError && error.status === 401) {
+          console.warn(
+            "[useAuth] getCurrentUser → 401: sesión inválida/expirada, cerrando sesión.",
+            error,
+          );
+          tokenStorage.clearToken();
+          return null;
+        }
+        console.error(
+          "[useAuth] getCurrentUser falló (NO es 401 → se conserva el token). " +
+            "Revisa el detalle de arriba de [authRepository]. Error:",
+          error,
+        );
+        // Cualquier otro error (parse Zod por un schema desactualizado, red
+        // caída) NO debe expulsar al usuario en silencio: conservamos el token
+        // y propagamos el error para que sea visible y depurable, en vez de un
+        // logout fantasma.
+        throw error;
       }
     },
     staleTime: 1000 * 60 * 5,
@@ -69,6 +88,7 @@ export const useAuth = () => {
     user: user ?? null,
     isLoading,
     isAuthenticated: !!user,
+    sessionError: sessionError ?? null,
     userType,
     isCustomer,
     login: (credentials: LoginRequestPrimitives) =>
