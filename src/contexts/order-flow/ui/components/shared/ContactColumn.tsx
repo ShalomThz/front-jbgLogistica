@@ -15,7 +15,7 @@ import { useFormContext, useWatch, Controller, type FieldErrors } from "react-ho
 import { CustomerPickerCombobox } from "@contexts/sales/ui/components/customer/CustomerPickerCombobox";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
-import { AddressFormSection } from "@contexts/shared/ui/components/address";
+import { AddressAutocompleteSection } from "@contexts/shared/ui/components/address";
 
 type ContactPrefix = "sender" | "recipient";
 
@@ -174,7 +174,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
         <Separator />
 
         {/* Address */}
-        <AddressFormSection
+        <AddressAutocompleteSection
           key={addressFormKey}
           fieldPrefix={`${prefix}.address`}
           labelPrefix={title}
