@@ -4,6 +4,7 @@ import { Eye, Package, Search } from "lucide-react";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
+import { useAlreadyRoutedShipmentIds } from "@contexts/shipping/infrastructure/hooks/routes/useRoutes";
 
 interface Props {
   selectedShipmentIds: string[];
@@ -15,14 +16,19 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
   const [search, setSearch] = useState("");
   const [detailOrder, setDetailOrder] = useState<OrderListView | null>(null);
 
+  const alreadyRoutedIds = useAlreadyRoutedShipmentIds();
+
   const { orders: fulfilledRaw, isLoading } = useOrders({
     filters: [{ field: "shipment.status", filterOperator: "=", value: "FULFILLED" }],
     limit: 100,
   });
 
-  const fulfilled = excludedShipmentIds?.size
-    ? fulfilledRaw.filter((o) => !o.shipment || !excludedShipmentIds.has(o.shipment.id))
-    : fulfilledRaw;
+  const fulfilled = fulfilledRaw.filter((o) => {
+    if (!o.shipment) return false;
+    if (alreadyRoutedIds.has(o.shipment.id)) return false;
+    if (excludedShipmentIds?.has(o.shipment.id)) return false;
+    return true;
+  });
 
   const filtered = search.trim()
     ? fulfilled.filter((o) => {
