@@ -26,6 +26,7 @@ import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchan
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { BoxSalePrimitives } from "@contexts/inventory/domain/schemas/boxSale/BoxSale";
+import boxIsometricSvg from "@/assets/box-isometric.svg";
 
 interface CartItem {
   box: BoxPrimitives;
@@ -180,13 +181,13 @@ export const BoxSalePage = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Venta de Cajas</h1>
+    <div className="flex flex-col h-full min-h-0 space-y-4">
+      <h1 className="text-2xl font-bold shrink-0">Venta de Cajas</h1>
 
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
         {/* Main area - product grid */}
-        <div className="flex-[3] space-y-4">
-          <div className="relative">
+        <div className="flex-[3] flex flex-col min-h-0 space-y-4">
+          <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Buscar cajas..."
@@ -196,6 +197,7 @@ export const BoxSalePage = () => {
             />
           </div>
 
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {filtered.map((box) => {
               const qty = getCartQty(box.id);
@@ -215,6 +217,13 @@ export const BoxSalePage = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="pb-2 space-y-1 text-sm text-muted-foreground">
+                    <div className="flex justify-center rounded-md bg-muted/40 py-3">
+                      <img
+                        src={boxIsometricSvg}
+                        alt={box.name}
+                        className="h-20 w-auto object-contain"
+                      />
+                    </div>
                     <p>
                       {box.dimensions.length} × {box.dimensions.width} ×{" "}
                       {box.dimensions.height} {UNIT_SHORT_LABELS[box.dimensions.unit]}
@@ -270,11 +279,12 @@ export const BoxSalePage = () => {
               No se encontraron cajas.
             </p>
           )}
+          </div>
         </div>
 
         {/* Sidebar - cart summary */}
-        <div className="flex-1 lg:min-w-[280px]">
-          <div className="lg:sticky lg:top-4">
+        <div className="flex-1 lg:min-w-[280px] lg:min-h-0 lg:overflow-y-auto">
+          <div>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
