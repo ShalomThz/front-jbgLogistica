@@ -34,6 +34,7 @@ import {
   IdCard,
 } from 'lucide-react';
 import { shippingPolicies } from '../../domain/policies/shipping.policy';
+import logo from '@/assets/JBG_CARGO_CORP_logo.png';
  
 interface NavItem {
   label: string;
@@ -102,8 +103,10 @@ export const AppSidebar = () => {
 
   return (
     <>
-      <SidebarHeader className="h-16 flex items-center justify-center border-b border-border">
-        <Link to="/" onClick={handleNavClick} className="px-2 text-xl font-bold">JBG Cargo Corp</Link>
+      <SidebarHeader className="h-16 flex items-center justify-center overflow-hidden border-b border-border">
+        <Link to="/" onClick={handleNavClick} className="flex items-center justify-center">
+          <img src={logo} alt="JBG Cargo Corp" className="h-16 w-auto scale-110 object-contain" />
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         {filteredNavigation.map((section) => (
