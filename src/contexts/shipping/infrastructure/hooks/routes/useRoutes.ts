@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CreateRouteRequest } from "../../../application/route/CreateRouteRequest";
 import type { FindRoutesRequest } from "../../../application/route/FindRoutesRequest";
@@ -130,4 +131,49 @@ export const useRouteActions = () => {
     isCompletingRoute: completeMutation.isPending,
     completeRouteError: completeMutation.error?.message ?? null,
   };
+};
+
+const ACTIVE_PLANNED_QUERY_KEY = [...ROUTES_QUERY_KEY, "routed-shipments"] as const;
+
+const activeAndPlannedQueryFn = () =>
+  routeRepository.find({
+    filters: [{ field: "status", filterOperator: "IN", value: ["PLANNED", "ACTIVE"] }],
+    limit: 500,
+    offset: 0,
+  });
+
+/** Returns a Set of shipmentIds already assigned to any PLANNED or ACTIVE route. */
+export const useAlreadyRoutedShipmentIds = (): Set<string> => {
+  const { data } = useQuery<FindRoutesResponse>({
+    queryKey: ACTIVE_PLANNED_QUERY_KEY,
+    queryFn: activeAndPlannedQueryFn,
+    staleTime: 30_000,
+  });
+
+  return useMemo(() => {
+    const ids = new Set<string>();
+    for (const route of data?.data ?? []) {
+      for (const stop of route.stops) {
+        ids.add(stop.shipmentId);
+      }
+    }
+    return ids;
+  }, [data]);
+};
+
+/** Returns a Set of driverIds already assigned to any PLANNED or ACTIVE route. */
+export const useAlreadyRoutedDriverIds = (): Set<string> => {
+  const { data } = useQuery<FindRoutesResponse>({
+    queryKey: ACTIVE_PLANNED_QUERY_KEY,
+    queryFn: activeAndPlannedQueryFn,
+    staleTime: 30_000,
+  });
+
+  return useMemo(() => {
+    const ids = new Set<string>();
+    for (const route of data?.data ?? []) {
+      ids.add(route.driverId);
+    }
+    return ids;
+  }, [data]);
 };

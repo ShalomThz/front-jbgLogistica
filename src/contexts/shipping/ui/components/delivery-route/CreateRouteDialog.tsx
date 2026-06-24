@@ -24,6 +24,8 @@ import {
   Truck,
   User,
 } from "lucide-react";
+import { useHQSettings } from "@contexts/settings/infrastructure/hooks/useSkydropxSettings";
+import { useAlreadyRoutedDriverIds } from "@contexts/shipping/infrastructure/hooks/routes/useRoutes";
 import type { CreateRouteRequest } from "../../../application/route/CreateRouteRequest";
 import type { DriverListViewPrimitives } from "../../../domain/schemas/driver/DriverListView";
 import { OriginMapPicker, type OriginPickerValue } from "./OriginMapPicker";
@@ -63,10 +65,19 @@ export const CreateRouteDialog = ({
   const [step, setStep] = useState<Step>(1);
   const [driverId, setDriverId] = useState("");
   const [origin, setOrigin] = useState<OriginPickerValue | null>(null);
+  const [warehouseFlyTo, setWarehouseFlyTo] = useState<[number, number] | null>(null);
+  const [selectedWarehouseIdx, setSelectedWarehouseIdx] = useState(-1);
   const [shipmentIds, setShipmentIds] = useState<string[]>([]);
 
-  const availableDrivers = drivers.filter((d) => d.status === "AVAILABLE");
-  const busyDrivers = drivers.filter((d) => d.status !== "AVAILABLE");
+  const { skydropxAddresses, isLoading: isLoadingAddresses } = useHQSettings();
+  const routedDriverIds = useAlreadyRoutedDriverIds();
+
+  const availableDrivers = drivers.filter(
+    (d) => d.status === "AVAILABLE" && !routedDriverIds.has(d.id),
+  );
+  const busyDrivers = drivers.filter(
+    (d) => d.status !== "AVAILABLE" || routedDriverIds.has(d.id),
+  );
 
   const selectedDriver = drivers.find((d) => d.id === driverId);
 
@@ -74,6 +85,8 @@ export const CreateRouteDialog = ({
     setStep(1);
     setDriverId("");
     setOrigin(null);
+    setWarehouseFlyTo(null);
+    setSelectedWarehouseIdx(-1);
     setShipmentIds([]);
   };
 
@@ -211,7 +224,7 @@ export const CreateRouteDialog = ({
                             <div className="flex flex-col">
                               <span className="text-muted-foreground">{d.user.name}</span>
                               <span className="text-xs text-muted-foreground">
-                                {DRIVER_STATUS_LABELS[d.status] ?? d.status} · {d.licenseNumber}
+                                {routedDriverIds.has(d.id) ? "En ruta" : (DRIVER_STATUS_LABELS[d.status] ?? d.status)} · {d.licenseNumber}
                               </span>
                             </div>
                           </div>
@@ -245,10 +258,59 @@ export const CreateRouteDialog = ({
           </div>
         )}
 
-        {/* Step 2: Origin map picker — only mounts here, lazy-loads Maps API */}
+        {/* Step 2: Origin — warehouse select + map picker */}
         {step === 2 && (
-          <div className="space-y-2 py-1">
-            <OriginMapPicker value={origin} onChange={setOrigin} />
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-sm">
+                <MapPin className="size-3.5" />
+                Almacén de salida
+              </Label>
+              <Select
+                value={selectedWarehouseIdx >= 0 ? String(selectedWarehouseIdx) : ""}
+                onValueChange={(val) => {
+                  const idx = Number(val);
+                  const addr = skydropxAddresses[idx];
+                  if (!addr) return;
+                  const { latitude, longitude, placeId } = addr.address.geolocation;
+                  setSelectedWarehouseIdx(idx);
+                  setOrigin({ latitude, longitude, placeId });
+                  setWarehouseFlyTo([latitude, longitude]);
+                }}
+                disabled={isLoadingAddresses || skydropxAddresses.length === 0}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue
+                    placeholder={
+                      isLoadingAddresses ? "Cargando almacenes…" : "Seleccionar almacén…"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {skydropxAddresses.map((addr, idx) => (
+                    <SelectItem key={idx} value={String(idx)}>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium">
+                          {addr.name} — {addr.company}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {addr.address.address1}, {addr.address.city},{" "}
+                          {addr.address.province} {addr.address.zip}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O ajusta el punto manualmente en el mapa
+              </p>
+            </div>
+            <OriginMapPicker
+              value={origin}
+              onChange={(v) => { setOrigin(v); if (!v) setSelectedWarehouseIdx(-1); }}
+              externalFlyTo={warehouseFlyTo}
+            />
           </div>
         )}
 

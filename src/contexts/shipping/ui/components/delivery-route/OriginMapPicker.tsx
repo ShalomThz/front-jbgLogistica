@@ -64,14 +64,19 @@ const MapClickHandler = ({
 interface Props {
   value: OriginPickerValue | null;
   onChange: (v: OriginPickerValue | null) => void;
+  externalFlyTo?: [number, number] | null;
 }
 
-export const OriginMapPicker = ({ value, onChange }: Props) => {
+export const OriginMapPicker = ({ value, onChange, externalFlyTo }: Props) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (externalFlyTo) setFlyTo(externalFlyTo);
+  }, [externalFlyTo]);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
