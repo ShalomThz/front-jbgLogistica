@@ -353,7 +353,7 @@ export function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <AddressEditForm key={safeEditingIndex} index={safeEditingIndex} />
+                  <AddressEditForm key={activeAddress.id} index={safeEditingIndex} />
 
                   <div className="flex items-center justify-between border-t pt-4">
                     <Button type="submit" disabled={isLoading || isSaving}>
