@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { shippingPolicies } from '../../domain/policies/shipping.policy';
 import logo from '@/assets/JBG_CARGO_CORP_logo.png';
+import logoDark from '@/assets/JBG_CARGO_CORP_blanco.png';
  
 interface NavItem {
   label: string;
@@ -105,7 +106,8 @@ export const AppSidebar = () => {
     <>
       <SidebarHeader className="h-16 flex items-center justify-center overflow-hidden border-b border-border">
         <Link to="/" onClick={handleNavClick} className="flex items-center justify-center">
-          <img src={logo} alt="JBG Cargo Corp" className="h-16 w-auto scale-110 object-contain" />
+          <img src={logo} alt="JBG Cargo Corp" className="h-16 w-auto scale-110 object-contain dark:hidden" />
+          <img src={logoDark} alt="JBG Cargo Corp" className="hidden h-16 w-auto scale-110 object-contain dark:block" />
         </Link>
       </SidebarHeader>
       <SidebarContent>
