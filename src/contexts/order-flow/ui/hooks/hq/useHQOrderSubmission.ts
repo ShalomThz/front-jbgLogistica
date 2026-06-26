@@ -21,15 +21,16 @@ import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrd
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { waitForShipmentFulfillment } from "@contexts/shipping/infrastructure/websocket/waitForShipmentFulfillment";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
 import type { HQOrderStep } from "./useHQOrderFlowForm";
 
-// The carrier generates the label asynchronously; poll the fulfill until it is
-// FULFILLED or a real error occurs (cap ~3 min so it never loops forever).
-const FULFILL_POLL_INTERVAL_MS = 4_000;
-const MAX_FULFILL_POLLS = 45;
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// The carrier generates the label asynchronously and completes it via webhook,
+// which the backend broadcasts as a domain event over socket.io. We trigger the
+// fulfill once and wait for that push (cap ~3 min so it never waits forever),
+// with an infrequent read as a backstop if the event is missed.
+const FULFILL_TIMEOUT_MS = 180_000;
+const FULFILL_BACKSTOP_INTERVAL_MS = 15_000;
 
 export type ShipmentPhase = "selecting" | "fulfilling";
 
@@ -229,32 +230,70 @@ export const useHQOrderSubmission = ({
 
     setIsProcessingShipment(true);
     setShipmentError(null);
-    setShipmentPhase("selecting");
+
+    const creationFailed = (s: ShipmentPrimitives) =>
+      s.status === "PROVIDER_SELECTED" && !s.providerShipmentId;
+
     try {
-      // First select the provider.
-      const request = buildSelectProviderRequest(shipmentId, shippingService);
-      await selectProvider(request);
+      // Resume guard: if a prior attempt already fulfilled THIS shipment (a later
+      // step failed and the user retried), do NOT re-fulfill — that would cancel
+      // the valid label and mint a new tracking number. Skip to the post steps.
+      let result: ShipmentPrimitives | null =
+        fulfilledShipment?.status === "FULFILLED" &&
+        fulfilledShipment.id === shipmentId
+          ? fulfilledShipment
+          : null;
 
-      // Then poll the fulfill until the carrier finishes the label. A real
-      // error throws (-> caught below); `in_progress` just returns the shipment
-      // still not FULFILLED, so we wait and try again.
-      setShipmentPhase("fulfilling");
-      let result = await fulfillShipment(shipmentId);
-      let attempts = 0;
-      while (result.status !== "FULFILLED" && attempts < MAX_FULFILL_POLLS) {
-        await sleep(FULFILL_POLL_INTERVAL_MS);
-        result = await fulfillShipment(shipmentId);
-        attempts += 1;
+      if (!result) {
+        // First select the provider.
+        setShipmentPhase("selecting");
+        const request = buildSelectProviderRequest(shipmentId, shippingService);
+        await selectProvider(request);
+
+        // Trigger the async label creation once. The carrier completes it via
+        // webhook; we wait for the resulting domain event pushed over socket.io
+        // (with a read backstop), then confirm with an authoritative read.
+        setShipmentPhase("fulfilling");
+        let current = await fulfillShipment(shipmentId);
+
+        if (current.status !== "FULFILLED") {
+          const outcome = await waitForShipmentFulfillment(shipmentId, {
+            timeoutMs: FULFILL_TIMEOUT_MS,
+            pollIntervalMs: FULFILL_BACKSTOP_INTERVAL_MS,
+            read: () =>
+              orderId ? findByOrderId(orderId) : Promise.resolve(null),
+          });
+          if (outcome === "failed") {
+            setShipmentError(
+              "La paquetería no pudo crear la guía. Revisa los datos e intenta de nuevo.",
+            );
+            return;
+          }
+          const latest = orderId ? await findByOrderId(orderId) : null;
+          if (latest) current = latest;
+        }
+
+        if (creationFailed(current)) {
+          setShipmentError(
+            "La paquetería no pudo crear la guía. Revisa los datos e intenta de nuevo.",
+          );
+          return;
+        }
+
+        if (current.status !== "FULFILLED") {
+          setShipmentError(
+            "La guía está tardando más de lo normal. Vuelve a intentarlo en unos minutos.",
+          );
+          return;
+        }
+
+        result = current;
+        // Persist now so a failure in the steps below resumes WITHOUT re-fulfilling.
+        setFulfilledShipment(result);
       }
 
-      if (result.status !== "FULFILLED") {
-        setShipmentError(
-          "La guía está tardando más de lo normal. Vuelve a intentarlo en unos minutos.",
-        );
-        return;
-      }
-
-      // Then if we have an orderId, update the order to save the signature
+      // Save the signature / mark-as-paid. A failure here surfaces the retry
+      // dialog, but the resume guard above prevents it from re-generating the guide.
       if (orderId) {
         const orderRequest = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, orderRequest);
@@ -263,10 +302,10 @@ export const useHQOrderSubmission = ({
         }
       }
 
-      setFulfilledShipment(result);
       setStep("success");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
 
+      // Best-effort inventory decrement: never blocks or fails the flow.
       const pkg = form.getValues("package");
       if (pkg.ownership === "STORE" && pkg.boxId) {
         const box = boxes.find((b) => b.id === pkg.boxId);
