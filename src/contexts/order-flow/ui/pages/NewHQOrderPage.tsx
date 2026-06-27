@@ -160,6 +160,7 @@ const NewHQOrderPageInner = ({
         open={flow.isProcessingShipment || !!flow.shipmentError}
         phase={flow.shipmentPhase}
         error={flow.shipmentError}
+        providerStatus={flow.providerStatus}
         onRetry={flow.selectAndFulfill}
         onChangeCarrier={flow.clearShipmentError}
       />

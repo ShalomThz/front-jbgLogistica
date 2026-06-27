@@ -78,6 +78,8 @@ export const useHQOrderSubmission = ({
   const [shipmentError, setShipmentError] = useState<string | null>(null);
   const [shipmentPhase, setShipmentPhase] =
     useState<ShipmentPhase>("selecting");
+  // Carrier creation sub-status (e.g. "Generando la guía…"), surfaced live.
+  const [providerStatus, setProviderStatus] = useState<string | null>(null);
   const { data: orderData } = useOrder(orderId);
 
   const activeStoreId = storeId ?? user?.store.id;
@@ -230,6 +232,7 @@ export const useHQOrderSubmission = ({
 
     setIsProcessingShipment(true);
     setShipmentError(null);
+    setProviderStatus(null);
 
     const creationFailed = (s: ShipmentPrimitives) =>
       s.status === "PROVIDER_SELECTED" && !s.providerShipmentId;
@@ -262,6 +265,7 @@ export const useHQOrderSubmission = ({
             pollIntervalMs: FULFILL_BACKSTOP_INTERVAL_MS,
             read: () =>
               orderId ? findByOrderId(orderId) : Promise.resolve(null),
+            onStatus: setProviderStatus,
           });
           if (outcome === "failed") {
             setShipmentError(
@@ -347,6 +351,7 @@ export const useHQOrderSubmission = ({
     isFulfilling,
     isProcessingShipment,
     shipmentPhase,
+    providerStatus,
     shipmentError,
     clearShipmentError,
     fulfilledShipment,

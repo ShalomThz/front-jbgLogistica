@@ -30,6 +30,8 @@ interface FulfillmentLoadingDialogProps {
   open: boolean;
   phase: FulfillmentPhase;
   error: string | null;
+  /** Carrier creation sub-status (e.g. "Generando la guía…"), live. */
+  providerStatus?: string | null;
   onRetry: () => void;
   onChangeCarrier: () => void;
 }
@@ -38,6 +40,7 @@ export function FulfillmentLoadingDialog({
   open,
   phase,
   error,
+  providerStatus,
   onRetry,
   onChangeCarrier,
 }: FulfillmentLoadingDialogProps) {
@@ -83,6 +86,9 @@ export function FulfillmentLoadingDialog({
             </DialogHeader>
             <div className="flex flex-col items-center gap-3 py-4 text-center">
               <PackageCheck className="size-10 text-muted-foreground" />
+              {providerStatus && (
+                <p className="text-sm font-medium">{providerStatus}</p>
+              )}
               <p className="text-sm text-muted-foreground">
                 No cierres esta ventana.
               </p>

@@ -9,6 +9,7 @@ interface ShipmentDomainEvent {
   eventName: string;
   entityId: string;
   shipment?: ShipmentPrimitives;
+  description?: string;
 }
 
 interface WaitOptions {
@@ -18,6 +19,8 @@ interface WaitOptions {
   pollIntervalMs: number;
   /** Authoritative read used by the backstop (e.g. findByOrderId). */
   read: () => Promise<ShipmentPrimitives | null>;
+  /** Optional: receives the carrier's creation sub-status as it progresses. */
+  onStatus?: (description: string) => void;
 }
 
 /** Classifies a shipment snapshot into a terminal fulfillment outcome, or null
@@ -44,7 +47,7 @@ function evaluate(
  */
 export function waitForShipmentFulfillment(
   shipmentId: string,
-  { timeoutMs, pollIntervalMs, read }: WaitOptions,
+  { timeoutMs, pollIntervalMs, read, onStatus }: WaitOptions,
 ): Promise<FulfillmentOutcome> {
   return new Promise((resolve) => {
     const socket = io(WS_URL, { transports: ["websocket"] });
@@ -62,6 +65,10 @@ export function waitForShipmentFulfillment(
 
     const onEvent = (event: ShipmentDomainEvent) => {
       if (event.entityId !== shipmentId) return;
+      if (event.eventName === "shipment.creation_progress") {
+        if (event.description) onStatus?.(event.description);
+        return;
+      }
       if (event.eventName === "shipment.fulfilled") return finish("fulfilled");
       const outcome = evaluate(event.shipment);
       if (outcome) finish(outcome);
