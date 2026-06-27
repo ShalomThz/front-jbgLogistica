@@ -2,10 +2,8 @@ import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewO
 import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import { useFormContext, useWatch } from "react-hook-form";
-import { OrderSuccessView } from "../../order/OrderSuccessView";
 import { SignatureCard } from "../../shared/SignatureCard";
 import { AdditionalCostsCard } from "./AdditionalCostsCard";
 import { JBGFallbackBanner } from "./JBGFallbackBanner";
@@ -28,10 +26,6 @@ interface RateStepProps {
   onSubmit: () => void;
   onBack: () => void;
   isSubmitting: boolean;
-  fulfilledShipment: ShipmentPrimitives | null;
-  onFinish: () => void;
-  onCreateBlank?: () => void;
-  onCreateSameClient?: () => void;
   partnerPrice?: MoneyPrimitives | null;
   partnerCostBreakdown?: CostBreakdownPrimitives;
   markAsPaid: boolean;
@@ -57,10 +51,6 @@ export function RateStep({
   onSubmit,
   onBack,
   isSubmitting,
-  fulfilledShipment,
-  onFinish,
-  onCreateBlank,
-  onCreateSameClient,
   partnerPrice,
   partnerCostBreakdown,
   markAsPaid,
@@ -82,18 +72,6 @@ export function RateStep({
   const handleRateSelection = (rate: RatePrimitives) => {
     setValue("shippingService.selectedRate", rate);
   };
-
-  if (fulfilledShipment) {
-    return (
-      <OrderSuccessView
-        shipment={fulfilledShipment}
-        onFinish={onFinish}
-        orderId={fulfilledShipment.orderId}
-        onCreateBlank={onCreateBlank}
-        onCreateSameClient={onCreateSameClient}
-      />
-    );
-  }
 
   const hasTariff = !!tariff;
   const skydropxRates = rates.filter((r) => r.id !== JBG_RATE_ID);
