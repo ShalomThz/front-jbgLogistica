@@ -33,7 +33,7 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-start gap-6 flex-1 min-h-0 overflow-auto">
+    <div className="flex flex-col lg:flex-row lg:items-start gap-6 flex-1 min-h-0 overflow-auto p-2">
       {/* Left column */}
       <Card className="lg:flex-3 shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
         <CardHeader className="pb-3">

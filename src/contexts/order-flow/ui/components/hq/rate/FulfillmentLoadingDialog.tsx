@@ -22,8 +22,7 @@ const PHASE_COPY: Record<
   },
   fulfilling: {
     title: "Generando guía…",
-    description:
-      "Verificando la creación del envío y obteniendo la guía con la paquetería. Esto puede tardar unos segundos.",
+    description: "Esto puede tardar unos segundos.",
   },
 };
 

@@ -392,14 +392,17 @@ export const useHQOrderSubmission = ({
     if (!shipmentId) return;
     setCanCancelCreation(false);
     clearStallTimer();
+    // Mark cancelled BEFORE awaiting: the abort reverts the shipment, which makes
+    // the in-flight wait resolve "failed". Setting this synchronously ensures the
+    // dialog shows the "cancelled" state, not a flash of the generic error.
+    setCreationCancelled(true);
+    setShipmentError("Creación cancelada. Reintenta o elige otra paquetería.");
     try {
       await abortShipmentCreation(shipmentId);
-      setCreationCancelled(true);
-      setShipmentError(
-        "Creación cancelada. Reintenta o elige otra paquetería.",
-      );
     } catch (error) {
-      toast.error(parseApiError(error), { id: "order-flow" });
+      // Abort itself failed — undo the optimistic cancelled state, show the error.
+      setCreationCancelled(false);
+      setShipmentError(parseApiError(error));
     }
   };
 
