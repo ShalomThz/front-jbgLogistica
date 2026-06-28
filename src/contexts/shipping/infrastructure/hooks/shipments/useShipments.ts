@@ -99,6 +99,15 @@ export const useShipmentActions = () => {
     },
   });
 
+  const abortCreationMutation = useMutation({
+    mutationFn: (shipmentId: string) =>
+      shipmentRepository.abortCreation(shipmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SHIPMENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
   return {
     findByOrderId: shipmentRepository.findByOrderId,
 
@@ -116,6 +125,10 @@ export const useShipmentActions = () => {
       await cancelMutation.mutateAsync(shipmentId),
     isCancelling: cancelMutation.isPending,
     cancelError: cancelMutation.error?.message ?? null,
+
+    abortShipmentCreation: async (shipmentId: string) =>
+      await abortCreationMutation.mutateAsync(shipmentId),
+    isAbortingCreation: abortCreationMutation.isPending,
   };
 };
 

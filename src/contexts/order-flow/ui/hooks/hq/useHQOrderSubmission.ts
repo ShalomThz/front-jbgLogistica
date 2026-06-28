@@ -74,7 +74,7 @@ export const useHQOrderSubmission = ({
     findByOrderId,
     fulfillShipment,
     selectProvider,
-    cancelShipment,
+    abortShipmentCreation,
     isSelectingProvider,
     isFulfilling,
   } = useShipmentActions();
@@ -393,7 +393,7 @@ export const useHQOrderSubmission = ({
     setCanCancelCreation(false);
     clearStallTimer();
     try {
-      await cancelShipment(shipmentId);
+      await abortShipmentCreation(shipmentId);
       setCreationCancelled(true);
       setShipmentError(
         "Creación cancelada. Reintenta o elige otra paquetería.",
