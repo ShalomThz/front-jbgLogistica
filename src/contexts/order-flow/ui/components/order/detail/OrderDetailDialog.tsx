@@ -41,6 +41,7 @@ import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumb
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { OrderFinancialSection } from "./OrderFinancialSection";
+import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 
 const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
@@ -198,7 +199,14 @@ export const OrderDetailDialog = ({
         >
         {/* Header box - static */}
         <div className="shrink-0 border-b px-4 pt-8 pb-2 sm:px-6">
-        <DialogHeader>
+        <DialogHeader className="flex-row items-start gap-3 space-y-0">
+          {shipment?.provider && (
+            <CarrierLogo
+              name={shipment.provider.providerName}
+              className="size-10 shrink-0 rounded object-contain mt-0.5"
+            />
+          )}
+          <div className="min-w-0 flex-1">
           <DialogTitle className="break-words">
             Orden{" "}
             {[references.orderNumber, references.partnerOrderNumber]
@@ -226,6 +234,7 @@ export const OrderDetailDialog = ({
               </Tooltip>
             </TooltipProvider>
           </DialogDescription>
+          </div>
         </DialogHeader>
 
           <TabsList

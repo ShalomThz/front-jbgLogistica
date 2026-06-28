@@ -144,13 +144,19 @@ export const OrdersTable = ({
                     </Tooltip>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2 font-medium">
-                        <CarrierLogo name={order.shipment?.provider?.providerName} />
-                        <span>{order.shipment?.provider?.providerName ?? "—"}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {order.shipment?.label?.trackingNumber ?? "No. de guía no disponible"}
+                    <div className="flex items-center gap-2.5">
+                      <CarrierLogo
+                        name={order.shipment?.provider?.providerName}
+                        className="size-9 shrink-0 rounded object-contain"
+                      />
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {order.shipment?.provider?.providerName ?? "—"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {order.shipment?.label?.trackingNumber ??
+                            "No. de guía no disponible"}
+                        </div>
                       </div>
                     </div>
                   </TableCell>

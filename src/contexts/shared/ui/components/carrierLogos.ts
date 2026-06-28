@@ -1,5 +1,6 @@
 import ampmLogo from "@/assets/carriers/ampm.png";
 import dhlLogo from "@/assets/carriers/dhl.png";
+import jbgLogo from "@/assets/carriers/jbg.png";
 import estafetaLogo from "@/assets/carriers/estafeta.png";
 import fedexLogo from "@/assets/carriers/fedex.png";
 import jtExpressLogo from "@/assets/carriers/jt-express.png";
@@ -34,5 +35,9 @@ export function getCarrierLogo(
   }
 
   const carrier = name.split(" - ")[0].trim().toUpperCase();
+  // JBG (our internal fleet) ships under a few labels (Logistics/Cargo/Agente).
+  if (carrier.startsWith("JBG")) {
+    return jbgLogo;
+  }
   return CARRIER_LOGOS[carrier];
 }
