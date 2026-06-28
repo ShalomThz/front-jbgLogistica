@@ -161,6 +161,9 @@ const NewHQOrderPageInner = ({
         phase={flow.shipmentPhase}
         error={flow.shipmentError}
         providerStatus={flow.providerStatus}
+        canCancel={flow.canCancelCreation}
+        onCancel={flow.cancelCreation}
+        cancelled={flow.creationCancelled}
         onRetry={flow.selectAndFulfill}
         onChangeCarrier={flow.clearShipmentError}
       />

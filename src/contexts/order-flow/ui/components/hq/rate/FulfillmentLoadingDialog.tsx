@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@contexts/shared/shadcn";
-import { AlertTriangle, Loader2, PackageCheck } from "lucide-react";
+import { AlertTriangle, Ban, Loader2, PackageCheck } from "lucide-react";
 
 export type FulfillmentPhase = "selecting" | "fulfilling";
 
@@ -32,6 +32,11 @@ interface FulfillmentLoadingDialogProps {
   error: string | null;
   /** Carrier creation sub-status (e.g. "Generando la guía…"), live. */
   providerStatus?: string | null;
+  /** Offer a manual cancel (carrier stalled in creation_waiting). */
+  canCancel?: boolean;
+  onCancel?: () => void;
+  /** The error state is a user-initiated cancellation, not a failure. */
+  cancelled?: boolean;
   onRetry: () => void;
   onChangeCarrier: () => void;
 }
@@ -41,6 +46,9 @@ export function FulfillmentLoadingDialog({
   phase,
   error,
   providerStatus,
+  canCancel,
+  onCancel,
+  cancelled,
   onRetry,
   onChangeCarrier,
 }: FulfillmentLoadingDialogProps) {
@@ -56,18 +64,27 @@ export function FulfillmentLoadingDialog({
         {error ? (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="size-5" />
-                No se pudo generar la guía
+              <DialogTitle
+                className={`flex items-center gap-2 ${cancelled ? "" : "text-destructive"}`}
+              >
+                {cancelled ? (
+                  <Ban className="size-5" />
+                ) : (
+                  <AlertTriangle className="size-5" />
+                )}
+                {cancelled ? "Creación cancelada" : "No se pudo generar la guía"}
               </DialogTitle>
               <DialogDescription>
-                Hubo un problema al generar la guía con la paquetería. Puedes
-                volver a intentarlo o elegir otra paquetería.
+                {cancelled
+                  ? "Cancelaste la creación de la guía. Puedes reintentar o elegir otra paquetería."
+                  : "Hubo un problema al generar la guía con la paquetería. Puedes volver a intentarlo o elegir otra paquetería."}
               </DialogDescription>
             </DialogHeader>
-            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground break-words">
-              {error}
-            </p>
+            {!cancelled && (
+              <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground break-words">
+                {error}
+              </p>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={onChangeCarrier}>
                 Elegir otra paquetería
@@ -93,6 +110,13 @@ export function FulfillmentLoadingDialog({
                 No cierres esta ventana.
               </p>
             </div>
+            {canCancel && (
+              <DialogFooter>
+                <Button variant="outline" onClick={onCancel}>
+                  Cancelar creación
+                </Button>
+              </DialogFooter>
+            )}
           </>
         )}
       </DialogContent>

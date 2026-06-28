@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -31,6 +31,9 @@ import type { HQOrderStep } from "./useHQOrderFlowForm";
 // with an infrequent read as a backstop if the event is missed.
 const FULFILL_TIMEOUT_MS = 180_000;
 const FULFILL_BACKSTOP_INTERVAL_MS = 15_000;
+// How long the carrier may sit in `creation_waiting` (a stalled/problematic
+// state) before we offer a manual "Cancelar" in the dialog.
+const CREATION_WAITING_CANCEL_DELAY_MS = 30_000;
 
 export type ShipmentPhase = "selecting" | "fulfilling";
 
@@ -71,6 +74,7 @@ export const useHQOrderSubmission = ({
     findByOrderId,
     fulfillShipment,
     selectProvider,
+    cancelShipment,
     isSelectingProvider,
     isFulfilling,
   } = useShipmentActions();
@@ -80,6 +84,37 @@ export const useHQOrderSubmission = ({
     useState<ShipmentPhase>("selecting");
   // Carrier creation sub-status (e.g. "Generando la guía…"), surfaced live.
   const [providerStatus, setProviderStatus] = useState<string | null>(null);
+  // Becomes true after the carrier sits too long in `creation_waiting`, so the
+  // dialog can offer a manual cancel.
+  const [canCancelCreation, setCanCancelCreation] = useState(false);
+  // True once the user aborted the creation, so the dialog shows a "cancelled"
+  // state instead of the generic error.
+  const [creationCancelled, setCreationCancelled] = useState(false);
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearStallTimer = () => {
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
+  };
+
+  // Arm the manual-cancel offer while in `creation_waiting`; disarm otherwise.
+  const trackCreationProgress = (workflowStatus: string) => {
+    if (workflowStatus === "creation_waiting") {
+      if (!stallTimerRef.current) {
+        stallTimerRef.current = setTimeout(
+          () => setCanCancelCreation(true),
+          CREATION_WAITING_CANCEL_DELAY_MS,
+        );
+      }
+      return;
+    }
+    clearStallTimer();
+    setCanCancelCreation(false);
+  };
+
+  useEffect(() => clearStallTimer, []);
   const { data: orderData } = useOrder(orderId);
 
   const activeStoreId = storeId ?? user?.store.id;
@@ -233,6 +268,9 @@ export const useHQOrderSubmission = ({
     setIsProcessingShipment(true);
     setShipmentError(null);
     setProviderStatus(null);
+    setCanCancelCreation(false);
+    setCreationCancelled(false);
+    clearStallTimer();
 
     const creationFailed = (s: ShipmentPrimitives) =>
       s.status === "PROVIDER_SELECTED" && !s.providerShipmentId;
@@ -265,11 +303,17 @@ export const useHQOrderSubmission = ({
             pollIntervalMs: FULFILL_BACKSTOP_INTERVAL_MS,
             read: () =>
               orderId ? findByOrderId(orderId) : Promise.resolve(null),
-            onStatus: setProviderStatus,
+            onStatus: ({ description, workflowStatus }) => {
+              setProviderStatus(description);
+              trackCreationProgress(workflowStatus);
+            },
           });
           if (outcome === "failed") {
+            // Don't overwrite a more specific message (e.g. a manual cancel).
             setShipmentError(
-              "La paquetería no pudo crear la guía. Revisa los datos e intenta de nuevo.",
+              (prev) =>
+                prev ??
+                "La paquetería no pudo crear la guía. Revisa los datos e intenta de nuevo.",
             );
             return;
           }
@@ -331,10 +375,33 @@ export const useHQOrderSubmission = ({
       setShipmentError(parseApiError(error));
     } finally {
       setIsProcessingShipment(false);
+      clearStallTimer();
+      setCanCancelCreation(false);
     }
   };
 
-  const clearShipmentError = () => setShipmentError(null);
+  const clearShipmentError = () => {
+    setShipmentError(null);
+    setCreationCancelled(false);
+  };
+
+  /** Manual cancel for a shipment stuck in `creation_waiting`: cancels at the
+   * carrier and reverts server-side; the in-flight wait then resolves to the
+   * retry state. */
+  const cancelCreation = async () => {
+    if (!shipmentId) return;
+    setCanCancelCreation(false);
+    clearStallTimer();
+    try {
+      await cancelShipment(shipmentId);
+      setCreationCancelled(true);
+      setShipmentError(
+        "Creación cancelada. Reintenta o elige otra paquetería.",
+      );
+    } catch (error) {
+      toast.error(parseApiError(error), { id: "order-flow" });
+    }
+  };
 
   return {
     orderId,
@@ -352,6 +419,9 @@ export const useHQOrderSubmission = ({
     isProcessingShipment,
     shipmentPhase,
     providerStatus,
+    canCancelCreation,
+    cancelCreation,
+    creationCancelled,
     shipmentError,
     clearShipmentError,
     fulfilledShipment,
