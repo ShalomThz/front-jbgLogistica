@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -21,15 +21,19 @@ import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrd
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { waitForShipmentFulfillment } from "@contexts/shipping/infrastructure/websocket/waitForShipmentFulfillment";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
 import type { HQOrderStep } from "./useHQOrderFlowForm";
 
-// The carrier generates the label asynchronously; poll the fulfill until it is
-// FULFILLED or a real error occurs (cap ~3 min so it never loops forever).
-const FULFILL_POLL_INTERVAL_MS = 4_000;
-const MAX_FULFILL_POLLS = 45;
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// The carrier generates the label asynchronously and completes it via webhook,
+// which the backend broadcasts as a domain event over socket.io. We trigger the
+// fulfill once and wait for that push (cap ~3 min so it never waits forever),
+// with an infrequent read as a backstop if the event is missed.
+const FULFILL_TIMEOUT_MS = 180_000;
+const FULFILL_BACKSTOP_INTERVAL_MS = 15_000;
+// How long the carrier may sit in `creation_waiting` (a stalled/problematic
+// state) before we offer a manual "Cancelar" in the dialog.
+const CREATION_WAITING_CANCEL_DELAY_MS = 30_000;
 
 export type ShipmentPhase = "selecting" | "fulfilling";
 
@@ -70,6 +74,7 @@ export const useHQOrderSubmission = ({
     findByOrderId,
     fulfillShipment,
     selectProvider,
+    abortShipmentCreation,
     isSelectingProvider,
     isFulfilling,
   } = useShipmentActions();
@@ -77,6 +82,39 @@ export const useHQOrderSubmission = ({
   const [shipmentError, setShipmentError] = useState<string | null>(null);
   const [shipmentPhase, setShipmentPhase] =
     useState<ShipmentPhase>("selecting");
+  // Carrier creation sub-status (e.g. "Generando la guía…"), surfaced live.
+  const [providerStatus, setProviderStatus] = useState<string | null>(null);
+  // Becomes true after the carrier sits too long in `creation_waiting`, so the
+  // dialog can offer a manual cancel.
+  const [canCancelCreation, setCanCancelCreation] = useState(false);
+  // True once the user aborted the creation, so the dialog shows a "cancelled"
+  // state instead of the generic error.
+  const [creationCancelled, setCreationCancelled] = useState(false);
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearStallTimer = () => {
+    if (stallTimerRef.current) {
+      clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    }
+  };
+
+  // Arm the manual-cancel offer while in `creation_waiting`; disarm otherwise.
+  const trackCreationProgress = (workflowStatus: string) => {
+    if (workflowStatus === "creation_waiting") {
+      if (!stallTimerRef.current) {
+        stallTimerRef.current = setTimeout(
+          () => setCanCancelCreation(true),
+          CREATION_WAITING_CANCEL_DELAY_MS,
+        );
+      }
+      return;
+    }
+    clearStallTimer();
+    setCanCancelCreation(false);
+  };
+
+  useEffect(() => clearStallTimer, []);
   const { data: orderData } = useOrder(orderId);
 
   const activeStoreId = storeId ?? user?.store.id;
@@ -229,32 +267,81 @@ export const useHQOrderSubmission = ({
 
     setIsProcessingShipment(true);
     setShipmentError(null);
-    setShipmentPhase("selecting");
+    setProviderStatus(null);
+    setCanCancelCreation(false);
+    setCreationCancelled(false);
+    clearStallTimer();
+
+    const creationFailed = (s: ShipmentPrimitives) =>
+      s.status === "PROVIDER_SELECTED" && !s.providerShipmentId;
+
     try {
-      // First select the provider.
-      const request = buildSelectProviderRequest(shipmentId, shippingService);
-      await selectProvider(request);
+      // Resume guard: if a prior attempt already fulfilled THIS shipment (a later
+      // step failed and the user retried), do NOT re-fulfill — that would cancel
+      // the valid label and mint a new tracking number. Skip to the post steps.
+      let result: ShipmentPrimitives | null =
+        fulfilledShipment?.status === "FULFILLED" &&
+        fulfilledShipment.id === shipmentId
+          ? fulfilledShipment
+          : null;
 
-      // Then poll the fulfill until the carrier finishes the label. A real
-      // error throws (-> caught below); `in_progress` just returns the shipment
-      // still not FULFILLED, so we wait and try again.
-      setShipmentPhase("fulfilling");
-      let result = await fulfillShipment(shipmentId);
-      let attempts = 0;
-      while (result.status !== "FULFILLED" && attempts < MAX_FULFILL_POLLS) {
-        await sleep(FULFILL_POLL_INTERVAL_MS);
-        result = await fulfillShipment(shipmentId);
-        attempts += 1;
+      if (!result) {
+        // First select the provider.
+        setShipmentPhase("selecting");
+        const request = buildSelectProviderRequest(shipmentId, shippingService);
+        await selectProvider(request);
+
+        // Trigger the async label creation once. The carrier completes it via
+        // webhook; we wait for the resulting domain event pushed over socket.io
+        // (with a read backstop), then confirm with an authoritative read.
+        setShipmentPhase("fulfilling");
+        let current = await fulfillShipment(shipmentId);
+
+        if (current.status !== "FULFILLED") {
+          const outcome = await waitForShipmentFulfillment(shipmentId, {
+            timeoutMs: FULFILL_TIMEOUT_MS,
+            pollIntervalMs: FULFILL_BACKSTOP_INTERVAL_MS,
+            read: () =>
+              orderId ? findByOrderId(orderId) : Promise.resolve(null),
+            onStatus: ({ description, workflowStatus }) => {
+              setProviderStatus(description);
+              trackCreationProgress(workflowStatus);
+            },
+          });
+          if (outcome === "failed") {
+            // Don't overwrite a more specific message (e.g. a manual cancel).
+            setShipmentError(
+              (prev) =>
+                prev ??
+                "La paquetería no pudo crear la guía. Revisa los datos e intenta de nuevo.",
+            );
+            return;
+          }
+          const latest = orderId ? await findByOrderId(orderId) : null;
+          if (latest) current = latest;
+        }
+
+        if (creationFailed(current)) {
+          setShipmentError(
+            "La paquetería no pudo crear la guía. Revisa los datos e intenta de nuevo.",
+          );
+          return;
+        }
+
+        if (current.status !== "FULFILLED") {
+          setShipmentError(
+            "La guía está tardando más de lo normal. Vuelve a intentarlo en unos minutos.",
+          );
+          return;
+        }
+
+        result = current;
+        // Persist now so a failure in the steps below resumes WITHOUT re-fulfilling.
+        setFulfilledShipment(result);
       }
 
-      if (result.status !== "FULFILLED") {
-        setShipmentError(
-          "La guía está tardando más de lo normal. Vuelve a intentarlo en unos minutos.",
-        );
-        return;
-      }
-
-      // Then if we have an orderId, update the order to save the signature
+      // Save the signature / mark-as-paid. A failure here surfaces the retry
+      // dialog, but the resume guard above prevents it from re-generating the guide.
       if (orderId) {
         const orderRequest = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, orderRequest);
@@ -263,10 +350,10 @@ export const useHQOrderSubmission = ({
         }
       }
 
-      setFulfilledShipment(result);
       setStep("success");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
 
+      // Best-effort inventory decrement: never blocks or fails the flow.
       const pkg = form.getValues("package");
       if (pkg.ownership === "STORE" && pkg.boxId) {
         const box = boxes.find((b) => b.id === pkg.boxId);
@@ -288,10 +375,36 @@ export const useHQOrderSubmission = ({
       setShipmentError(parseApiError(error));
     } finally {
       setIsProcessingShipment(false);
+      clearStallTimer();
+      setCanCancelCreation(false);
     }
   };
 
-  const clearShipmentError = () => setShipmentError(null);
+  const clearShipmentError = () => {
+    setShipmentError(null);
+    setCreationCancelled(false);
+  };
+
+  /** Manual cancel for a shipment stuck in `creation_waiting`: cancels at the
+   * carrier and reverts server-side; the in-flight wait then resolves to the
+   * retry state. */
+  const cancelCreation = async () => {
+    if (!shipmentId) return;
+    setCanCancelCreation(false);
+    clearStallTimer();
+    // Mark cancelled BEFORE awaiting: the abort reverts the shipment, which makes
+    // the in-flight wait resolve "failed". Setting this synchronously ensures the
+    // dialog shows the "cancelled" state, not a flash of the generic error.
+    setCreationCancelled(true);
+    setShipmentError("Creación cancelada. Reintenta o elige otra paquetería.");
+    try {
+      await abortShipmentCreation(shipmentId);
+    } catch (error) {
+      // Abort itself failed — undo the optimistic cancelled state, show the error.
+      setCreationCancelled(false);
+      setShipmentError(parseApiError(error));
+    }
+  };
 
   return {
     orderId,
@@ -308,6 +421,10 @@ export const useHQOrderSubmission = ({
     isFulfilling,
     isProcessingShipment,
     shipmentPhase,
+    providerStatus,
+    canCancelCreation,
+    cancelCreation,
+    creationCancelled,
     shipmentError,
     clearShipmentError,
     fulfilledShipment,

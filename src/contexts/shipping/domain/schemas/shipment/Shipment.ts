@@ -16,6 +16,9 @@ export const shipmentSchema = z.object({
   label: shippingLabelSchema.nullable(),
   rate: rateSchema.nullable(),
   status: z.enum(shipmentStatuses),
+  // Carrier shipment id, stamped while the label is generated asynchronously.
+  // While PROVIDER_SELECTED: set = creating (await webhook), null = creation failed.
+  providerShipmentId: z.string().nullable().default(null),
   finalPrice: moneySchema.nullable(),
   costBreakdown: costBreakdownSchema.nullable(),
   additionalData: z.record(z.string(), z.string()),

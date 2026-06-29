@@ -47,6 +47,18 @@ export const shipmentRepository = {
     return shipmentResponseSchema.parse(data);
   },
 
+  /** Aborts a shipment stuck in creation (reverts to PROVIDER_SELECTED for
+   * retry). Distinct from `cancel`, which cancels a fulfilled shipment. */
+  abortCreation: async (
+    shipmentId: string,
+  ): Promise<ShipmentResponsePrimitives> => {
+    const data = await httpClient<unknown>(
+      `/shipment/${shipmentId}/abort-creation`,
+      { method: "POST" },
+    );
+    return shipmentResponseSchema.parse(data);
+  },
+
   getRates: async (
     request: GetShipmentRatesRequest,
   ): Promise<RatePrimitives[]> => {

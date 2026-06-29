@@ -47,6 +47,11 @@ const ENTITY_CONFIG: Record<string, { label: string; gender: "m" | "f" }> = {
 
 function handleDomainEvent(event: DomainEvent) {
   const [entity, action] = event.eventName.split(".");
+
+  // Transient progress signals (e.g. shipment creation sub-status) are consumed
+  // by dedicated listeners; ignore them here (no toast, no refetch).
+  if (action === "creation_progress") return;
+
   const queryKey = EVENT_QUERY_MAP[entity];
 
   if (queryKey) {

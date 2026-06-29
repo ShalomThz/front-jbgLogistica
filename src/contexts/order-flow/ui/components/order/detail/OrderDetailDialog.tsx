@@ -30,7 +30,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, Download, FileText, Package, Pencil, Printer, Tag, Trash2 } from "lucide-react";
+import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Package, Pencil, Printer, Route, Tag, Trash2, Users } from "lucide-react";
+import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
@@ -41,6 +42,7 @@ import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumb
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { OrderFinancialSection } from "./OrderFinancialSection";
+import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 
 const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
@@ -61,6 +63,19 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 function formatMoney(money: { amount: number; currency: string }) {
   return `$${money.amount.toFixed(2)} ${money.currency}`;
+}
+
+// Mirrors the backend's Dimensions.calculateVolumetricWeight: dimensions are
+// normalized to cm (×2.54 when in inches) and divided by 5000, so the result
+// is always in kg regardless of the package's mass-weight unit.
+function volumetricWeightKg(dimensions: {
+  length: number;
+  width: number;
+  height: number;
+  unit: string;
+}) {
+  const m = dimensions.unit === "in" ? 2.54 : 1;
+  return (dimensions.length * m * (dimensions.width * m) * (dimensions.height * m)) / 5000;
 }
 
 interface OrderDetailDialogProps {
@@ -105,6 +120,13 @@ export const OrderDetailDialog = ({
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const isCompleted = order.status === "COMPLETED";
+
+  // Origin actually sent to the carrier, mirroring the backend's resolveOrigin:
+  // home pickup ships from the customer's address, otherwise from the JBG
+  // warehouse stamped on the shipment (HQ default when none was stored).
+  const shippingOrigin = order.pickupAtAddress
+    ? { name: origin.name, company: origin.company, phone: origin.phone, address: origin.address }
+    : shipment?.warehouseAddress ?? null;
   // The invoice is generated on demand from the order, so it is available
   // once the order has been priced (numbered + tariff + billed total).
   const canPrintInvoice = Boolean(
@@ -198,7 +220,14 @@ export const OrderDetailDialog = ({
         >
         {/* Header box - static */}
         <div className="shrink-0 border-b px-4 pt-8 pb-2 sm:px-6">
-        <DialogHeader>
+        <DialogHeader className="flex-row items-start gap-3 space-y-0">
+          {shipment?.provider && (
+            <CarrierLogo
+              name={shipment.provider.providerName}
+              className="size-10 shrink-0 rounded object-contain mt-0.5"
+            />
+          )}
+          <div className="min-w-0 flex-1">
           <DialogTitle className="break-words">
             Orden{" "}
             {[references.orderNumber, references.partnerOrderNumber]
@@ -226,6 +255,7 @@ export const OrderDetailDialog = ({
               </Tooltip>
             </TooltipProvider>
           </DialogDescription>
+          </div>
         </DialogHeader>
 
           <TabsList
@@ -233,7 +263,8 @@ export const OrderDetailDialog = ({
             className="mt-4 w-full justify-start overflow-x-auto"
           >
             <TabsTrigger value="resumen" className="flex-none">Resumen</TabsTrigger>
-            <TabsTrigger value="contactos" className="flex-none">Contactos</TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-none">Clientes</TabsTrigger>
+            <TabsTrigger value="ruta" className="flex-none">Ruta</TabsTrigger>
             <TabsTrigger value="paquete" className="flex-none">Paquete</TabsTrigger>
             {isCompleted && shipment && (
               <TabsTrigger value="envio" className="flex-none">Envío</TabsTrigger>
@@ -253,18 +284,21 @@ export const OrderDetailDialog = ({
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => setActiveTab("contactos")}
+                onClick={() => setActiveTab("ruta")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setActiveTab("contactos");
+                    setActiveTab("ruta");
                   }
                 }}
                 className="rounded-md border border-blue-200 bg-blue-50/60 p-3 space-y-1 cursor-pointer transition-colors hover:bg-blue-100/70 dark:border-blue-900/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
               >
-                <h4 className="text-sm font-semibold mb-2 text-blue-900 dark:text-blue-200">Ruta</h4>
-                <DetailRow label="Origen" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
-                <DetailRow label="Destino" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
+                <h4 className="flex items-center gap-1.5 text-sm font-semibold mb-2 text-blue-900 dark:text-blue-200">
+                  <Route className="size-4" />
+                  Ruta
+                </h4>
+                <DetailRow label="Remitente" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
+                <DetailRow label="Destinatario" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
                 <DetailRow label="Recolección" value={order.pickupAtAddress ? "Recolección a domicilio" : "Entregado en sucursal"} />
               </div>
 
@@ -282,6 +316,7 @@ export const OrderDetailDialog = ({
                 className="rounded-md border border-amber-200 bg-amber-50/60 p-3 space-y-1 cursor-pointer transition-colors hover:bg-amber-100/70 dark:border-amber-900/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
               >
                 <h4 className="text-sm font-semibold mb-2 text-amber-900 dark:text-amber-200">Paquete</h4>
+                <img src={boxIsometricSvg} alt="Caja" className="w-12 h-auto mb-2" />
                 <DetailRow
                   label="Dimensiones"
                   value={`${order.package.dimensions.length}×${order.package.dimensions.width}×${order.package.dimensions.height} ${order.package.dimensions.unit}`}
@@ -310,7 +345,10 @@ export const OrderDetailDialog = ({
                   isCompleted && shipment && "cursor-pointer transition-colors hover:bg-emerald-100/70 dark:hover:bg-emerald-950/40",
                 )}
               >
-                <h4 className="text-sm font-semibold mb-2 text-emerald-900 dark:text-emerald-200">Financiero</h4>
+                <h4 className="flex items-center gap-1.5 text-sm font-semibold mb-2 text-emerald-900 dark:text-emerald-200">
+                  <DollarSign className="size-4" />
+                  Financiero
+                </h4>
                 <DetailRow
                   label="Total"
                   value={financials.totalBilled ? formatMoney(financials.totalBilled) : "—"}
@@ -376,11 +414,15 @@ export const OrderDetailDialog = ({
             )}
           </TabsContent>
 
-          {/* Contactos */}
-          <TabsContent value="contactos">
+          {/* Clientes */}
+          <TabsContent value="clientes" className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <Users className="size-4 text-muted-foreground" />
+              Clientes
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Origen</h4>
+                <h4 className="text-sm font-semibold">Remitente</h4>
                 <div className="rounded-md border p-3 space-y-1">
                   <DetailRow label="Nombre" value={origin.name} />
                   {origin.customerNumber != null && (
@@ -402,7 +444,7 @@ export const OrderDetailDialog = ({
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Destino</h4>
+                <h4 className="text-sm font-semibold">Destinatario</h4>
                 <div className="rounded-md border p-3 space-y-1">
                   <DetailRow label="Nombre" value={destination.name} />
                   {destination.customerNumber != null && (
@@ -425,9 +467,84 @@ export const OrderDetailDialog = ({
             </div>
           </TabsContent>
 
+          {/* Ruta enviada a la paquetería */}
+          <TabsContent value="ruta">
+            <div className="space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Route className="size-4 text-muted-foreground" />
+                Ruta
+              </h3>
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50/60 p-3 text-sm dark:border-blue-900/50 dark:bg-blue-950/20">
+                <Info className="size-4 shrink-0 mt-0.5 text-blue-700 dark:text-blue-300" />
+                <p className="text-blue-900 dark:text-blue-200">
+                  {order.pickupAtAddress
+                    ? "Recolección a domicilio: la paquetería recoge en la dirección del cliente de origen."
+                    : "Entrega en sucursal: el paquete sale del almacén JBG, no de la dirección del cliente."}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">
+                    Origen {order.pickupAtAddress ? "(domicilio del cliente)" : "(almacén JBG)"}
+                  </h4>
+                  <div className="rounded-md border p-3 space-y-1">
+                    {shippingOrigin ? (
+                      <>
+                        <DetailRow label="Nombre" value={shippingOrigin.name} />
+                        <DetailRow label="Empresa" value={shippingOrigin.company || "—"} />
+                        <DetailRow label="Teléfono" value={shippingOrigin.phone} />
+                        <DetailRow label="Dirección" value={shippingOrigin.address.address1} />
+                        {shippingOrigin.address.address2 && (
+                          <DetailRow label="Dirección 2" value={shippingOrigin.address.address2} />
+                        )}
+                        <DetailRow
+                          label="Ciudad"
+                          value={`${shippingOrigin.address.city}, ${shippingOrigin.address.province}`}
+                        />
+                        <DetailRow label="C.P." value={shippingOrigin.address.zip} />
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Salió de la dirección por defecto de JBG (configuración de HQ).
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Destino</h4>
+                  <div className="rounded-md border p-3 space-y-1">
+                    <DetailRow label="Nombre" value={destination.name} />
+                    <DetailRow label="Empresa" value={destination.company || "—"} />
+                    <DetailRow label="Teléfono" value={destination.phone} />
+                    <DetailRow label="Dirección" value={destination.address.address1} />
+                    {destination.address.address2 && (
+                      <DetailRow label="Dirección 2" value={destination.address.address2} />
+                    )}
+                    <DetailRow
+                      label="Ciudad"
+                      value={`${destination.address.city}, ${destination.address.province}`}
+                    />
+                    <DetailRow label="C.P." value={destination.address.zip} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
           {/* Paquete */}
           <TabsContent value="paquete">
             <div className="space-y-2">
+              <div className="flex flex-col items-center justify-center gap-2 rounded-lg border bg-muted/30 py-6">
+                <img src={boxIsometricSvg} alt="Caja" className="w-32 h-auto" />
+                <p className="text-sm text-muted-foreground">
+                  {boxes.find((b) => b.id === order.package.boxId)?.name ?? "Caja"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {order.package.dimensions.length} × {order.package.dimensions.width} × {order.package.dimensions.height} {order.package.dimensions.unit}
+                </p>
+              </div>
               <h4 className="text-sm font-semibold">Detalle del paquete</h4>
               <div className="rounded-md border p-3 space-y-1">
                 <DetailRow label="Caja" value={boxes.find(b => b.id === order.package.boxId)?.name ?? order.package.boxId} />
@@ -438,6 +555,10 @@ export const OrderDetailDialog = ({
                 <DetailRow
                   label="Peso"
                   value={`${order.package.weight.value} ${order.package.weight.unit}`}
+                />
+                <DetailRow
+                  label="Peso volumétrico"
+                  value={`${volumetricWeightKg(order.package.dimensions).toFixed(2)} kg`}
                 />
                 <DetailRow
                   label="Propiedad"
@@ -482,7 +603,11 @@ export const OrderDetailDialog = ({
 
           {/* Financiero */}
           {isCompleted && shipment && (
-            <TabsContent value="financiero">
+            <TabsContent value="financiero" className="space-y-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <DollarSign className="size-4 text-muted-foreground" />
+                Financiero
+              </h3>
               <OrderFinancialSection
                 rate={shipment.rate}
                 costBreakdown={shipment.costBreakdown}

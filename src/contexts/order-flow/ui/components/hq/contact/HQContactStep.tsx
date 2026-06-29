@@ -8,7 +8,7 @@ interface HQContactStepProps {
 
 export function HQContactStep({ selectedStoreId, onStoreChange }: HQContactStepProps = {}) {
   return (
-    <div className="flex-1 min-h-0 overflow-auto space-y-6">
+    <div className="flex-1 min-h-0 overflow-auto space-y-6 p-2">
       <OrderReferencesCard selectedStoreId={selectedStoreId} onStoreChange={onStoreChange} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
