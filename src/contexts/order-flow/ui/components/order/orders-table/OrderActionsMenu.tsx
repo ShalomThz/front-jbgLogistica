@@ -7,7 +7,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@contexts/shared/shadcn";
-import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
+import {
+  availableLabelOptions,
+  type LabelSource,
+} from "@contexts/shipping/ui/labels/labelOptions";
 import { MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
 
 interface OrderActionsMenuProps {
@@ -17,7 +20,7 @@ interface OrderActionsMenuProps {
   canDelete: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
-  onPrintLabel: (order: OrderListView, variant: LabelVariant) => void;
+  onPrintLabel: (order: OrderListView, source: LabelSource) => void;
   onPrintInvoice: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
@@ -75,26 +78,18 @@ export const OrderActionsMenu = ({
         {(order.shipment?.label || canPrintInvoice) && (
           <>
             <DropdownMenuSeparator />
-            {order.shipment?.label && (
-              <>
+            {order.shipment?.label &&
+              availableLabelOptions(order.shipment.label).map((option) => (
                 <DropdownMenuItem
-                  className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+                  key={option.id}
+                  className={option.className}
                   disabled={downloadingLabel === order.id}
-                  onClick={() => onPrintLabel(order, "cargo")}
+                  onClick={() => onPrintLabel(order, option.source)}
                 >
                   <Printer className="size-4" />
-                  Imprimir etiqueta JBG Cargo
+                  Imprimir {option.title}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
-                  disabled={downloadingLabel === order.id}
-                  onClick={() => onPrintLabel(order, "agente")}
-                >
-                  <Printer className="size-4" />
-                  Imprimir etiqueta JBG Agente
-                </DropdownMenuItem>
-              </>
-            )}
+              ))}
             {canPrintInvoice && (
               <DropdownMenuItem
                 disabled={downloadingInvoice === order.id}

@@ -34,8 +34,12 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { toast } from "sonner";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
-import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
+import {
+  availableLabelOptions,
+  downloadLabel,
+  printLabel,
+  type LabelSource,
+} from "@contexts/shipping/ui/labels/labelOptions";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { FileText } from "lucide-react";
 
@@ -93,39 +97,27 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
     }
   };
 
-  const handleDownloadLabel = async (variant: LabelVariant) => {
+  const handleDownloadLabel = async (source: LabelSource) => {
     if (!label) return;
-    if (label.documentUrl && !label.documentUrl.startsWith("/")) {
-      window.open(label.documentUrl, "_blank");
-      return;
-    }
     setIsDownloading(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id, variant);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `etiqueta-${label.trackingNumber}-${variant}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const suffix = source.kind === "render" ? source.variant : "transportista";
+      await downloadLabel(
+        shipment.id,
+        label,
+        source,
+        `etiqueta-${label.trackingNumber}-${suffix}.pdf`,
+      );
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const handlePrintLabel = async (variant: LabelVariant) => {
+  const handlePrintLabel = async (source: LabelSource) => {
     if (!label) return;
-    if (label.documentUrl && !label.documentUrl.startsWith("/")) {
-      const printWindow = window.open(label.documentUrl, "_blank");
-      printWindow?.print();
-      return;
-    }
     setIsDownloading(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id, variant);
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-      printWindow?.addEventListener("load", () => printWindow.print());
+      await printLabel(shipment.id, label, source);
     } finally {
       setIsDownloading(false);
     }
@@ -376,20 +368,16 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-                onClick={() => handleDownloadLabel("cargo")}
-              >
-                <Download className="size-4" />
-                JBG Cargo
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
-                onClick={() => handleDownloadLabel("agente")}
-              >
-                <Download className="size-4" />
-                JBG Agente
-              </DropdownMenuItem>
+              {availableLabelOptions(label).map((option) => (
+                <DropdownMenuItem
+                  key={option.id}
+                  className={option.className}
+                  onClick={() => handleDownloadLabel(option.source)}
+                >
+                  <Download className="size-4" />
+                  {option.title}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
           <DropdownMenu>
@@ -405,20 +393,16 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-                onClick={() => handlePrintLabel("cargo")}
-              >
-                <Printer className="size-4" />
-                JBG Cargo
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
-                onClick={() => handlePrintLabel("agente")}
-              >
-                <Printer className="size-4" />
-                JBG Agente
-              </DropdownMenuItem>
+              {availableLabelOptions(label).map((option) => (
+                <DropdownMenuItem
+                  key={option.id}
+                  className={option.className}
+                  onClick={() => handlePrintLabel(option.source)}
+                >
+                  <Printer className="size-4" />
+                  {option.title}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -4,7 +4,7 @@ import {
   ORDER_STATUS_VARIANT,
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { Badge } from "@contexts/shared/shadcn";
-import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
+import type { LabelSource } from "@contexts/shipping/ui/labels/labelOptions";
 import { CurrencyAmount } from "./CurrencyAmount";
 import { OrderActionsMenu } from "./OrderActionsMenu";
 import { OrderPaymentControl } from "./OrderPaymentControl";
@@ -18,7 +18,7 @@ interface OrderCardProps {
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   onOpenDetail: (order: OrderListView) => void;
-  onPrintLabel: (order: OrderListView, variant: LabelVariant) => void;
+  onPrintLabel: (order: OrderListView, source: LabelSource) => void;
   onPrintInvoice: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;

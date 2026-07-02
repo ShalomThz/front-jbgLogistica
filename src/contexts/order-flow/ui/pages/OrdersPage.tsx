@@ -17,8 +17,10 @@ import {
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useShipmentActions } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
-import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
-import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
+import {
+  printLabel,
+  type LabelSource,
+} from "@contexts/shipping/ui/labels/labelOptions";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
@@ -82,22 +84,13 @@ export const OrdersPage = () => {
 
   const handlePrintLabel = async (
     order: OrderListView,
-    variant: LabelVariant,
+    source: LabelSource,
   ) => {
     const shipment = order.shipment;
     if (!shipment?.label) return;
     setDownloadingLabel(order.id);
     try {
-      const label = shipment.label;
-      if (label.documentUrl && !label.documentUrl.startsWith("/")) {
-        const printWindow = window.open(label.documentUrl, "_blank");
-        printWindow?.print();
-        return;
-      }
-      const blob = await shipmentRepository.getLabel(shipment.id, variant);
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-      printWindow?.addEventListener("load", () => printWindow.print());
+      await printLabel(shipment.id, shipment.label, source);
     } finally {
       setDownloadingLabel(null);
     }
