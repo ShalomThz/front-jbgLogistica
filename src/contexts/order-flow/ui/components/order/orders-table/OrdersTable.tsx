@@ -6,6 +6,10 @@ import {
 import {
   Badge,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Table,
   TableBody,
   TableCell,
@@ -16,7 +20,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
+import {
+  availableLabelOptionsByGroup,
+  type LabelSource,
+} from "@contexts/shipping/ui/labels/labelOptions";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { Printer } from "lucide-react";
 import { TotalBilledCell } from "./TotalBilledCell";
@@ -34,7 +41,7 @@ interface OrdersTableProps {
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   onOpenDetail: (order: OrderListView) => void;
-  onPrintLabel: (order: OrderListView, variant: LabelVariant) => void;
+  onPrintLabel: (order: OrderListView, source: LabelSource) => void;
   onPrintInvoice: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
@@ -208,19 +215,39 @@ export const OrdersTable = ({
                   <TableCell className="hidden sm:table-cell text-xs">
                     <div className="flex items-center gap-1">
                       {order.shipment?.label && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 shrink-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                          disabled={downloadingLabel === order.id}
-                          title="Imprimir etiqueta JBG Cargo"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onPrintLabel(order, "cargo");
-                          }}
-                        >
-                          <Printer className="size-3.5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-6 shrink-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                              disabled={downloadingLabel === order.id}
+                              title="Imprimir etiqueta JBG Cargo"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Printer className="size-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {availableLabelOptionsByGroup(
+                              order.shipment.label,
+                              "cargo",
+                            ).map((option) => (
+                              <DropdownMenuItem
+                                key={option.id}
+                                className={option.className}
+                                disabled={downloadingLabel === order.id}
+                                onClick={() => onPrintLabel(order, option.source)}
+                              >
+                                <Printer className="size-4" />
+                                Imprimir {option.title}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <span>{order.references.orderNumber ?? "—"}</span>
                     </div>
@@ -228,19 +255,39 @@ export const OrdersTable = ({
                   <TableCell className="hidden lg:table-cell text-xs">
                     <div className="flex items-center gap-1">
                       {order.shipment?.label && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 shrink-0 text-orange-600 hover:bg-orange-100 hover:text-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
-                          disabled={downloadingLabel === order.id}
-                          title="Imprimir etiqueta JBG Agente"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onPrintLabel(order, "agente");
-                          }}
-                        >
-                          <Printer className="size-3.5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-6 shrink-0 text-orange-600 hover:bg-orange-100 hover:text-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
+                              disabled={downloadingLabel === order.id}
+                              title="Imprimir etiqueta JBG Agente"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Printer className="size-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {availableLabelOptionsByGroup(
+                              order.shipment.label,
+                              "agente",
+                            ).map((option) => (
+                              <DropdownMenuItem
+                                key={option.id}
+                                className={option.className}
+                                disabled={downloadingLabel === order.id}
+                                onClick={() => onPrintLabel(order, option.source)}
+                              >
+                                <Printer className="size-4" />
+                                Imprimir {option.title}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <span>{order.references.partnerOrderNumber ?? "—"}</span>
                     </div>

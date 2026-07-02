@@ -4,8 +4,12 @@ import {
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
-import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
-import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
+import {
+  availableLabelOptions,
+  downloadLabel as downloadLabelPdf,
+  printLabel as printLabelPdf,
+  type LabelSource,
+} from "@contexts/shipping/ui/labels/labelOptions";
 import { CancelShipmentDialog } from "../CancelShipmentDialog";
 import {
   Button,
@@ -32,7 +36,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Package, Pencil, Printer, Route, Tag, Trash2, Users } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
@@ -155,21 +159,17 @@ export const OrderDetailDialog = ({
     }
   };
 
-  const downloadLabel = async (variant: LabelVariant) => {
+  const downloadLabel = async (source: LabelSource) => {
     if (!shipment?.label) return;
-    if (shipment.label.documentUrl && !shipment.label.documentUrl.startsWith("/")) {
-      window.open(shipment.label.documentUrl, "_blank");
-      return;
-    }
     setIsDownloadingLabel(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id, variant);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `etiqueta-${order.id}-${variant}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const suffix = source.kind === "render" ? source.variant : "transportista";
+      await downloadLabelPdf(
+        shipment.id,
+        shipment.label,
+        source,
+        `etiqueta-${order.id}-${suffix}.pdf`,
+      );
     } finally {
       setIsDownloadingLabel(false);
     }
@@ -187,19 +187,11 @@ export const OrderDetailDialog = ({
     }
   };
 
-  const printLabel = async (variant: LabelVariant) => {
+  const printLabel = async (source: LabelSource) => {
     if (!shipment?.label) return;
-    if (shipment.label.documentUrl && !shipment.label.documentUrl.startsWith("/")) {
-      const printWindow = window.open(shipment.label.documentUrl, "_blank");
-      printWindow?.print();
-      return;
-    }
     setIsDownloadingLabel(true);
     try {
-      const blob = await shipmentRepository.getLabel(shipment.id, variant);
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-      printWindow?.addEventListener("load", () => printWindow.print());
+      await printLabelPdf(shipment.id, shipment.label, source);
     } finally {
       setIsDownloadingLabel(false);
     }
@@ -635,41 +627,28 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  JBG Cargo
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-                  onClick={() => downloadLabel("cargo")}
-                >
-                  <Download className="size-4" />
-                  Descargar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-                  onClick={() => printLabel("cargo")}
-                >
-                  <Printer className="size-4" />
-                  Imprimir
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  JBG Agente
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
-                  onClick={() => downloadLabel("agente")}
-                >
-                  <Download className="size-4" />
-                  Descargar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="bg-orange-50 text-orange-700 focus:bg-orange-100 focus:text-orange-800 dark:bg-orange-950/30 dark:text-orange-400 dark:focus:bg-orange-950/50"
-                  onClick={() => printLabel("agente")}
-                >
-                  <Printer className="size-4" />
-                  Imprimir
-                </DropdownMenuItem>
+                {availableLabelOptions(shipment.label).map((option, index) => (
+                  <Fragment key={option.id}>
+                    {index > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      {option.title}
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem
+                      className={option.className}
+                      onClick={() => downloadLabel(option.source)}
+                    >
+                      <Download className="size-4" />
+                      Descargar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className={option.className}
+                      onClick={() => printLabel(option.source)}
+                    >
+                      <Printer className="size-4" />
+                      Imprimir
+                    </DropdownMenuItem>
+                  </Fragment>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
