@@ -3,6 +3,8 @@ import { useWebSocketEvents } from "@contexts/shared/infrastructure/websocket/us
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { CustomerLayout, DashboardLayout } from "@contexts/shared/ui/layouts";
 import { routes } from "@contexts/shared/ui/router";
+import { Button } from "@contexts/shared/shadcn/components";
+import { LogOut } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation, useRoutes } from "react-router-dom";
 
@@ -17,7 +19,7 @@ function App() {
   const routeElement = useRoutes(routes);
   const isPublicTrackingRoute = location.pathname.startsWith("/tracking/");
 
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   if (isLoading) {
     return (
@@ -53,6 +55,10 @@ function App() {
         <p className="text-muted-foreground">
           Las rutas de entrega se gestionan desde la aplicación JBG Drivers.
         </p>
+        <Button variant="outline" onClick={() => logout()}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar sesión
+        </Button>
       </div>
     );
   }
