@@ -6,8 +6,15 @@ import { routeStopSchema } from "./RouteStop";
 
 const statuses = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"] as const;
 
+/**
+ * DELIVERY — entrega de paquetes en el domicilio destino.
+ * PICKING  — recolección a domicilio (solo flota JBG).
+ */
+const routeTypes = ["DELIVERY", "PICKING"] as const;
+
 export const routeSchema = z.object({
   id: z.string(),
+  type: z.enum(routeTypes).default("DELIVERY"),
   origin: geolocationSchema,
   driverId: z.string(),
   stops: z.array(routeStopSchema),
@@ -17,5 +24,6 @@ export const routeSchema = z.object({
   ...aggregateRootSchema.shape,
 });
 
+export type RouteType = z.infer<typeof routeSchema.shape.type>;
 export type RouteStatus = z.infer<typeof routeSchema.shape.status>;
 export type RoutePrimitives = z.infer<typeof routeSchema>;

@@ -28,6 +28,8 @@ import { useHQSettings } from "@contexts/settings/infrastructure/hooks/useSkydro
 import { useAlreadyRoutedDriverIds } from "@contexts/shipping/infrastructure/hooks/routes/useRoutes";
 import type { CreateRouteRequest } from "../../../application/route/CreateRouteRequest";
 import type { DriverListViewPrimitives } from "../../../domain/schemas/driver/DriverListView";
+import type { RouteType } from "../../../domain/schemas/route/Route";
+import { HomePickupOrderPicker } from "../picking-route/HomePickupOrderPicker";
 import { OriginMapPicker, type OriginPickerValue } from "./OriginMapPicker";
 import { OrderPicker } from "./OrderPicker";
 
@@ -52,6 +54,8 @@ interface Props {
   drivers: DriverListViewPrimitives[];
   isLoading: boolean;
   alreadyRoutedShipmentIds?: Set<string>;
+  /** DELIVERY (entrega) o PICKING (recolección a domicilio) */
+  routeType?: RouteType;
 }
 
 export const CreateRouteDialog = ({
@@ -61,6 +65,7 @@ export const CreateRouteDialog = ({
   drivers,
   isLoading,
   alreadyRoutedShipmentIds,
+  routeType = "DELIVERY",
 }: Props) => {
   const [step, setStep] = useState<Step>(1);
   const [driverId, setDriverId] = useState("");
@@ -105,9 +110,12 @@ export const CreateRouteDialog = ({
         placeId: origin.placeId,
       },
       shipmentIds,
+      type: routeType,
     });
     reset();
   };
+
+  const isPicking = routeType === "PICKING";
 
   const canAdvance =
     (step === 1 && !!driverId) ||
@@ -120,12 +128,18 @@ export const CreateRouteDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Truck className="size-5 text-primary" />
-            Crear nueva ruta
+            {isPicking ? "Crear ruta de recolección" : "Crear nueva ruta"}
           </DialogTitle>
           <DialogDescription>
-            {step === 1 && "Selecciona el conductor que realizará las entregas."}
+            {step === 1 &&
+              (isPicking
+                ? "Selecciona el conductor que recolectará los paquetes a domicilio."
+                : "Selecciona el conductor que realizará las entregas.")}
             {step === 2 && "Define el punto de salida: busca una dirección o haz clic en el mapa."}
-            {step === 3 && "Elige las órdenes con envío FULFILLED para incluir en esta ruta (opcional)."}
+            {step === 3 &&
+              (isPicking
+                ? "Elige las órdenes \"aplica recolección a domicilio\" por recolectar (opcional)."
+                : "Elige las órdenes con envío FULFILLED para incluir en esta ruta (opcional).")}
           </DialogDescription>
         </DialogHeader>
 
@@ -317,7 +331,15 @@ export const CreateRouteDialog = ({
         {/* Step 3: Order picker — only mounts here, lazy-loads network call */}
         {step === 3 && (
           <div className="py-1 min-h-[300px]">
-            <OrderPicker selectedShipmentIds={shipmentIds} onChange={setShipmentIds} excludedShipmentIds={alreadyRoutedShipmentIds} />
+            {isPicking ? (
+              <HomePickupOrderPicker
+                selectedShipmentIds={shipmentIds}
+                onChange={setShipmentIds}
+                excludedShipmentIds={alreadyRoutedShipmentIds}
+              />
+            ) : (
+              <OrderPicker selectedShipmentIds={shipmentIds} onChange={setShipmentIds} excludedShipmentIds={alreadyRoutedShipmentIds} />
+            )}
           </div>
         )}
 
@@ -384,7 +406,7 @@ export const CreateRouteDialog = ({
                 ) : (
                   <>
                     <Check className="size-3.5" />
-                    Crear ruta
+                    {isPicking ? "Crear ruta de recolección" : "Crear ruta"}
                   </>
                 )}
               </Button>

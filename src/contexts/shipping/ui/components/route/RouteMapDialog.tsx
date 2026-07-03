@@ -8,9 +8,40 @@ import {
   DialogTitle,
   Separator,
 } from "@contexts/shared/shadcn";
-import { Clock, MapPinned, Navigation } from "lucide-react";
+import { Clock, ExternalLink, MapPinned, Navigation } from "lucide-react";
 import type { RoutePrimitives } from "../../../domain/schemas/route/Route";
 import { RouteMap } from "./RouteMap";
+
+/**
+ * Deep link to Google Maps directions following the current stop order:
+ * origin → intermediate stops → last stop. Works without any API key and
+ * opens turn-by-turn navigation on mobile.
+ */
+function buildGoogleMapsUrl(route: RoutePrimitives): string {
+  const coord = (lat: number, lng: number) => `${lat},${lng}`;
+  const origin = coord(route.origin.latitude, route.origin.longitude);
+
+  const stops = [...route.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+  if (stops.length === 0) {
+    return `https://www.google.com/maps/search/?api=1&query=${origin}`;
+  }
+
+  const points = stops.map((s) =>
+    coord(s.address.geolocation.latitude, s.address.geolocation.longitude),
+  );
+  const destination = points[points.length - 1];
+  const waypoints = points.slice(0, -1).join("|");
+
+  const params = new URLSearchParams({
+    api: "1",
+    origin,
+    destination,
+    travelmode: "driving",
+  });
+  if (waypoints) params.set("waypoints", waypoints);
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
 
 
 const STOP_STATUS_LABELS: Record<string, string> = {
@@ -58,7 +89,11 @@ export const RouteMapDialog = ({ open, onClose, route }: RouteMapDialogProps) =>
                   <span>{route.stops.length} paradas</span>
                 </>
               ) : (
-                <span>Optimiza la ruta para ver distancia y tiempo estimados.</span>
+                <span>
+                  {route?.stops.length
+                    ? "Ruta sin optimizar — se muestra el orden actual de paradas."
+                    : "Agrega paradas para trazar la ruta."}
+                </span>
               )}
             </div>
           </DialogDescription>
@@ -66,17 +101,24 @@ export const RouteMapDialog = ({ open, onClose, route }: RouteMapDialogProps) =>
 
         <Separator />
 
-        {/* Map area — takes remaining vertical space */}
+        {/* Map area — takes remaining vertical space. Leaflet/OSM renders the
+            stops even without optimizing; the optimized polyline appears when
+            mapsMetadata exists. */}
         <div className="relative min-h-0 flex-1">
-          {!route?.mapsMetadata ? (
+          {route ? (
+            <>
+              <RouteMap route={route} />
+              {!route.mapsMetadata && route.stops.length > 0 && (
+                <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-full border border-amber-300 bg-amber-50/95 px-3 py-1 text-xs font-medium text-amber-700 shadow-sm">
+                  Sin optimizar — trazado en línea recta
+                </div>
+              )}
+            </>
+          ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
               <MapPinned className="size-10 opacity-40" />
-              <p className="text-sm">
-                Optimiza la ruta primero para ver el trazado en el mapa.
-              </p>
+              <p className="text-sm">Selecciona una ruta para ver el mapa.</p>
             </div>
-          ) : (
-            <RouteMap route={route} />
           )}
         </div>
 
@@ -112,9 +154,21 @@ export const RouteMapDialog = ({ open, onClose, route }: RouteMapDialogProps) =>
           </div>
         )}
 
-        {/* Footer close button */}
-        <div className="shrink-0 border-t px-6 py-3">
-          <Button variant="outline" onClick={onClose} className="w-full">
+        {/* Footer — open in Google Maps (no API key needed) + close */}
+        <div className="flex shrink-0 gap-2 border-t px-6 py-3">
+          {route && (
+            <Button asChild variant="default" className="flex-1 gap-1.5">
+              <a
+                href={buildGoogleMapsUrl(route)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="size-4" />
+                Abrir en Google Maps
+              </a>
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose} className="flex-1">
             Cerrar
           </Button>
         </div>

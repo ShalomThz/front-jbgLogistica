@@ -233,6 +233,7 @@ export const DeliveryRoutesPage = () => {
         },
         driverId: selectedDriverId,
         shipmentIds: selectedShipmentIds,
+        type: "DELIVERY",
       });
 
       toast.success("Ruta creada correctamente.");

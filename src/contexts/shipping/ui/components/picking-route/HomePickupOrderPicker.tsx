@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Badge, Button, Checkbox, Input } from "@contexts/shared/shadcn";
-import { Eye, MapPinOff, Package, Search } from "lucide-react";
+import { Eye, MapPinOff, PackageOpen, Search } from "lucide-react";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
 import { needsGeolocationVerification } from "@contexts/shipping/domain/services/shipmentAddressVerification";
+import { useHomePickupOrders } from "@contexts/shipping/infrastructure/hooks/routes/useHomePickupOrders";
 import { useAlreadyRoutedShipmentIds } from "@contexts/shipping/infrastructure/hooks/routes/useRoutes";
 import { ShipmentGeolocationFillerDialog } from "../route/ShipmentGeolocationFillerDialog";
 
@@ -14,19 +14,24 @@ interface Props {
   excludedShipmentIds?: Set<string>;
 }
 
-export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds }: Props) => {
+/**
+ * Lista las órdenes "aplica recolección a domicilio" (flota JBG, envío
+ * FULFILLED, sin ruta activa) para armar una ruta de recolección.
+ * Muestra la dirección del remitente: ahí se recoge el paquete.
+ */
+export const HomePickupOrderPicker = ({
+  selectedShipmentIds,
+  onChange,
+  excludedShipmentIds,
+}: Props) => {
   const [search, setSearch] = useState("");
   const [detailOrder, setDetailOrder] = useState<OrderListView | null>(null);
   const [fillerOrder, setFillerOrder] = useState<OrderListView | null>(null);
 
   const alreadyRoutedIds = useAlreadyRoutedShipmentIds();
+  const { orders: pickupOrdersRaw, isLoading } = useHomePickupOrders();
 
-  const { orders: fulfilledRaw, isLoading } = useOrders({
-    filters: [{ field: "shipment.status", filterOperator: "=", value: "FULFILLED" }],
-    limit: 100,
-  });
-
-  const fulfilled = fulfilledRaw.filter((o) => {
+  const pickupOrders = pickupOrdersRaw.filter((o) => {
     if (!o.shipment) return false;
     if (alreadyRoutedIds.has(o.shipment.id)) return false;
     if (excludedShipmentIds?.has(o.shipment.id)) return false;
@@ -34,20 +39,22 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
   });
 
   const filtered = search.trim()
-    ? fulfilled.filter((o) => {
+    ? pickupOrders.filter((o) => {
         const q = search.toLowerCase();
         const tracking = o.shipment?.label?.trackingNumber?.toLowerCase() ?? "";
         const orderNum = (o.references.orderNumber ?? "").toLowerCase();
         const partner = (o.references.partnerOrderNumber ?? "").toLowerCase();
-        const dest = o.destination.name.toLowerCase();
+        const sender = o.origin.name.toLowerCase();
+        const city = o.origin.address.city.toLowerCase();
         return (
           tracking.includes(q) ||
           orderNum.includes(q) ||
           partner.includes(q) ||
-          dest.includes(q)
+          sender.includes(q) ||
+          city.includes(q)
         );
       })
-    : fulfilled;
+    : pickupOrders;
 
   const toggle = (shipmentId: string) => {
     onChange(
@@ -57,21 +64,21 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
     );
   };
 
-  // Orders without a routable destination cannot be selected until verified
+  // Orders whose sender address has no coordinates must be verified first
   const selectable = filtered.filter(
-    (o) => !needsGeolocationVerification(o, "DELIVERY"),
+    (o) => !needsGeolocationVerification(o, "PICKUP"),
   );
 
   const toggleAll = () => {
     const allIds = selectable.map((o) => o.shipment!.id).filter(Boolean);
-    onChange(
-      selectedShipmentIds.length === allIds.length ? [] : allIds,
-    );
+    onChange(selectedShipmentIds.length === allIds.length ? [] : allIds);
   };
 
   const allSelected =
     selectable.length > 0 &&
-    selectable.every((o) => o.shipment && selectedShipmentIds.includes(o.shipment.id));
+    selectable.every(
+      (o) => o.shipment && selectedShipmentIds.includes(o.shipment.id),
+    );
 
   return (
     <>
@@ -80,7 +87,7 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar por destino, n° factura o guía…"
+            placeholder="Buscar por remitente, ciudad, n° factura o guía…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -90,21 +97,30 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
         {/* List */}
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center py-12 text-sm text-muted-foreground">
-            Cargando órdenes listas para despachar…
+            Cargando órdenes con recolección a domicilio…
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-            <Package className="size-9 opacity-25" />
+            <PackageOpen className="size-9 opacity-25" />
             <p className="text-sm font-medium">
-              {fulfilledRaw.length === 0
-                ? "No hay órdenes con envío FULFILLED"
-                : fulfilled.length === 0
-                ? "Todas las órdenes FULFILLED ya están en otra ruta"
+              {pickupOrdersRaw.length === 0
+                ? "No hay órdenes con recolección a domicilio pendientes"
+                : pickupOrders.length === 0
+                ? "Todas las órdenes por recolectar ya están en otra ruta"
                 : "Sin resultados para esa búsqueda"}
             </p>
+            {pickupOrdersRaw.length === 0 && (
+              <p className="text-xs text-center max-w-xs">
+                Solo aplican órdenes marcadas "aplica recolección a domicilio"
+                con envío FULFILLED de la flota JBG.
+              </p>
+            )}
           </div>
         ) : (
-          <div className="flex flex-col gap-2 overflow-y-auto min-h-0" style={{ maxHeight: "380px" }}>
+          <div
+            className="flex flex-col gap-2 overflow-y-auto min-h-0"
+            style={{ maxHeight: "380px" }}
+          >
             {/* Select-all header */}
             <div
               className="flex items-center gap-2.5 rounded-md border bg-muted/30 px-3 py-2 cursor-pointer select-none hover:bg-muted/50 transition-colors"
@@ -116,12 +132,13 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
               </span>
               {selectedShipmentIds.length > 0 && (
                 <span className="ml-auto text-xs text-primary font-medium">
-                  {selectedShipmentIds.length} seleccionado{selectedShipmentIds.length !== 1 ? "s" : ""}
+                  {selectedShipmentIds.length} seleccionado
+                  {selectedShipmentIds.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
 
-            {/* Order rows */}
+            {/* Order rows — the pickup point is the sender's address */}
             {filtered.map((order) => {
               const shipmentId = order.shipment!.id;
               const isSelected = selectedShipmentIds.includes(shipmentId);
@@ -130,8 +147,7 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
                 order.references.orderNumber ??
                 order.references.partnerOrderNumber ??
                 order.id.slice(0, 10).toUpperCase();
-              const provider = order.shipment?.provider?.providerName;
-              const needsGeo = needsGeolocationVerification(order, "DELIVERY");
+              const needsGeo = needsGeolocationVerification(order, "PICKUP");
 
               return (
                 <div
@@ -144,7 +160,6 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
                       : "hover:bg-muted/40"
                   }`}
                 >
-                  {/* Checkbox — clicking anywhere on the row toggles */}
                   <div
                     className={`flex items-center ${needsGeo ? "opacity-40" : "cursor-pointer"}`}
                     onClick={() => !needsGeo && toggle(shipmentId)}
@@ -152,20 +167,20 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
                     <Checkbox checked={isSelected} disabled={needsGeo} />
                   </div>
 
-                  {/* Order info — clicking toggles too */}
                   <div
                     className={`flex-1 min-w-0 ${needsGeo ? "" : "cursor-pointer"}`}
                     onClick={() => !needsGeo && toggle(shipmentId)}
                   >
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold">
-                        {order.destination.name}
+                        {order.origin.name}
                       </span>
-                      {provider && (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                          {provider}
-                        </Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] h-4 px-1.5 border-amber-300 text-amber-700"
+                      >
+                        Recolección
+                      </Badge>
                       {needsGeo && (
                         <Badge
                           variant="outline"
@@ -185,14 +200,14 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
                           · Guía: <span className="font-mono">{tracking}</span>
                         </span>
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        · {order.destination.address.city},{" "}
-                        {order.destination.address.province}
-                      </span>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      Recoger en: {order.origin.address.address1},{" "}
+                      {order.origin.address.city},{" "}
+                      {order.origin.address.province}
+                    </p>
                   </div>
 
-                  {/* Actions */}
                   {needsGeo && (
                     <Button
                       type="button"
@@ -235,12 +250,12 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
         onClose={() => setDetailOrder(null)}
       />
 
-      {/* Geolocation filler for orders captured without the map picker */}
+      {/* Geolocation filler for senders captured without the map picker */}
       <ShipmentGeolocationFillerDialog
         order={fillerOrder}
         open={!!fillerOrder}
         onClose={() => setFillerOrder(null)}
-        kind="DELIVERY"
+        kind="PICKUP"
       />
     </>
   );
