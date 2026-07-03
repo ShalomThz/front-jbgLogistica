@@ -25,7 +25,7 @@ import {
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
-import { Printer } from "lucide-react";
+import { MapPin, Printer } from "lucide-react";
 import { TotalBilledCell } from "./TotalBilledCell";
 import { TotalShippingCell } from "./TotalShippingCell";
 import { OrderActionsMenu } from "./OrderActionsMenu";
@@ -100,6 +100,7 @@ export const OrdersTable = ({
             <TableRow>
               <TableHead className="hidden md:table-cell">Creado por</TableHead>
               <TableHead>Compañía</TableHead>
+              <TableHead className="hidden md:table-cell">Rastreo</TableHead>
               <TableHead className="hidden md:table-cell">Cliente</TableHead>
               <TableHead className="hidden md:table-cell">Destinatario</TableHead>
               <TableHead className="hidden md:table-cell">Destino</TableHead>
@@ -117,7 +118,7 @@ export const OrdersTable = ({
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={13}
+                  colSpan={14}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No se encontraron órdenes.
@@ -166,6 +167,22 @@ export const OrdersTable = ({
                         </div>
                       </div>
                     </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-xs">
+                    {order.shipment?.label?.trackingUrl ? (
+                      <a
+                        href={order.shipment.label.trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:underline dark:text-blue-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MapPin className="size-3.5" />
+                        Ver rastreo
+                      </a>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div>
