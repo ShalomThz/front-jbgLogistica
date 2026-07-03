@@ -16,6 +16,7 @@ import {
   Clock,
   MapPin,
   Navigation,
+  PackageOpen,
   Plus,
   RefreshCw,
   Route,
@@ -29,7 +30,7 @@ import { parseApiError } from "../../../shared/infrastructure/http";
 import type { CreateRouteRequest } from "../../application/route/CreateRouteRequest";
 import type { RouteResponsePrimitives } from "../../application/route/RouteResponse";
 import type { DriverListViewPrimitives } from "../../domain/schemas/driver/DriverListView";
-import type { RouteStatus } from "../../domain/schemas/route/Route";
+import type { RouteStatus, RouteType } from "../../domain/schemas/route/Route";
 import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
 import { useRoutes } from "../../infrastructure/hooks/routes/useRoutes";
 import { CreateRouteDialog } from "../components/delivery-route/CreateRouteDialog";
@@ -63,6 +64,35 @@ const TAB_LABELS: Record<Tab, string> = {
   ACTIVE: "Activas",
   COMPLETED: "Completadas",
   CANCELLED: "Canceladas",
+};
+
+/** Copy that differs between delivery and picking (recolección) modules */
+const ROUTE_TYPE_COPY: Record<
+  RouteType,
+  {
+    tabLabel: string;
+    subtitle: string;
+    newButton: string;
+    stopsDoneLabel: string;
+    emptyHint: string;
+  }
+> = {
+  DELIVERY: {
+    tabLabel: "Rutas de entrega",
+    subtitle:
+      "Planifica rutas, asigna conductores y monitorea el progreso de cada entrega.",
+    newButton: "Nueva ruta de entrega",
+    stopsDoneLabel: "entregadas",
+    emptyHint: "Crear primera ruta de entrega",
+  },
+  PICKING: {
+    tabLabel: "Rutas para recolección",
+    subtitle:
+      'Crea rutas para recolectar a domicilio los paquetes de órdenes "aplica recolección a domicilio" (flota JBG).',
+    newButton: "Nueva ruta de recolección",
+    stopsDoneLabel: "recolectadas",
+    emptyHint: "Crear primera ruta de recolección",
+  },
 };
 
 const LIMIT = 50;
@@ -128,6 +158,7 @@ function RouteCard({
   const canCancel =
     route.status !== "COMPLETED" && route.status !== "CANCELLED";
   const shortId = route.id.slice(0, 8).toUpperCase();
+  const isPicking = route.type === "PICKING";
 
   return (
     <Card className="hover:shadow-md transition-shadow flex flex-col">
@@ -148,12 +179,26 @@ function RouteCard({
               </p>
             )}
           </div>
-          <Badge
-            variant={STATUS_BADGE_VARIANT[route.status]}
-            className="shrink-0"
-          >
-            {STATUS_LABELS[route.status]}
-          </Badge>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Badge variant={STATUS_BADGE_VARIANT[route.status]}>
+              {STATUS_LABELS[route.status]}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={
+                isPicking
+                  ? "gap-1 border-amber-300 text-amber-700"
+                  : "gap-1 border-sky-300 text-sky-700"
+              }
+            >
+              {isPicking ? (
+                <PackageOpen className="size-3" />
+              ) : (
+                <Truck className="size-3" />
+              )}
+              {isPicking ? "Recolección" : "Entrega"}
+            </Badge>
+          </div>
         </div>
 
         {/* Progress */}
@@ -161,7 +206,8 @@ function RouteCard({
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
-                {delivered}/{total} entregadas
+                {delivered}/{total}{" "}
+                {ROUTE_TYPE_COPY[route.type].stopsDoneLabel}
                 {failed > 0 && (
                   <span className="text-destructive ml-2">
                     · {failed} fallida{failed !== 1 ? "s" : ""}
@@ -255,6 +301,7 @@ function RouteCard({
 }
 
 export const RoutesPage = () => {
+  const [routeKind, setRouteKind] = useState<RouteType>("DELIVERY");
   const [activeTab, setActiveTab] = useState<Tab>("ALL");
   const [selectedRoute, setSelectedRoute] =
     useState<RouteResponsePrimitives | null>(null);
@@ -284,21 +331,35 @@ export const RoutesPage = () => {
     [drivers],
   );
 
-  const counts = useMemo(
+  // Split the two route modules: entrega vs recolección a domicilio
+  const typedRoutes = useMemo(
+    () => routes.filter((r) => r.type === routeKind),
+    [routes, routeKind],
+  );
+
+  const typeCounts = useMemo(
     () => ({
-      total: routes.length,
-      planned: routes.filter((r) => r.status === "PLANNED").length,
-      active: routes.filter((r) => r.status === "ACTIVE").length,
-      completed: routes.filter((r) => r.status === "COMPLETED").length,
-      cancelled: routes.filter((r) => r.status === "CANCELLED").length,
+      DELIVERY: routes.filter((r) => r.type === "DELIVERY").length,
+      PICKING: routes.filter((r) => r.type === "PICKING").length,
     }),
     [routes],
   );
 
+  const counts = useMemo(
+    () => ({
+      total: typedRoutes.length,
+      planned: typedRoutes.filter((r) => r.status === "PLANNED").length,
+      active: typedRoutes.filter((r) => r.status === "ACTIVE").length,
+      completed: typedRoutes.filter((r) => r.status === "COMPLETED").length,
+      cancelled: typedRoutes.filter((r) => r.status === "CANCELLED").length,
+    }),
+    [typedRoutes],
+  );
+
   const filteredRoutes = useMemo(() => {
-    if (activeTab === "ALL") return routes;
-    return routes.filter((r) => r.status === activeTab);
-  }, [routes, activeTab]);
+    if (activeTab === "ALL") return typedRoutes;
+    return typedRoutes.filter((r) => r.status === activeTab);
+  }, [typedRoutes, activeTab]);
 
   const alreadyRoutedShipmentIds = useMemo(
     () =>
@@ -367,12 +428,9 @@ export const RoutesPage = () => {
       {/* Page header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Rutas de entrega
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Rutas</h1>
           <p className="text-sm text-muted-foreground">
-            Planifica rutas, asigna conductores y monitorea el progreso de cada
-            entrega.
+            {ROUTE_TYPE_COPY[routeKind].subtitle}
           </p>
         </div>
         <div className="flex gap-2">
@@ -386,10 +444,42 @@ export const RoutesPage = () => {
           </Button>
           <Button className="gap-2" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            Nueva ruta
+            {ROUTE_TYPE_COPY[routeKind].newButton}
           </Button>
         </div>
       </div>
+
+      {/* Module switch: entrega vs recolección a domicilio */}
+      <Tabs
+        value={routeKind}
+        onValueChange={(v) => {
+          setRouteKind(v as RouteType);
+          setActiveTab("ALL");
+        }}
+      >
+        <TabsList className="h-auto gap-1">
+          <TabsTrigger value="DELIVERY" className="gap-2 px-4 py-2 text-sm">
+            <Truck className="size-4" />
+            {ROUTE_TYPE_COPY.DELIVERY.tabLabel}
+            <Badge
+              variant="secondary"
+              className="text-xs px-1.5 py-0 h-5 min-w-5"
+            >
+              {typeCounts.DELIVERY}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="PICKING" className="gap-2 px-4 py-2 text-sm">
+            <PackageOpen className="size-4" />
+            {ROUTE_TYPE_COPY.PICKING.tabLabel}
+            <Badge
+              variant="secondary"
+              className="text-xs px-1.5 py-0 h-5 min-w-5"
+            >
+              {typeCounts.PICKING}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Stats row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -440,9 +530,14 @@ export const RoutesPage = () => {
             {filteredRoutes.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-                  <Route className="size-10 opacity-30" />
+                  {routeKind === "PICKING" ? (
+                    <PackageOpen className="size-10 opacity-30" />
+                  ) : (
+                    <Route className="size-10 opacity-30" />
+                  )}
                   <p className="text-sm font-medium">
                     No hay rutas{" "}
+                    {routeKind === "PICKING" ? "de recolección " : "de entrega "}
                     {tab !== "ALL"
                       ? TAB_LABELS[tab].toLowerCase()
                       : "registradas"}
@@ -455,7 +550,7 @@ export const RoutesPage = () => {
                       className="gap-1.5 mt-1"
                     >
                       <Plus className="size-3.5" />
-                      Crear primera ruta
+                      {ROUTE_TYPE_COPY[routeKind].emptyHint}
                     </Button>
                   )}
                 </CardContent>
@@ -482,12 +577,14 @@ export const RoutesPage = () => {
 
       {/* Dialogs */}
       <CreateRouteDialog
+        key={routeKind}
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSave={handleCreate}
         drivers={drivers}
         isLoading={isCreatingRoute}
         alreadyRoutedShipmentIds={alreadyRoutedShipmentIds}
+        routeType={routeKind}
       />
 
       <DeliveryRouteDetailDialog

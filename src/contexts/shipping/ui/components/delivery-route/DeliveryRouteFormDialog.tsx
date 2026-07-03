@@ -74,6 +74,7 @@ export const DeliveryRouteFormDialog = ({ open, onClose, onSave, route }: Props)
       },
       status,
       finishDate: finishDate ? new Date(finishDate).toISOString() : null,
+      type: route?.type ?? "DELIVERY",
     });
   };
 

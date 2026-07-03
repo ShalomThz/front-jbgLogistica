@@ -6,6 +6,10 @@ import {
   findRoutesResponseSchema,
   type FindRoutesResponse,
 } from "../../../application/route/FindRoutesResponse";
+import {
+  findHomePickupOrdersResponseSchema,
+  type FindHomePickupOrdersResponse,
+} from "../../../application/route/FindHomePickupOrdersResponse";
 import type { RecordDeliveryAttemptRequest } from "../../../application/route/RecordDeliveryAttemptRequest";
 import {
   routeResponseSchema,
@@ -28,6 +32,16 @@ export const routeRepository = {
     });
 
     return routeResponseSchema.parse(data);
+  },
+
+  /** Órdenes "aplica recolección a domicilio" listas para una ruta de recolección */
+  findHomePickupOrders: async (): Promise<FindHomePickupOrdersResponse> => {
+    const data = await httpClient<unknown>("/shipment/home-pickup/find", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+
+    return findHomePickupOrdersResponseSchema.parse(data);
   },
 
   find: async (request: FindRoutesRequest): Promise<FindRoutesResponse> => {

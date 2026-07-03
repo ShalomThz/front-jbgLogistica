@@ -8,6 +8,7 @@ import {
   type FindShipmentsResponse,
 } from "../../../application/shipment/FindShipmentsResponse";
 import type { GetShipmentRatesRequest } from "../../../application/shipment/GetshipmentRatesRequest";
+import type { UpdateShipmentGeolocationRequest } from "../../../application/shipment/UpdateShipmentGeolocationRequest";
 import type { SelectShipmentProviderRequest } from "../../../application/shipment/GetshipmentProviderRequest";
 import { rateSchema, type RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
 import {
@@ -17,6 +18,18 @@ import {
 import { z } from "zod";
 
 export const shipmentRepository = {
+  /** Verified routing coordinates for orders captured without the map picker */
+  updateGeolocation: async ({
+    shipmentId,
+    kind,
+    geolocation,
+  }: UpdateShipmentGeolocationRequest): Promise<void> => {
+    await httpClient<unknown>(`/shipment/${shipmentId}/geolocation`, {
+      method: "PUT",
+      body: JSON.stringify({ kind, geolocation }),
+    });
+  },
+
   find: async (
     request: { filters?: unknown[]; limit?: number; offset?: number } = {},
   ): Promise<FindShipmentsResponse> => {

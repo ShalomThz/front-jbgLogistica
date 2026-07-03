@@ -1,5 +1,6 @@
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
+import { geolocationSchema } from "@contexts/shared/domain/schemas/address/Geolocation";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import { carrierSchema } from "../value-objects/Carrier";
 import { parcelSchema } from "../value-objects/Parcel";
@@ -24,6 +25,10 @@ export const shipmentSchema = z.object({
   additionalData: z.record(z.string(), z.string()),
   warehouseAddress: warehouseAddressSchema.nullable(),
   parcel: parcelSchema,
+  // Verified routing coordinates filled from the routes UI when the order
+  // address was captured without the map picker (recolección / entrega)
+  pickupGeolocation: geolocationSchema.nullable().default(null),
+  deliveryGeolocation: geolocationSchema.nullable().default(null),
   ...aggregateRootSchema.shape,
 });
 
