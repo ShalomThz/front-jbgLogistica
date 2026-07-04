@@ -30,6 +30,9 @@ interface OrderFinancialSectionProps {
   totalBilled: MoneyPrimitives | null;
   tariff: MoneyPrimitives | null;
   discount: DiscountPrimitives;
+  /** Reveals internal cost figures (guías, tariff, insurance, breakdown).
+   * The billed total is always shown regardless. */
+  canViewFinancials: boolean;
 }
 
 export const OrderFinancialSection = ({
@@ -38,10 +41,11 @@ export const OrderFinancialSection = ({
   totalBilled,
   tariff,
   discount,
+  canViewFinancials,
 }: OrderFinancialSectionProps) => {
   return (
     <div className="space-y-4">
-      {rate && (
+      {canViewFinancials && rate && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Tarifa</h4>
           <div className="rounded-md border border-emerald-200 bg-emerald-50/60 p-3 space-y-1 dark:border-emerald-900/50 dark:bg-emerald-950/20">
@@ -58,7 +62,7 @@ export const OrderFinancialSection = ({
         </div>
       )}
 
-      {costBreakdown && (
+      {canViewFinancials && costBreakdown && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Desglose de extras</h4>
           <div className="rounded-md border border-emerald-200 bg-emerald-50/60 p-3 space-y-1 dark:border-emerald-900/50 dark:bg-emerald-950/20">

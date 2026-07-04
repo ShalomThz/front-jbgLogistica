@@ -38,6 +38,7 @@ interface OrdersTableProps {
   canEdit: (order: OrderListView) => boolean;
   canEditHQ: boolean;
   canDelete: (order: OrderListView) => boolean;
+  canViewFinancials: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   onOpenDetail: (order: OrderListView) => void;
@@ -54,6 +55,7 @@ export const OrdersTable = ({
   canEdit,
   canEditHQ,
   canDelete,
+  canViewFinancials,
   downloadingLabel,
   downloadingInvoice,
   onOpenDetail,
@@ -80,6 +82,7 @@ export const OrdersTable = ({
               canEdit={canEdit(order)}
               canEditHQ={canEditHQ}
               canDelete={canDelete(order)}
+              canViewFinancials={canViewFinancials}
               downloadingLabel={downloadingLabel}
               downloadingInvoice={downloadingInvoice}
               onOpenDetail={onOpenDetail}
@@ -109,7 +112,9 @@ export const OrdersTable = ({
               <TableHead>Estado</TableHead>
               <TableHead className="hidden lg:table-cell">Creacion</TableHead>
               <TableHead>Pago</TableHead>
-              <TableHead className="text-right">Total guías</TableHead>
+              {canViewFinancials && (
+                <TableHead className="text-right">Total guías</TableHead>
+              )}
               <TableHead className="text-right">Total facturado</TableHead>
               <TableHead className="w-12.5">Acciones</TableHead>
             </TableRow>
@@ -118,7 +123,7 @@ export const OrdersTable = ({
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={14}
+                  colSpan={canViewFinancials ? 14 : 13}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No se encontraron órdenes.
@@ -320,7 +325,9 @@ export const OrdersTable = ({
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <OrderPaymentControl order={order} canEdit={canEdit(order)} />
                   </TableCell>
-                  <TotalShippingCell financials={order.financials} createdAt={order.createdAt} />
+                  {canViewFinancials && (
+                    <TotalShippingCell financials={order.financials} createdAt={order.createdAt} />
+                  )}
                   <TotalBilledCell financials={order.financials} />
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <OrderActionsMenu

@@ -22,6 +22,9 @@ export const orderPolicies = {
   edit: hasAny("CAN_EDIT_PARTNER_ORDERS", "CAN_EDIT_HQ_ORDERS"),
   delete: hasAny("CAN_DELETE_PARTNER_ORDERS", "CAN_DELETE_HQ_ORDERS"),
 
+  // Detalles de orden
+  viewFinancials: hasAll("CAN_VIEW_ORDER_FINANCIALS"),
+
   // Reportes
   viewReports: hasAll("CAN_VIEW_ORDER_REPORTS"),
 };

@@ -139,6 +139,7 @@ export const OrderDetailDialog = ({
 
   const canEditPartner = user ? orderPolicies.editPartner(user) : false;
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
+  const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
   const userCanEdit = order.type === "PARTNER" ? (canEditPartner || canEditHQ) : canEditHQ;
   const userCanDelete = user
     ? order.type === "PARTNER" ? orderPolicies.deletePartner(user) : orderPolicies.deleteHQ(user)
@@ -606,6 +607,7 @@ export const OrderDetailDialog = ({
                 totalBilled={financials.totalBilled}
                 tariff={financials.tariff}
                 discount={financials.discount}
+                canViewFinancials={canViewFinancials}
               />
             </TabsContent>
           )}
