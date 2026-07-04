@@ -15,6 +15,7 @@ interface OrderCardProps {
   canEdit: boolean;
   canEditHQ: boolean;
   canDelete: boolean;
+  canViewFinancials: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   onOpenDetail: (order: OrderListView) => void;
@@ -33,6 +34,7 @@ export const OrderCard = ({
   canEdit,
   canEditHQ,
   canDelete,
+  canViewFinancials,
   downloadingLabel,
   downloadingInvoice,
   onOpenDetail,
@@ -105,14 +107,16 @@ export const OrderCard = ({
       </div>
 
       <div className="flex items-end justify-between gap-2 border-t pt-2 text-sm">
-        <div>
-          <div className="text-xs text-muted-foreground">Total guías</div>
-          <CurrencyAmount
-            money={order.financials.totalPrice}
-            date={new Date(order.createdAt)}
-            align="start"
-          />
-        </div>
+        {canViewFinancials && (
+          <div>
+            <div className="text-xs text-muted-foreground">Total guías</div>
+            <CurrencyAmount
+              money={order.financials.totalPrice}
+              date={new Date(order.createdAt)}
+              align="start"
+            />
+          </div>
+        )}
         <div className="text-right">
           <div className="text-xs text-muted-foreground">Total facturado</div>
           <CurrencyAmount

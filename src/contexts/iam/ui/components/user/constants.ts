@@ -74,6 +74,9 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_EDIT_HQ_ORDERS: "Editar órdenes JBG",
   CAN_DELETE_HQ_ORDERS: "Eliminar órdenes JBG",
 
+  // Order details
+  CAN_VIEW_ORDER_FINANCIALS: "Ver finanzas de la orden",
+
   // Customers
   CAN_LIST_CUSTOMERS: "Listar clientes",
   CAN_LIST_ALL_CUSTOMERS: "Listar todos los clientes",
@@ -166,6 +169,10 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_CREATE_HQ_ORDERS: "Crear nuevas órdenes JBG con cotización de envío completa.",
   CAN_EDIT_HQ_ORDERS: "Modificar los datos de una orden JBG y completar ventas de agentes.",
   CAN_DELETE_HQ_ORDERS: "Eliminar permanentemente una orden JBG.",
+
+  // Order details
+  CAN_VIEW_ORDER_FINANCIALS:
+    "Ver los costos internos de la orden: total de guías, desglose de costos, tarifa y seguro. El total facturado al cliente siempre es visible.",
 
   // Customers
   CAN_LIST_CUSTOMERS: "Ver la lista de clientes de su propia tienda.",
@@ -267,6 +274,11 @@ export const PERMISSION_GROUPS: {
         "CAN_EDIT_HQ_ORDERS",
         "CAN_DELETE_HQ_ORDERS",
       ],
+    },
+    {
+      label: "Detalles de orden",
+      icon: DollarSign,
+      permissions: ["CAN_VIEW_ORDER_FINANCIALS"],
     },
     {
       label: "Clientes",

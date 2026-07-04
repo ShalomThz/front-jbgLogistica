@@ -13,6 +13,9 @@ export const PERMISSIONS = [
   "CAN_EDIT_HQ_ORDERS",
   "CAN_DELETE_HQ_ORDERS",
 
+  // Order details
+  "CAN_VIEW_ORDER_FINANCIALS",
+
   // Customers
   "CAN_LIST_CUSTOMERS",
   "CAN_LIST_ALL_CUSTOMERS",

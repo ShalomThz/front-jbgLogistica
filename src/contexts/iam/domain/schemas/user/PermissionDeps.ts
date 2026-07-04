@@ -15,6 +15,9 @@ export const PERMISSION_DEPS: Partial<Record<Permission, Permission[]>> = {
   // Orders - cross
   CAN_LIST_ALL_ORDERS: ["CAN_LIST_ORDERS"],
 
+  // Order details
+  CAN_VIEW_ORDER_FINANCIALS: ["CAN_LIST_ORDERS"],
+
   // Customers
   CAN_VIEW_CUSTOMERS: ["CAN_LIST_CUSTOMERS"],
   CAN_CREATE_CUSTOMERS: ["CAN_LIST_CUSTOMERS", "CAN_VIEW_CUSTOMERS"],

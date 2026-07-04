@@ -115,6 +115,7 @@ export const OrdersPage = () => {
   const canDeletePartner = user ? orderPolicies.deletePartner(user) : false;
   const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
   const canViewReports = user ? orderPolicies.viewReports(user) : false;
+  const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
 
   const canEdit = (order: OrderListView) =>
     order.type === "PARTNER" ? canEditPartner : canEditHQ;
@@ -197,6 +198,7 @@ export const OrdersPage = () => {
         canEdit={canEdit}
         canEditHQ={canEditHQ}
         canDelete={canDelete}
+        canViewFinancials={canViewFinancials}
         downloadingLabel={downloadingLabel}
         downloadingInvoice={downloadingInvoice}
         onOpenDetail={handleOpenDialog}
