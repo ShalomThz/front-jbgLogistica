@@ -74,12 +74,17 @@ export function PermissionPicker({ selected, onChange, idPrefix }: Props) {
                   isOpen && "rotate-90",
                 )}
               />
-              <Checkbox
-                checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                onCheckedChange={() => toggleGroup(group.permissions)}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0"
-              />
+              {/* Wrapper stops propagation of BOTH the user's click and the
+                  synthetic `click` Radix dispatches from the hidden input when
+                  `checked` changes (e.g. all→indeterminate). Without it, that
+                  bubbled click reaches the header and collapses the group. */}
+              <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={() => toggleGroup(group.permissions)}
+                  className="shrink-0"
+                />
+              </span>
               <Icon className="size-4 text-muted-foreground shrink-0" />
               <span className="text-sm font-medium flex-1">{group.label}</span>
               <span className="text-xs text-muted-foreground tabular-nums">
