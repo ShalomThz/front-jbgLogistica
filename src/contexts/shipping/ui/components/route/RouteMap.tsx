@@ -70,7 +70,8 @@ export const RouteMap = ({ route }: RouteMapProps) => {
     [route.mapsMetadata?.polyline],
   );
 
-  // Without an optimized polyline, connect origin → stops in order
+  // Without an optimized polyline, connect origin → stops → back to origin
+  // (routes are round trips, matching the optimizer)
   const fallbackPath = useMemo<[number, number][]>(
     () => [
       origin,
@@ -80,6 +81,7 @@ export const RouteMap = ({ route }: RouteMapProps) => {
           s.address.geolocation.longitude,
         ],
       ),
+      origin,
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [route.origin.latitude, route.origin.longitude, orderedStops],
@@ -132,7 +134,7 @@ export const RouteMap = ({ route }: RouteMapProps) => {
           pathOptions={{ color: "#3b82f6", weight: 4, opacity: 0.85 }}
         />
       ) : (
-        fallbackPath.length > 1 && (
+        orderedStops.length > 0 && (
           <Polyline
             positions={fallbackPath}
             pathOptions={{

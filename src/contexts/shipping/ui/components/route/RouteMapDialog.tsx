@@ -13,9 +13,9 @@ import type { RoutePrimitives } from "../../../domain/schemas/route/Route";
 import { RouteMap } from "./RouteMap";
 
 /**
- * Deep link to Google Maps directions following the current stop order:
- * origin → intermediate stops → last stop. Works without any API key and
- * opens turn-by-turn navigation on mobile.
+ * Deep link to Google Maps directions following the current stop order as a
+ * round trip: origin → stops → back to origin (matches the optimizer). Works
+ * without any API key and opens turn-by-turn navigation on mobile.
  */
 function buildGoogleMapsUrl(route: RoutePrimitives): string {
   const coord = (lat: number, lng: number) => `${lat},${lng}`;
@@ -26,19 +26,19 @@ function buildGoogleMapsUrl(route: RoutePrimitives): string {
     return `https://www.google.com/maps/search/?api=1&query=${origin}`;
   }
 
-  const points = stops.map((s) =>
-    coord(s.address.geolocation.latitude, s.address.geolocation.longitude),
-  );
-  const destination = points[points.length - 1];
-  const waypoints = points.slice(0, -1).join("|");
+  const waypoints = stops
+    .map((s) =>
+      coord(s.address.geolocation.latitude, s.address.geolocation.longitude),
+    )
+    .join("|");
 
   const params = new URLSearchParams({
     api: "1",
     origin,
-    destination,
+    destination: origin,
+    waypoints,
     travelmode: "driving",
   });
-  if (waypoints) params.set("waypoints", waypoints);
 
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
