@@ -13,14 +13,34 @@ import { BoxFormDialog } from "@contexts/inventory/ui/components/box/BoxFormDial
 import { handleBoxError } from "@contexts/inventory/application/errors/handleBoxError";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
+import { useZoneBoxes } from "@contexts/order-flow/ui/hooks/shared/useZoneBoxes";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
-export function BoxSelector() {
+interface BoxSelectorProps {
+  /**
+   * Acota el selector a las cajas con tarifa en esta zona + país destino cuando
+   * el usuario no tiene `CAN_LIST_ALL_BOXES`. Omitir para mostrar siempre todo
+   * el catálogo (p. ej. el flujo HQ).
+   */
+  zoneScope?: { zoneId: string | undefined; destinationCountry: string | undefined };
+}
+
+export function BoxSelector({ zoneScope }: BoxSelectorProps = {}) {
   const { setValue, formState: { errors } } = useFormContext<BaseOrderFormValues>();
   const { user } = useAuth();
   const canListBoxes = user ? boxPolicies.list(user) : false;
+  const canListAllBoxes = user ? boxPolicies.listAll(user) : false;
   const canCreateBoxes = user ? boxPolicies.create(user) : false;
+
+  // Si el flujo pide scope y el usuario no puede ver todo, alimentamos el picker
+  // con las cajas de la zona; si no, cae al catálogo global.
+  const isScoped = !!zoneScope && !canListAllBoxes;
+  const { boxes: zoneBoxes, isLoading: isLoadingZoneBoxes } = useZoneBoxes({
+    zoneId: zoneScope?.zoneId,
+    destinationCountry: zoneScope?.destinationCountry,
+    enabled: isScoped,
+  });
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { updateBox, isUpdating, createBox, isCreating } = useBoxes({ enabled: false });
@@ -125,6 +145,11 @@ export function BoxSelector() {
               error={!!errors.package?.boxId}
               triggerLabel={triggerLabel}
               itemLabel={itemLabel}
+              source={
+                isScoped
+                  ? { boxes: zoneBoxes, isLoading: isLoadingZoneBoxes }
+                  : undefined
+              }
             />
           </div>
           {canCreateBoxes ? (

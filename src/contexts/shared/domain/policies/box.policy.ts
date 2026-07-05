@@ -5,6 +5,9 @@ export const boxPolicies = {
   // Los creadores de órdenes pueden consultar cajas para el selector del paso de paquete,
   // sin necesitar el permiso de cajas.
   list: hasAny("CAN_LIST_BOXES", "CAN_CREATE_PARTNER_ORDERS", "CAN_CREATE_HQ_ORDERS"),
+  // Ver el catálogo global de cajas. Sin este permiso, el selector de órdenes
+  // solo ofrece las cajas con tarifa en la zona de la tienda (patrón _ALL).
+  listAll: hasAll("CAN_LIST_ALL_BOXES"),
   view: hasAll("CAN_VIEW_BOXES"),
   create: hasAll("CAN_CREATE_BOXES"),
   edit: hasAll("CAN_EDIT_BOXES"),

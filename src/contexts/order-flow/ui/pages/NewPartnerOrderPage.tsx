@@ -107,7 +107,10 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
         )}
 
         {flow.step === "package" && (
-          <PartnerPackageStep onEditContacts={() => flow.setStep("contact")} />
+          <PartnerPackageStep
+            onEditContacts={() => flow.setStep("contact")}
+            originZoneId={flow.originZoneId}
+          />
         )}
 
         {flow.step === "pricing" && (

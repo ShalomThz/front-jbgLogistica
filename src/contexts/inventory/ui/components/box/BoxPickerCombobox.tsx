@@ -27,6 +27,12 @@ interface BoxPickerComboboxProps {
   className?: string;
   triggerLabel?: (box: BoxPrimitives) => React.ReactNode;
   itemLabel?: (box: BoxPrimitives) => React.ReactNode;
+  /**
+   * When provided, the picker lists exactly these boxes (filtered client-side by
+   * name) instead of the global catalog. Used to scope stores to the boxes with a
+   * tariff in their zone. Omit for the full paginated catalog.
+   */
+  source?: { boxes: BoxPrimitives[]; isLoading: boolean };
 }
 
 const defaultTriggerLabel = (b: BoxPrimitives) => (
@@ -54,21 +60,23 @@ export function BoxPickerCombobox({
   className,
   triggerLabel = defaultTriggerLabel,
   itemLabel = defaultItemLabel,
+  source,
 }: BoxPickerComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const {
-    boxes,
-    isLoading,
+    boxes: catalogBoxes,
+    isLoading: isCatalogLoading,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
   } = useInfiniteBoxes({
     search: debouncedSearch.trim() || undefined,
     limit: 10,
-    enabled: open,
+    // El catálogo global solo se consulta cuando no hay una fuente acotada.
+    enabled: open && !source,
   });
 
   const selectedFilters = useMemo(
@@ -81,14 +89,27 @@ export function BoxPickerCombobox({
 
   const { boxes: selectedLookup } = useBoxes({
     filters: selectedFilters,
-    enabled: !!value,
+    enabled: !!value && !source,
   });
 
+  // Con fuente acotada filtramos por nombre en cliente (lista chica); si no,
+  // usamos el catálogo paginado del servidor.
+  const boxes = useMemo(() => {
+    if (!source) return catalogBoxes;
+    const q = debouncedSearch.trim().toLowerCase();
+    return q
+      ? source.boxes.filter((b) => b.name.toLowerCase().includes(q))
+      : source.boxes;
+  }, [source, catalogBoxes, debouncedSearch]);
+
+  const isLoading = source ? source.isLoading : isCatalogLoading;
+
   const selectedBox =
-    boxes.find((b) => b.id === value) ?? selectedLookup[0];
+    (source ? source.boxes : catalogBoxes).find((b) => b.id === value) ??
+    selectedLookup[0];
 
   const handleScroll = (e: UIEvent<HTMLDivElement>) => {
-    if (!hasNextPage || isFetchingNextPage) return;
+    if (source || !hasNextPage || isFetchingNextPage) return;
     const el = e.currentTarget;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
       fetchNextPage();
