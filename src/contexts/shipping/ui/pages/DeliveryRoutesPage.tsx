@@ -873,6 +873,10 @@ export const DeliveryRoutesPage = () => {
         open={!!mapRouteId}
         onClose={() => setMapRouteId(null)}
         route={mapRoute}
+        onOptimize={() => {
+          if (mapRoute) void handleOptimizeRoute(mapRoute.id);
+        }}
+        isOptimizing={isOptimizingRoute}
       />
     </div>
   );

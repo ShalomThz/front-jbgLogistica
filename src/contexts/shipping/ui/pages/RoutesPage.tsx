@@ -616,6 +616,10 @@ export const RoutesPage = () => {
         open={!!mapRoute}
         onClose={() => setMapRoute(null)}
         route={mapRoute}
+        onOptimize={() => {
+          if (mapRoute) void handleOptimize(mapRoute);
+        }}
+        isOptimizing={!!mapRoute && optimizingId === mapRoute.id}
       />
     </div>
   );
