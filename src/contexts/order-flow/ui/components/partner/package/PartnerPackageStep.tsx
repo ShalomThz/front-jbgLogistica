@@ -19,6 +19,7 @@ import { ShippingSummary } from "../../shared/ShippingSummary";
 
 interface PartnerPackageStepProps {
   onEditContacts: () => void;
+  originZoneId: string | undefined;
 }
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
@@ -30,9 +31,12 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) {
+export function PartnerPackageStep({ onEditContacts, originZoneId }: PartnerPackageStepProps) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const pkg = useWatch<PartnerOrderFormValues, "package">({ name: "package" });
+  const destinationCountry = useWatch<PartnerOrderFormValues, "recipient.address.country">({
+    name: "recipient.address.country",
+  });
 
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
 
@@ -95,7 +99,7 @@ export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Sub-col 1: box selector + dimensions */}
             <div className="space-y-4">
-              <BoxSelector />
+              <BoxSelector zoneScope={{ zoneId: originZoneId, destinationCountry }} />
 
               {/* Inline dimensions — always derived from the selected box */}
               <div className="rounded-md border bg-muted/30 px-3 py-2">

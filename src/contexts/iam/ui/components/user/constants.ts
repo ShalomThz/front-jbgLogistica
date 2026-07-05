@@ -102,6 +102,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 
   // Boxes
   CAN_LIST_BOXES: "Listar cajas",
+  CAN_LIST_ALL_BOXES: "Listar cajas de todas las zonas",
   CAN_VIEW_BOXES: "Ver cajas",
   CAN_CREATE_BOXES: "Crear cajas",
   CAN_EDIT_BOXES: "Editar cajas",
@@ -199,6 +200,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
 
   // Boxes
   CAN_LIST_BOXES: "Ver el inventario de cajas disponibles.",
+  CAN_LIST_ALL_BOXES:
+    "Elegir cajas de cualquier zona al crear órdenes. Sin este permiso, solo se ofrecen las cajas con tarifa en la zona de la tienda.",
   CAN_VIEW_BOXES: "Abrir el detalle de una caja.",
   CAN_CREATE_BOXES: "Registrar nuevos tipos de cajas en el inventario.",
   CAN_EDIT_BOXES: "Modificar los datos de una caja existente.",
@@ -298,6 +301,7 @@ export const PERMISSION_GROUPS: {
       icon: Package,
       permissions: [
         "CAN_LIST_BOXES",
+        "CAN_LIST_ALL_BOXES",
         "CAN_VIEW_BOXES",
         "CAN_CREATE_BOXES",
         "CAN_EDIT_BOXES",

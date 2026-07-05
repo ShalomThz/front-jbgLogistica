@@ -41,6 +41,7 @@ export const PERMISSIONS = [
 
   // Boxes
   "CAN_LIST_BOXES",
+  "CAN_LIST_ALL_BOXES",
   "CAN_VIEW_BOXES",
   "CAN_CREATE_BOXES",
   "CAN_EDIT_BOXES",
