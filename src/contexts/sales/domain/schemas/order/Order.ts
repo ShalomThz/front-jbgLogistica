@@ -18,7 +18,9 @@ export const orderSchema = z.object({
   status: z.enum(orderStatuses),
   package: packageSchema,
   type: z.enum(orderTypes),
-  pickupAtAddress: z.boolean().default(false),
+  /** "Dejar caja vacía a domicilio": caja entregada al remitente con anticipo
+   * cobrado, recolectada y almacenada antes del proceso HQ. */
+  emptyBoxDelivery: z.boolean().default(false),
   customerSignature: z.string().nullish(),
   ...aggregateRootSchema.shape,
 });

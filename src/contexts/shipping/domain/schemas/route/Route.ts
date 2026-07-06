@@ -9,8 +9,9 @@ const statuses = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"] as const;
 /**
  * DELIVERY — entrega de paquetes en el domicilio destino.
  * PICKING  — recolección a domicilio (solo flota JBG).
+ * BOX_DROP — entrega de caja vacía en el domicilio del remitente.
  */
-const routeTypes = ["DELIVERY", "PICKING"] as const;
+const routeTypes = ["DELIVERY", "PICKING", "BOX_DROP"] as const;
 
 export const routeSchema = z.object({
   id: z.string(),

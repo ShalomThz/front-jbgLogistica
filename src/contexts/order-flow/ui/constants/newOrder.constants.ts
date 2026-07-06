@@ -27,7 +27,8 @@ const baseDefaults = {
   },
   sender: { ...emptyContactWithAddress },
   recipient: { ...emptyContactWithAddress },
-  pickupAtAddress: false,
+  emptyBoxDelivery: false,
+  advanceAmount: "",
   customerSignature: null,
   shippingService: {
     currency: "USD",

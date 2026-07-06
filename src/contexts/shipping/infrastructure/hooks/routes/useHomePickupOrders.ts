@@ -2,17 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import type { FindHomePickupOrdersResponse } from "../../../application/route/FindHomePickupOrdersResponse";
 import { routeRepository } from "../../services/routes/routeRepository";
 
-const HOME_PICKUP_ORDERS_QUERY_KEY = ["routes", "home-pickup-orders"] as const;
-
 /**
- * Órdenes "aplica recolección a domicilio" con envío FULFILLED por la flota
- * JBG y sin ruta activa — candidatas a una ruta de recolección.
+ * Órdenes con visita al remitente pendiente y sin ruta activa: recolección
+ * (PICKING) o entrega de caja vacía (BOX_DROP).
  */
-export const useHomePickupOrders = (enabled = true) => {
+export const useHomePickupOrders = (
+  enabled = true,
+  routeType: "PICKING" | "BOX_DROP" = "PICKING",
+) => {
   const { data, isLoading, error, refetch } =
     useQuery<FindHomePickupOrdersResponse>({
-      queryKey: HOME_PICKUP_ORDERS_QUERY_KEY,
-      queryFn: () => routeRepository.findHomePickupOrders(),
+      queryKey: ["routes", "home-pickup-orders", routeType],
+      queryFn: () => routeRepository.findHomePickupOrders(routeType),
       enabled,
       staleTime: 30_000,
     });

@@ -87,10 +87,10 @@ export const OrdersPage = () => {
     source: LabelSource,
   ) => {
     const shipment = order.shipment;
-    if (!shipment?.label) return;
+    if (!shipment) return;
     setDownloadingLabel(order.id);
     try {
-      await printLabel(shipment.id, shipment.label, source);
+      await printLabel(shipment, source);
     } finally {
       setDownloadingLabel(null);
     }

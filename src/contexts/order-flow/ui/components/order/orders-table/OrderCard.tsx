@@ -1,4 +1,5 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_VARIANT,
@@ -70,9 +71,19 @@ export const OrderCard = ({
             {new Date(order.createdAt).toLocaleDateString("es-MX")}
           </div>
         </div>
-        <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
-          {ORDER_STATUS_LABELS[order.status]}
-        </Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
+            {ORDER_STATUS_LABELS[order.status]}
+          </Badge>
+          {order.shipment && BOX_CYCLE_STATUS_LABELS[order.shipment.status] && (
+            <Badge
+              variant="outline"
+              className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+            >
+              {BOX_CYCLE_STATUS_LABELS[order.shipment.status]}
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">

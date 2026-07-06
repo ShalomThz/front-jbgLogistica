@@ -88,10 +88,18 @@ const ROUTE_TYPE_COPY: Record<
   PICKING: {
     tabLabel: "Rutas para recolección",
     subtitle:
-      'Crea rutas para recolectar a domicilio los paquetes de órdenes "aplica recolección a domicilio" (flota JBG).',
+      "Crea rutas para recolectar a domicilio las cajas ya entregadas a clientes (flota JBG).",
     newButton: "Nueva ruta de recolección",
     stopsDoneLabel: "recolectadas",
     emptyHint: "Crear primera ruta de recolección",
+  },
+  BOX_DROP: {
+    tabLabel: "Rutas de cajas vacías",
+    subtitle:
+      'Crea rutas para dejar cajas vacías en el domicilio de órdenes "dejar caja vacía a domicilio".',
+    newButton: "Nueva ruta de cajas vacías",
+    stopsDoneLabel: "entregadas",
+    emptyHint: "Crear primera ruta de cajas vacías",
   },
 };
 
@@ -158,7 +166,6 @@ function RouteCard({
   const canCancel =
     route.status !== "COMPLETED" && route.status !== "CANCELLED";
   const shortId = route.id.slice(0, 8).toUpperCase();
-  const isPicking = route.type === "PICKING";
 
   return (
     <Card className="hover:shadow-md transition-shadow flex flex-col">
@@ -186,17 +193,21 @@ function RouteCard({
             <Badge
               variant="outline"
               className={
-                isPicking
-                  ? "gap-1 border-amber-300 text-amber-700"
-                  : "gap-1 border-sky-300 text-sky-700"
+                route.type === "DELIVERY"
+                  ? "gap-1 border-sky-300 text-sky-700"
+                  : "gap-1 border-amber-300 text-amber-700"
               }
             >
-              {isPicking ? (
-                <PackageOpen className="size-3" />
-              ) : (
+              {route.type === "DELIVERY" ? (
                 <Truck className="size-3" />
+              ) : (
+                <PackageOpen className="size-3" />
               )}
-              {isPicking ? "Recolección" : "Entrega"}
+              {route.type === "PICKING"
+                ? "Recolección"
+                : route.type === "BOX_DROP"
+                ? "Caja vacía"
+                : "Entrega"}
             </Badge>
           </div>
         </div>
@@ -341,6 +352,7 @@ export const RoutesPage = () => {
     () => ({
       DELIVERY: routes.filter((r) => r.type === "DELIVERY").length,
       PICKING: routes.filter((r) => r.type === "PICKING").length,
+      BOX_DROP: routes.filter((r) => r.type === "BOX_DROP").length,
     }),
     [routes],
   );
@@ -478,6 +490,16 @@ export const RoutesPage = () => {
               {typeCounts.PICKING}
             </Badge>
           </TabsTrigger>
+          <TabsTrigger value="BOX_DROP" className="gap-2 px-4 py-2 text-sm">
+            <PackageOpen className="size-4" />
+            {ROUTE_TYPE_COPY.BOX_DROP.tabLabel}
+            <Badge
+              variant="secondary"
+              className="text-xs px-1.5 py-0 h-5 min-w-5"
+            >
+              {typeCounts.BOX_DROP}
+            </Badge>
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -530,14 +552,18 @@ export const RoutesPage = () => {
             {filteredRoutes.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-                  {routeKind === "PICKING" ? (
+                  {routeKind !== "DELIVERY" ? (
                     <PackageOpen className="size-10 opacity-30" />
                   ) : (
                     <Route className="size-10 opacity-30" />
                   )}
                   <p className="text-sm font-medium">
                     No hay rutas{" "}
-                    {routeKind === "PICKING" ? "de recolección " : "de entrega "}
+                    {routeKind === "PICKING"
+                      ? "de recolección "
+                      : routeKind === "BOX_DROP"
+                      ? "de cajas vacías "
+                      : "de entrega "}
                     {tab !== "ALL"
                       ? TAB_LABELS[tab].toLowerCase()
                       : "registradas"}

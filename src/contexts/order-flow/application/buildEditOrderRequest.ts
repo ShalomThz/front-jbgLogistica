@@ -1,4 +1,5 @@
 import { editOrderRequestSchema } from "@contexts/sales/application/order/EditOrderRequest";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { HQOrderFormValues } from "../domain/schemas/HQOrderForm";
 import type { PartnerOrderFormValues } from "../domain/schemas/PartnerOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
@@ -25,15 +26,27 @@ export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: s
     package: buildPackagePayload(formValues.package),
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
-    pickupAtAddress: formValues.pickupAtAddress,
     customerSignature: formValues.customerSignature,
     discount: buildDiscountPayload(formValues.shippingService.discount),
   });
 };
 
-export const buildPartnerEditOrderRequest = (formValues: PartnerOrderFormValues, storeId?: string) => {
+export const buildPartnerEditOrderRequest = (
+  formValues: PartnerOrderFormValues,
+  storeId?: string,
+  tariff?: MoneyPrimitives | null,
+) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
+
+  // El anticipo viaja en la moneda de la tarifa, igual que en la creación.
+  // Caja desactivada → null (limpiar); sin tarifa disponible → undefined (sin cambio).
+  const advanceAmount = parseFloat(formValues.advanceAmount);
+  const advance = !formValues.emptyBoxDelivery
+    ? null
+    : tariff && advanceAmount > 0
+      ? { amount: advanceAmount, currency: tariff.currency }
+      : undefined;
 
   return editOrderRequestSchema.parse({
     storeId,
@@ -42,7 +55,8 @@ export const buildPartnerEditOrderRequest = (formValues: PartnerOrderFormValues,
     },
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
-    pickupAtAddress: formValues.pickupAtAddress,
+    emptyBoxDelivery: formValues.emptyBoxDelivery,
+    advance,
     customerSignature: formValues.customerSignature,
   });
 };

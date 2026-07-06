@@ -21,7 +21,9 @@ export const createPartnerOrderSchema = z.object({
   }),
   tariff: moneySchema,
   costBreakdown: costBreakdownSchema.optional(),
-  pickupAtAddress: z.boolean().optional(),
+  emptyBoxDelivery: z.boolean().optional(),
+  /** Requerido cuando emptyBoxDelivery: anticipo cobrado al crear. */
+  advance: moneySchema.optional(),
   customerSignature: z.string().nullable(),
 });
 

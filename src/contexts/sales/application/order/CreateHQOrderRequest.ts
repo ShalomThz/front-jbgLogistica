@@ -16,7 +16,6 @@ export const createHQOrderSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }),
-  pickupAtAddress: z.boolean(),
   customerSignature: z.string().nullable(),
 });
 

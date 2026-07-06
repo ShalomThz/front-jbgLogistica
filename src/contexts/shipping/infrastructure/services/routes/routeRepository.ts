@@ -34,11 +34,14 @@ export const routeRepository = {
     return routeResponseSchema.parse(data);
   },
 
-  /** Órdenes "aplica recolección a domicilio" listas para una ruta de recolección */
-  findHomePickupOrders: async (): Promise<FindHomePickupOrdersResponse> => {
+  /** Órdenes con visita al remitente pendiente: recolección (PICKING) o
+   * entrega de caja vacía (BOX_DROP) */
+  findHomePickupOrders: async (
+    routeType: "PICKING" | "BOX_DROP" = "PICKING",
+  ): Promise<FindHomePickupOrdersResponse> => {
     const data = await httpClient<unknown>("/shipment/home-pickup/find", {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({ routeType }),
     });
 
     return findHomePickupOrdersResponseSchema.parse(data);

@@ -75,11 +75,11 @@ export const OrderActionsMenu = ({
             Completar venta
           </DropdownMenuItem>
         )}
-        {(order.shipment?.label || canPrintInvoice) && (
+        {(order.shipment || canPrintInvoice) && (
           <>
             <DropdownMenuSeparator />
-            {order.shipment?.label &&
-              availableLabelOptions(order.shipment.label).map((option) => (
+            {order.shipment &&
+              availableLabelOptions(order.shipment).map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}

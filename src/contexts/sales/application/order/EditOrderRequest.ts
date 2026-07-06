@@ -2,6 +2,7 @@ import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-obje
 import { orderReferencesSchema } from "@contexts/sales/domain/schemas/value-objects/OrderReferences";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { discountSchema } from "@contexts/sales/domain/schemas/value-objects/Discount";
+import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
 import z from "zod";
 
@@ -17,7 +18,9 @@ export const editOrderRequestSchema = z.object({
   }).optional(),
   references: orderReferencesSchema.partial().optional(),
   package: packageSchema.optional(),
-  pickupAtAddress: z.boolean().optional(),
+  emptyBoxDelivery: z.boolean().optional(),
+  /** undefined = sin cambio; null = limpiar el anticipo. */
+  advance: moneySchema.nullable().optional(),
   customerSignature: z.string().nullish(),
   markAsPaid: z.boolean().nullish(),
   discount: discountSchema.optional(),

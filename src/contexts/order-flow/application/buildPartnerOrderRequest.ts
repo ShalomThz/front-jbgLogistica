@@ -46,7 +46,11 @@ export const buildPartnerOrderRequest = (
     destination: { ...recipientContact, address: recipientAddress },
     tariff,
     ...(hasCosts && { costBreakdown }),
-    pickupAtAddress: formValues.pickupAtAddress,
+    emptyBoxDelivery: formValues.emptyBoxDelivery,
+    // El anticipo se cobra en la moneda de la tarifa al solicitar la caja vacía
+    ...(formValues.emptyBoxDelivery && {
+      advance: parseMoney(formValues.advanceAmount, tariff.currency) ?? undefined,
+    }),
     customerSignature: formValues.customerSignature ?? null,
   });
 };

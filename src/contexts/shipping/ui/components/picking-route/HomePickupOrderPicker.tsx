@@ -12,24 +12,28 @@ interface Props {
   selectedShipmentIds: string[];
   onChange: (ids: string[]) => void;
   excludedShipmentIds?: Set<string>;
+  /** PICKING (recolectar paquete) o BOX_DROP (dejar caja vacía) */
+  routeType?: "PICKING" | "BOX_DROP";
 }
 
 /**
- * Lista las órdenes "aplica recolección a domicilio" (flota JBG, envío
- * FULFILLED, sin ruta activa) para armar una ruta de recolección.
- * Muestra la dirección del remitente: ahí se recoge el paquete.
+ * Lista las órdenes con visita pendiente al remitente (recolectar la caja
+ * dejada o entregar la caja vacía), sin ruta activa. Muestra la dirección
+ * del remitente: ahí ocurre la visita.
  */
 export const HomePickupOrderPicker = ({
   selectedShipmentIds,
   onChange,
   excludedShipmentIds,
+  routeType = "PICKING",
 }: Props) => {
   const [search, setSearch] = useState("");
   const [detailOrder, setDetailOrder] = useState<OrderListView | null>(null);
   const [fillerOrder, setFillerOrder] = useState<OrderListView | null>(null);
+  const isBoxDrop = routeType === "BOX_DROP";
 
   const alreadyRoutedIds = useAlreadyRoutedShipmentIds();
-  const { orders: pickupOrdersRaw, isLoading } = useHomePickupOrders();
+  const { orders: pickupOrdersRaw, isLoading } = useHomePickupOrders(true, routeType);
 
   const pickupOrders = pickupOrdersRaw.filter((o) => {
     if (!o.shipment) return false;
@@ -97,22 +101,27 @@ export const HomePickupOrderPicker = ({
         {/* List */}
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center py-12 text-sm text-muted-foreground">
-            Cargando órdenes con recolección a domicilio…
+            {isBoxDrop
+              ? "Cargando órdenes con caja vacía por entregar…"
+              : "Cargando órdenes con recolección a domicilio…"}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
             <PackageOpen className="size-9 opacity-25" />
             <p className="text-sm font-medium">
               {pickupOrdersRaw.length === 0
-                ? "No hay órdenes con recolección a domicilio pendientes"
+                ? isBoxDrop
+                  ? "No hay cajas vacías pendientes de entregar"
+                  : "No hay órdenes con recolección a domicilio pendientes"
                 : pickupOrders.length === 0
-                ? "Todas las órdenes por recolectar ya están en otra ruta"
+                ? "Todas las órdenes pendientes ya están en otra ruta"
                 : "Sin resultados para esa búsqueda"}
             </p>
             {pickupOrdersRaw.length === 0 && (
               <p className="text-xs text-center max-w-xs">
-                Solo aplican órdenes marcadas "aplica recolección a domicilio"
-                con envío FULFILLED de la flota JBG.
+                {isBoxDrop
+                  ? 'Solo aplican órdenes que pidieron "dejar caja vacía a domicilio" y aún no la reciben.'
+                  : "Solo aplican órdenes con caja vacía ya entregada, pendientes de recolectar."}
               </p>
             )}
           </div>
@@ -179,7 +188,7 @@ export const HomePickupOrderPicker = ({
                         variant="outline"
                         className="text-[10px] h-4 px-1.5 border-amber-300 text-amber-700"
                       >
-                        Recolección
+                        {isBoxDrop ? "Caja vacía" : "Recolección"}
                       </Badge>
                       {needsGeo && (
                         <Badge
@@ -202,7 +211,7 @@ export const HomePickupOrderPicker = ({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      Recoger en: {order.origin.address.address1},{" "}
+                      {isBoxDrop ? "Dejar caja en" : "Recoger en"}: {order.origin.address.address1},{" "}
                       {order.origin.address.city},{" "}
                       {order.origin.address.province}
                     </p>
