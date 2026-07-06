@@ -49,7 +49,10 @@ export const baseOrderFormSchema = z.object({
   sender: contactWithAddressSchema,
   recipient: contactWithAddressSchema,
   package: basePackageSchema,
-  pickupAtAddress: z.boolean(),
+  /** "Dejar caja vacía a domicilio": el chofer la deja y luego la recolecta. */
+  emptyBoxDelivery: z.boolean(),
+  /** Anticipo cobrado al solicitar la caja vacía (monto libre). */
+  advanceAmount: z.string(),
   customerSignature: z.string().nullable(),
   shippingService: z.object({
     currency: z.string(),

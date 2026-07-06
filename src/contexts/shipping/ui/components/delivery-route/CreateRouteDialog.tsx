@@ -54,7 +54,7 @@ interface Props {
   drivers: DriverListViewPrimitives[];
   isLoading: boolean;
   alreadyRoutedShipmentIds?: Set<string>;
-  /** DELIVERY (entrega) o PICKING (recolección a domicilio) */
+  /** DELIVERY (entrega), PICKING (recolección) o BOX_DROP (caja vacía) */
   routeType?: RouteType;
 }
 
@@ -116,6 +116,7 @@ export const CreateRouteDialog = ({
   };
 
   const isPicking = routeType === "PICKING";
+  const isBoxDrop = routeType === "BOX_DROP";
 
   const canAdvance =
     (step === 1 && !!driverId) ||
@@ -128,16 +129,24 @@ export const CreateRouteDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Truck className="size-5 text-primary" />
-            {isPicking ? "Crear ruta de recolección" : "Crear nueva ruta"}
+            {isBoxDrop
+              ? "Crear ruta de cajas vacías"
+              : isPicking
+              ? "Crear ruta de recolección"
+              : "Crear nueva ruta"}
           </DialogTitle>
           <DialogDescription>
             {step === 1 &&
-              (isPicking
+              (isBoxDrop
+                ? "Selecciona el conductor que dejará las cajas vacías a domicilio."
+                : isPicking
                 ? "Selecciona el conductor que recolectará los paquetes a domicilio."
                 : "Selecciona el conductor que realizará las entregas.")}
             {step === 2 && "Define el punto de salida: busca una dirección o haz clic en el mapa."}
             {step === 3 &&
-              (isPicking
+              (isBoxDrop
+                ? "Elige las órdenes con caja vacía por entregar (opcional)."
+                : isPicking
                 ? "Elige las órdenes \"aplica recolección a domicilio\" por recolectar (opcional)."
                 : "Elige las órdenes con envío FULFILLED para incluir en esta ruta (opcional).")}
           </DialogDescription>
@@ -331,11 +340,12 @@ export const CreateRouteDialog = ({
         {/* Step 3: Order picker — only mounts here, lazy-loads network call */}
         {step === 3 && (
           <div className="py-1 min-h-[300px]">
-            {isPicking ? (
+            {isPicking || isBoxDrop ? (
               <HomePickupOrderPicker
                 selectedShipmentIds={shipmentIds}
                 onChange={setShipmentIds}
                 excludedShipmentIds={alreadyRoutedShipmentIds}
+                routeType={routeType as "PICKING" | "BOX_DROP"}
               />
             ) : (
               <OrderPicker selectedShipmentIds={shipmentIds} onChange={setShipmentIds} excludedShipmentIds={alreadyRoutedShipmentIds} />
@@ -406,7 +416,11 @@ export const CreateRouteDialog = ({
                 ) : (
                   <>
                     <Check className="size-3.5" />
-                    {isPicking ? "Crear ruta de recolección" : "Crear ruta"}
+                    {isBoxDrop
+                      ? "Crear ruta de cajas vacías"
+                      : isPicking
+                      ? "Crear ruta de recolección"
+                      : "Crear ruta"}
                   </>
                 )}
               </Button>

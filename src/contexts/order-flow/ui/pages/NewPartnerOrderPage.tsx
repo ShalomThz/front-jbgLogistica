@@ -1,8 +1,14 @@
 import { Button } from "@contexts/shared/shadcn";
-import { ArrowLeft, CheckCircle2, FilePlus2, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FilePlus2, Printer, UserPlus } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import {
+  availableLabelOptionsByGroup,
+  printLabel,
+} from "@contexts/shipping/ui/labels/labelOptions";
 import { usePartnerOrderFlow } from "../hooks/partner/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/partner/contact/PartnerContactStep";
@@ -16,6 +22,61 @@ interface NewPartnerOrderPageProps {
   orderId?: string;
   storeName?: string;
   storeId?: string;
+}
+
+/**
+ * La orden pidió "dejar caja vacía a domicilio": ofrece imprimir su etiqueta
+ * apenas termina el flujo. El shipment se proyecta por evento, así que se
+ * reintenta la consulta hasta que aparezca.
+ */
+function EmptyBoxLabelCard({ orderId }: { orderId: string }) {
+  const [isPrinting, setIsPrinting] = useState(false);
+  const { data: order } = useQuery({
+    queryKey: ["orders", orderId],
+    queryFn: () => orderRepository.findById(orderId),
+    refetchInterval: (query) => (query.state.data?.shipment ? false : 1500),
+  });
+
+  const shipment = order?.shipment ?? null;
+  const option = shipment
+    ? availableLabelOptionsByGroup(shipment, "caja-vacia")[0]
+    : undefined;
+
+  const handlePrint = async () => {
+    if (!shipment || !option) return;
+    setIsPrinting(true);
+    try {
+      await printLabel(shipment, option.source);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+      <div>
+        <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+          Caja vacía a domicilio
+        </p>
+        <p className="text-xs text-amber-600/80 dark:text-amber-400/70">
+          Imprime la etiqueta y pégala en la caja que se dejará al cliente
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
+        disabled={!option || isPrinting}
+        onClick={handlePrint}
+      >
+        <Printer className="size-4" />
+        {!shipment
+          ? "Preparando etiqueta..."
+          : isPrinting
+            ? "Imprimiendo..."
+            : "Imprimir etiqueta de caja vacía"}
+      </Button>
+    </div>
+  );
 }
 
 export const NewPartnerOrderPage = (props: NewPartnerOrderPageProps = {}) => {
@@ -135,6 +196,9 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
                 La orden ha sido registrada y está pendiente de procesamiento
               </p>
             </div>
+            {flow.form.getValues("emptyBoxDelivery") && flow.orderId && (
+              <EmptyBoxLabelCard orderId={flow.orderId} />
+            )}
             <div className="flex flex-wrap justify-between gap-3">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" className="gap-2" onClick={handleCreateBlank}>

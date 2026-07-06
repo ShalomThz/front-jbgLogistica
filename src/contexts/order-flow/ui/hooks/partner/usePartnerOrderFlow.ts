@@ -71,6 +71,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
       if (!(await processBox())) return;
       setStep("pricing");
     } else if (step === "pricing") {
+      if (!(await validateStep("pricing"))) return;
       await submission.submitPartnerOrder();
     }
   };
@@ -102,6 +103,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     handleNext,
     handleBack,
     goToOrders: submission.goToOrders,
+    orderId: submission.orderId,
     isEditing,
     nextButtonLabel,
     isNextDisabled,

@@ -65,7 +65,8 @@ const mapBaseFields = (order: OrderListView) => ({
   },
   sender: mapContact(order.origin),
   recipient: mapContact(order.destination),
-  pickupAtAddress: order.pickupAtAddress,
+  emptyBoxDelivery: order.emptyBoxDelivery,
+  advanceAmount: order.financials.advance ? String(order.financials.advance.amount) : "",
   customerSignature: order.customerSignature ?? null,
   shippingService: {
     ...hqOrderDefaultValues.shippingService,

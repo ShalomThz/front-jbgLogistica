@@ -30,6 +30,8 @@ interface OrderFinancialSectionProps {
   totalBilled: MoneyPrimitives | null;
   tariff: MoneyPrimitives | null;
   discount: DiscountPrimitives;
+  /** Anticipo cobrado por caja vacía; habilita la fila de restante. */
+  advance?: MoneyPrimitives | null;
   /** Reveals internal cost figures (guías, tariff, insurance, breakdown).
    * The billed total is always shown regardless. */
   canViewFinancials: boolean;
@@ -41,6 +43,7 @@ export const OrderFinancialSection = ({
   totalBilled,
   tariff,
   discount,
+  advance,
   canViewFinancials,
 }: OrderFinancialSectionProps) => {
   return (
@@ -79,7 +82,7 @@ export const OrderFinancialSection = ({
         </div>
       )}
 
-      {totalBilled && <FinalPriceRow totalBilled={totalBilled} />}
+      {totalBilled && <FinalPriceRow totalBilled={totalBilled} advance={advance} />}
     </div>
   );
 };

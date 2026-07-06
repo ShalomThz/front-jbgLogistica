@@ -40,7 +40,7 @@ export const usePartnerOrderSubmission = ({
   const submitPartnerOrder = async () => {
     if (orderId) {
       try {
-        const request = buildPartnerEditOrderRequest(form.getValues(), storeId);
+        const request = buildPartnerEditOrderRequest(form.getValues(), storeId, tariff);
         await updateOrder(orderId, request);
         setIsSubmitted(true);
         onSuccess();

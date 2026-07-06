@@ -98,15 +98,13 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
   };
 
   const handleDownloadLabel = async (source: LabelSource) => {
-    if (!label) return;
     setIsDownloading(true);
     try {
       const suffix = source.kind === "render" ? source.variant : "transportista";
       await downloadLabel(
-        shipment.id,
-        label,
+        shipment,
         source,
-        `etiqueta-${label.trackingNumber}-${suffix}.pdf`,
+        `etiqueta-${label?.trackingNumber ?? shipment.id}-${suffix}.pdf`,
       );
     } finally {
       setIsDownloading(false);
@@ -114,10 +112,9 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
   };
 
   const handlePrintLabel = async (source: LabelSource) => {
-    if (!label) return;
     setIsDownloading(true);
     try {
-      await printLabel(shipment.id, label, source);
+      await printLabel(shipment, source);
     } finally {
       setIsDownloading(false);
     }
@@ -353,7 +350,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       )}
 
       {/* Label Actions */}
-      {label && (
+      {availableLabelOptions(shipment).length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -368,7 +365,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {availableLabelOptions(label).map((option) => (
+              {availableLabelOptions(shipment).map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}
@@ -393,7 +390,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {availableLabelOptions(label).map((option) => (
+              {availableLabelOptions(shipment).map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}

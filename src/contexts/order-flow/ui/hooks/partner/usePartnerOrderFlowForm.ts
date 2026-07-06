@@ -25,7 +25,8 @@ export const usePartnerOrderFlowForm = ({ initialValues }: UsePartnerOrderFlowFo
     if (currentStep === "package") {
       return form.trigger(["package.length", "package.width", "package.height"]);
     }
-    return true;
+    // pricing: el anticipo es obligatorio cuando la orden pide caja vacía
+    return form.trigger(["advanceAmount"]);
   };
 
   return { form, validateStep };

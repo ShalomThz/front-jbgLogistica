@@ -4,7 +4,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Checkbox,
   Command,
   CommandEmpty,
   CommandGroup,
@@ -19,7 +18,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { Check, ChevronsUpDown, Store } from "lucide-react";
 import { useMemo, useState, type UIEvent } from "react";
-import { Controller, useFormContext } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useInfiniteStores } from "@contexts/iam/infrastructure/hooks/stores/useInfiniteStores";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
@@ -34,7 +33,7 @@ interface OrderReferencesCardProps {
 }
 
 export function OrderReferencesCard({ selectedStoreId, onStoreChange }: OrderReferencesCardProps = {}) {
-  const { register, control, clearErrors, formState: { errors } } = useFormContext<BaseOrderFormValues>();
+  const { register, clearErrors, formState: { errors } } = useFormContext<BaseOrderFormValues>();
   const { user } = useAuth();
   const canPickStore = user ? iamPolicies.listStores(user) : false;
   const [storeOpen, setStoreOpen] = useState(false);
@@ -188,22 +187,6 @@ export function OrderReferencesCard({ selectedStoreId, onStoreChange }: OrderRef
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Controller
-            control={control}
-            name="pickupAtAddress"
-            render={({ field }) => (
-              <Checkbox
-                id="pickup-at-address"
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            )}
-          />
-          <Label htmlFor="pickup-at-address" className="cursor-pointer font-normal">
-            Recoger en domicilio del remitente
-          </Label>
         </div>
       </CardContent>
     </Card>

@@ -178,17 +178,17 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
           <div className="flex items-center gap-2">
             <Controller
               control={control}
-              name="pickupAtAddress"
+              name="emptyBoxDelivery"
               render={({ field }) => (
                 <Checkbox
-                  id="pickup-at-address"
+                  id="empty-box-delivery"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               )}
             />
-            <Label htmlFor="pickup-at-address" className="cursor-pointer font-normal">
-              Recoger en domicilio del remitente
+            <Label htmlFor="empty-box-delivery" className="cursor-pointer font-normal">
+              Dejar caja vacía en el domicilio (se recolecta después)
             </Label>
           </div>
         </CardContent>

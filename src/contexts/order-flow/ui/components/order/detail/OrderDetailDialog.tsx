@@ -3,6 +3,7 @@ import {
   ORDER_STATUS_LABELS,
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
+import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import {
   availableLabelOptions,
@@ -12,6 +13,7 @@ import {
 } from "@contexts/shipping/ui/labels/labelOptions";
 import { CancelShipmentDialog } from "../CancelShipmentDialog";
 import {
+  Badge,
   Button,
   Dialog,
   DialogContent,
@@ -46,6 +48,7 @@ import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumb
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { OrderFinancialSection } from "./OrderFinancialSection";
+import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 
@@ -54,6 +57,16 @@ const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
   PENDING_HQ_PROCESS: "bg-yellow-500",
   COMPLETED: "bg-blue-500",
   CANCELLED: "bg-red-500",
+};
+
+/** Explica en qué paso del ciclo de caja vacía va la orden. */
+const BOX_CYCLE_TOOLTIPS: Partial<Record<string, string>> = {
+  EMPTY_BOX_PENDING:
+    "El chofer debe entregar la caja vacía en el domicilio del remitente",
+  AWAITING_PICKUP:
+    "La caja está con el cliente; falta que el chofer la recolecte",
+  AT_WAREHOUSE:
+    "La caja regresó a bodega; JBG debe procesar y tarifar la orden",
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -124,13 +137,14 @@ export const OrderDetailDialog = ({
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const isCompleted = order.status === "COMPLETED";
+  const boxCycleLabel = shipment
+    ? BOX_CYCLE_STATUS_LABELS[shipment.status]
+    : undefined;
 
   // Origin actually sent to the carrier, mirroring the backend's resolveOrigin:
-  // home pickup ships from the customer's address, otherwise from the JBG
-  // warehouse stamped on the shipment (HQ default when none was stored).
-  const shippingOrigin = order.pickupAtAddress
-    ? { name: origin.name, company: origin.company, phone: origin.phone, address: origin.address }
-    : shipment?.warehouseAddress ?? null;
+  // packages always ship from the JBG warehouse stamped on the shipment
+  // (HQ default when none was stored).
+  const shippingOrigin = shipment?.warehouseAddress ?? null;
   // The invoice is generated on demand from the order, so it is available
   // once the order has been priced (numbered + tariff + billed total).
   const canPrintInvoice = Boolean(
@@ -161,13 +175,12 @@ export const OrderDetailDialog = ({
   };
 
   const downloadLabel = async (source: LabelSource) => {
-    if (!shipment?.label) return;
+    if (!shipment) return;
     setIsDownloadingLabel(true);
     try {
       const suffix = source.kind === "render" ? source.variant : "transportista";
       await downloadLabelPdf(
-        shipment.id,
-        shipment.label,
+        shipment,
         source,
         `etiqueta-${order.id}-${suffix}.pdf`,
       );
@@ -189,10 +202,10 @@ export const OrderDetailDialog = ({
   };
 
   const printLabel = async (source: LabelSource) => {
-    if (!shipment?.label) return;
+    if (!shipment) return;
     setIsDownloadingLabel(true);
     try {
-      await printLabelPdf(shipment.id, shipment.label, source);
+      await printLabelPdf(shipment, source);
     } finally {
       setIsDownloadingLabel(false);
     }
@@ -238,12 +251,24 @@ export const OrderDetailDialog = ({
                       <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-75", STATUS_DOT_STYLES[order.status])} />
                     </span>
                     {ORDER_STATUS_LABELS[order.status]}
+                    {boxCycleLabel && (
+                      <Badge
+                        variant="outline"
+                        className="ml-1 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+                      >
+                        {boxCycleLabel}
+                      </Badge>
+                    )}
                   </span>
                 </TooltipTrigger>
-                {order.status === "PENDING_HQ_PROCESS" && (
-                  <TooltipContent>
-                    La tienda completó su orden, JBG Logistics necesita completar la venta
-                  </TooltipContent>
+                {boxCycleLabel ? (
+                  <TooltipContent>{BOX_CYCLE_TOOLTIPS[shipment!.status]}</TooltipContent>
+                ) : (
+                  order.status === "PENDING_HQ_PROCESS" && (
+                    <TooltipContent>
+                      La tienda completó su orden, JBG Logistics necesita completar la venta
+                    </TooltipContent>
+                  )
                 )}
               </Tooltip>
             </TooltipProvider>
@@ -272,6 +297,7 @@ export const OrderDetailDialog = ({
         <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
           {/* Resumen */}
           <TabsContent value="resumen" className="space-y-4">
+            <OrderStatusTimeline order={order} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Ruta */}
               <div
@@ -292,7 +318,17 @@ export const OrderDetailDialog = ({
                 </h4>
                 <DetailRow label="Remitente" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
                 <DetailRow label="Destinatario" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
-                <DetailRow label="Recolección" value={order.pickupAtAddress ? "Recolección a domicilio" : "Entregado en sucursal"} />
+                <DetailRow label="Recolección" value={order.emptyBoxDelivery ? "Caja vacía a domicilio (se recolecta)" : "Entregado en sucursal"} />
+                {order.emptyBoxDelivery && (
+                  <DetailRow
+                    label="Caja vacía"
+                    value={
+                      order.financials.advance
+                        ? `Se deja a domicilio — anticipo $${order.financials.advance.amount.toFixed(2)} ${order.financials.advance.currency}`
+                        : "Se deja a domicilio"
+                    }
+                  />
+                )}
               </div>
 
               {/* Paquete */}
@@ -352,7 +388,33 @@ export const OrderDetailDialog = ({
                     value={`-${formatMoney(financials.discount.amount)}${financials.discount.concept ? ` (${financials.discount.concept})` : ""}`}
                   />
                 )}
-                <DetailRow label="Pagado" value={financials.isPaid ? "Sí" : "No"} />
+                {financials.advance && (
+                  <>
+                    <DetailRow
+                      label="Anticipo pagado"
+                      value={`-${formatMoney(financials.advance)}`}
+                    />
+                    {financials.totalBilled && (
+                      <DetailRow
+                        label="Restante"
+                        value={formatMoney({
+                          amount: Math.max(0, financials.totalBilled.amount - financials.advance.amount),
+                          currency: financials.totalBilled.currency,
+                        })}
+                      />
+                    )}
+                  </>
+                )}
+                <DetailRow
+                  label="Pagado"
+                  value={
+                    financials.isPaid
+                      ? "Sí"
+                      : financials.advance
+                        ? "Anticipo"
+                        : "No"
+                  }
+                />
               </div>
 
               {/* Referencias */}
@@ -470,16 +532,14 @@ export const OrderDetailDialog = ({
               <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50/60 p-3 text-sm dark:border-blue-900/50 dark:bg-blue-950/20">
                 <Info className="size-4 shrink-0 mt-0.5 text-blue-700 dark:text-blue-300" />
                 <p className="text-blue-900 dark:text-blue-200">
-                  {order.pickupAtAddress
-                    ? "Recolección a domicilio: la paquetería recoge en la dirección del cliente de origen."
-                    : "Entrega en sucursal: el paquete sale del almacén JBG, no de la dirección del cliente."}
+                  El paquete sale del almacén JBG, no de la dirección del cliente.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold">
-                    Origen {order.pickupAtAddress ? "(domicilio del cliente)" : "(almacén JBG)"}
+                    Origen (almacén JBG)
                   </h4>
                   <div className="rounded-md border p-3 space-y-1">
                     {shippingOrigin ? (
@@ -607,6 +667,7 @@ export const OrderDetailDialog = ({
                 totalBilled={financials.totalBilled}
                 tariff={financials.tariff}
                 discount={financials.discount}
+                advance={financials.advance}
                 canViewFinancials={canViewFinancials}
               />
             </TabsContent>
@@ -614,7 +675,7 @@ export const OrderDetailDialog = ({
         </div>
 
         <DialogFooter className="shrink-0 border-t p-4 sm:p-6">
-          {shipment?.label && (
+          {shipment && availableLabelOptions(shipment).length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -629,7 +690,7 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {availableLabelOptions(shipment.label).map((option, index) => (
+                {availableLabelOptions(shipment).map((option, index) => (
                   <Fragment key={option.id}>
                     {index > 0 && <DropdownMenuSeparator />}
                     <DropdownMenuLabel className="text-xs text-muted-foreground">
