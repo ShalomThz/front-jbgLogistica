@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Ban, CheckCircle2, Clock, MapPin, Navigation, Route, Trash2, User, XCircle } from "lucide-react";
 import {
   Badge,
@@ -12,7 +13,9 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/Route";
+import type { RouteStopPrimitives } from "../../../domain/schemas/route/RouteStop";
 import type { DriverListViewPrimitives } from "../../../domain/schemas/driver/DriverListView";
+import { StopEvidenceDialog } from "./StopEvidenceDialog";
 
 const STATUS_LABELS: Record<RouteStatus, string> = {
   PLANNED: "Planificada",
@@ -84,6 +87,8 @@ export const DeliveryRouteDetailDialog = ({
   onDelete,
   onMap,
 }: Props) => {
+  const [selectedStop, setSelectedStop] = useState<RouteStopPrimitives | null>(null);
+
   if (!route) return null;
 
   const delivered = route.stops.filter((s) => s.status === "DELIVERED").length;
@@ -212,11 +217,6 @@ export const DeliveryRouteDetailDialog = ({
                 label="Coordenadas"
                 value={`${route.origin.latitude.toFixed(5)}, ${route.origin.longitude.toFixed(5)}`}
               />
-              {route.origin.placeId && (
-                <DetailRow label="Place ID" value={
-                  <span className="font-mono text-xs break-all">{route.origin.placeId}</span>
-                } />
-              )}
             </div>
           </div>
 
@@ -236,9 +236,11 @@ export const DeliveryRouteDetailDialog = ({
                       const Icon = STOP_STATUS_ICON[stop.status] ?? MapPin;
                       const colorClass = STOP_STATUS_COLORS[stop.status] ?? "text-muted-foreground";
                       return (
-                        <div
+                        <button
                           key={stop.id}
-                          className="p-2.5 flex items-start gap-3"
+                          type="button"
+                          onClick={() => setSelectedStop(stop)}
+                          className="w-full text-left p-2.5 flex items-start gap-3 hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                             <span className="font-mono text-[11px] text-muted-foreground w-4 text-right">
@@ -254,8 +256,9 @@ export const DeliveryRouteDetailDialog = ({
                               {stop.address.city}, {stop.address.province}
                             </p>
                             {stop.attempts.length > 0 && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {stop.attempts.length} intento{stop.attempts.length !== 1 ? "s" : ""}
+                              <p className="text-[11px] text-muted-foreground mt-0.5 underline decoration-dotted">
+                                Ver evidencia · {stop.attempts.length} intento
+                                {stop.attempts.length !== 1 ? "s" : ""}
                               </p>
                             )}
                           </div>
@@ -271,7 +274,7 @@ export const DeliveryRouteDetailDialog = ({
                           >
                             {STOP_STATUS_LABELS[stop.status] ?? stop.status}
                           </Badge>
-                        </div>
+                        </button>
                       );
                     })}
                 </div>
@@ -320,6 +323,12 @@ export const DeliveryRouteDetailDialog = ({
             )}
         </DialogFooter>
       </DialogContent>
+
+      <StopEvidenceDialog
+        stop={selectedStop}
+        open={!!selectedStop}
+        onClose={() => setSelectedStop(null)}
+      />
     </Dialog>
   );
 };
