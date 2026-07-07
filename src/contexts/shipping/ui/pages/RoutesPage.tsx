@@ -634,10 +634,14 @@ export const RoutesPage = () => {
         driver={
           selectedRoute ? driverMap.get(selectedRoute.driverId) : undefined
         }
-        onDelete={(route) => {
-          setSelectedRoute(null);
-          setRouteToCancel(route);
-        }}
+        onDelete={
+          canDeleteRoutes
+            ? (route) => {
+                setSelectedRoute(null);
+                setRouteToCancel(route);
+              }
+            : undefined
+        }
         onMap={(route) => {
           setSelectedRoute(null);
           setMapRoute(route);
