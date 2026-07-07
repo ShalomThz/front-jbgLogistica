@@ -17,6 +17,10 @@ interface UseOrdersOptions {
   filters?: Filter[];
   search?: string;
   order?: { field: string; direction: Direction };
+  /** Skip the automatic own-store filter (CAN_LIST_ALL_ORDERS). Callers that
+   * scope by a different permission — e.g. the route builder — inject their
+   * own store filter and opt out of this one. */
+  disableStoreScope?: boolean;
 }
 
 export const useOrders = ({
@@ -26,13 +30,14 @@ export const useOrders = ({
   filters = [],
   search,
   order,
+  disableStoreScope = false,
 }: UseOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
   const effectiveFilters: Filter[] =
-    user && !orderPolicies.listAll(user)
+    !disableStoreScope && user && !orderPolicies.listAll(user)
       ? [...filters, { field: "store.id", filterOperator: "=", value: user.store.id }]
       : filters;
 

@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { parseApiError } from "../../../shared/infrastructure/http";
 import { formatDate } from "../../../shared/infrastructure/services/format-date,";
 import type { EditDriverRequest } from "../../application/driver/EditDriverRequest";
@@ -84,6 +86,10 @@ export const DriversPage = () => {
   const [selected, setSelected] = useState<DriverListViewPrimitives | null>(null);
   const [editDriver, setEditDriver] = useState<DriverListViewPrimitives | null>(null);
   const [deleteDriver, setDeleteDriver] = useState<DriverListViewPrimitives | null>(null);
+
+  const { user } = useAuth();
+  const canCreateDrivers = user ? shippingPolicies.createDrivers(user) : false;
+  const canEditDrivers = user ? shippingPolicies.editDrivers(user) : false;
 
   const {
     drivers,
@@ -170,6 +176,7 @@ export const DriversPage = () => {
             <RefreshCw className="size-4" />
             Actualizar
           </Button>
+          {canCreateDrivers && (
           <Button
             className="gap-2"
             onClick={() => setFormOpen(true)}
@@ -178,6 +185,7 @@ export const DriversPage = () => {
             <Plus className="size-4" />
             Nuevo conductor
           </Button>
+          )}
         </div>
       </div>
 
@@ -304,11 +312,16 @@ export const DriversPage = () => {
         driver={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
-        onEdit={(driver) => {
-          setSelected(null);
-          setEditDriver(driver);
-        }}
+     
         onDelete={handleDeleteFromDetail}
+        onEdit={
+          canEditDrivers
+            ? (driver) => {
+                setSelected(null);
+                setEditDriver(driver);
+              }
+            : undefined
+        }
       />
 
       {editDriver && (

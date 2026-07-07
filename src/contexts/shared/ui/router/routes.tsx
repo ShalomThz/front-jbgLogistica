@@ -159,7 +159,7 @@ export const routes: RouteObject[] = [
   {
     path: "/routes",
     element: (
-      <ProtectedRoute policy={shippingPolicies.manageRoute}>
+      <ProtectedRoute policy={shippingPolicies.listRoutes}>
         <Suspense fallback={<PageLoader />}>
           <RoutesPage />
         </Suspense>
@@ -169,7 +169,7 @@ export const routes: RouteObject[] = [
   {
     path: "/drivers",
     element: (
-      <ProtectedRoute policy={shippingPolicies.manageDriver}>
+      <ProtectedRoute policy={shippingPolicies.listDrivers}>
         <Suspense fallback={<PageLoader />}>
           <DriversPage />
         </Suspense>

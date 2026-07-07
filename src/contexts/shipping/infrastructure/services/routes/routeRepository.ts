@@ -38,10 +38,11 @@ export const routeRepository = {
    * entrega de caja vacía (BOX_DROP) */
   findHomePickupOrders: async (
     routeType: "PICKING" | "BOX_DROP" = "PICKING",
+    storeId?: string,
   ): Promise<FindHomePickupOrdersResponse> => {
     const data = await httpClient<unknown>("/shipment/home-pickup/find", {
       method: "POST",
-      body: JSON.stringify({ routeType }),
+      body: JSON.stringify({ routeType, ...(storeId && { storeId }) }),
     });
 
     return findHomePickupOrdersResponseSchema.parse(data);
