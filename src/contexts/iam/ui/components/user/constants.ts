@@ -7,6 +7,8 @@ import {
   DollarSign,
   MapPin,
   Truck,
+  Route,
+  IdCard,
   Store,
   UserCog,
   Settings,
@@ -128,6 +130,19 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_VIEW_SHIPMENT_LABEL: "Ver etiqueta de envío",
   CAN_CANCEL_SHIPMENTS: "Cancelar envíos",
 
+  // Routes
+  CAN_LIST_ROUTES: "Listar rutas",
+  CAN_VIEW_ROUTES: "Ver rutas",
+  CAN_CREATE_ROUTES: "Crear rutas",
+  CAN_EDIT_ROUTES: "Editar rutas",
+  CAN_DELETE_ROUTES: "Cancelar rutas",
+  CAN_LIST_ALL_ROUTE_ORDERS: "Usar órdenes de todas las tiendas en rutas",
+
+  // Drivers
+  CAN_LIST_DRIVERS: "Listar conductores",
+  CAN_CREATE_DRIVERS: "Crear conductores",
+  CAN_EDIT_DRIVERS: "Editar conductores",
+
   // Tariffs
   CAN_LIST_TARIFFS: "Listar tarifas",
   CAN_VIEW_TARIFFS: "Ver tarifas",
@@ -226,6 +241,21 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_SELECT_SHIPMENT_PROVIDER: "Elegir el proveedor de envío para una orden.",
   CAN_VIEW_SHIPMENT_LABEL: "Ver y descargar la etiqueta/guía de envío.",
   CAN_CANCEL_SHIPMENTS: "Cancelar un envío activo.",
+
+  // Routes
+  CAN_LIST_ROUTES: "Ver el tablero de rutas y sus paradas.",
+  CAN_VIEW_ROUTES: "Abrir el detalle de una ruta.",
+  CAN_CREATE_ROUTES: "Crear nuevas rutas de entrega, recolección o caja vacía.",
+  CAN_EDIT_ROUTES:
+    "Modificar rutas: asignar conductor, optimizar, agregar/quitar/reordenar paradas y cambiar el origen.",
+  CAN_DELETE_ROUTES: "Cancelar una ruta.",
+  CAN_LIST_ALL_ROUTE_ORDERS:
+    "Al crear una ruta, ofrecer órdenes de todas las tiendas. Sin este permiso solo se ofrecen las de la tienda propia.",
+
+  // Drivers
+  CAN_LIST_DRIVERS: "Ver la lista de conductores.",
+  CAN_CREATE_DRIVERS: "Registrar nuevos conductores.",
+  CAN_EDIT_DRIVERS: "Modificar los datos y la disponibilidad de un conductor.",
 
   // Tariffs
   CAN_LIST_TARIFFS: "Ver la lista de tarifas configuradas.",
@@ -334,6 +364,27 @@ export const PERMISSION_GROUPS: {
         "CAN_SELECT_SHIPMENT_PROVIDER",
         "CAN_VIEW_SHIPMENT_LABEL",
         "CAN_CANCEL_SHIPMENTS",
+      ],
+    },
+    {
+      label: "Rutas",
+      icon: Route,
+      permissions: [
+        "CAN_LIST_ROUTES",
+        "CAN_VIEW_ROUTES",
+        "CAN_CREATE_ROUTES",
+        "CAN_EDIT_ROUTES",
+        "CAN_DELETE_ROUTES",
+        "CAN_LIST_ALL_ROUTE_ORDERS",
+      ],
+    },
+    {
+      label: "Conductores",
+      icon: IdCard,
+      permissions: [
+        "CAN_LIST_DRIVERS",
+        "CAN_CREATE_DRIVERS",
+        "CAN_EDIT_DRIVERS",
       ],
     },
     {

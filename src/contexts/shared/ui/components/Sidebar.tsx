@@ -69,8 +69,8 @@ const navigation: NavSection[] = [
   {
     title: 'Operaciones',
     items: [
-      { label: 'Rutas', href: '/routes', icon: Route, policy: shippingPolicies.manageRoute },
-      { label: 'Conductores', href: '/drivers', icon: IdCard, policy: shippingPolicies.manageDriver },
+      { label: 'Rutas', href: '/routes', icon: Route, policy: shippingPolicies.listRoutes },
+      { label: 'Conductores', href: '/drivers', icon: IdCard, policy: shippingPolicies.listDrivers },
       { label: 'Tarifas', href: '/tariffs', icon: DollarSign, policy: pricingPolicies.manageTariffs },
       { label: 'Zonas', href: '/zones', icon: MapPin, policy: pricingPolicies.manageZones },
     ],

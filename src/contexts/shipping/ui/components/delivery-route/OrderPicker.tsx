@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Badge, Button, Checkbox, Input } from "@contexts/shared/shadcn";
 import { Eye, MapPinOff, Package, Search } from "lucide-react";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import type { Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
 import { needsGeolocationVerification } from "@contexts/shipping/domain/services/shipmentAddressVerification";
 import { useAlreadyRoutedShipmentIds } from "@contexts/shipping/infrastructure/hooks/routes/useRoutes";
@@ -20,10 +23,22 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
   const [fillerOrder, setFillerOrder] = useState<OrderListView | null>(null);
 
   const alreadyRoutedIds = useAlreadyRoutedShipmentIds();
+  const { user } = useAuth();
+
+  // El picker de rutas solo ofrece órdenes de la tienda propia; con
+  // CAN_LIST_ALL_ROUTE_ORDERS se ofrecen las de todas las tiendas.
+  const storeScopeFilters: Filter[] =
+    user && !shippingPolicies.listAllRouteOrders(user)
+      ? [{ field: "store.id", filterOperator: "=", value: user.store.id }]
+      : [];
 
   const { orders: fulfilledRaw, isLoading } = useOrders({
-    filters: [{ field: "shipment.status", filterOperator: "=", value: "FULFILLED" }],
+    filters: [
+      { field: "shipment.status", filterOperator: "=", value: "FULFILLED" },
+      ...storeScopeFilters,
+    ],
     limit: 100,
+    disableStoreScope: true,
   });
 
   const fulfilled = fulfilledRaw.filter((o) => {

@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { parseApiError } from "../../../shared/infrastructure/http";
 import { formatDate } from "../../../shared/infrastructure/services/format-date,";
 import type { EditDriverRequest } from "../../application/driver/EditDriverRequest";
@@ -32,6 +34,7 @@ import type { DriverStatus } from "../../domain/schemas/driver/Driver";
 import type { DriverListViewPrimitives, } from "../../domain/schemas/driver/DriverListView";
 import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
 import { CreateDriverUserDialog } from "../components/driver/CreateDriverUserDialog";
+import { DriverDeleteDialog } from "../components/driver/DriverDeleteDialog";
 import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
 import { EditDriverDialog } from "../components/driver/EditDriverDialog";
 
@@ -82,6 +85,11 @@ export const DriversPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<DriverListViewPrimitives | null>(null);
   const [editDriver, setEditDriver] = useState<DriverListViewPrimitives | null>(null);
+  const [deleteDriver, setDeleteDriver] = useState<DriverListViewPrimitives | null>(null);
+
+  const { user } = useAuth();
+  const canCreateDrivers = user ? shippingPolicies.createDrivers(user) : false;
+  const canEditDrivers = user ? shippingPolicies.editDrivers(user) : false;
 
   const {
     drivers,
@@ -96,9 +104,13 @@ export const DriversPage = () => {
   } = useDrivers({ filters: [], page, limit: LIMIT });
   const { createUser, isCreating } = useUsers({ enabled: false });
 
-  const availableCount = drivers.filter((d) => d.status === "AVAILABLE").length;
-  const onRouteCount = drivers.filter((d) => d.status === "ON_ROUTE").length;
-  const offDutyCount = drivers.filter((d) => d.status === "OFF_DUTY").length;
+  // Soft-deleted drivers (user.isActive = false) are hidden here but still
+  // resolvable from route history, since RoutesPage looks them up separately.
+  const visibleDrivers = drivers.filter((d) => d.user.isActive);
+
+  const availableCount = visibleDrivers.filter((d) => d.status === "AVAILABLE").length;
+  const onRouteCount = visibleDrivers.filter((d) => d.status === "ON_ROUTE").length;
+  const offDutyCount = visibleDrivers.filter((d) => d.status === "OFF_DUTY").length;
 
   const handleCreate = async ({
     user,
@@ -129,6 +141,22 @@ export const DriversPage = () => {
     }
   };
 
+  const handleDeleteFromDetail = (driver: DriverListViewPrimitives) => {
+    setSelected(null);
+    setDeleteDriver(driver);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDriver) return;
+    try {
+      await updateDriver(deleteDriver.id, { isActive: false });
+      toast.success("Conductor eliminado.");
+      setDeleteDriver(null);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
+  };
+
   if (isLoading) {
     return <PageLoader text="Cargando conductores..." />;
   }
@@ -148,6 +176,7 @@ export const DriversPage = () => {
             <RefreshCw className="size-4" />
             Actualizar
           </Button>
+          {canCreateDrivers && (
           <Button
             className="gap-2"
             onClick={() => setFormOpen(true)}
@@ -156,6 +185,7 @@ export const DriversPage = () => {
             <Plus className="size-4" />
             Nuevo conductor
           </Button>
+          )}
         </div>
       </div>
 
@@ -201,7 +231,7 @@ export const DriversPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {drivers.length === 0 ? (
+                {visibleDrivers.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={5}
@@ -211,7 +241,7 @@ export const DriversPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  drivers.map((driver) => (
+                  visibleDrivers.map((driver) => (
                     <TableRow
                       key={driver.id}
                       className="cursor-pointer"
@@ -282,10 +312,16 @@ export const DriversPage = () => {
         driver={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
-        onEdit={(driver) => {
-          setSelected(null);
-          setEditDriver(driver);
-        }}
+     
+        onDelete={handleDeleteFromDetail}
+        onEdit={
+          canEditDrivers
+            ? (driver) => {
+                setSelected(null);
+                setEditDriver(driver);
+              }
+            : undefined
+        }
       />
 
       {editDriver && (
@@ -297,6 +333,14 @@ export const DriversPage = () => {
           isLoading={isUpdating}
         />
       )}
+
+      <DriverDeleteDialog
+        driver={deleteDriver}
+        open={!!deleteDriver}
+        onClose={() => setDeleteDriver(null)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isUpdating}
+      />
     </div>
   );
 };

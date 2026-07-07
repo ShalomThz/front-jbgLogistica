@@ -9,7 +9,7 @@ import {
   DialogTitle,
   Separator,
 } from "@contexts/shared/shadcn";
-import { Calendar, Clock, IdCard, Mail, Pencil, User } from "lucide-react";
+import { Calendar, Clock, IdCard, Mail, Pencil, Trash2, User } from "lucide-react";
 import type { DriverStatus } from "../../../domain/schemas/driver/Driver";
 import type { DriverListViewPrimitives } from "../../../domain/schemas/driver/DriverListView";
 
@@ -59,9 +59,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onEdit?: (driver: DriverListViewPrimitives) => void;
+  onDelete?: (driver: DriverListViewPrimitives) => void;
 }
 
-export const DriverDetailDialog = ({ driver, open, onClose, onEdit }: Props) => {
+export const DriverDetailDialog = ({ driver, open, onClose, onEdit, onDelete }: Props) => {
   if (!driver) return null;
 
   return (
@@ -109,12 +110,20 @@ export const DriverDetailDialog = ({ driver, open, onClose, onEdit }: Props) => 
           </div>
         </div>
 
-        {onEdit && (
+        {(onEdit || onDelete) && (
           <DialogFooter>
-            <Button size="sm" onClick={() => onEdit(driver)}>
-              <Pencil className="mr-1.5 size-4" />
-              Editar
-            </Button>
+            {onDelete && (
+              <Button variant="destructive" size="sm" onClick={() => onDelete(driver)}>
+                <Trash2 className="mr-1.5 size-4" />
+                Eliminar
+              </Button>
+            )}
+            {onEdit && (
+              <Button size="sm" onClick={() => onEdit(driver)}>
+                <Pencil className="mr-1.5 size-4" />
+                Editar
+              </Button>
+            )}
           </DialogFooter>
         )}
       </DialogContent>

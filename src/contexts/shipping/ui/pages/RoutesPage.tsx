@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { parseApiError } from "../../../shared/infrastructure/http";
 import type { CreateRouteRequest } from "../../application/route/CreateRouteRequest";
 import type { RouteResponsePrimitives } from "../../application/route/RouteResponse";
@@ -147,6 +149,7 @@ interface RouteCardProps {
   onOptimize: () => void;
   onCancel: () => void;
   isOptimizing: boolean;
+  canDeleteRoutes: boolean;
 }
 
 function RouteCard({
@@ -157,14 +160,18 @@ function RouteCard({
   onOptimize,
   onCancel,
   isOptimizing,
+  canDeleteRoutes,
 }: RouteCardProps) {
   const delivered = route.stops.filter((s) => s.status === "DELIVERED").length;
   const total = route.stops.length;
   const failed = route.stops.filter((s) => s.status === "FAILED" || s.status === "RETURNED").length;
   const progress = total > 0 ? Math.round((delivered / total) * 100) : 0;
+  // Optimizar no exige permiso: cualquier usuario puede hacerlo.
   const canOptimize = route.status === "PLANNED" && total > 0;
   const canCancel =
-    route.status !== "COMPLETED" && route.status !== "CANCELLED";
+    canDeleteRoutes &&
+    route.status !== "COMPLETED" &&
+    route.status !== "CANCELLED";
   const shortId = route.id.slice(0, 8).toUpperCase();
 
   return (
@@ -325,6 +332,10 @@ export const RoutesPage = () => {
   const [optimizingId, setOptimizingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  const { user } = useAuth();
+  const canCreateRoutes = user ? shippingPolicies.createRoutes(user) : false;
+  const canDeleteRoutes = user ? shippingPolicies.deleteRoutes(user) : false;
+
   const {
     routes,
     isLoading,
@@ -454,10 +465,12 @@ export const RoutesPage = () => {
             <RefreshCw className="size-4" />
             Actualizar
           </Button>
-          <Button className="gap-2" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
-            {ROUTE_TYPE_COPY[routeKind].newButton}
-          </Button>
+          {canCreateRoutes && (
+            <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              {ROUTE_TYPE_COPY[routeKind].newButton}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -568,7 +581,7 @@ export const RoutesPage = () => {
                       ? TAB_LABELS[tab].toLowerCase()
                       : "registradas"}
                   </p>
-                  {tab === "ALL" && (
+                  {tab === "ALL" && canCreateRoutes && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -593,6 +606,7 @@ export const RoutesPage = () => {
                     onOptimize={() => handleOptimize(route)}
                     onCancel={() => setRouteToCancel(route)}
                     isOptimizing={optimizingId === route.id}
+                    canDeleteRoutes={canDeleteRoutes}
                   />
                 ))}
               </div>
@@ -620,10 +634,14 @@ export const RoutesPage = () => {
         driver={
           selectedRoute ? driverMap.get(selectedRoute.driverId) : undefined
         }
-        onDelete={(route) => {
-          setSelectedRoute(null);
-          setRouteToCancel(route);
-        }}
+        onDelete={
+          canDeleteRoutes
+            ? (route) => {
+                setSelectedRoute(null);
+                setRouteToCancel(route);
+              }
+            : undefined
+        }
         onMap={(route) => {
           setSelectedRoute(null);
           setMapRoute(route);

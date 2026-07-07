@@ -14,9 +14,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
-export const DriverDeleteDialog = ({ driver, open, onClose, onConfirm }: Props) => {
+export const DriverDeleteDialog = ({ driver, open, onClose, onConfirm, isLoading }: Props) => {
   if (!driver) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -26,16 +27,17 @@ export const DriverDeleteDialog = ({ driver, open, onClose, onConfirm }: Props) 
           <DialogDescription>
             ¿Eliminar al conductor{" "}
             <span className="font-medium">{driver.user.name}</span> con licencia{" "}
-            <span className="font-medium">{driver.licenseNumber}</span>? Esta acción no se puede
-            deshacer.
+            <span className="font-medium">{driver.licenseNumber}</span>? Se ocultará de la lista de
+            conductores y se bloqueará su acceso a la app de conductores, pero seguirá apareciendo en
+            las rutas ya asignadas. Puedes reactivarlo después editando su perfil.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            Eliminar
+          <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogFooter>
       </DialogContent>
