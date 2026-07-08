@@ -115,7 +115,6 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     isFulfilling: submission.isFulfilling,
     isProcessingShipment: submission.isProcessingShipment,
     shipmentPhase: submission.shipmentPhase,
-    providerStatus: submission.providerStatus,
     canCancelCreation: submission.canCancelCreation,
     cancelCreation: submission.cancelCreation,
     creationCancelled: submission.creationCancelled,

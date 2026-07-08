@@ -31,9 +31,11 @@ import type { HQOrderStep } from "./useHQOrderFlowForm";
 // with an infrequent read as a backstop if the event is missed.
 const FULFILL_TIMEOUT_MS = 180_000;
 const FULFILL_BACKSTOP_INTERVAL_MS = 15_000;
-// How long the carrier may sit in `creation_waiting` (a stalled/problematic
-// state) before we offer a manual "Cancelar" in the dialog.
-const CREATION_WAITING_CANCEL_DELAY_MS = 30_000;
+// How long the fulfillment wait may run before we offer a manual "Cancelar"
+// in the dialog (escape hatch for a creation stalled at the carrier). 90s
+// covers the carrier's normal async creation plus the webhook's fast retries
+// (5s/30s), so users don't abort creations that are about to succeed.
+const CREATION_WAITING_CANCEL_DELAY_MS = 90_000;
 
 export type ShipmentPhase = "selecting" | "fulfilling";
 
@@ -83,7 +85,6 @@ export const useHQOrderSubmission = ({
   const [shipmentPhase, setShipmentPhase] =
     useState<ShipmentPhase>("selecting");
   // Carrier creation sub-status (e.g. "Generando la guía…"), surfaced live.
-  const [providerStatus, setProviderStatus] = useState<string | null>(null);
   // Becomes true after the carrier sits too long in `creation_waiting`, so the
   // dialog can offer a manual cancel.
   const [canCancelCreation, setCanCancelCreation] = useState(false);
@@ -99,19 +100,15 @@ export const useHQOrderSubmission = ({
     }
   };
 
-  // Arm the manual-cancel offer while in `creation_waiting`; disarm otherwise.
-  const trackCreationProgress = (workflowStatus: string) => {
-    if (workflowStatus === "creation_waiting") {
-      if (!stallTimerRef.current) {
-        stallTimerRef.current = setTimeout(
-          () => setCanCancelCreation(true),
-          CREATION_WAITING_CANCEL_DELAY_MS,
-        );
-      }
-      return;
+  // Arm the manual-cancel offer once the fulfillment wait has run for a while
+  // without resolving; disarmed when the wait settles.
+  const armCancelOffer = () => {
+    if (!stallTimerRef.current) {
+      stallTimerRef.current = setTimeout(
+        () => setCanCancelCreation(true),
+        CREATION_WAITING_CANCEL_DELAY_MS,
+      );
     }
-    clearStallTimer();
-    setCanCancelCreation(false);
   };
 
   useEffect(() => clearStallTimer, []);
@@ -267,7 +264,6 @@ export const useHQOrderSubmission = ({
 
     setIsProcessingShipment(true);
     setShipmentError(null);
-    setProviderStatus(null);
     setCanCancelCreation(false);
     setCreationCancelled(false);
     clearStallTimer();
@@ -298,16 +294,15 @@ export const useHQOrderSubmission = ({
         let current = await fulfillShipment(shipmentId);
 
         if (current.status !== "FULFILLED") {
+          armCancelOffer();
           const outcome = await waitForShipmentFulfillment(shipmentId, {
             timeoutMs: FULFILL_TIMEOUT_MS,
             pollIntervalMs: FULFILL_BACKSTOP_INTERVAL_MS,
             read: () =>
               orderId ? findByOrderId(orderId) : Promise.resolve(null),
-            onStatus: ({ description, workflowStatus }) => {
-              setProviderStatus(description);
-              trackCreationProgress(workflowStatus);
-            },
           });
+          clearStallTimer();
+          setCanCancelCreation(false);
           if (outcome === "failed") {
             // Don't overwrite a more specific message (e.g. a manual cancel).
             setShipmentError(
@@ -421,7 +416,6 @@ export const useHQOrderSubmission = ({
     isFulfilling,
     isProcessingShipment,
     shipmentPhase,
-    providerStatus,
     canCancelCreation,
     cancelCreation,
     creationCancelled,

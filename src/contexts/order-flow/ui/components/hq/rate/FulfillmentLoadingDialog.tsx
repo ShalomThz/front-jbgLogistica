@@ -30,9 +30,7 @@ interface FulfillmentLoadingDialogProps {
   open: boolean;
   phase: FulfillmentPhase;
   error: string | null;
-  /** Carrier creation sub-status (e.g. "Generando la guía…"), live. */
-  providerStatus?: string | null;
-  /** Offer a manual cancel (carrier stalled in creation_waiting). */
+  /** Offer a manual cancel (the creation has been waiting for a while). */
   canCancel?: boolean;
   onCancel?: () => void;
   /** The error state is a user-initiated cancellation, not a failure. */
@@ -69,7 +67,6 @@ export function FulfillmentLoadingDialog({
   open,
   phase,
   error,
-  providerStatus,
   canCancel,
   onCancel,
   cancelled,
@@ -124,13 +121,6 @@ export function FulfillmentLoadingDialog({
                 {copy.description}
               </DialogDescription>
             </DialogHeader>
-
-            {providerStatus && (
-              <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                {providerStatus}
-              </span>
-            )}
 
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <PackageCheck className="size-3.5" />

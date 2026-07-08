@@ -5,9 +5,12 @@ interface TariffErrorBannerProps {
   zoneId: string;
   destinationCountry: string;
   boxId: string;
+  /** Default currency for the inline-created tariff (the order's costs
+   * currency), so the tariff doesn't require an FX conversion. */
+  priceCurrency?: string;
 }
 
-export function TariffErrorBanner({ zoneId, destinationCountry, boxId }: TariffErrorBannerProps) {
+export function TariffErrorBanner({ zoneId, destinationCountry, boxId, priceCurrency }: TariffErrorBannerProps) {
   const canCreate = !!zoneId && !!destinationCountry && !!boxId;
 
   return (
@@ -23,6 +26,7 @@ export function TariffErrorBanner({ zoneId, destinationCountry, boxId }: TariffE
             zoneId={zoneId}
             destinationCountry={destinationCountry}
             boxId={boxId}
+            priceCurrency={priceCurrency}
             variant="outline"
           />
         )}

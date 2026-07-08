@@ -68,6 +68,7 @@ export function RateStep({
 }: RateStepProps) {
   const { setValue } = useFormContext<HQOrderFormValues>();
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
+  const costsCurrency = useWatch<HQOrderFormValues, "shippingService.costBreakdownCurrency">({ name: "shippingService.costBreakdownCurrency" });
 
   const handleRateSelection = (rate: RatePrimitives) => {
     setValue("shippingService.selectedRate", rate);
@@ -97,6 +98,7 @@ export function RateStep({
             zoneId={tariffZoneId}
             destinationCountry={tariffDestinationCountry}
             boxId={tariffBoxId}
+            priceCurrency={costsCurrency}
           />
         )}
         {showJBGFallback && <JBGFallbackBanner />}
