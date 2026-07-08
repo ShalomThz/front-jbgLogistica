@@ -32,8 +32,10 @@ import type { HQOrderStep } from "./useHQOrderFlowForm";
 const FULFILL_TIMEOUT_MS = 180_000;
 const FULFILL_BACKSTOP_INTERVAL_MS = 15_000;
 // How long the fulfillment wait may run before we offer a manual "Cancelar"
-// in the dialog (escape hatch for a creation stalled at the carrier).
-const CREATION_WAITING_CANCEL_DELAY_MS = 30_000;
+// in the dialog (escape hatch for a creation stalled at the carrier). 90s
+// covers the carrier's normal async creation plus the webhook's fast retries
+// (5s/30s), so users don't abort creations that are about to succeed.
+const CREATION_WAITING_CANCEL_DELAY_MS = 90_000;
 
 export type ShipmentPhase = "selecting" | "fulfilling";
 
