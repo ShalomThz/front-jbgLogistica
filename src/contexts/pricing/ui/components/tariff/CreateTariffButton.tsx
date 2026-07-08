@@ -11,6 +11,8 @@ interface CreateTariffButtonProps {
   zoneId: string;
   destinationCountry: string;
   boxId: string;
+  /** Default currency for the new tariff (e.g. the order's costs currency). */
+  priceCurrency?: string;
   onCreated?: () => void;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm";
@@ -21,6 +23,7 @@ export function CreateTariffButton({
   zoneId,
   destinationCountry,
   boxId,
+  priceCurrency,
   onCreated,
   variant = "default",
   size = "sm",
@@ -51,7 +54,12 @@ export function CreateTariffButton({
         open={open}
         onClose={() => setOpen(false)}
         onSave={handleSave}
-        initialValues={{ originZoneId: zoneId, destinationCountry, boxId }}
+        initialValues={{
+          originZoneId: zoneId,
+          destinationCountry,
+          boxId,
+          ...(priceCurrency && { price: { amount: 0, currency: priceCurrency } }),
+        }}
         isLoading={isCreating}
       />
     </>
