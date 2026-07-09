@@ -12,6 +12,7 @@ import {
   Store,
   UserCog,
   Settings,
+  Bell,
   BarChart3,
 } from "lucide-react";
 import {
@@ -163,6 +164,9 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_VIEW_SETTINGS: "Ver configuración",
   CAN_EDIT_SETTINGS: "Editar configuración",
 
+  // Notifications
+  CAN_LIST_NOTIFICATIONS: "Ver notificaciones",
+
   // Reports (per resource)
   CAN_VIEW_ORDER_REPORTS: "Ver reportes de órdenes",
   CAN_VIEW_CUSTOMER_REPORTS: "Ver reportes de clientes",
@@ -280,6 +284,10 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   // Settings
   CAN_VIEW_SETTINGS: "Ver la configuración general del sistema.",
   CAN_EDIT_SETTINGS: "Modificar la configuración general del sistema.",
+
+  // Notifications
+  CAN_LIST_NOTIFICATIONS:
+    "Ver la campana de notificaciones y marcarlas como leídas. El alcance (propia tienda o todas) depende de los permisos de listar todo.",
 
   // Reports (per resource)
   CAN_VIEW_ORDER_REPORTS: "Acceder al reporte de órdenes y exportarlo.",
@@ -445,6 +453,13 @@ export const PERMISSION_GROUPS: {
       permissions: [
         "CAN_VIEW_SETTINGS",
         "CAN_EDIT_SETTINGS",
+      ],
+    },
+    {
+      label: "Notificaciones",
+      icon: Bell,
+      permissions: [
+        "CAN_LIST_NOTIFICATIONS",
       ],
     },
     {
