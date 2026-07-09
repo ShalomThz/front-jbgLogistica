@@ -107,8 +107,8 @@ const NewHQOrderPageInner = ({
       <FormProvider {...flow.form}>
         {flow.step === "contact" && (
           <HQContactStep
+            selectedStoreId={flow.selectedStoreId}
             {...(flow.canSelectStore && {
-              selectedStoreId: flow.selectedStoreId,
               onStoreChange: flow.setSelectedStoreId,
             })}
           />
@@ -137,6 +137,7 @@ const NewHQOrderPageInner = ({
             tariffZoneId={flow.tariffZoneId}
             tariffDestinationCountry={flow.tariffDestinationCountry}
             tariffBoxId={flow.tariffBoxId}
+            {...(flow.canChangeZone && { onZoneChange: flow.setZoneOverride })}
             warehouseAddresses={flow.warehouseAddresses}
             selectedWarehouseAddress={flow.selectedWarehouseAddress}
             onWarehouseAddressChange={flow.setSelectedWarehouseAddress}

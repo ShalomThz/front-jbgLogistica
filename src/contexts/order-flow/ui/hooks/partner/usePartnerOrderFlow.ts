@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { useBoxOperations } from "../shared/useBoxOperations";
@@ -27,11 +28,19 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   const [step, setStep] = useState<PartnerOrderStep>("contact");
   const { user } = useAuth();
 
-  // TODO: cambiar a CAN_SELECT_STORE cuando se cree el permiso
-  //const canSelectStore = user ? orderPolicies.createHQ(user) : false;
-  const canSelectStore = true;
+  const canSelectStore = user ? orderPolicies.changeStore(user) : false;
 
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.store.id);
+
+  const canChangeZone = user ? orderPolicies.changeZone(user) : false;
+  // undefined = usar la zona de la tienda seleccionada
+  const [zoneOverrideId, setZoneOverrideId] = useState<string | undefined>(undefined);
+
+  const handleStoreChange = (id: string) => {
+    setSelectedStoreId(id);
+    // La zona elegida pertenecía a la tienda anterior — volver al default
+    setZoneOverrideId(undefined);
+  };
 
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
@@ -49,11 +58,13 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   const destinationCountry = form.watch("recipient.address.country");
   const boxId = form.watch("package.boxId");
 
+  const effectiveZoneId = zoneOverrideId ?? store?.zone?.id;
+
   const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useTariffPrice({
-    zoneId: store?.zone?.id ?? "",
+    zoneId: effectiveZoneId ?? "",
     destinationCountry,
     boxId: boxId ?? "",
-    enabled: step === "pricing" && !!store?.zone?.id && !!destinationCountry && !!boxId,
+    enabled: step === "pricing" && !!effectiveZoneId && !!destinationCountry && !!boxId,
   });
 
   const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: tariffPrice, onSuccess: () => setStep("success") });
@@ -113,8 +124,10 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     refetchPrice,
     canSelectStore,
     selectedStoreId,
-    setSelectedStoreId,
-    originZoneId: store?.zone?.id,
+    setSelectedStoreId: handleStoreChange,
+    canChangeZone,
+    setZoneOverride: setZoneOverrideId,
+    originZoneId: effectiveZoneId,
     markAsPaid: submission.markAsPaid,
     setMarkAsPaid: submission.setMarkAsPaid,
   };

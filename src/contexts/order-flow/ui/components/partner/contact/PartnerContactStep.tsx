@@ -86,10 +86,9 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
           <CardTitle className="text-base">Información de la Orden</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-0">
-          {onStoreChange && (
-            <div className="space-y-1">
-              <Label htmlFor="store-select">Tienda *</Label>
-              {canPickStore ? (
+          <div className="space-y-1">
+            <Label htmlFor="store-select">Tienda *</Label>
+            {onStoreChange && canPickStore ? (
               <Popover open={storeOpen} onOpenChange={setStoreOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -153,14 +152,13 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
                   </Command>
                 </PopoverContent>
               </Popover>
-              ) : (
-                <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
-                  <Store className="size-4" />
-                  {selectedStoreName ?? user?.store.name ?? "—"}
-                </div>
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                <Store className="size-4" />
+                {selectedStoreName ?? user?.store.name ?? "—"}
+              </div>
+            )}
+          </div>
           <div className="space-y-1">
             <Label htmlFor="partner-number">Número de Agente </Label>
             <Input

@@ -160,8 +160,8 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
       <FormProvider {...flow.form}>
         {flow.step === "contact" && (
           <PartnerContactStep
+            selectedStoreId={flow.selectedStoreId}
             {...(flow.canSelectStore && {
-              selectedStoreId: flow.selectedStoreId,
               onStoreChange: flow.setSelectedStoreId,
             })}
           />
@@ -171,6 +171,7 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
           <PartnerPackageStep
             onEditContacts={() => flow.setStep("contact")}
             originZoneId={flow.originZoneId}
+            {...(flow.canChangeZone && { onZoneChange: flow.setZoneOverride })}
           />
         )}
 
@@ -182,6 +183,7 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
             refetchPrice={flow.refetchPrice}
             markAsPaid={flow.markAsPaid}
             onMarkAsPaidChange={flow.setMarkAsPaid}
+            zoneId={flow.originZoneId}
           />
         )}
 

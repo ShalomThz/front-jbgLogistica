@@ -1,5 +1,6 @@
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
 import { useHQSettings } from "@contexts/settings/infrastructure/hooks/useSkydropxSettings";
 import type { WarehouseAddressPrimitives } from "@contexts/shipping/domain/schemas/value-objects/WarehouseAddress";
@@ -35,9 +36,18 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
   const [step, setStep] = useState<HQOrderStep>("contact");
   const { user } = useAuth();
 
-  // const canSelectStore = user ? orderPolicies.createHQ(user) : false;
-  const canSelectStore = true;
+  const canSelectStore = user ? orderPolicies.changeStore(user) : false;
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.store.id);
+
+  const canChangeZone = user ? orderPolicies.changeZone(user) : false;
+  // undefined = usar la zona de la tienda seleccionada
+  const [zoneOverrideId, setZoneOverrideId] = useState<string | undefined>(undefined);
+
+  const handleStoreChange = (id: string) => {
+    setSelectedStoreId(id);
+    // La zona elegida pertenecía a la tienda anterior — volver al default
+    setZoneOverrideId(undefined);
+  };
 
   const { skydropxAddresses, isLoading: isLoadingAddresses } = useHQSettings();
   // null means "user hasn't explicitly picked one yet — use the default"
@@ -58,7 +68,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
   const { processBox, boxes, updateBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
-  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox, storeId: selectedStoreId, warehouseAddress: warehouseAddress });
+  const submission = useHQOrderSubmission({ form, step, setStep, initialOrderId: orderId, boxes, updateBox, storeId: selectedStoreId, warehouseAddress: warehouseAddress, zoneOverrideId });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -130,7 +140,9 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     tariffBoxId: submission.tariffBoxId,
     canSelectStore,
     selectedStoreId,
-    setSelectedStoreId,
+    setSelectedStoreId: handleStoreChange,
+    canChangeZone,
+    setZoneOverride: setZoneOverrideId,
     warehouseAddresses: skydropxAddresses,
     selectedWarehouseAddress: effectiveWarehouseAddress,
     setSelectedWarehouseAddress,

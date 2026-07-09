@@ -1,4 +1,5 @@
 import type { HQShippingServiceState } from "../domain/schemas/NewOrderForm";
+import { buildDiscountPayload } from "./buildEditOrderRequest";
 import type { CarrierType } from "@contexts/shipping/domain/schemas/value-objects/Carrier";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
@@ -34,5 +35,6 @@ export const buildSelectProviderRequest = (
       wrap: parseMoney(cb.wrap, costsCurrency),
       tape: parseMoney(cb.tape, costsCurrency),
     },
+    discount: buildDiscountPayload(shippingService.discount),
   };
 };

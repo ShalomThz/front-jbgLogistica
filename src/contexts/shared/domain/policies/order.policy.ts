@@ -22,6 +22,12 @@ export const orderPolicies = {
   edit: hasAny("CAN_EDIT_PARTNER_ORDERS", "CAN_EDIT_HQ_ORDERS"),
   delete: hasAny("CAN_DELETE_PARTNER_ORDERS", "CAN_DELETE_HQ_ORDERS"),
 
+  // Cambiar la zona de tarifas al cotizar (por defecto es la de la tienda)
+  changeZone: hasAll("CAN_CHANGE_ORDER_ZONE"),
+
+  // Crear/editar órdenes a nombre de otra tienda distinta a la del usuario
+  changeStore: hasAll("CAN_CHANGE_ORDER_STORE"),
+
   // Detalles de orden
   viewFinancials: hasAll("CAN_VIEW_ORDER_FINANCIALS"),
 

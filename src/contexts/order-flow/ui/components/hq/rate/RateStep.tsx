@@ -5,6 +5,7 @@ import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import { useFormContext, useWatch } from "react-hook-form";
 import { SignatureCard } from "../../shared/SignatureCard";
+import { ZoneSelector } from "../../shared/ZoneSelector";
 import { AdditionalCostsCard } from "./AdditionalCostsCard";
 import { JBGFallbackBanner } from "./JBGFallbackBanner";
 import { JBGHintBanner } from "./JBGHintBanner";
@@ -36,6 +37,8 @@ interface RateStepProps {
   tariffZoneId: string;
   tariffDestinationCountry: string;
   tariffBoxId: string;
+  /** Presente solo si el usuario tiene permiso para cambiar la zona. */
+  onZoneChange?: (zoneId: string) => void;
   onTariffCreated?: () => void;
   warehouseAddresses: HQSkydropxAddressItemResponse[];
   selectedWarehouseAddress: HQSkydropxAddressItemResponse | null;
@@ -61,6 +64,7 @@ export function RateStep({
   tariffZoneId,
   tariffDestinationCountry,
   tariffBoxId,
+  onZoneChange,
   warehouseAddresses,
   selectedWarehouseAddress,
   onWarehouseAddressChange,
@@ -92,6 +96,9 @@ export function RateStep({
           onSelect={onWarehouseAddressChange}
           isLoading={isLoadingAddresses}
         />
+        {onZoneChange && (
+          <ZoneSelector zoneId={tariffZoneId || undefined} onZoneChange={onZoneChange} />
+        )}
         {showTariffLoading && <TariffLoadingBanner />}
         {showTariffError && (
           <TariffErrorBanner

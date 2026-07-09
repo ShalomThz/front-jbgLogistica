@@ -12,6 +12,10 @@ export const PERMISSIONS = [
   "CAN_CREATE_HQ_ORDERS",
   "CAN_EDIT_HQ_ORDERS",
   "CAN_DELETE_HQ_ORDERS",
+  // Override the tariff zone (defaults to the store's zone) when quoting an order.
+  "CAN_CHANGE_ORDER_ZONE",
+  // Create/edit orders on behalf of a store other than the user's own.
+  "CAN_CHANGE_ORDER_STORE",
 
   // Order details
   "CAN_VIEW_ORDER_FINANCIALS",
