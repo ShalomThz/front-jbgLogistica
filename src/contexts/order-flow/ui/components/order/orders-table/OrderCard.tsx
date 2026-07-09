@@ -68,7 +68,11 @@ export const OrderCard = ({
             {order.createdBy.name} · {order.store.name}
           </div>
           <div className="text-xs text-muted-foreground">
-            {new Date(order.createdAt).toLocaleDateString("es-MX")}
+            {new Date(order.createdAt).toLocaleDateString("es-MX")}{" "}
+            {new Date(order.createdAt).toLocaleTimeString("es-MX", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">

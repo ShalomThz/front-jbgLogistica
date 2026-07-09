@@ -331,7 +331,13 @@ export const OrdersTable = ({
                     </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString("es-MX")}
+                    <div>{new Date(order.createdAt).toLocaleDateString("es-MX")}</div>
+                    <div>
+                      {new Date(order.createdAt).toLocaleTimeString("es-MX", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <OrderPaymentControl order={order} canEdit={canEdit(order)} />

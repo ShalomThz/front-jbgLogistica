@@ -1,4 +1,4 @@
-import { hasAll } from "./Policy";
+import { hasAll, hasAny } from "./Policy";
 
 export const pricingPolicies = {
   manageTariffs: hasAll("CAN_LIST_TARIFFS"),
@@ -9,7 +9,9 @@ export const pricingPolicies = {
   deleteTariff: hasAll("CAN_DELETE_TARIFFS"),
 
   manageZones: hasAll("CAN_LIST_ZONES"),
-  listZones: hasAll("CAN_LIST_ZONES"),
+  // Quien puede cambiar la zona de tarifas en una orden necesita listar las
+  // zonas para elegirla, aunque no administre el catálogo.
+  listZones: hasAny("CAN_LIST_ZONES", "CAN_CHANGE_ORDER_ZONE"),
   viewZone: hasAll("CAN_VIEW_ZONES"),
   createZone: hasAll("CAN_CREATE_ZONES"),
   editZone: hasAll("CAN_EDIT_ZONES"),
