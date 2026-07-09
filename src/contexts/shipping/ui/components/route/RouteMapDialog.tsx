@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { RoutePrimitives } from "../../../domain/schemas/route/Route";
+import { ROUTE_TYPE_COPY } from "../../../domain/schemas/route/routeTypeCopy";
 import { RouteMap } from "./RouteMap";
 
 /**
@@ -51,13 +52,6 @@ function buildGoogleMapsUrl(route: RoutePrimitives): string {
 
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
-
-const STOP_STATUS_LABELS: Record<string, string> = {
-  PENDING: "Pendiente",
-  DELIVERED: "Entregada",
-  FAILED: "Fallida",
-  RETURNED: "Devuelta",
-};
 
 const STOP_STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   PENDING: "secondary",
@@ -117,6 +111,12 @@ export const RouteMapDialog = ({
     : undefined;
   const canOptimize =
     !!onOptimize && route?.status === "PLANNED" && orderedStops.length > 0;
+  const stopStatusLabels: Record<string, string> = {
+    PENDING: "Pendiente",
+    DELIVERED: route ? ROUTE_TYPE_COPY[route.type].stopStatusDelivered : "Entregada",
+    FAILED: "Fallida",
+    RETURNED: "Devuelta",
+  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -229,7 +229,7 @@ export const RouteMapDialog = ({
                     {stop.address.address1}, {stop.address.city}
                   </span>
                   <Badge variant={STOP_STATUS_VARIANT[stop.status]}>
-                    {STOP_STATUS_LABELS[stop.status]}
+                    {stopStatusLabels[stop.status]}
                   </Badge>
                 </div>
               ))}

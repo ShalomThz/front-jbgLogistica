@@ -33,6 +33,7 @@ import type { CreateRouteRequest } from "../../application/route/CreateRouteRequ
 import type { RouteResponsePrimitives } from "../../application/route/RouteResponse";
 import type { DriverListViewPrimitives } from "../../domain/schemas/driver/DriverListView";
 import type { RouteStatus, RouteType } from "../../domain/schemas/route/Route";
+import { ROUTE_TYPE_COPY } from "../../domain/schemas/route/routeTypeCopy";
 import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
 import { useRoutes } from "../../infrastructure/hooks/routes/useRoutes";
 import { CreateRouteDialog } from "../components/delivery-route/CreateRouteDialog";
@@ -66,43 +67,6 @@ const TAB_LABELS: Record<Tab, string> = {
   ACTIVE: "Activas",
   COMPLETED: "Completadas",
   CANCELLED: "Canceladas",
-};
-
-/** Copy that differs between delivery and picking (recolección) modules */
-const ROUTE_TYPE_COPY: Record<
-  RouteType,
-  {
-    tabLabel: string;
-    subtitle: string;
-    newButton: string;
-    stopsDoneLabel: string;
-    emptyHint: string;
-  }
-> = {
-  DELIVERY: {
-    tabLabel: "Rutas de entrega",
-    subtitle:
-      "Planifica rutas, asigna conductores y monitorea el progreso de cada entrega.",
-    newButton: "Nueva ruta de entrega",
-    stopsDoneLabel: "entregadas",
-    emptyHint: "Crear primera ruta de entrega",
-  },
-  PICKING: {
-    tabLabel: "Rutas para recolección",
-    subtitle:
-      "Crea rutas para recolectar a domicilio las cajas ya entregadas a clientes (flota JBG).",
-    newButton: "Nueva ruta de recolección",
-    stopsDoneLabel: "recolectadas",
-    emptyHint: "Crear primera ruta de recolección",
-  },
-  BOX_DROP: {
-    tabLabel: "Rutas de cajas vacías",
-    subtitle:
-      'Crea rutas para dejar cajas vacías en el domicilio de órdenes "dejar caja vacía a domicilio".',
-    newButton: "Nueva ruta de cajas vacías",
-    stopsDoneLabel: "entregadas",
-    emptyHint: "Crear primera ruta de cajas vacías",
-  },
 };
 
 const LIMIT = 50;
