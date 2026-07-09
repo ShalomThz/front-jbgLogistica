@@ -101,7 +101,7 @@ export const CreateRouteDialog = ({
   };
 
   const handleSubmit = () => {
-    if (!driverId || !origin) return;
+    if (!driverId || !origin || shipmentIds.length === 0) return;
     onSave({
       driverId,
       origin: {
@@ -408,7 +408,7 @@ export const CreateRouteDialog = ({
               <Button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!driverId || !origin || isLoading}
+                disabled={!driverId || !origin || shipmentIds.length === 0 || isLoading}
                 className="gap-1.5"
               >
                 {isLoading ? (
