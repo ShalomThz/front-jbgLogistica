@@ -242,7 +242,17 @@ export const OrderDetailDialog = ({
               .join(" · ") || order.id}
           </DialogTitle>
           <DialogDescription className="text-sm flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span>Tienda <span className="font-semibold text-foreground">{order.store.name}</span></span>
+            <span>
+              Tienda <span className="font-semibold text-foreground">{order.store.name}</span>
+              {" · "}
+              {new Date(order.createdAt).toLocaleString("es-MX", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

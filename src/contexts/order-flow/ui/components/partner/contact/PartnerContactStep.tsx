@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@contexts/shared/shadcn";
-import { Check, ChevronsUpDown, Store } from "lucide-react";
+import { Check, ChevronsUpDown, PackageOpen, Store } from "lucide-react";
 import { useMemo, useState, type UIEvent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
@@ -173,22 +173,43 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Controller
-              control={control}
-              name="emptyBoxDelivery"
-              render={({ field }) => (
+          <Controller
+            control={control}
+            name="emptyBoxDelivery"
+            render={({ field }) => (
+              <label
+                htmlFor="empty-box-delivery"
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+                  field.value
+                    ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30"
+                    : "hover:bg-muted/40",
+                )}
+              >
                 <Checkbox
                   id="empty-box-delivery"
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  className="mt-0.5 data-[state=checked]:border-amber-500 data-[state=checked]:bg-amber-500"
                 />
-              )}
-            />
-            <Label htmlFor="empty-box-delivery" className="cursor-pointer font-normal">
-              Dejar caja vacía en el domicilio (se recolecta después)
-            </Label>
-          </div>
+                <span className="space-y-0.5">
+                  <span
+                    className={cn(
+                      "flex items-center gap-1.5 text-sm font-medium",
+                      field.value && "text-amber-700 dark:text-amber-400",
+                    )}
+                  >
+                    <PackageOpen className="size-4" />
+                    Dejar caja vacía a domicilio
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    El chofer deja la caja al cliente y se recolecta después, ya
+                    empacada, para llevarla a bodega.
+                  </span>
+                </span>
+              </label>
+            )}
+          />
         </CardContent>
       </Card>
 
