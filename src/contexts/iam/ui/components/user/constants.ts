@@ -75,6 +75,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_CREATE_HQ_ORDERS: "Crear órdenes JBG",
   CAN_EDIT_HQ_ORDERS: "Editar órdenes JBG",
   CAN_DELETE_HQ_ORDERS: "Eliminar órdenes JBG",
+  CAN_CHANGE_ORDER_ZONE: "Cambiar zona de tarifas",
+  CAN_CHANGE_ORDER_STORE: "Cambiar tienda de la orden",
 
   // Order details
   CAN_VIEW_ORDER_FINANCIALS: "Ver finanzas de la orden",
@@ -185,6 +187,10 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_CREATE_HQ_ORDERS: "Crear nuevas órdenes JBG con cotización de envío completa.",
   CAN_EDIT_HQ_ORDERS: "Modificar los datos de una orden JBG y completar ventas de agentes.",
   CAN_DELETE_HQ_ORDERS: "Eliminar permanentemente una orden JBG.",
+  CAN_CHANGE_ORDER_ZONE:
+    "Al cotizar una orden, usar las tarifas de una zona distinta a la de la tienda seleccionada.",
+  CAN_CHANGE_ORDER_STORE:
+    "Crear o editar órdenes a nombre de una tienda distinta a la del usuario. Sin él, la tienda de la orden es siempre la propia.",
 
   // Order details
   CAN_VIEW_ORDER_FINANCIALS:
@@ -306,6 +312,8 @@ export const PERMISSION_GROUPS: {
         "CAN_CREATE_HQ_ORDERS",
         "CAN_EDIT_HQ_ORDERS",
         "CAN_DELETE_HQ_ORDERS",
+        "CAN_CHANGE_ORDER_ZONE",
+        "CAN_CHANGE_ORDER_STORE",
       ],
     },
     {

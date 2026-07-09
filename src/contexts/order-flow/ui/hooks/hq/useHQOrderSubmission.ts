@@ -49,6 +49,8 @@ interface UseHQOrderSubmissionOptions {
   updateBox: (id: string, data: UpdateBoxRequest) => Promise<BoxPrimitives>;
   storeId?: string;
   warehouseAddress: WarehouseAddressPrimitives | null;
+  /** Zona elegida por el vendedor; undefined = la zona de la tienda. */
+  zoneOverrideId?: string;
 }
 
 export const useHQOrderSubmission = ({
@@ -60,6 +62,7 @@ export const useHQOrderSubmission = ({
   updateBox,
   storeId,
   warehouseAddress,
+  zoneOverrideId,
 }: UseHQOrderSubmissionOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -126,7 +129,7 @@ export const useHQOrderSubmission = ({
     name: "recipient.address.country",
   });
   const boxId = useWatch({ control: form.control, name: "package.boxId" });
-  const zoneId = store?.zone?.id ?? "";
+  const zoneId = zoneOverrideId ?? store?.zone?.id ?? "";
   const {
     tariffPrice,
     isLoadingPrice: isLoadingTariff,

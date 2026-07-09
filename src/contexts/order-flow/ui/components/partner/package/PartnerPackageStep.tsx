@@ -16,10 +16,13 @@ import boxIsometricSvg from "@/assets/box-isometric.svg";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { BoxSelector } from "../../shared/BoxSelector";
 import { ShippingSummary } from "../../shared/ShippingSummary";
+import { ZoneSelector } from "../../shared/ZoneSelector";
 
 interface PartnerPackageStepProps {
   onEditContacts: () => void;
   originZoneId: string | undefined;
+  /** Presente solo si el usuario tiene permiso para cambiar la zona. */
+  onZoneChange?: (zoneId: string) => void;
 }
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
@@ -31,7 +34,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PartnerPackageStep({ onEditContacts, originZoneId }: PartnerPackageStepProps) {
+export function PartnerPackageStep({ onEditContacts, originZoneId, onZoneChange }: PartnerPackageStepProps) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const pkg = useWatch<PartnerOrderFormValues, "package">({ name: "package" });
   const destinationCountry = useWatch<PartnerOrderFormValues, "recipient.address.country">({
@@ -99,6 +102,9 @@ export function PartnerPackageStep({ onEditContacts, originZoneId }: PartnerPack
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Sub-col 1: box selector + dimensions */}
             <div className="space-y-4">
+              {onZoneChange && (
+                <ZoneSelector zoneId={originZoneId} onZoneChange={onZoneChange} />
+              )}
               <BoxSelector zoneScope={{ zoneId: originZoneId, destinationCountry }} />
 
               {/* Inline dimensions — always derived from the selected box */}

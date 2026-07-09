@@ -3,7 +3,10 @@ import {
   CardContent,
 } from "@contexts/shared/shadcn";
 import { AlertTriangle } from "lucide-react";
+import { useFormContext, useWatch } from "react-hook-form";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { PartnerAdditionalCostsCard } from "./PartnerAdditionalCostsCard";
 import { PartnerTariffCard } from "./PartnerTariffCard";
 import { PartnerOrderSummaryCard } from "./PartnerOrderSummaryCard";
@@ -17,27 +20,55 @@ interface PartnerPricingStepProps {
   refetchPrice: () => void;
   markAsPaid: boolean;
   onMarkAsPaidChange: (value: boolean) => void;
+  /** Zona efectiva usada en la búsqueda de tarifa (override o la de la tienda). */
+  zoneId?: string;
 }
 
-export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, markAsPaid, onMarkAsPaidChange }: PartnerPricingStepProps) {
+/** Muestra la combinación exacta sin tarifa para que el vendedor pueda
+ * reportarla a JBG sin adivinar (zona + caja + país destino). */
+function TariffNotFoundCard({ zoneId }: { zoneId?: string }) {
+  const { control } = useFormContext<PartnerOrderFormValues>();
+  const packageType = useWatch<PartnerOrderFormValues, "package.packageType">({ control, name: "package.packageType" });
+  const destinationCountry = useWatch<PartnerOrderFormValues, "recipient.address.country">({ control, name: "recipient.address.country" });
+  const { zones } = useZones();
+  const zoneName = zones.find((z) => z.id === zoneId)?.name;
+
+  return (
+    <Card className="border-destructive bg-destructive/5">
+      <CardContent className="flex items-start gap-3 pt-6">
+        <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-destructive">
+            No se encontró tarifa para esta orden
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <span>
+              <span className="text-muted-foreground">Zona:</span>{" "}
+              <span className="font-medium">{zoneName ?? "—"}</span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">Caja:</span>{" "}
+              <span className="font-medium">{packageType || "—"}</span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">País destino:</span>{" "}
+              <span className="font-medium">{destinationCountry || "—"}</span>
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Comunícate con JBG para que se asigne una tarifa a esta combinación antes de continuar.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, markAsPaid, onMarkAsPaidChange, zoneId }: PartnerPricingStepProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
-        {tariffError && (
-          <Card className="border-destructive bg-destructive/5">
-            <CardContent className="flex items-start gap-3 pt-6">
-              <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-destructive">
-                  No se encontró tarifa para esta orden
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Comunícate con JBG para que se asigne una tarifa a esta zona y destino antes de continuar.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {tariffError && <TariffNotFoundCard zoneId={zoneId} />}
 
         <PartnerAdditionalCostsCard />
         <SignatureCard collapsible={false} />

@@ -4,7 +4,7 @@ import type { HQOrderFormValues } from "../domain/schemas/HQOrderForm";
 import type { PartnerOrderFormValues } from "../domain/schemas/PartnerOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
 
-const buildDiscountPayload = (discount: HQOrderFormValues["shippingService"]["discount"]) => {
+export const buildDiscountPayload = (discount: HQOrderFormValues["shippingService"]["discount"]) => {
   const amount = parseFloat(discount.amount);
   if (!amount || amount <= 0) return undefined;
   return {
