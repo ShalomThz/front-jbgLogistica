@@ -104,6 +104,7 @@ export const PERMISSIONS = [
 
   // Notifications
   "CAN_LIST_NOTIFICATIONS",
+  "CAN_LIST_ALL_NOTIFICATIONS",
 
   // Reports (per resource)
   "CAN_VIEW_ORDER_REPORTS",

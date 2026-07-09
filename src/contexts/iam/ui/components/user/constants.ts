@@ -166,6 +166,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 
   // Notifications
   CAN_LIST_NOTIFICATIONS: "Ver notificaciones",
+  CAN_LIST_ALL_NOTIFICATIONS: "Ver notificaciones de todas las tiendas",
 
   // Reports (per resource)
   CAN_VIEW_ORDER_REPORTS: "Ver reportes de órdenes",
@@ -287,7 +288,9 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
 
   // Notifications
   CAN_LIST_NOTIFICATIONS:
-    "Ver la campana de notificaciones y marcarlas como leídas. El alcance (propia tienda o todas) depende de los permisos de listar todo.",
+    "Ver la campana de notificaciones de su propia tienda y marcarlas como leídas.",
+  CAN_LIST_ALL_NOTIFICATIONS:
+    "Ver las notificaciones de todas las tiendas. Requiere ver notificaciones.",
 
   // Reports (per resource)
   CAN_VIEW_ORDER_REPORTS: "Acceder al reporte de órdenes y exportarlo.",
@@ -460,6 +463,7 @@ export const PERMISSION_GROUPS: {
       icon: Bell,
       permissions: [
         "CAN_LIST_NOTIFICATIONS",
+        "CAN_LIST_ALL_NOTIFICATIONS",
       ],
     },
     {
