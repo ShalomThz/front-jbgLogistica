@@ -5,8 +5,13 @@ import {
   SidebarTrigger,
   Separator,
 } from "@contexts/shared/shadcn/components";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { notificationPolicies } from "@contexts/shared/domain/policies/notification.policy";
 
 export const Header = () => {
+  const { user } = useAuth();
+  const canListNotifications = user ? notificationPolicies.list(user) : false;
+
   return (
     <header className="sticky top-0 z-10 shrink-0 h-16 bg-primary shadow-md shadow-primary/50 flex items-center justify-between px-4 text-primary-foreground">
       <div className="flex items-center gap-2">
@@ -18,7 +23,7 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-2">
-        <NotificationDrawer />
+        {canListNotifications && <NotificationDrawer />}
         <AnimatedThemeToggler className="inline-flex items-center justify-center rounded-md p-2 text-primary-foreground hover:bg-primary-foreground/15" />
         <UserMenu />
       </div>
