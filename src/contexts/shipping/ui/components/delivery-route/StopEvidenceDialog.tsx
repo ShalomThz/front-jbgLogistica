@@ -38,6 +38,9 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 function AttemptEvidenceCard({ attempt }: { attempt: DeliveryAttemptPrimitives }) {
   const { data: photo, isLoading: isLoadingPhoto } = useMedia(attempt.photoPath);
+  const { data: signature, isLoading: isLoadingSignature } = useMedia(
+    attempt.signaturePath,
+  );
 
   return (
     <div className="rounded-md border p-3 space-y-2">
@@ -75,6 +78,26 @@ function AttemptEvidenceCard({ attempt }: { attempt: DeliveryAttemptPrimitives }
           <div className="text-sm text-muted-foreground">Foto no disponible</div>
         )}
       </div>
+      {attempt.outcome === "DELIVERED" && (
+        <div className="space-y-1.5">
+          <span className="text-sm text-muted-foreground">Firma del cliente</span>
+          {isLoadingSignature ? (
+            <div className="text-sm text-muted-foreground animate-pulse">
+              Cargando firma...
+            </div>
+          ) : signature?.url ? (
+            <div className="bg-white rounded-md flex justify-center py-2 px-4 shadow-sm border border-black/10">
+              <img
+                src={signature.url}
+                alt={`Firma intento ${attempt.attemptNumber}`}
+                className="h-24 w-auto object-contain"
+              />
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">Firma no disponible</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
