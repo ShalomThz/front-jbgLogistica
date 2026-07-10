@@ -28,6 +28,9 @@ const LIMIT_OPTIONS = [10, 20, 50];
 export const TariffsPage = () => {
   const { user } = useAuth();
   const canViewReports = user ? pricingPolicies.viewTariffReports(user) : false;
+  const canCreate = user ? pricingPolicies.createTariff(user) : false;
+  const canEdit = user ? pricingPolicies.editTariff(user) : false;
+  const canDelete = user ? pricingPolicies.deleteTariff(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
@@ -127,10 +130,12 @@ export const TariffsPage = () => {
           <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" />
-            Crear Tarifa
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="size-4" />
+              Crear Tarifa
+            </Button>
+          )}
         </div>
       </div>
       <TariffFilters
@@ -213,29 +218,35 @@ export const TariffsPage = () => {
         tariff={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
-        onEdit={handleEditFromDetail}
-        onDelete={handleDeleteFromDetail}
+        onEdit={canEdit ? handleEditFromDetail : undefined}
+        onDelete={canDelete ? handleDeleteFromDetail : undefined}
       />
-      <TariffFormDialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSave={handleCreate}
-        isLoading={isCreating}
-      />
-      <TariffFormDialog
-        open={!!editTariff}
-        onClose={() => setEditTariff(null)}
-        onSave={handleUpdate}
-        tariff={editTariff}
-        isLoading={isUpdating}
-      />
-      <TariffDeleteDialog
-        tariff={deleteTariffDialog}
-        open={!!deleteTariffDialog}
-        onClose={() => setDeleteTariffDialog(null)}
-        onConfirm={handleDelete}
-        isLoading={isDeleting}
-      />
+      {canCreate && (
+        <TariffFormDialog
+          open={formOpen}
+          onClose={() => setFormOpen(false)}
+          onSave={handleCreate}
+          isLoading={isCreating}
+        />
+      )}
+      {canEdit && (
+        <TariffFormDialog
+          open={!!editTariff}
+          onClose={() => setEditTariff(null)}
+          onSave={handleUpdate}
+          tariff={editTariff}
+          isLoading={isUpdating}
+        />
+      )}
+      {canDelete && (
+        <TariffDeleteDialog
+          tariff={deleteTariffDialog}
+          open={!!deleteTariffDialog}
+          onClose={() => setDeleteTariffDialog(null)}
+          onConfirm={handleDelete}
+          isLoading={isDeleting}
+        />
+      )}
     </div>
   );
 };

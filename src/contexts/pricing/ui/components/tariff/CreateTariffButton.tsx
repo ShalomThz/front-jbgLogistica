@@ -6,6 +6,8 @@ import { TariffFormDialog } from "./TariffFormDialog";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
 import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
 
 interface CreateTariffButtonProps {
   zoneId: string;
@@ -30,6 +32,7 @@ export function CreateTariffButton({
   label = "Crear tarifa",
 }: CreateTariffButtonProps) {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
   // enabled:false — only need the mutation, don't fire the list query.
   const { createTariff, isCreating } = useTariffs({ enabled: false });
 
@@ -43,6 +46,8 @@ export function CreateTariffButton({
       toast.error(parseApiError(error));
     }
   };
+
+  if (!user || !pricingPolicies.createTariff(user)) return null;
 
   return (
     <>
