@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Ban, CheckCircle2, Clock, MapPin, Navigation, Route, Trash2, User, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { Ban, CheckCircle2, Clock, Loader2, MapPin, Navigation, Package, Route, Trash2, User, XCircle } from "lucide-react";
 import {
   Badge,
   Button,
@@ -12,6 +13,12 @@ import {
   Progress,
   Separator,
 } from "@contexts/shared/shadcn";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { parseApiError } from "@contexts/shared/infrastructure/http";
+import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
 import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/Route";
 import type { RouteStopPrimitives } from "../../../domain/schemas/route/RouteStop";
 import { ROUTE_TYPE_COPY } from "../../../domain/schemas/route/routeTypeCopy";
@@ -84,6 +91,30 @@ export const DeliveryRouteDetailDialog = ({
   onMap,
 }: Props) => {
   const [selectedStop, setSelectedStop] = useState<RouteStopPrimitives | null>(null);
+  const [orderForStop, setOrderForStop] = useState<OrderListView | null>(null);
+  const [loadingOrderStopId, setLoadingOrderStopId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const canViewOrder = user ? orderPolicies.list(user) : false;
+
+  const handleViewOrder = async (stop: RouteStopPrimitives) => {
+    setLoadingOrderStopId(stop.id);
+    try {
+      const { data } = await orderRepository.find({
+        filters: [{ field: "shipment.id", filterOperator: "=", value: stop.shipmentId }],
+        limit: 1,
+        offset: 0,
+      });
+      if (data[0]) {
+        setOrderForStop(data[0]);
+      } else {
+        toast.error("No se encontró la orden asociada a este envío.");
+      }
+    } catch (e) {
+      toast.error(parseApiError(e));
+    } finally {
+      setLoadingOrderStopId(null);
+    }
+  };
 
   if (!route) return null;
 
@@ -240,45 +271,68 @@ export const DeliveryRouteDetailDialog = ({
                       const Icon = STOP_STATUS_ICON[stop.status] ?? MapPin;
                       const colorClass = STOP_STATUS_COLORS[stop.status] ?? "text-muted-foreground";
                       return (
-                        <button
+                        <div
                           key={stop.id}
-                          type="button"
-                          onClick={() => setSelectedStop(stop)}
-                          className="w-full text-left p-2.5 flex items-start gap-3 hover:bg-muted/50 transition-colors"
+                          className="w-full flex items-start gap-3 p-2.5 hover:bg-muted/50 transition-colors"
                         >
-                          <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                            <span className="font-mono text-[11px] text-muted-foreground w-4 text-right">
-                              {stop.stopOrder}
-                            </span>
-                            <Icon className={`size-4 ${colorClass}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">
-                              {stop.address.address1}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {stop.address.city}, {stop.address.province}
-                            </p>
-                            {stop.attempts.length > 0 && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5 underline decoration-dotted">
-                                Ver evidencia · {stop.attempts.length} intento
-                                {stop.attempts.length !== 1 ? "s" : ""}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStop(stop)}
+                            className="flex flex-1 min-w-0 items-start gap-3 text-left"
+                          >
+                            <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                              <span className="font-mono text-[11px] text-muted-foreground w-4 text-right">
+                                {stop.stopOrder}
+                              </span>
+                              <Icon className={`size-4 ${colorClass}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">
+                                {stop.address.address1}
                               </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {stop.address.city}, {stop.address.province}
+                              </p>
+                              {stop.attempts.length > 0 && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5 underline decoration-dotted">
+                                  Ver evidencia · {stop.attempts.length} intento
+                                  {stop.attempts.length !== 1 ? "s" : ""}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge
+                              variant={
+                                stop.status === "DELIVERED"
+                                  ? "default"
+                                  : stop.status === "FAILED" || stop.status === "RETURNED"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                              className="text-[10px]"
+                            >
+                              {stopStatusLabels[stop.status] ?? stop.status}
+                            </Badge>
+                            {canViewOrder && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-6"
+                                title="Ver orden"
+                                disabled={loadingOrderStopId === stop.id}
+                                onClick={() => handleViewOrder(stop)}
+                              >
+                                {loadingOrderStopId === stop.id ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                  <Package className="size-3.5" />
+                                )}
+                              </Button>
                             )}
                           </div>
-                          <Badge
-                            variant={
-                              stop.status === "DELIVERED"
-                                ? "default"
-                                : stop.status === "FAILED" || stop.status === "RETURNED"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                            className="text-[10px] shrink-0"
-                          >
-                            {stopStatusLabels[stop.status] ?? stop.status}
-                          </Badge>
-                        </button>
+                        </div>
                       );
                     })}
                 </div>
@@ -345,6 +399,12 @@ export const DeliveryRouteDetailDialog = ({
         routeType={route.type}
         open={!!selectedStop}
         onClose={() => setSelectedStop(null)}
+      />
+
+      <OrderDetailDialog
+        order={orderForStop}
+        open={!!orderForStop}
+        onClose={() => setOrderForStop(null)}
       />
     </Dialog>
   );
