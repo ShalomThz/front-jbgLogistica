@@ -11,11 +11,8 @@ import {
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 import type { DeliveryAttemptPrimitives } from "../../../domain/schemas/route/DeliveryAttempt";
 import type { RouteStopPrimitives } from "../../../domain/schemas/route/RouteStop";
-
-const OUTCOME_LABELS: Record<DeliveryAttemptPrimitives["outcome"], string> = {
-  DELIVERED: "Entregado",
-  FAILED: "Fallido",
-};
+import type { RouteType } from "../../../domain/schemas/route/Route";
+import { ROUTE_TYPE_COPY } from "../../../domain/schemas/route/routeTypeCopy";
 
 const formatDateTime = (date: string) =>
   new Date(date).toLocaleDateString("es-MX", {
@@ -36,15 +33,29 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function AttemptEvidenceCard({ attempt }: { attempt: DeliveryAttemptPrimitives }) {
+function AttemptEvidenceCard({
+  attempt,
+  routeType,
+}: {
+  attempt: DeliveryAttemptPrimitives;
+  routeType: RouteType;
+}) {
+  const copy = ROUTE_TYPE_COPY[routeType];
+  const outcomeLabels: Record<DeliveryAttemptPrimitives["outcome"], string> = {
+    DELIVERED: copy.stopStatusDelivered,
+    FAILED: "Fallido",
+  };
   const { data: photo, isLoading: isLoadingPhoto } = useMedia(attempt.photoPath);
+  const { data: signature, isLoading: isLoadingSignature } = useMedia(
+    attempt.signaturePath,
+  );
 
   return (
     <div className="rounded-md border p-3 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">Intento {attempt.attemptNumber}</span>
         <Badge variant={attempt.outcome === "DELIVERED" ? "default" : "destructive"}>
-          {OUTCOME_LABELS[attempt.outcome]}
+          {outcomeLabels[attempt.outcome]}
         </Badge>
       </div>
       <div className="space-y-1">
@@ -75,19 +86,41 @@ function AttemptEvidenceCard({ attempt }: { attempt: DeliveryAttemptPrimitives }
           <div className="text-sm text-muted-foreground">Foto no disponible</div>
         )}
       </div>
+      {attempt.outcome === "DELIVERED" && (
+        <div className="space-y-1.5">
+          <span className="text-sm text-muted-foreground">{copy.signatureLabel}</span>
+          {isLoadingSignature ? (
+            <div className="text-sm text-muted-foreground animate-pulse">
+              Cargando firma...
+            </div>
+          ) : signature?.url ? (
+            <div className="bg-white rounded-md flex justify-center py-2 px-4 shadow-sm border border-black/10">
+              <img
+                src={signature.url}
+                alt={`Firma intento ${attempt.attemptNumber}`}
+                className="h-24 w-auto object-contain"
+              />
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">Firma no disponible</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 interface Props {
   stop: RouteStopPrimitives | null;
+  routeType: RouteType;
   open: boolean;
   onClose: () => void;
 }
 
-export const StopEvidenceDialog = ({ stop, open, onClose }: Props) => {
+export const StopEvidenceDialog = ({ stop, routeType, open, onClose }: Props) => {
   if (!stop) return null;
 
+  const copy = ROUTE_TYPE_COPY[routeType];
   const attempts = stop.attempts.slice().sort((a, b) => a.attemptNumber - b.attemptNumber);
 
   return (
@@ -101,15 +134,13 @@ export const StopEvidenceDialog = ({ stop, open, onClose }: Props) => {
         </DialogHeader>
 
         {attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Aún no se han registrado intentos de entrega para esta parada.
-          </p>
+          <p className="text-sm text-muted-foreground">{copy.noAttemptsMessage}</p>
         ) : (
           <div className="space-y-3">
             {attempts.map((attempt, index) => (
               <div key={`${attempt.attemptNumber}-${attempt.clientTimestamp}`}>
                 {index > 0 && <Separator className="mb-3" />}
-                <AttemptEvidenceCard attempt={attempt} />
+                <AttemptEvidenceCard attempt={attempt} routeType={routeType} />
               </div>
             ))}
           </div>

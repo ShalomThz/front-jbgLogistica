@@ -8,6 +8,12 @@ export const deliveryAttemptSchema = z.object({
   outcome: z.enum(deliveryOutcomes),
   reason: z.string().nullable(),
   photoPath: z.string().min(1, "Photo evidence is required for every attempt"),
+  /**
+   * Customer's signature — only captured on a successful (DELIVERED) attempt.
+   * Nullish (not just nullable): attempts recorded before this field existed
+   * won't have the key at all once serialized, since JSON drops `undefined`.
+   */
+  signaturePath: z.string().nullish(),
   gpsLocation: geolocationSchema,
   driverId: z.string(),
   clientTimestamp: z.iso.datetime({ offset: true }),

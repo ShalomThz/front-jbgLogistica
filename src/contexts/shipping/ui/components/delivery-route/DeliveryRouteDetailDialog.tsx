@@ -14,6 +14,7 @@ import {
 } from "@contexts/shared/shadcn";
 import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/Route";
 import type { RouteStopPrimitives } from "../../../domain/schemas/route/RouteStop";
+import { ROUTE_TYPE_COPY } from "../../../domain/schemas/route/routeTypeCopy";
 import type { DriverListViewPrimitives } from "../../../domain/schemas/driver/DriverListView";
 import { StopEvidenceDialog } from "./StopEvidenceDialog";
 
@@ -29,13 +30,6 @@ const STATUS_VARIANT: Record<RouteStatus, "default" | "secondary" | "outline" | 
   ACTIVE: "secondary",
   COMPLETED: "default",
   CANCELLED: "destructive",
-};
-
-const STOP_STATUS_LABELS: Record<string, string> = {
-  PENDING: "Pendiente",
-  DELIVERED: "Entregada",
-  FAILED: "Fallida",
-  RETURNED: "Devuelta",
 };
 
 const STOP_STATUS_COLORS: Record<string, string> = {
@@ -90,6 +84,14 @@ export const DeliveryRouteDetailDialog = ({
   const [selectedStop, setSelectedStop] = useState<RouteStopPrimitives | null>(null);
 
   if (!route) return null;
+
+  const copy = ROUTE_TYPE_COPY[route.type];
+  const stopStatusLabels: Record<string, string> = {
+    PENDING: "Pendiente",
+    DELIVERED: copy.stopStatusDelivered,
+    FAILED: "Fallida",
+    RETURNED: "Devuelta",
+  };
 
   const delivered = route.stops.filter((s) => s.status === "DELIVERED").length;
   const failed = route.stops.filter(
@@ -156,11 +158,11 @@ export const DeliveryRouteDetailDialog = ({
             <>
               <Separator />
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Progreso de entrega</h4>
+                <h4 className="text-sm font-semibold">{copy.progressTitle}</h4>
                 <div className="rounded-md border p-3 space-y-3">
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{delivered}/{total} paradas entregadas</span>
+                      <span>{delivered}/{total} paradas {copy.stopsDoneLabel}</span>
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
@@ -168,7 +170,7 @@ export const DeliveryRouteDetailDialog = ({
                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                     <div className="rounded-md bg-green-50 p-2 text-green-700">
                       <p className="font-semibold text-base">{delivered}</p>
-                      <p>Entregadas</p>
+                      <p>{copy.deliveredStatLabel}</p>
                     </div>
                     <div className="rounded-md bg-muted p-2 text-muted-foreground">
                       <p className="font-semibold text-base">{pending}</p>
@@ -272,7 +274,7 @@ export const DeliveryRouteDetailDialog = ({
                             }
                             className="text-[10px] shrink-0"
                           >
-                            {STOP_STATUS_LABELS[stop.status] ?? stop.status}
+                            {stopStatusLabels[stop.status] ?? stop.status}
                           </Badge>
                         </button>
                       );
@@ -326,6 +328,7 @@ export const DeliveryRouteDetailDialog = ({
 
       <StopEvidenceDialog
         stop={selectedStop}
+        routeType={route.type}
         open={!!selectedStop}
         onClose={() => setSelectedStop(null)}
       />
