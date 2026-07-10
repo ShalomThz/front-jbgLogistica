@@ -20,6 +20,7 @@ import {
   Plus,
   RefreshCw,
   Route,
+  Trash2,
   Truck,
   User,
   Zap,
@@ -39,6 +40,7 @@ import { useRoutes } from "../../infrastructure/hooks/routes/useRoutes";
 import { CreateRouteDialog } from "../components/delivery-route/CreateRouteDialog";
 import { DeliveryRouteDeleteDialog } from "../components/delivery-route/DeliveryRouteDeleteDialog";
 import { DeliveryRouteDetailDialog } from "../components/delivery-route/DeliveryRouteDetailDialog";
+import { DeliveryRoutePermanentDeleteDialog } from "../components/delivery-route/DeliveryRoutePermanentDeleteDialog";
 import { RouteMapDialog } from "../components/route/RouteMapDialog";
 
 const STATUS_LABELS: Record<RouteStatus, string> = {
@@ -112,6 +114,7 @@ interface RouteCardProps {
   onMap: () => void;
   onOptimize: () => void;
   onCancel: () => void;
+  onPermanentDelete: () => void;
   isOptimizing: boolean;
   canDeleteRoutes: boolean;
 }
@@ -123,6 +126,7 @@ function RouteCard({
   onMap,
   onOptimize,
   onCancel,
+  onPermanentDelete,
   isOptimizing,
   canDeleteRoutes,
 }: RouteCardProps) {
@@ -136,6 +140,9 @@ function RouteCard({
     canDeleteRoutes &&
     route.status !== "COMPLETED" &&
     route.status !== "CANCELLED";
+  const canPermanentlyDelete =
+    canDeleteRoutes &&
+    (route.status === "PLANNED" || route.status === "CANCELLED");
   const shortId = route.id.slice(0, 8).toUpperCase();
 
   return (
@@ -276,6 +283,17 @@ function RouteCard({
               Cancelar
             </Button>
           )}
+          {canPermanentlyDelete && (
+            <Button
+              size="sm"
+              variant="outline"
+              className={`h-7 gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 ${canCancel ? "" : "ml-auto"}`}
+              onClick={onPermanentDelete}
+            >
+              <Trash2 className="size-3.5" />
+              Eliminar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -289,12 +307,17 @@ export const RoutesPage = () => {
     useState<RouteResponsePrimitives | null>(null);
   const [routeToCancel, setRouteToCancel] =
     useState<RouteResponsePrimitives | null>(null);
+  const [routeToDeletePermanently, setRouteToDeletePermanently] =
+    useState<RouteResponsePrimitives | null>(null);
   const [mapRoute, setMapRoute] = useState<RouteResponsePrimitives | null>(
     null,
   );
   const [createOpen, setCreateOpen] = useState(false);
   const [optimizingId, setOptimizingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [deletingPermanentlyId, setDeletingPermanentlyId] = useState<
+    string | null
+  >(null);
 
   const { user } = useAuth();
   const canCreateRoutes = user ? shippingPolicies.createRoutes(user) : false;
@@ -308,6 +331,7 @@ export const RoutesPage = () => {
     isCreatingRoute,
     optimizeRoute,
     cancelRoute,
+    deleteRoutePermanently,
   } = useRoutes({ filters: [], page: 1, limit: LIMIT });
 
   // Fetch all drivers to resolve names from driverId
@@ -387,6 +411,20 @@ export const RoutesPage = () => {
       toast.error(parseApiError(e));
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleDeletePermanentlyConfirm = async () => {
+    if (!routeToDeletePermanently) return;
+    setDeletingPermanentlyId(routeToDeletePermanently.id);
+    try {
+      await deleteRoutePermanently(routeToDeletePermanently.id);
+      toast.success("Ruta eliminada permanentemente");
+      setRouteToDeletePermanently(null);
+    } catch (e) {
+      toast.error(parseApiError(e));
+    } finally {
+      setDeletingPermanentlyId(null);
     }
   };
 
@@ -569,6 +607,7 @@ export const RoutesPage = () => {
                     onMap={() => setMapRoute(route)}
                     onOptimize={() => handleOptimize(route)}
                     onCancel={() => setRouteToCancel(route)}
+                    onPermanentDelete={() => setRouteToDeletePermanently(route)}
                     isOptimizing={optimizingId === route.id}
                     canDeleteRoutes={canDeleteRoutes}
                   />
@@ -606,6 +645,14 @@ export const RoutesPage = () => {
               }
             : undefined
         }
+        onPermanentDelete={
+          canDeleteRoutes
+            ? (route) => {
+                setSelectedRoute(null);
+                setRouteToDeletePermanently(route);
+              }
+            : undefined
+        }
         onMap={(route) => {
           setSelectedRoute(null);
           setMapRoute(route);
@@ -618,6 +665,14 @@ export const RoutesPage = () => {
         onClose={() => setRouteToCancel(null)}
         onConfirm={handleCancelConfirm}
         isCancelling={cancellingId !== null}
+      />
+
+      <DeliveryRoutePermanentDeleteDialog
+        route={routeToDeletePermanently}
+        open={!!routeToDeletePermanently}
+        onClose={() => setRouteToDeletePermanently(null)}
+        onConfirm={handleDeletePermanentlyConfirm}
+        isDeleting={deletingPermanentlyId !== null}
       />
 
       <RouteMapDialog

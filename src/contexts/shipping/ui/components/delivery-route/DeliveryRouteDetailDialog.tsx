@@ -70,6 +70,7 @@ interface Props {
   onClose: () => void;
   driver?: DriverListViewPrimitives;
   onDelete?: (route: RoutePrimitives) => void;
+  onPermanentDelete?: (route: RoutePrimitives) => void;
   onMap?: (route: RoutePrimitives) => void;
 }
 
@@ -79,6 +80,7 @@ export const DeliveryRouteDetailDialog = ({
   onClose,
   driver,
   onDelete,
+  onPermanentDelete,
   onMap,
 }: Props) => {
   const [selectedStop, setSelectedStop] = useState<RouteStopPrimitives | null>(null);
@@ -321,6 +323,18 @@ export const DeliveryRouteDetailDialog = ({
               >
                 <Trash2 className="size-4" />
                 Cancelar ruta
+              </Button>
+            )}
+          {onPermanentDelete &&
+            (route.status === "PLANNED" || route.status === "CANCELLED") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive hover:text-destructive"
+                onClick={() => onPermanentDelete(route)}
+              >
+                <Trash2 className="size-4" />
+                Eliminar permanentemente
               </Button>
             )}
         </DialogFooter>

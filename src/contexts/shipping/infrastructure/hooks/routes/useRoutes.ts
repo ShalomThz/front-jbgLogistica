@@ -48,6 +48,13 @@ export const useRoutes = ({
     },
   });
 
+  const deletePermanentlyMutation = useMutation({
+    mutationFn: (routeId: string) => routeRepository.deletePermanently(routeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ROUTES_QUERY_KEY });
+    },
+  });
+
   const routes = data?.data ?? [];
   const pagination = data?.pagination ?? null;
   const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
@@ -74,6 +81,11 @@ export const useRoutes = ({
       await cancelMutation.mutateAsync(routeId),
     isCancellingRoute: cancelMutation.isPending,
     cancelRouteError: cancelMutation.error?.message ?? null,
+
+    deleteRoutePermanently: async (routeId: string) =>
+      await deletePermanentlyMutation.mutateAsync(routeId),
+    isDeletingRoutePermanently: deletePermanentlyMutation.isPending,
+    deleteRoutePermanentlyError: deletePermanentlyMutation.error?.message ?? null,
   };
 };
 

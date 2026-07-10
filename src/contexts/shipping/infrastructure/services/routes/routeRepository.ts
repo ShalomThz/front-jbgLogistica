@@ -68,6 +68,14 @@ export const routeRepository = {
     });
   },
 
+  /** Permanently removes a PLANNED or CANCELLED route. Distinct from cancel(),
+   * which keeps the record around with status CANCELLED. */
+  deletePermanently: async (routeId: string): Promise<void> => {
+    await httpClient<unknown>(`/route/${routeId}/permanent`, {
+      method: "DELETE",
+    });
+  },
+
   getActiveForDriver: async (): Promise<RouteResponsePrimitives | null> => {
     const data = await httpClient<unknown>("/driver/me/route/active");
     return z.nullable(routeResponseSchema).parse(data);
