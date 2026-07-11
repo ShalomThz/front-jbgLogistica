@@ -19,6 +19,7 @@ export const editOrderRequestSchema = z.object({
   references: orderReferencesSchema.partial().optional(),
   package: packageSchema.optional(),
   emptyBoxDelivery: z.boolean().optional(),
+  homePickup: z.boolean().optional(),
   /** undefined = sin cambio; null = limpiar el anticipo. */
   advance: moneySchema.nullable().optional(),
   customerSignature: z.string().nullish(),

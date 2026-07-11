@@ -21,6 +21,10 @@ export const orderSchema = z.object({
   /** "Dejar caja vacía a domicilio": caja entregada al remitente con anticipo
    * cobrado, recolectada y almacenada antes del proceso HQ. */
   emptyBoxDelivery: z.boolean().default(false),
+  /** "Recolección a domicilio": el chofer recoge directamente la caja ya
+   * empacada del remitente, sin dejar caja vacía antes. Excluyente con
+   * emptyBoxDelivery. */
+  homePickup: z.boolean().default(false),
   customerSignature: z.string().nullish(),
   ...aggregateRootSchema.shape,
 });

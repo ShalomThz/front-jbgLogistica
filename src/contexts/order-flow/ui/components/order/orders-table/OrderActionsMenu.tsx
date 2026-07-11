@@ -79,7 +79,7 @@ export const OrderActionsMenu = ({
           <>
             <DropdownMenuSeparator />
             {order.shipment &&
-              availableLabelOptions(order.shipment).map((option) => (
+              availableLabelOptions(order.shipment, order).map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}

@@ -28,6 +28,7 @@ const baseDefaults = {
   sender: { ...emptyContactWithAddress },
   recipient: { ...emptyContactWithAddress },
   emptyBoxDelivery: false,
+  homePickup: false,
   advanceAmount: "",
   customerSignature: null,
   shippingService: {

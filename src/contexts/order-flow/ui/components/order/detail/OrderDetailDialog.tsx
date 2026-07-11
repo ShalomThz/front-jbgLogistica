@@ -328,7 +328,16 @@ export const OrderDetailDialog = ({
                 </h4>
                 <DetailRow label="Remitente" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
                 <DetailRow label="Destinatario" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
-                <DetailRow label="Recolección" value={order.emptyBoxDelivery ? "Caja vacía a domicilio (se recolecta)" : "Entregado en sucursal"} />
+                <DetailRow
+                  label="Recolección"
+                  value={
+                    order.emptyBoxDelivery
+                      ? "Caja vacía a domicilio (se recolecta)"
+                      : order.homePickup
+                        ? "Recolección a domicilio (caja del cliente)"
+                        : "Entregado en sucursal"
+                  }
+                />
                 {order.emptyBoxDelivery && (
                   <DetailRow
                     label="Caja vacía"
@@ -685,7 +694,7 @@ export const OrderDetailDialog = ({
         </div>
 
         <DialogFooter className="shrink-0 border-t p-4 sm:p-6">
-          {shipment && availableLabelOptions(shipment).length > 0 && (
+          {shipment && availableLabelOptions(shipment, order).length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -700,7 +709,7 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {availableLabelOptions(shipment).map((option, index) => (
+                {availableLabelOptions(shipment, order).map((option, index) => (
                   <Fragment key={option.id}>
                     {index > 0 && <DropdownMenuSeparator />}
                     <DropdownMenuLabel className="text-xs text-muted-foreground">

@@ -257,6 +257,7 @@ export const OrdersTable = ({
                           >
                             {availableLabelOptionsByGroup(
                               order.shipment,
+                              order,
                               "cargo",
                             ).map((option) => (
                               <DropdownMenuItem
@@ -297,6 +298,7 @@ export const OrdersTable = ({
                           >
                             {availableLabelOptionsByGroup(
                               order.shipment,
+                              order,
                               "agente",
                             ).map((option) => (
                               <DropdownMenuItem

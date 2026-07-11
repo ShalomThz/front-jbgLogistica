@@ -68,6 +68,18 @@ function buildSteps(order: OrderListView): TimelineStep[] {
       ]
     : [];
 
+  // Recolección directa: sin caja vacía previa, un solo hito de recolección.
+  const homePickupSteps: TimelineStep[] = order.homePickup
+    ? [
+        {
+          label: "Recolectado, en bodega",
+          pendingHint: "El chofer recogerá el paquete en el domicilio",
+          icon: Warehouse,
+          done: at("AT_WAREHOUSE"),
+        },
+      ]
+    : [];
+
   return [
     {
       label: "Orden creada",
@@ -76,6 +88,7 @@ function buildSteps(order: OrderListView): TimelineStep[] {
       done: true,
     },
     ...boxCycleSteps,
+    ...homePickupSteps,
     {
       label: "Orden procesada",
       pendingHint: "JBG debe pesar y tarifar la orden",

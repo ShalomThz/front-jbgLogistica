@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@contexts/shared/shadcn";
-import { Check, ChevronsUpDown, PackageOpen, Store } from "lucide-react";
+import { Check, ChevronsUpDown, PackageOpen, Store, Truck } from "lucide-react";
 import { useMemo, useState, type UIEvent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
@@ -35,7 +35,7 @@ interface PartnerContactStepProps {
 }
 
 export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
-  const { register, control, clearErrors, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
+  const { register, control, clearErrors, setValue, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
   const { user } = useAuth();
   const canPickStore = user ? iamPolicies.listStores(user) : false;
   const [storeOpen, setStoreOpen] = useState(false);
@@ -173,6 +173,8 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>
             )}
           </div>
+          {/* Visita a domicilio: una sola modalidad a la vez — marcar una
+              desmarca la otra. */}
           <Controller
             control={control}
             name="emptyBoxDelivery"
@@ -189,7 +191,10 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
                 <Checkbox
                   id="empty-box-delivery"
                   checked={field.value}
-                  onCheckedChange={field.onChange}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    if (checked) setValue("homePickup", false);
+                  }}
                   className="mt-0.5 data-[state=checked]:border-amber-500 data-[state=checked]:bg-amber-500"
                 />
                 <span className="space-y-0.5">
@@ -205,6 +210,46 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
                   <span className="block text-xs text-muted-foreground">
                     El chofer deja la caja al cliente y se recolecta después, ya
                     empacada, para llevarla a bodega.
+                  </span>
+                </span>
+              </label>
+            )}
+          />
+          <Controller
+            control={control}
+            name="homePickup"
+            render={({ field }) => (
+              <label
+                htmlFor="home-pickup"
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+                  field.value
+                    ? "border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30"
+                    : "hover:bg-muted/40",
+                )}
+              >
+                <Checkbox
+                  id="home-pickup"
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    if (checked) setValue("emptyBoxDelivery", false);
+                  }}
+                  className="mt-0.5 data-[state=checked]:border-sky-500 data-[state=checked]:bg-sky-500"
+                />
+                <span className="space-y-0.5">
+                  <span
+                    className={cn(
+                      "flex items-center gap-1.5 text-sm font-medium",
+                      field.value && "text-sky-700 dark:text-sky-400",
+                    )}
+                  >
+                    <Truck className="size-4" />
+                    Recolección a domicilio
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    El cliente ya tiene su caja empacada; el chofer pasa a
+                    recogerla y la lleva a bodega.
                   </span>
                 </span>
               </label>

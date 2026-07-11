@@ -37,7 +37,7 @@ export const ROUTE_TYPE_COPY: Record<
   PICKING: {
     tabLabel: "Rutas para recolección",
     subtitle:
-      "Crea rutas para recolectar a domicilio las cajas ya entregadas a clientes (flota JBG).",
+      "Crea rutas para recolectar a domicilio los paquetes de los clientes (flota JBG).",
     newButton: "Nueva ruta de recolección",
     stopsDoneLabel: "recolectadas",
     emptyHint: "Crear primera ruta de recolección",
