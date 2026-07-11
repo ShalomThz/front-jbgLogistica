@@ -76,6 +76,8 @@ export const PERMISSIONS = [
   "CAN_VIEW_ROUTES",
   "CAN_CREATE_ROUTES",
   "CAN_EDIT_ROUTES",
+  // Cancelar deja el registro con estatus CANCELLED; eliminar lo borra.
+  "CAN_CANCEL_ROUTES",
   "CAN_DELETE_ROUTES",
   "CAN_LIST_ALL_ROUTE_ORDERS",
 

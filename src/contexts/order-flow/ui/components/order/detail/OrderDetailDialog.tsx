@@ -44,6 +44,7 @@ import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
@@ -158,6 +159,7 @@ export const OrderDetailDialog = ({
   const userCanDelete = user
     ? order.type === "PARTNER" ? orderPolicies.deletePartner(user) : orderPolicies.deleteHQ(user)
     : false;
+  const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
 
   const downloadInvoice = async () => {
     setIsDownloadingInvoice(true);
@@ -760,7 +762,7 @@ export const OrderDetailDialog = ({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {shipment && order.status !== "CANCELLED" && (
+          {shipment && order.status !== "CANCELLED" && userCanCancelShipment && (
             <Button
               variant="outline"
               onClick={() => setCancelShipmentOpen(true)}

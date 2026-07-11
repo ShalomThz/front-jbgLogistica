@@ -14,6 +14,7 @@ export const shippingPolicies = {
   viewRoutes: hasAll("CAN_VIEW_ROUTES"),
   createRoutes: hasAll("CAN_CREATE_ROUTES"),
   editRoutes: hasAll("CAN_EDIT_ROUTES"),
+  cancelRoutes: hasAll("CAN_CANCEL_ROUTES"),
   deleteRoutes: hasAll("CAN_DELETE_ROUTES"),
   // Cross-store order pool for the route builder.
   listAllRouteOrders: hasAll("CAN_LIST_ALL_ROUTE_ORDERS"),

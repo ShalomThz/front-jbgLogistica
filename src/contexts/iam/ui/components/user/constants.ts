@@ -138,7 +138,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_VIEW_ROUTES: "Ver rutas",
   CAN_CREATE_ROUTES: "Crear rutas",
   CAN_EDIT_ROUTES: "Editar rutas",
-  CAN_DELETE_ROUTES: "Cancelar rutas",
+  CAN_CANCEL_ROUTES: "Cancelar rutas",
+  CAN_DELETE_ROUTES: "Eliminar rutas",
   CAN_LIST_ALL_ROUTE_ORDERS: "Usar órdenes de todas las tiendas en rutas",
 
   // Drivers
@@ -259,7 +260,10 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_CREATE_ROUTES: "Crear nuevas rutas de entrega, recolección o caja vacía.",
   CAN_EDIT_ROUTES:
     "Modificar rutas: asignar conductor, optimizar, agregar/quitar/reordenar paradas y cambiar el origen.",
-  CAN_DELETE_ROUTES: "Cancelar una ruta.",
+  CAN_CANCEL_ROUTES:
+    "Cancelar una ruta planificada o activa; queda registrada como cancelada.",
+  CAN_DELETE_ROUTES:
+    "Eliminar permanentemente una ruta planificada o cancelada, sin dejar registro.",
   CAN_LIST_ALL_ROUTE_ORDERS:
     "Al crear una ruta, ofrecer órdenes de todas las tiendas. Sin este permiso solo se ofrecen las de la tienda propia.",
 
@@ -393,6 +397,7 @@ export const PERMISSION_GROUPS: {
         "CAN_VIEW_ROUTES",
         "CAN_CREATE_ROUTES",
         "CAN_EDIT_ROUTES",
+        "CAN_CANCEL_ROUTES",
         "CAN_DELETE_ROUTES",
         "CAN_LIST_ALL_ROUTE_ORDERS",
       ],

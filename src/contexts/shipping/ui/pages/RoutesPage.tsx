@@ -124,6 +124,7 @@ interface RouteCardProps {
   onCancel: () => void;
   onPermanentDelete: () => void;
   isOptimizing: boolean;
+  canCancelRoutes: boolean;
   canDeleteRoutes: boolean;
 }
 
@@ -136,6 +137,7 @@ function RouteCard({
   onCancel,
   onPermanentDelete,
   isOptimizing,
+  canCancelRoutes,
   canDeleteRoutes,
 }: RouteCardProps) {
   const delivered = route.stops.filter((s) => s.status === "DELIVERED").length;
@@ -147,7 +149,7 @@ function RouteCard({
   // Optimizar no exige permiso: cualquier usuario puede hacerlo.
   const canOptimize = route.status === "PLANNED" && total > 0;
   const canCancel =
-    canDeleteRoutes &&
+    canCancelRoutes &&
     route.status !== "COMPLETED" &&
     route.status !== "CANCELLED";
   const canPermanentlyDelete =
@@ -342,6 +344,7 @@ export const RoutesPage = () => {
 
   const { user } = useAuth();
   const canCreateRoutes = user ? shippingPolicies.createRoutes(user) : false;
+  const canCancelRoutes = user ? shippingPolicies.cancelRoutes(user) : false;
   const canDeleteRoutes = user ? shippingPolicies.deleteRoutes(user) : false;
 
   const {
@@ -674,6 +677,7 @@ export const RoutesPage = () => {
                         setRouteToDeletePermanently(route)
                       }
                       isOptimizing={optimizingId === route.id}
+                      canCancelRoutes={canCancelRoutes}
                       canDeleteRoutes={canDeleteRoutes}
                     />
                   ))}
@@ -704,7 +708,7 @@ export const RoutesPage = () => {
           selectedRoute ? driverMap.get(selectedRoute.driverId) : undefined
         }
         onDelete={
-          canDeleteRoutes
+          canCancelRoutes
             ? (route) => {
                 setSelectedRoute(null);
                 setRouteToCancel(route);
