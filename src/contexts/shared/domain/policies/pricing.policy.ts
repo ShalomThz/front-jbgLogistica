@@ -2,7 +2,9 @@ import { hasAll, hasAny } from "./Policy";
 
 export const pricingPolicies = {
   manageTariffs: hasAll("CAN_LIST_TARIFFS"),
-  listTariffs: hasAll("CAN_LIST_TARIFFS"),
+  // Quien crea órdenes partner necesita leer las tarifas de su zona: las cajas
+  // disponibles en la orden se derivan de ellas (useZoneBoxes).
+  listTariffs: hasAny("CAN_LIST_TARIFFS", "CAN_CREATE_PARTNER_ORDERS"),
   viewTariff: hasAll("CAN_VIEW_TARIFFS"),
   createTariff: hasAll("CAN_CREATE_TARIFFS"),
   editTariff: hasAll("CAN_EDIT_TARIFFS"),

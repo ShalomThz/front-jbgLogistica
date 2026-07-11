@@ -13,6 +13,7 @@ import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Ban,
   CheckCircle2,
+  ChevronDown,
   Clock,
   MapPin,
   Navigation,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { parseApiError } from "../../../shared/infrastructure/http";
@@ -60,7 +62,13 @@ const STATUS_BADGE_VARIANT: Record<
   CANCELLED: "destructive",
 };
 
-const ALL_TABS = ["ALL", "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"] as const;
+const ALL_TABS = [
+  "ALL",
+  "PLANNED",
+  "ACTIVE",
+  "COMPLETED",
+  "CANCELLED",
+] as const;
 type Tab = (typeof ALL_TABS)[number];
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -116,6 +124,7 @@ interface RouteCardProps {
   onCancel: () => void;
   onPermanentDelete: () => void;
   isOptimizing: boolean;
+  canCancelRoutes: boolean;
   canDeleteRoutes: boolean;
 }
 
@@ -128,16 +137,19 @@ function RouteCard({
   onCancel,
   onPermanentDelete,
   isOptimizing,
+  canCancelRoutes,
   canDeleteRoutes,
 }: RouteCardProps) {
   const delivered = route.stops.filter((s) => s.status === "DELIVERED").length;
   const total = route.stops.length;
-  const failed = route.stops.filter((s) => s.status === "FAILED" || s.status === "RETURNED").length;
+  const failed = route.stops.filter(
+    (s) => s.status === "FAILED" || s.status === "RETURNED",
+  ).length;
   const progress = total > 0 ? Math.round((delivered / total) * 100) : 0;
   // Optimizar no exige permiso: cualquier usuario puede hacerlo.
   const canOptimize = route.status === "PLANNED" && total > 0;
   const canCancel =
-    canDeleteRoutes &&
+    canCancelRoutes &&
     route.status !== "COMPLETED" &&
     route.status !== "CANCELLED";
   const canPermanentlyDelete =
@@ -146,7 +158,15 @@ function RouteCard({
   const shortId = route.id.slice(0, 8).toUpperCase();
 
   return (
-    <Card className="hover:shadow-md transition-shadow flex flex-col">
+    <Card
+      className={cn(
+        "hover:shadow-md transition-shadow flex flex-col border-l-4",
+        route.type === "DELIVERY" && "border-l-blue-400 dark:border-l-blue-600",
+        route.type === "PICKING" && "border-l-sky-400 dark:border-l-sky-600",
+        route.type === "BOX_DROP" &&
+          "border-l-amber-400 dark:border-l-amber-600",
+      )}
+    >
       <CardContent className="p-5 flex flex-col gap-4 flex-1">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
@@ -168,12 +188,15 @@ function RouteCard({
             <Badge variant={STATUS_BADGE_VARIANT[route.status]}>
               {STATUS_LABELS[route.status]}
             </Badge>
+            {/* Misma paleta que las pestañas de módulo: azul/celeste/ámbar */}
             <Badge
               variant="outline"
               className={
                 route.type === "DELIVERY"
-                  ? "gap-1 border-sky-300 text-sky-700"
-                  : "gap-1 border-amber-300 text-amber-700"
+                  ? "gap-1 border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-400"
+                  : route.type === "PICKING"
+                    ? "gap-1 border-sky-300 text-sky-700 dark:border-sky-700 dark:text-sky-400"
+                    : "gap-1 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
               }
             >
               {route.type === "DELIVERY" ? (
@@ -184,8 +207,8 @@ function RouteCard({
               {route.type === "PICKING"
                 ? "Recolección"
                 : route.type === "BOX_DROP"
-                ? "Caja vacía"
-                : "Entrega"}
+                  ? "Caja vacía"
+                  : "Entrega"}
             </Badge>
           </div>
         </div>
@@ -195,8 +218,7 @@ function RouteCard({
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
-                {delivered}/{total}{" "}
-                {ROUTE_TYPE_COPY[route.type].stopsDoneLabel}
+                {delivered}/{total} {ROUTE_TYPE_COPY[route.type].stopsDoneLabel}
                 {failed > 0 && (
                   <span className="text-destructive ml-2">
                     · {failed} fallida{failed !== 1 ? "s" : ""}
@@ -303,6 +325,7 @@ function RouteCard({
 export const RoutesPage = () => {
   const [routeKind, setRouteKind] = useState<RouteType>("DELIVERY");
   const [activeTab, setActiveTab] = useState<Tab>("ALL");
+  const [statsOpen, setStatsOpen] = useState(true);
   const [selectedRoute, setSelectedRoute] =
     useState<RouteResponsePrimitives | null>(null);
   const [routeToCancel, setRouteToCancel] =
@@ -321,6 +344,7 @@ export const RoutesPage = () => {
 
   const { user } = useAuth();
   const canCreateRoutes = user ? shippingPolicies.createRoutes(user) : false;
+  const canCancelRoutes = user ? shippingPolicies.cancelRoutes(user) : false;
   const canDeleteRoutes = user ? shippingPolicies.deleteRoutes(user) : false;
 
   const {
@@ -449,7 +473,7 @@ export const RoutesPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full min-h-0 flex-col gap-6">
       {/* Page header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -459,11 +483,7 @@ export const RoutesPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => refetch()}
-          >
+          <Button variant="outline" className="gap-2" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
             Actualizar
           </Button>
@@ -485,8 +505,11 @@ export const RoutesPage = () => {
         }}
       >
         <TabsList className="h-auto gap-1">
-          <TabsTrigger value="DELIVERY" className="gap-2 px-4 py-2 text-sm">
-            <Truck className="size-4" />
+          <TabsTrigger
+            value="DELIVERY"
+            className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-950/40 dark:data-[state=active]:text-blue-400"
+          >
+            <Truck className="size-4 text-blue-600 dark:text-blue-400" />
             {ROUTE_TYPE_COPY.DELIVERY.tabLabel}
             <Badge
               variant="secondary"
@@ -495,8 +518,11 @@ export const RoutesPage = () => {
               {typeCounts.DELIVERY}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="PICKING" className="gap-2 px-4 py-2 text-sm">
-            <PackageOpen className="size-4" />
+          <TabsTrigger
+            value="PICKING"
+            className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-sky-50 data-[state=active]:text-sky-700 dark:data-[state=active]:bg-sky-950/40 dark:data-[state=active]:text-sky-400"
+          >
+            <PackageOpen className="size-4 text-sky-600 dark:text-sky-400" />
             {ROUTE_TYPE_COPY.PICKING.tabLabel}
             <Badge
               variant="secondary"
@@ -505,8 +531,11 @@ export const RoutesPage = () => {
               {typeCounts.PICKING}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="BOX_DROP" className="gap-2 px-4 py-2 text-sm">
-            <PackageOpen className="size-4" />
+          <TabsTrigger
+            value="BOX_DROP"
+            className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-950/40 dark:data-[state=active]:text-amber-400"
+          >
+            <PackageOpen className="size-4 text-amber-600 dark:text-amber-400" />
             {ROUTE_TYPE_COPY.BOX_DROP.tabLabel}
             <Badge
               variant="secondary"
@@ -518,105 +547,146 @@ export const RoutesPage = () => {
         </TabsList>
       </Tabs>
 
-      {/* Stats row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Total de rutas"
-          value={counts.total}
-          icon={Route}
-          colorClass="text-foreground"
-        />
-        <StatCard
-          label="Planificadas"
-          value={counts.planned}
-          icon={Clock}
-          colorClass="text-amber-500"
-        />
-        <StatCard
-          label="En curso"
-          value={counts.active}
-          icon={Truck}
-          colorClass="text-blue-500"
-        />
-        <StatCard
-          label="Completadas"
-          value={counts.completed}
-          icon={CheckCircle2}
-          colorClass="text-green-500"
-        />
-      </div>
+      {/* Zona de trabajo tintada con el color del módulo activo */}
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col gap-6 rounded-xl border p-4 sm:p-5",
+          routeKind === "DELIVERY" &&
+            "border-blue-200/60 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10",
+          routeKind === "PICKING" &&
+            "border-sky-200/60 bg-sky-50/30 dark:border-sky-900/40 dark:bg-sky-950/10",
+          routeKind === "BOX_DROP" &&
+            "border-amber-200/60 bg-amber-50/30 dark:border-amber-900/40 dark:bg-amber-950/10",
+        )}
+      >
+        {/* Stats row (colapsable) */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setStatsOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronDown
+              className={cn(
+                "size-3.5 transition-transform",
+                !statsOpen && "-rotate-90",
+              )}
+            />
+            Métricas
+          </button>
+          {statsOpen && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Total de rutas"
+                value={counts.total}
+                icon={Route}
+                colorClass="text-foreground"
+              />
+              <StatCard
+                label="Planificadas"
+                value={counts.planned}
+                icon={Clock}
+                colorClass="text-amber-500"
+              />
+              <StatCard
+                label="En curso"
+                value={counts.active}
+                icon={Truck}
+                colorClass="text-blue-500"
+              />
+              <StatCard
+                label="Completadas"
+                value={counts.completed}
+                icon={CheckCircle2}
+                colorClass="text-green-500"
+              />
+            </div>
+          )}
+        </div>
 
-      {/* Status tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
-        <TabsList className="h-auto flex-wrap gap-1">
+        {/* Status tabs — solo el grid de tarjetas scrollea, la página no */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as Tab)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList className="h-auto flex-wrap gap-1">
+            {ALL_TABS.map((tab) => (
+              <TabsTrigger key={tab} value={tab} className="gap-1.5 text-sm">
+                {TAB_LABELS[tab]}
+                <Badge
+                  variant="secondary"
+                  className="text-xs px-1.5 py-0 h-5 min-w-5"
+                >
+                  {tabCountMap[tab]}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
           {ALL_TABS.map((tab) => (
-            <TabsTrigger key={tab} value={tab} className="gap-1.5 text-sm">
-              {TAB_LABELS[tab]}
-              <Badge
-                variant="secondary"
-                className="text-xs px-1.5 py-0 h-5 min-w-5"
-              >
-                {tabCountMap[tab]}
-              </Badge>
-            </TabsTrigger>
+            <TabsContent
+              key={tab}
+              value={tab}
+              className="mt-4 min-h-0 flex-1 overflow-y-auto"
+            >
+              {filteredRoutes.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                    {routeKind !== "DELIVERY" ? (
+                      <PackageOpen className="size-10 opacity-30" />
+                    ) : (
+                      <Route className="size-10 opacity-30" />
+                    )}
+                    <p className="text-sm font-medium">
+                      No hay rutas{" "}
+                      {routeKind === "PICKING"
+                        ? "de recolección "
+                        : routeKind === "BOX_DROP"
+                          ? "de cajas vacías "
+                          : "de entrega "}
+                      {tab !== "ALL"
+                        ? TAB_LABELS[tab].toLowerCase()
+                        : "registradas"}
+                    </p>
+                    {tab === "ALL" && canCreateRoutes && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCreateOpen(true)}
+                        className="gap-1.5 mt-1"
+                      >
+                        <Plus className="size-3.5" />
+                        {ROUTE_TYPE_COPY[routeKind].emptyHint}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredRoutes.map((route) => (
+                    <RouteCard
+                      key={route.id}
+                      route={route}
+                      driver={driverMap.get(route.driverId)}
+                      onDetail={() => setSelectedRoute(route)}
+                      onMap={() => setMapRoute(route)}
+                      onOptimize={() => handleOptimize(route)}
+                      onCancel={() => setRouteToCancel(route)}
+                      onPermanentDelete={() =>
+                        setRouteToDeletePermanently(route)
+                      }
+                      isOptimizing={optimizingId === route.id}
+                      canCancelRoutes={canCancelRoutes}
+                      canDeleteRoutes={canDeleteRoutes}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           ))}
-        </TabsList>
-
-        {ALL_TABS.map((tab) => (
-          <TabsContent key={tab} value={tab} className="mt-4">
-            {filteredRoutes.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-                  {routeKind !== "DELIVERY" ? (
-                    <PackageOpen className="size-10 opacity-30" />
-                  ) : (
-                    <Route className="size-10 opacity-30" />
-                  )}
-                  <p className="text-sm font-medium">
-                    No hay rutas{" "}
-                    {routeKind === "PICKING"
-                      ? "de recolección "
-                      : routeKind === "BOX_DROP"
-                      ? "de cajas vacías "
-                      : "de entrega "}
-                    {tab !== "ALL"
-                      ? TAB_LABELS[tab].toLowerCase()
-                      : "registradas"}
-                  </p>
-                  {tab === "ALL" && canCreateRoutes && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCreateOpen(true)}
-                      className="gap-1.5 mt-1"
-                    >
-                      <Plus className="size-3.5" />
-                      {ROUTE_TYPE_COPY[routeKind].emptyHint}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredRoutes.map((route) => (
-                  <RouteCard
-                    key={route.id}
-                    route={route}
-                    driver={driverMap.get(route.driverId)}
-                    onDetail={() => setSelectedRoute(route)}
-                    onMap={() => setMapRoute(route)}
-                    onOptimize={() => handleOptimize(route)}
-                    onCancel={() => setRouteToCancel(route)}
-                    onPermanentDelete={() => setRouteToDeletePermanently(route)}
-                    isOptimizing={optimizingId === route.id}
-                    canDeleteRoutes={canDeleteRoutes}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </Tabs>
+      </div>
 
       {/* Dialogs */}
       <CreateRouteDialog
@@ -638,7 +708,7 @@ export const RoutesPage = () => {
           selectedRoute ? driverMap.get(selectedRoute.driverId) : undefined
         }
         onDelete={
-          canDeleteRoutes
+          canCancelRoutes
             ? (route) => {
                 setSelectedRoute(null);
                 setRouteToCancel(route);

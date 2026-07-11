@@ -56,6 +56,7 @@ export const buildPartnerEditOrderRequest = (
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     emptyBoxDelivery: formValues.emptyBoxDelivery,
+    homePickup: formValues.homePickup,
     advance,
     customerSignature: formValues.customerSignature,
   });

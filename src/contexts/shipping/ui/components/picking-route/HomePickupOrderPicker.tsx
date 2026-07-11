@@ -121,7 +121,7 @@ export const HomePickupOrderPicker = ({
               <p className="text-xs text-center max-w-xs">
                 {isBoxDrop
                   ? 'Solo aplican órdenes que pidieron "dejar caja vacía a domicilio" y aún no la reciben.'
-                  : "Solo aplican órdenes con caja vacía ya entregada, pendientes de recolectar."}
+                  : "Solo aplican órdenes pendientes de recolectar: con caja vacía ya entregada o con recolección a domicilio directa."}
               </p>
             )}
           </div>

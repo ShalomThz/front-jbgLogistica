@@ -19,6 +19,11 @@ export type LabelSource =
  */
 export type LabelGroup = "cargo" | "agente" | "carrier" | "caja-vacia";
 
+/** The slice of the order a label option needs to decide availability. */
+export interface LabelOrderContext {
+  emptyBoxDelivery: boolean;
+}
+
 export interface LabelOption {
   id: string;
   title: string;
@@ -27,7 +32,7 @@ export interface LabelOption {
   /** Accent classes for the dropdown/menu item. */
   className: string;
   /** Whether this option can be produced for the given shipment. */
-  isAvailable: (shipment: ShipmentPrimitives) => boolean;
+  isAvailable: (shipment: ShipmentPrimitives, order: LabelOrderContext) => boolean;
 }
 
 const hasCarrierDocument = (shipment: ShipmentPrimitives): boolean =>
@@ -39,11 +44,16 @@ const hasCarrierDocument = (shipment: ShipmentPrimitives): boolean =>
 const hasInternalLabel = (shipment: ShipmentPrimitives): boolean =>
   shipment.label !== null;
 
-/** The empty-box label lives in the box cycle, before any guía exists. */
-const isInEmptyBoxCycle = (shipment: ShipmentPrimitives): boolean =>
-  shipment.status === "EMPTY_BOX_PENDING" ||
-  shipment.status === "AWAITING_PICKUP" ||
-  shipment.status === "AT_WAREHOUSE";
+/** The empty-box label lives in the box cycle, before any guía exists. A
+ * direct home-pickup order shares these statuses but has no empty box. */
+const isInEmptyBoxCycle = (
+  shipment: ShipmentPrimitives,
+  order: LabelOrderContext,
+): boolean =>
+  order.emptyBoxDelivery &&
+  (shipment.status === "EMPTY_BOX_PENDING" ||
+    shipment.status === "AWAITING_PICKUP" ||
+    shipment.status === "AT_WAREHOUSE");
 
 /**
  * Single source of truth for every downloadable/printable label. To expose a
@@ -101,15 +111,19 @@ export const LABEL_OPTIONS: LabelOption[] = [
 
 export const availableLabelOptions = (
   shipment: ShipmentPrimitives,
+  order: LabelOrderContext,
 ): LabelOption[] =>
-  LABEL_OPTIONS.filter((option) => option.isAvailable(shipment));
+  LABEL_OPTIONS.filter((option) => option.isAvailable(shipment, order));
 
 /** Available options for a single family (e.g. every agente variant). */
 export const availableLabelOptionsByGroup = (
   shipment: ShipmentPrimitives,
+  order: LabelOrderContext,
   group: LabelGroup,
 ): LabelOption[] =>
-  availableLabelOptions(shipment).filter((option) => option.group === group);
+  availableLabelOptions(shipment, order).filter(
+    (option) => option.group === group,
+  );
 
 /**
  * Resolves a label option to a URL ready to open/print/download. Rendered

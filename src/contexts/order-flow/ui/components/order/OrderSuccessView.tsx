@@ -350,7 +350,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       )}
 
       {/* Label Actions */}
-      {availableLabelOptions(shipment).length > 0 && (
+      {order && availableLabelOptions(shipment, order).length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -365,7 +365,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {availableLabelOptions(shipment).map((option) => (
+              {availableLabelOptions(shipment, order).map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}
@@ -390,7 +390,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {availableLabelOptions(shipment).map((option) => (
+              {availableLabelOptions(shipment, order).map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}

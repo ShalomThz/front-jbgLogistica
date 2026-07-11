@@ -44,6 +44,7 @@ import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useBoxes } from "@contexts/inventory/infrastructure/hooks/boxes/useBoxes";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
@@ -158,6 +159,7 @@ export const OrderDetailDialog = ({
   const userCanDelete = user
     ? order.type === "PARTNER" ? orderPolicies.deletePartner(user) : orderPolicies.deleteHQ(user)
     : false;
+  const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
 
   const downloadInvoice = async () => {
     setIsDownloadingInvoice(true);
@@ -328,7 +330,16 @@ export const OrderDetailDialog = ({
                 </h4>
                 <DetailRow label="Remitente" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
                 <DetailRow label="Destinatario" value={`${destination.name} — ${destination.address.city}, ${destination.address.province}`} />
-                <DetailRow label="Recolección" value={order.emptyBoxDelivery ? "Caja vacía a domicilio (se recolecta)" : "Entregado en sucursal"} />
+                <DetailRow
+                  label="Recolección"
+                  value={
+                    order.emptyBoxDelivery
+                      ? "Caja vacía a domicilio (se recolecta)"
+                      : order.homePickup
+                        ? "Recolección a domicilio (caja del cliente)"
+                        : "Entregado en sucursal"
+                  }
+                />
                 {order.emptyBoxDelivery && (
                   <DetailRow
                     label="Caja vacía"
@@ -685,7 +696,7 @@ export const OrderDetailDialog = ({
         </div>
 
         <DialogFooter className="shrink-0 border-t p-4 sm:p-6">
-          {shipment && availableLabelOptions(shipment).length > 0 && (
+          {shipment && availableLabelOptions(shipment, order).length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -700,7 +711,7 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {availableLabelOptions(shipment).map((option, index) => (
+                {availableLabelOptions(shipment, order).map((option, index) => (
                   <Fragment key={option.id}>
                     {index > 0 && <DropdownMenuSeparator />}
                     <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -751,7 +762,7 @@ export const OrderDetailDialog = ({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {shipment && order.status !== "CANCELLED" && (
+          {shipment && order.status !== "CANCELLED" && userCanCancelShipment && (
             <Button
               variant="outline"
               onClick={() => setCancelShipmentOpen(true)}

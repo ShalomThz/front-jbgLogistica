@@ -22,6 +22,9 @@ export const createPartnerOrderSchema = z.object({
   tariff: moneySchema,
   costBreakdown: costBreakdownSchema.optional(),
   emptyBoxDelivery: z.boolean().optional(),
+  /** "Recolección a domicilio": el chofer recoge la caja ya empacada del
+   * remitente. Excluyente con emptyBoxDelivery. */
+  homePickup: z.boolean().optional(),
   /** Requerido cuando emptyBoxDelivery: anticipo cobrado al crear. */
   advance: moneySchema.optional(),
   customerSignature: z.string().nullable(),

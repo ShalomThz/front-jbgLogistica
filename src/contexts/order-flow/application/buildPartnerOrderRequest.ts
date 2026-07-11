@@ -47,6 +47,7 @@ export const buildPartnerOrderRequest = (
     tariff,
     ...(hasCosts && { costBreakdown }),
     emptyBoxDelivery: formValues.emptyBoxDelivery,
+    homePickup: formValues.homePickup,
     // El anticipo se cobra en la moneda de la tarifa al solicitar la caja vacía
     ...(formValues.emptyBoxDelivery && {
       advance: parseMoney(formValues.advanceAmount, tariff.currency) ?? undefined,

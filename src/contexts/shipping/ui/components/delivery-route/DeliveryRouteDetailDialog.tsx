@@ -137,7 +137,7 @@ export const DeliveryRouteDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto pt-8">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto pt-8">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-2">

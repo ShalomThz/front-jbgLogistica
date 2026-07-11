@@ -38,9 +38,10 @@ function EmptyBoxLabelCard({ orderId }: { orderId: string }) {
   });
 
   const shipment = order?.shipment ?? null;
-  const option = shipment
-    ? availableLabelOptionsByGroup(shipment, "caja-vacia")[0]
-    : undefined;
+  const option =
+    order && shipment
+      ? availableLabelOptionsByGroup(shipment, order, "caja-vacia")[0]
+      : undefined;
 
   const handlePrint = async () => {
     if (!shipment || !option) return;
