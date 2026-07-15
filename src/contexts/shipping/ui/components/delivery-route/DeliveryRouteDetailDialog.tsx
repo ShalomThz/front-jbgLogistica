@@ -379,18 +379,18 @@ export const DeliveryRouteDetailDialog = ({
                 Cancelar ruta
               </Button>
             )}
-          {onPermanentDelete &&
-            (route.status === "PLANNED" || route.status === "CANCELLED") && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-destructive hover:text-destructive"
-                onClick={() => onPermanentDelete(route)}
-              >
-                <Trash2 className="size-4" />
-                Eliminar permanentemente
-              </Button>
-            )}
+          {/* Cualquier estatus salvo ACTIVE: una ruta en curso primero se cancela */}
+          {onPermanentDelete && route.status !== "ACTIVE" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-destructive hover:text-destructive"
+              onClick={() => onPermanentDelete(route)}
+            >
+              <Trash2 className="size-4" />
+              Eliminar permanentemente
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
 

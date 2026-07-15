@@ -48,6 +48,12 @@ export const DeliveryRoutePermanentDeleteDialog = ({
                 deshacer. A diferencia de cancelar, no queda ningún historial
                 de esta ruta.
               </p>
+              {route.status === "COMPLETED" && (
+                <p className="text-destructive">
+                  Esta ruta está completada: se perderán los intentos
+                  registrados y sus evidencias (fotos y firmas).
+                </p>
+              )}
             </div>
           </DialogDescription>
         </DialogHeader>

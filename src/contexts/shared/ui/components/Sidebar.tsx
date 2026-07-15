@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   SidebarContent,
@@ -8,6 +9,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from '@contexts/shared/shadcn/components';
 import { useAuth } from '@contexts/iam/infrastructure/hooks/auth/useAuth';
@@ -32,16 +36,28 @@ import {
   UserCog,
   Route,
   IdCard,
+  ChevronRight,
+  Truck,
+  PackageOpen,
+  Box,
 } from 'lucide-react';
 import { shippingPolicies } from '../../domain/policies/shipping.policy';
 import logo from '@/assets/JBG_CARGO_CORP_logo.png';
 import logoDark from '@/assets/JBG_CARGO_CORP_blanco.png';
  
+interface NavSubItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
+
 interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
   policy?: Policy;
+  /** Sub-páginas desplegables bajo el item (p. ej. los tipos de ruta). */
+  subItems?: NavSubItem[];
 }
 
 interface NavSection {
@@ -69,7 +85,17 @@ const navigation: NavSection[] = [
   {
     title: 'Operaciones',
     items: [
-      { label: 'Rutas', href: '/routes', icon: Route, policy: shippingPolicies.listRoutes },
+      {
+        label: 'Rutas',
+        href: '/routes',
+        icon: Route,
+        policy: shippingPolicies.listRoutes,
+        subItems: [
+          { label: 'Entrega', href: '/routes/delivery', icon: Truck },
+          { label: 'Recolección', href: '/routes/picking', icon: PackageOpen },
+          { label: 'Cajas vacías', href: '/routes/box-drop', icon: Box },
+        ],
+      },
       { label: 'Conductores', href: '/drivers', icon: IdCard, policy: shippingPolicies.listDrivers },
       { label: 'Tarifas', href: '/tariffs', icon: DollarSign, policy: pricingPolicies.manageTariffs },
       { label: 'Zonas', href: '/zones', icon: MapPin, policy: pricingPolicies.manageZones },
@@ -83,6 +109,52 @@ const navigation: NavSection[] = [
     ],
   },
 ];
+
+const ExpandableNavItem = ({
+  item,
+  onNavigate,
+}: {
+  item: NavItem;
+  onNavigate: () => void;
+}) => {
+  const location = useLocation();
+  const isSectionActive = location.pathname.startsWith(`${item.href}/`);
+  const [open, setOpen] = useState(isSectionActive);
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        onClick={() => setOpen((v) => !v)}
+        isActive={isSectionActive}
+        className="data-[active=true]:text-primary"
+      >
+        <item.icon className="size-4" />
+        {item.label}
+        <ChevronRight
+          className={`ml-auto size-4 transition-transform ${open ? 'rotate-90' : ''}`}
+        />
+      </SidebarMenuButton>
+      {open && (
+        <SidebarMenuSub>
+          {item.subItems?.map((subItem) => (
+            <SidebarMenuSubItem key={subItem.href}>
+              <SidebarMenuSubButton
+                asChild
+                isActive={location.pathname === subItem.href}
+                className="data-[active=true]:text-primary"
+              >
+                <Link to={subItem.href} onClick={onNavigate}>
+                  <subItem.icon className="size-4" />
+                  <span>{subItem.label}</span>
+                </Link>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      )}
+    </SidebarMenuItem>
+  );
+};
 
 export const AppSidebar = () => {
   const location = useLocation();
@@ -116,23 +188,31 @@ export const AppSidebar = () => {
             <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {section.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={
-                        location.pathname === item.href ||
-                        location.pathname.startsWith(`${item.href}/`)
-                      }
-                      className="data-[active=true]:text-primary"
-                    >
-                      <Link to={item.href} onClick={handleNavClick}>
-                        <item.icon className="size-4" />
-                        {item.label}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {section.items.map((item) =>
+                  item.subItems ? (
+                    <ExpandableNavItem
+                      key={item.href}
+                      item={item}
+                      onNavigate={handleNavClick}
+                    />
+                  ) : (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={
+                          location.pathname === item.href ||
+                          location.pathname.startsWith(`${item.href}/`)
+                        }
+                        className="data-[active=true]:text-primary"
+                      >
+                        <Link to={item.href} onClick={handleNavClick}>
+                          <item.icon className="size-4" />
+                          {item.label}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ),
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
