@@ -12,6 +12,7 @@ import {
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Ban,
+  Box,
   CheckCircle2,
   ChevronDown,
   Clock,
@@ -52,14 +53,16 @@ const STATUS_LABELS: Record<RouteStatus, string> = {
   CANCELLED: "Cancelada",
 };
 
-const STATUS_BADGE_VARIANT: Record<
-  RouteStatus,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
-  PLANNED: "outline",
-  ACTIVE: "secondary",
-  COMPLETED: "default",
-  CANCELLED: "destructive",
+// Misma paleta que las StatCards: ámbar/azul/verde/rojo por estatus
+const STATUS_BADGE_CLASS: Record<RouteStatus, string> = {
+  PLANNED:
+    "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
+  ACTIVE:
+    "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
+  COMPLETED:
+    "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950/40 dark:text-green-400",
+  CANCELLED:
+    "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400",
 };
 
 const ALL_TABS = [
@@ -152,19 +155,22 @@ function RouteCard({
     canCancelRoutes &&
     route.status !== "COMPLETED" &&
     route.status !== "CANCELLED";
-  const canPermanentlyDelete =
-    canDeleteRoutes &&
-    (route.status === "PLANNED" || route.status === "CANCELLED");
+  // Cualquier estatus salvo ACTIVE: una ruta en curso primero se cancela.
+  const canPermanentlyDelete = canDeleteRoutes && route.status !== "ACTIVE";
   const shortId = route.id.slice(0, 8).toUpperCase();
 
   return (
     <Card
       className={cn(
         "hover:shadow-md transition-shadow flex flex-col border-l-4",
-        route.type === "DELIVERY" && "border-l-blue-400 dark:border-l-blue-600",
-        route.type === "PICKING" && "border-l-sky-400 dark:border-l-sky-600",
-        route.type === "BOX_DROP" &&
+        // Borde por estatus (misma paleta que el badge), no por módulo
+        route.status === "PLANNED" &&
           "border-l-amber-400 dark:border-l-amber-600",
+        route.status === "ACTIVE" && "border-l-blue-400 dark:border-l-blue-600",
+        route.status === "COMPLETED" &&
+          "border-l-green-400 dark:border-l-green-600",
+        route.status === "CANCELLED" &&
+          "border-l-red-400 dark:border-l-red-600",
       )}
     >
       <CardContent className="p-5 flex flex-col gap-4 flex-1">
@@ -185,7 +191,7 @@ function RouteCard({
             )}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <Badge variant={STATUS_BADGE_VARIANT[route.status]}>
+            <Badge variant="outline" className={STATUS_BADGE_CLASS[route.status]}>
               {STATUS_LABELS[route.status]}
             </Badge>
             {/* Misma paleta que las pestañas de módulo: azul/celeste/ámbar */}
@@ -322,8 +328,11 @@ function RouteCard({
   );
 }
 
-export const RoutesPage = () => {
-  const [routeKind, setRouteKind] = useState<RouteType>("DELIVERY");
+interface RoutesPageProps {
+  routeType: RouteType;
+}
+
+export const RoutesPage = ({ routeType: routeKind }: RoutesPageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("ALL");
   const [statsOpen, setStatsOpen] = useState(true);
   const [selectedRoute, setSelectedRoute] =
@@ -365,19 +374,10 @@ export const RoutesPage = () => {
     [drivers],
   );
 
-  // Split the two route modules: entrega vs recolección a domicilio
+  // Cada página muestra solo las rutas de su módulo (entrega/recolección/cajas)
   const typedRoutes = useMemo(
     () => routes.filter((r) => r.type === routeKind),
     [routes, routeKind],
-  );
-
-  const typeCounts = useMemo(
-    () => ({
-      DELIVERY: routes.filter((r) => r.type === "DELIVERY").length,
-      PICKING: routes.filter((r) => r.type === "PICKING").length,
-      BOX_DROP: routes.filter((r) => r.type === "BOX_DROP").length,
-    }),
-    [routes],
   );
 
   const counts = useMemo(
@@ -476,11 +476,36 @@ export const RoutesPage = () => {
     <div className="flex h-full min-h-0 flex-col gap-6">
       {/* Page header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Rutas</h1>
-          <p className="text-sm text-muted-foreground">
-            {ROUTE_TYPE_COPY[routeKind].subtitle}
-          </p>
+        <div className="flex items-center gap-3">
+          {/* Icono tintado con la paleta del módulo (misma de tarjetas y zona
+              de trabajo) para distinguir de un vistazo en qué apartado estás */}
+          <div
+            className={cn(
+              "rounded-lg p-2.5",
+              routeKind === "DELIVERY" &&
+                "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
+              routeKind === "PICKING" &&
+                "bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400",
+              routeKind === "BOX_DROP" &&
+                "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
+            )}
+          >
+            {routeKind === "DELIVERY" ? (
+              <Truck className="size-6" />
+            ) : routeKind === "PICKING" ? (
+              <PackageOpen className="size-6" />
+            ) : (
+              <Box className="size-6" />
+            )}
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {ROUTE_TYPE_COPY[routeKind].tabLabel}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {ROUTE_TYPE_COPY[routeKind].subtitle}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2" onClick={() => refetch()}>
@@ -496,58 +521,7 @@ export const RoutesPage = () => {
         </div>
       </div>
 
-      {/* Module switch: entrega vs recolección a domicilio */}
-      <Tabs
-        value={routeKind}
-        onValueChange={(v) => {
-          setRouteKind(v as RouteType);
-          setActiveTab("ALL");
-        }}
-      >
-        <TabsList className="h-auto gap-1">
-          <TabsTrigger
-            value="DELIVERY"
-            className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-950/40 dark:data-[state=active]:text-blue-400"
-          >
-            <Truck className="size-4 text-blue-600 dark:text-blue-400" />
-            {ROUTE_TYPE_COPY.DELIVERY.tabLabel}
-            <Badge
-              variant="secondary"
-              className="text-xs px-1.5 py-0 h-5 min-w-5"
-            >
-              {typeCounts.DELIVERY}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger
-            value="PICKING"
-            className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-sky-50 data-[state=active]:text-sky-700 dark:data-[state=active]:bg-sky-950/40 dark:data-[state=active]:text-sky-400"
-          >
-            <PackageOpen className="size-4 text-sky-600 dark:text-sky-400" />
-            {ROUTE_TYPE_COPY.PICKING.tabLabel}
-            <Badge
-              variant="secondary"
-              className="text-xs px-1.5 py-0 h-5 min-w-5"
-            >
-              {typeCounts.PICKING}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger
-            value="BOX_DROP"
-            className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-950/40 dark:data-[state=active]:text-amber-400"
-          >
-            <PackageOpen className="size-4 text-amber-600 dark:text-amber-400" />
-            {ROUTE_TYPE_COPY.BOX_DROP.tabLabel}
-            <Badge
-              variant="secondary"
-              className="text-xs px-1.5 py-0 h-5 min-w-5"
-            >
-              {typeCounts.BOX_DROP}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Zona de trabajo tintada con el color del módulo activo */}
+      {/* Zona de trabajo tintada con el color del módulo */}
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col gap-6 rounded-xl border p-4 sm:p-5",

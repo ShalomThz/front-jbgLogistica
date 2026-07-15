@@ -9,6 +9,7 @@ import { warehousePolicies } from "@contexts/shared/domain/policies/warehouse.po
 import { ProtectedRoute } from "@contexts/shared/ui/components";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { lazy, Suspense } from "react";
+import { Navigate } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
 
 // Dashboard (static — initial page)
@@ -155,13 +156,34 @@ export const routes: RouteObject[] = [
     ),
   },
 
-  // Logística
+  // Logística — un módulo de rutas por tipo, cada uno con su propia página
+  { path: "/routes", element: <Navigate to="/routes/delivery" replace /> },
   {
-    path: "/routes",
+    path: "/routes/delivery",
     element: (
       <ProtectedRoute policy={shippingPolicies.listRoutes}>
         <Suspense fallback={<PageLoader />}>
-          <RoutesPage />
+          <RoutesPage routeType="DELIVERY" />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/routes/picking",
+    element: (
+      <ProtectedRoute policy={shippingPolicies.listRoutes}>
+        <Suspense fallback={<PageLoader />}>
+          <RoutesPage routeType="PICKING" />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/routes/box-drop",
+    element: (
+      <ProtectedRoute policy={shippingPolicies.listRoutes}>
+        <Suspense fallback={<PageLoader />}>
+          <RoutesPage routeType="BOX_DROP" />
         </Suspense>
       </ProtectedRoute>
     ),
