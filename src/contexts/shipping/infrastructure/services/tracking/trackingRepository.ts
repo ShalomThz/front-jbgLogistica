@@ -1,6 +1,5 @@
-import { z } from "zod";
 import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
-import { shipmentTrackingEventSchema } from "../../../domain/schemas/tracking/ShipmentTrackingEvent";
+import { trackingTimelineResponseSchema } from "../../../domain/schemas/tracking/ShipmentTrackingEvent";
 
 export const trackingRepository = {
   getTimeline: async (trackingNumber: string) => {
@@ -10,6 +9,6 @@ export const trackingRepository = {
       true,
     );
 
-    return z.array(shipmentTrackingEventSchema).parse(data);
+    return trackingTimelineResponseSchema.parse(data);
   },
 };

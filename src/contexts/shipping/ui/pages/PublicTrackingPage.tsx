@@ -4,6 +4,7 @@ import {
   Clock3,
   MapPin,
   PackageSearch,
+  PackageX,
   Search,
   ShieldCheck,
   Truck,
@@ -21,20 +22,40 @@ import {
 } from "@contexts/shared/shadcn";
 import { useTrackingTimeline } from "../../infrastructure/hooks/tracking/useTrackingTimeline";
 
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Registrado",
+  EMPTY_BOX_PENDING: "Caja vacía pendiente de entrega",
+  AWAITING_PICKUP: "Pendiente de recolección",
+  AT_WAREHOUSE: "En bodega",
+  PROVIDER_SELECTED: "Preparando envío",
+  FULFILLED: "Guía generada",
+  IN_ROUTE: "En tránsito",
+  DELIVERED: "Entregado",
+  FAILED_ATTEMPT: "Intento de entrega fallido",
+  RETURNED: "En devolución",
+  CANCELLED: "Cancelado",
+};
+
+const CARRIER_TYPE_LABELS: Record<string, string> = {
+  INTERNAL_FLEET: "Flota interna JBG",
+  THIRD_PARTY: "Tercero",
+};
+
 export const PublicTrackingPage = () => {
   const navigate = useNavigate();
   const { trackingNumber = "" } = useParams();
   const [searchValue, setSearchValue] = useState(trackingNumber);
-  const { data: events, isLoading } = useTrackingTimeline(trackingNumber);
+  const { data, isLoading } = useTrackingTimeline(trackingNumber);
+  const summary = data?.summary ?? null;
 
   const sortedEvents = useMemo(
     () =>
-      [...(events ?? [])].sort(
+      [...(data?.events ?? [])].sort(
         (left, right) =>
           new Date(right.occurredAt).getTime() -
           new Date(left.occurredAt).getTime(),
       ),
-    [events],
+    [data],
   );
 
   const handleSearch = () => {
@@ -83,45 +104,105 @@ export const PublicTrackingPage = () => {
         </Card>
 
         {isLoading ? (
-          <PageLoader text="Buscando eventos de rastreo..." />
-        ) : sortedEvents.length === 0 ? (
+          <PageLoader text="Buscando información de tu envío..." />
+        ) : !summary ? (
           <Card>
             <CardContent className="flex flex-col items-center gap-4 p-10 text-center">
-              <Truck className="size-10 text-primary" />
+              <PackageX className="size-10 text-destructive" />
               <div>
-                <p className="text-lg font-medium">Sin eventos todavía</p>
+                <p className="text-lg font-medium">
+                  No encontramos ningún envío con ese número de rastreo
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Verifica el número de rastreo o vuelve a intentar más tarde si
-                  el envío acaba de ser generado.
+                  Verifica que el número de guía esté escrito correctamente.
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground">Tracking</p>
-                  <p className="mt-2 font-semibold">{trackingNumber}</p>
+                  <p className="text-sm text-muted-foreground">N° de guía</p>
+                  <p className="mt-2 font-semibold">{summary.trackingNumber}</p>
+                  {summary.orderNumber && (
+                    <p className="text-xs text-muted-foreground">
+                      Pedido {summary.orderNumber}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground">Último estado</p>
+                  <p className="text-sm text-muted-foreground">Estado</p>
                   <p className="mt-2 font-semibold">
-                    {sortedEvents[0]?.statusSnapshot ?? "Sin estado"}
+                    {STATUS_LABELS[summary.status] ?? summary.status}
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground">Eventos</p>
-                  <p className="mt-2 font-semibold">{sortedEvents.length}</p>
+                  <p className="text-sm text-muted-foreground">Transportista</p>
+                  <p className="mt-2 font-semibold">
+                    {summary.carrier
+                      ? (CARRIER_TYPE_LABELS[summary.carrier.type] ??
+                        summary.carrier.providerName)
+                      : "—"}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-5">
+                  <p className="text-sm text-muted-foreground">Paquete</p>
+                  <p className="mt-2 font-semibold">
+                    {summary.parcel
+                      ? `${summary.parcel.weight.value} ${summary.parcel.weight.unit}`
+                      : "—"}
+                  </p>
+                  {summary.parcel && (
+                    <p className="text-xs text-muted-foreground">
+                      {summary.parcel.dimensions.length} x{" "}
+                      {summary.parcel.dimensions.width} x{" "}
+                      {summary.parcel.dimensions.height}{" "}
+                      {summary.parcel.dimensions.unit}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>
 
+            {(summary.origin.city || summary.destination.city) && (
+              <Card>
+                <CardContent className="flex items-center gap-3 p-5 text-sm">
+                  <MapPin className="size-4 text-primary" />
+                  <span>
+                    {summary.origin.city || "Origen"},{" "}
+                    {summary.origin.province}
+                  </span>
+                  <span className="text-muted-foreground">→</span>
+                  <span>
+                    {summary.destination.name} — {summary.destination.city},{" "}
+                    {summary.destination.province}
+                  </span>
+                </CardContent>
+              </Card>
+            )}
+
+            {sortedEvents.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-4 p-10 text-center">
+                  <Truck className="size-10 text-primary" />
+                  <div>
+                    <p className="text-lg font-medium">Aún no hay eventos registrados</p>
+                    <p className="text-sm text-muted-foreground">
+                      Vuelve a consultar más tarde para ver el avance de tu
+                      envío.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
             <Card>
               <CardHeader>
                 <CardTitle>Línea de tiempo</CardTitle>
@@ -145,7 +226,10 @@ export const PublicTrackingPage = () => {
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{event.description}</p>
-                            <Badge variant="outline">{event.statusSnapshot}</Badge>
+                            <Badge variant="outline">
+                              {STATUS_LABELS[event.statusSnapshot] ??
+                                event.statusSnapshot}
+                            </Badge>
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">
                             {new Date(event.occurredAt).toLocaleString("es-MX")}
@@ -171,6 +255,7 @@ export const PublicTrackingPage = () => {
                 ))}
               </CardContent>
             </Card>
+            )}
           </div>
         )}
       </div>
