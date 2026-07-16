@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import type { PaymentMethod } from "@contexts/sales/domain/schemas/value-objects/OrderFinancials";
 import {
   Badge,
   Button,
@@ -9,6 +11,10 @@ import {
 } from "@contexts/shared/shadcn";
 import { ChevronDown } from "lucide-react";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import {
+  OrderPaymentDialog,
+  PAYMENT_METHOD_LABELS,
+} from "./OrderPaymentDialog";
 
 interface OrderPaymentControlProps {
   order: OrderListView;
@@ -53,43 +59,70 @@ export const OrderPaymentControl = ({
   canEdit,
 }: OrderPaymentControlProps) => {
   const { updateOrder } = useOrders();
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const status = resolveStatus(order);
   const hasAdvance = !!order.financials.advance;
+  const method = order.financials.paymentMethod;
 
-  const handleChange = async (paid: boolean) => {
-    await updateOrder(order.id, { markAsPaid: paid });
+  // Órdenes pagadas antes de existir paymentMethod solo muestran "Pagado"
+  const statusLabel =
+    status === "PAID" && method
+      ? `Pagado · ${PAYMENT_METHOD_LABELS[method]}`
+      : STATUS_LABELS[status];
+
+  const handleMarkAsPaid = async (
+    paymentMethod: PaymentMethod,
+    paymentConcept: string | null,
+  ) => {
+    await updateOrder(order.id, {
+      markAsPaid: true,
+      paymentMethod,
+      paymentConcept,
+    });
+  };
+
+  const handleUnmark = async () => {
+    await updateOrder(order.id, { markAsPaid: false });
   };
 
   if (!canEdit) {
     return (
       <Badge variant="outline" className={badgeClass[status]}>
-        {STATUS_LABELS[status]}
+        {statusLabel}
       </Badge>
     );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={`h-7 w-25 flex items-center justify-between p-4 text-xs ${buttonClass[status]}`}
-        >
-          {STATUS_LABELS[status]}
-          <ChevronDown className="h-3 w-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="center">
-        <DropdownMenuItem onClick={() => handleChange(true)}>
-          Pagado
-        </DropdownMenuItem>
-        {/* Desmarcar el pago regresa al estado natural: con anticipo cobrado
-            la orden queda parcialmente pagada, no "no pagada" */}
-        <DropdownMenuItem onClick={() => handleChange(false)}>
-          {hasAdvance ? "Anticipo (no liquidado)" : "No pagado"}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`h-7 flex items-center justify-between gap-1 p-4 text-xs ${buttonClass[status]}`}
+          >
+            {statusLabel}
+            <ChevronDown className="h-3 w-3 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center">
+          {/* Marcar pagado pide método y concepto en el diálogo */}
+          <DropdownMenuItem onClick={() => setPaymentDialogOpen(true)}>
+            Pagado
+          </DropdownMenuItem>
+          {/* Desmarcar el pago regresa al estado natural: con anticipo cobrado
+              la orden queda parcialmente pagada, no "no pagada" */}
+          <DropdownMenuItem onClick={handleUnmark}>
+            {hasAdvance ? "Anticipo (no liquidado)" : "No pagado"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <OrderPaymentDialog
+        open={paymentDialogOpen}
+        onClose={() => setPaymentDialogOpen(false)}
+        onConfirm={handleMarkAsPaid}
+      />
+    </>
   );
 };

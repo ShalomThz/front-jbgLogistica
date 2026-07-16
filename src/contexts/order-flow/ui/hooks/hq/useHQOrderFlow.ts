@@ -147,7 +147,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     selectedWarehouseAddress: effectiveWarehouseAddress,
     setSelectedWarehouseAddress,
     isLoadingAddresses,
-    markAsPaid: submission.markAsPaid,
-    setMarkAsPaid: submission.setMarkAsPaid,
+    payment: submission.payment,
+    setPayment: submission.setPayment,
   };
 };

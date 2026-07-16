@@ -399,31 +399,32 @@ export const OrderDetailDialog = ({
                   <DollarSign className="size-4" />
                   Financiero
                 </h4>
+                {/* totalBilled ya trae el descuento restado; el desglose
+                    completo vive en el tab Financiero */}
                 <DetailRow
                   label="Total"
                   value={financials.totalBilled ? formatMoney(financials.totalBilled) : "—"}
                 />
-                {financials.discount.amount && (
-                  <DetailRow
-                    label="Descuento"
-                    value={`-${formatMoney(financials.discount.amount)}${financials.discount.concept ? ` (${financials.discount.concept})` : ""}`}
-                  />
-                )}
                 {financials.advance && (
                   <>
                     <DetailRow
                       label="Anticipo pagado"
                       value={`-${formatMoney(financials.advance)}`}
                     />
-                    {financials.totalBilled && (
-                      <DetailRow
-                        label="Restante"
-                        value={formatMoney({
-                          amount: Math.max(0, financials.totalBilled.amount - financials.advance.amount),
-                          currency: financials.totalBilled.currency,
-                        })}
-                      />
-                    )}
+                    {/* Restante: solo sin liquidar y con monedas iguales
+                        (no restamos montos en monedas distintas) */}
+                    {financials.totalBilled &&
+                      !financials.isPaid &&
+                      financials.advance.currency ===
+                        financials.totalBilled.currency && (
+                        <DetailRow
+                          label="Restante"
+                          value={formatMoney({
+                            amount: Math.max(0, financials.totalBilled.amount - financials.advance.amount),
+                            currency: financials.totalBilled.currency,
+                          })}
+                        />
+                      )}
                   </>
                 )}
                 <DetailRow
@@ -436,6 +437,21 @@ export const OrderDetailDialog = ({
                         : "No"
                   }
                 />
+                {financials.paymentMethod && (
+                  <DetailRow
+                    label="Método de pago"
+                    value={
+                      {
+                        CASH: "Efectivo",
+                        CARD: "Tarjeta",
+                        TRANSFER: "Transferencia",
+                      }[financials.paymentMethod]
+                    }
+                  />
+                )}
+                {financials.paymentConcept && (
+                  <DetailRow label="Concepto" value={financials.paymentConcept} />
+                )}
               </div>
 
               {/* Referencias */}
@@ -684,11 +700,7 @@ export const OrderDetailDialog = ({
               </h3>
               <OrderFinancialSection
                 rate={shipment.rate}
-                costBreakdown={shipment.costBreakdown}
-                totalBilled={financials.totalBilled}
-                tariff={financials.tariff}
-                discount={financials.discount}
-                advance={financials.advance}
+                financials={financials}
                 canViewFinancials={canViewFinancials}
               />
             </TabsContent>

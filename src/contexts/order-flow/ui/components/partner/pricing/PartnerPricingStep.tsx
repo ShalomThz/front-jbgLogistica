@@ -6,6 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { PaymentSelection } from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { PartnerAdditionalCostsCard } from "./PartnerAdditionalCostsCard";
 import { PartnerTariffCard } from "./PartnerTariffCard";
@@ -18,8 +19,8 @@ interface PartnerPricingStepProps {
   isLoadingPrice: boolean;
   tariffError: string | null;
   refetchPrice: () => void;
-  markAsPaid: boolean;
-  onMarkAsPaidChange: (value: boolean) => void;
+  payment: PaymentSelection;
+  onPaymentChange: (value: PaymentSelection) => void;
   /** Zona efectiva usada en la búsqueda de tarifa (override o la de la tienda). */
   zoneId?: string;
 }
@@ -64,7 +65,7 @@ function TariffNotFoundCard({ zoneId }: { zoneId?: string }) {
   );
 }
 
-export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, markAsPaid, onMarkAsPaidChange, zoneId }: PartnerPricingStepProps) {
+export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, payment, onPaymentChange, zoneId }: PartnerPricingStepProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
@@ -82,7 +83,7 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
           onRefetch={refetchPrice}
         />
         <PartnerOrderSummaryCard />
-        <PartnerTotalCard tariffPrice={tariffPrice} markAsPaid={markAsPaid} onMarkAsPaidChange={onMarkAsPaidChange} />
+        <PartnerTotalCard tariffPrice={tariffPrice} payment={payment} onPaymentChange={onPaymentChange} />
       </div>
     </div>
   );
