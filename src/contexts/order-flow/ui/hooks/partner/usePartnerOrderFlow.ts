@@ -128,7 +128,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     canChangeZone,
     setZoneOverride: setZoneOverrideId,
     originZoneId: effectiveZoneId,
-    markAsPaid: submission.markAsPaid,
-    setMarkAsPaid: submission.setMarkAsPaid,
+    payment: submission.payment,
+    setPayment: submission.setPayment,
   };
 };

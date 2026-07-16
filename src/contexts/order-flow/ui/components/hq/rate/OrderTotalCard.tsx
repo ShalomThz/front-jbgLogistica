@@ -18,9 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
+import { useState } from "react";
 import { ChevronDown, Info, Tag } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import {
+  OrderPaymentDialog,
+  PAYMENT_METHOD_LABELS,
+  type PaymentSelection,
+  UNPAID_SELECTION,
+} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 
@@ -38,12 +45,13 @@ const COST_LABELS: Record<CostField, string> = {
 interface OrderTotalCardProps {
   onSubmit: () => void;
   isSubmitting: boolean;
-  markAsPaid: boolean;
-  onMarkAsPaidChange: (value: boolean) => void;
+  payment: PaymentSelection;
+  onPaymentChange: (value: PaymentSelection) => void;
   disabled?: boolean;
 }
 
-export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPaidChange, disabled = false }: OrderTotalCardProps) {
+export function OrderTotalCard({ onSubmit, isSubmitting, payment, onPaymentChange, disabled = false }: OrderTotalCardProps) {
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const { setValue, control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
 
@@ -215,22 +223,35 @@ export function OrderTotalCard({ onSubmit, isSubmitting, markAsPaid, onMarkAsPai
                 <Button
                   variant="outline"
                   size="sm"
-                  className={`h-7 w-28 flex items-center justify-between px-3 text-xs ${
-                    markAsPaid
+                  className={`h-7 flex items-center justify-between gap-1 px-3 text-xs ${
+                    payment.markAsPaid
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
                       : "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
                   }`}
                 >
-                  {markAsPaid ? "Pagado" : "No pagado"}
+                  {payment.markAsPaid && payment.method
+                    ? `Pagado · ${PAYMENT_METHOD_LABELS[payment.method]}`
+                    : payment.markAsPaid
+                      ? "Pagado"
+                      : "No pagado"}
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onMarkAsPaidChange(true)}>Pagado</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onMarkAsPaidChange(false)}>No pagado</DropdownMenuItem>
+                {/* Marcar pagado pide método y concepto en el diálogo */}
+                <DropdownMenuItem onClick={() => setPaymentDialogOpen(true)}>Pagado</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPaymentChange(UNPAID_SELECTION)}>No pagado</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          <OrderPaymentDialog
+            open={paymentDialogOpen}
+            onClose={() => setPaymentDialogOpen(false)}
+            onConfirm={async (method, concept) =>
+              onPaymentChange({ markAsPaid: true, method, concept })
+            }
+          />
         </CardContent>
       </Card>
 

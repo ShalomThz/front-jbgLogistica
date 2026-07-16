@@ -1,4 +1,5 @@
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { PaymentSelection } from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
@@ -29,8 +30,8 @@ interface RateStepProps {
   isSubmitting: boolean;
   partnerPrice?: MoneyPrimitives | null;
   partnerCostBreakdown?: CostBreakdownPrimitives;
-  markAsPaid: boolean;
-  onMarkAsPaidChange: (value: boolean) => void;
+  payment: PaymentSelection;
+  onPaymentChange: (value: PaymentSelection) => void;
   tariff: MoneyPrimitives | null;
   isLoadingTariff: boolean;
   tariffError: string | null;
@@ -56,8 +57,8 @@ export function RateStep({
   isSubmitting,
   partnerPrice,
   partnerCostBreakdown,
-  markAsPaid,
-  onMarkAsPaidChange,
+  payment,
+  onPaymentChange,
   tariff,
   isLoadingTariff,
   tariffError,
@@ -137,8 +138,8 @@ export function RateStep({
         <OrderTotalCard
           onSubmit={onSubmit}
           isSubmitting={isSubmitting}
-          markAsPaid={markAsPaid}
-          onMarkAsPaidChange={onMarkAsPaidChange}
+          payment={payment}
+          onPaymentChange={onPaymentChange}
           disabled={!hasTariff}
         />
       </div>

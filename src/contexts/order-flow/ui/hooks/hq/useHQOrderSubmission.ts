@@ -13,6 +13,10 @@ import {
   useShipmentRates,
 } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import {
+  type PaymentSelection,
+  UNPAID_SELECTION,
+} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
@@ -70,7 +74,7 @@ export const useHQOrderSubmission = ({
   const [shipmentId, setShipmentId] = useState<string | null>(null);
   const [fulfilledShipment, setFulfilledShipment] =
     useState<ShipmentPrimitives | null>(null);
-  const [markAsPaid, setMarkAsPaid] = useState(false);
+  const [payment, setPayment] = useState<PaymentSelection>(UNPAID_SELECTION);
   const { user } = useAuth();
   const { createHQOrder, updateOrder, isCreating } = useOrders({
     enabled: false,
@@ -343,8 +347,12 @@ export const useHQOrderSubmission = ({
       if (orderId) {
         const orderRequest = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, orderRequest);
-        if (markAsPaid) {
-          await updateOrder(orderId, { markAsPaid: true });
+        if (payment.markAsPaid && payment.method) {
+          await updateOrder(orderId, {
+            markAsPaid: true,
+            paymentMethod: payment.method,
+            paymentConcept: payment.concept,
+          });
         }
       }
 
@@ -432,7 +440,7 @@ export const useHQOrderSubmission = ({
     tariffZoneId: zoneId,
     tariffDestinationCountry: destinationCountry ?? "",
     tariffBoxId: boxId ?? "",
-    markAsPaid,
-    setMarkAsPaid,
+    payment,
+    setPayment,
   };
 };

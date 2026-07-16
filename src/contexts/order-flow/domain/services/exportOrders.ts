@@ -21,6 +21,12 @@ export function exportOrders(orders: OrderListView[]) {
     "País Destino": o.destination.address.country,
     Tienda: o.store.name,
     Pagado: o.financials.isPaid ? "Sí" : "No",
+    "Método de Pago": o.financials.paymentMethod
+      ? { CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transferencia" }[
+          o.financials.paymentMethod
+        ]
+      : "",
+    "Concepto de Pago": o.financials.paymentConcept ?? "",
     Total: o.financials.totalPrice?.amount ?? 0,
     Moneda: o.financials.totalPrice?.currency ?? "",
     "Guía": o.shipment?.label?.trackingNumber ?? "",

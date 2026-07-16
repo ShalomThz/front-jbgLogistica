@@ -5,6 +5,10 @@ import type { UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import {
+  type PaymentSelection,
+  UNPAID_SELECTION,
+} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildPartnerEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
@@ -29,7 +33,7 @@ export const usePartnerOrderSubmission = ({
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [markAsPaid, setMarkAsPaid] = useState(false);
+  const [payment, setPayment] = useState<PaymentSelection>(UNPAID_SELECTION);
   const { user } = useAuth();
   const { createPartnerOrder, updateOrder, isCreating } = useOrders({ enabled: false });
 
@@ -61,8 +65,12 @@ export const usePartnerOrderSubmission = ({
         const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.store.id, tariff);
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
-        if (markAsPaid) {
-          await updateOrder(order.id, { markAsPaid: true });
+        if (payment.markAsPaid && payment.method) {
+          await updateOrder(order.id, {
+            markAsPaid: true,
+            paymentMethod: payment.method,
+            paymentConcept: payment.concept,
+          });
         }
         setIsSubmitted(true);
         onSuccess();
@@ -79,7 +87,7 @@ export const usePartnerOrderSubmission = ({
     goToOrders,
     submitPartnerOrder,
     isCreating,
-    markAsPaid,
-    setMarkAsPaid,
+    payment,
+    setPayment,
   };
 };
