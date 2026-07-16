@@ -13,6 +13,17 @@ export const buildDiscountPayload = (discount: HQOrderFormValues["shippingServic
   };
 };
 
+// El anticipo viaja en la moneda de la tarifa, igual que en la creación.
+// Monto vacío/0 → null (limpiar); sin tarifa disponible → undefined (sin cambio).
+export const buildAdvancePayload = (
+  advanceAmount: string,
+  tariff?: MoneyPrimitives | null,
+): MoneyPrimitives | null | undefined => {
+  const amount = parseFloat(advanceAmount);
+  if (!(amount > 0)) return null;
+  return tariff ? { amount, currency: tariff.currency } : undefined;
+};
+
 export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: string) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
@@ -27,6 +38,7 @@ export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: s
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     customerSignature: formValues.customerSignature,
+    advance: buildAdvancePayload(formValues.advanceAmount, formValues.shippingService.tariff),
     discount: buildDiscountPayload(formValues.shippingService.discount),
   });
 };
@@ -39,15 +51,6 @@ export const buildPartnerEditOrderRequest = (
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
-  // El anticipo viaja en la moneda de la tarifa, igual que en la creación.
-  // Caja desactivada → null (limpiar); sin tarifa disponible → undefined (sin cambio).
-  const advanceAmount = parseFloat(formValues.advanceAmount);
-  const advance = !formValues.emptyBoxDelivery
-    ? null
-    : tariff && advanceAmount > 0
-      ? { amount: advanceAmount, currency: tariff.currency }
-      : undefined;
-
   return editOrderRequestSchema.parse({
     storeId,
     references: {
@@ -57,7 +60,7 @@ export const buildPartnerEditOrderRequest = (
     destination: { ...recipientContact, address: recipientAddress },
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
-    advance,
+    advance: buildAdvancePayload(formValues.advanceAmount, tariff),
     customerSignature: formValues.customerSignature,
   });
 };

@@ -48,10 +48,8 @@ export const buildPartnerOrderRequest = (
     ...(hasCosts && { costBreakdown }),
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
-    // El anticipo se cobra en la moneda de la tarifa al solicitar la caja vacía
-    ...(formValues.emptyBoxDelivery && {
-      advance: parseMoney(formValues.advanceAmount, tariff.currency) ?? undefined,
-    }),
+    // El anticipo siempre se cobra en la moneda de la tarifa
+    advance: parseMoney(formValues.advanceAmount, tariff.currency) ?? undefined,
     customerSignature: formValues.customerSignature ?? null,
   });
 };
