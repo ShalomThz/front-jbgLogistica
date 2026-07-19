@@ -1,4 +1,5 @@
 import { createPartnerOrderSchema } from "@contexts/sales/application/order/CreatePartnerOrderRequest";
+import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { PartnerOrderFormValues } from "../domain/schemas/NewOrderForm";
 
@@ -11,6 +12,8 @@ export const buildPartnerOrderRequest = (
   formValues: PartnerOrderFormValues,
   storeId: string,
   tariff: MoneyPrimitives,
+  /** Abonos cobrados al crear → se siembran en el libro de la orden. */
+  payments: AddPaymentRequest[] = [],
 ) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
@@ -48,8 +51,7 @@ export const buildPartnerOrderRequest = (
     ...(hasCosts && { costBreakdown }),
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
-    // El anticipo siempre se cobra en la moneda de la tarifa
-    advance: parseMoney(formValues.advanceAmount, tariff.currency) ?? undefined,
+    payments,
     customerSignature: formValues.customerSignature ?? null,
   });
 };

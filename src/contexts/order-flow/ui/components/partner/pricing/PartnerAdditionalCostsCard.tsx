@@ -25,9 +25,8 @@ const COST_LABELS: Record<string, string> = {
 };
 
 export function PartnerAdditionalCostsCard() {
-  const { register, control, clearErrors, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
+  const { register, control } = useFormContext<PartnerOrderFormValues>();
   const costsCurrency = useWatch<PartnerOrderFormValues, "shippingService.costBreakdownCurrency">({ name: "shippingService.costBreakdownCurrency" });
-  const emptyBoxDelivery = useWatch<PartnerOrderFormValues, "emptyBoxDelivery">({ name: "emptyBoxDelivery" });
 
   return (
     <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
@@ -56,7 +55,7 @@ export function PartnerAdditionalCostsCard() {
           />
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+      <CardContent className="pt-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {COST_BREAKDOWN_FIELDS.map((field) => (
             <div key={field} className="space-y-1">
@@ -75,43 +74,6 @@ export function PartnerAdditionalCostsCard() {
               </div>
             </div>
           ))}
-        </div>
-        <div
-          className={
-            emptyBoxDelivery
-              ? "space-y-1 rounded-md border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-800 dark:bg-amber-950/20"
-              : "space-y-1"
-          }
-        >
-          <Label
-            htmlFor="advance-amount"
-            className={emptyBoxDelivery ? "text-xs text-amber-700 dark:text-amber-400" : "text-xs"}
-          >
-            {emptyBoxDelivery ? "Anticipo por caja vacía *" : "Anticipo"}
-          </Label>
-          <div className="relative max-w-52">
-            <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">$</span>
-            <Input
-              id="advance-amount"
-              type="number"
-              step="0.01"
-              min="0"
-              aria-invalid={!!errors.advanceAmount}
-              {...register("advanceAmount", {
-                onChange: () => clearErrors("advanceAmount"),
-              })}
-              className="pl-6 text-xs"
-              placeholder="0.00"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {emptyBoxDelivery
-              ? "Se cobra al crear la orden por dejar la caja vacía en el domicilio (moneda de la tarifa)"
-              : "Pago parcial cobrado al crear la orden (moneda de la tarifa)"}
-          </p>
-          {errors.advanceAmount && (
-            <p className="text-sm text-destructive">{errors.advanceAmount.message}</p>
-          )}
         </div>
       </CardContent>
     </Card>

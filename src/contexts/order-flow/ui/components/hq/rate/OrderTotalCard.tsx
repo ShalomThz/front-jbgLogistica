@@ -4,11 +4,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -18,16 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@contexts/shared/shadcn";
-import { useState } from "react";
-import { ChevronDown, Info, Tag } from "lucide-react";
+import { Info, Tag } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import {
-  OrderPaymentDialog,
-  PAYMENT_METHOD_LABELS,
-  type PaymentSelection,
-  UNPAID_SELECTION,
-} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
+import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
+import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 
@@ -45,14 +35,27 @@ const COST_LABELS: Record<CostField, string> = {
 interface OrderTotalCardProps {
   onSubmit: () => void;
   isSubmitting: boolean;
-  payment: PaymentSelection;
-  onPaymentChange: (value: PaymentSelection) => void;
   disabled?: boolean;
+  /** Orden ya creada: muestra sus abonos ya registrados en el control de pago. */
+  orderId?: string;
+  /** Abonos capturados en el paso (locales; se suben al finalizar la orden). */
+  pendingPayments: AddPaymentRequest[];
+  onAddPayment: (data: AddPaymentRequest) => void;
+  onRemovePayment: (index: number) => void;
+  onClearPayments: () => void;
 }
 
-export function OrderTotalCard({ onSubmit, isSubmitting, payment, onPaymentChange, disabled = false }: OrderTotalCardProps) {
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const { setValue, control } = useFormContext<HQOrderFormValues>();
+export function OrderTotalCard({
+  onSubmit,
+  isSubmitting,
+  disabled = false,
+  orderId,
+  pendingPayments,
+  onAddPayment,
+  onRemovePayment,
+  onClearPayments,
+}: OrderTotalCardProps) {
+  const { control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
 
   // --- all derived values and hooks must be above any early return ---
@@ -84,11 +87,6 @@ export function OrderTotalCard({ onSubmit, isSubmitting, payment, onPaymentChang
   const tariffConversionRate = needsTariffConversion ? tariffExchange?.rate ?? null : 1;
   const costsConversionRate = needsCostsConversion ? costsExchange?.rate ?? null : 1;
   const discountConversionRate = needsDiscountConversion ? discountExchange?.rate ?? null : 1;
-
-  const handleTariffChange = (value: string) => {
-    const amount = parseFloat(value) || 0;
-    setValue("shippingService.tariff", { amount, currency: tariffCurrency });
-  };
 
   if (!shippingService.selectedRate) {
     return (
@@ -140,22 +138,10 @@ export function OrderTotalCard({ onSubmit, isSubmitting, payment, onPaymentChang
           </div>
         </CardHeader>
         <CardContent className="space-y-2 pt-0">
-          {/* Tarifa asignada */}
+          {/* Tarifa asignada (solo lectura) */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Tarifa asignada</span>
-            <div className="relative w-40">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={tariffAmount || ""}
-                onChange={(e) => handleTariffChange(e.target.value)}
-                className="h-7 pl-5 pr-12 text-xs text-right"
-                placeholder="0.00"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{tariffCurrency}</span>
-            </div>
+            <span>${tariffAmount.toFixed(2)} {tariffCurrency}</span>
           </div>
 
           {/* Costos adicionales */}
@@ -216,41 +202,14 @@ export function OrderTotalCard({ onSubmit, isSubmitting, payment, onPaymentChang
 
           <div className="my-2 border-t-2 border-dashed border-muted-foreground/40" />
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Estado de pago</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`h-7 flex items-center justify-between gap-1 px-3 text-xs ${
-                    payment.markAsPaid
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
-                      : "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
-                  }`}
-                >
-                  {payment.markAsPaid && payment.method
-                    ? `Pagado · ${PAYMENT_METHOD_LABELS[payment.method]}`
-                    : payment.markAsPaid
-                      ? "Pagado"
-                      : "No pagado"}
-                  <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Marcar pagado pide método y concepto en el diálogo */}
-                <DropdownMenuItem onClick={() => setPaymentDialogOpen(true)}>Pagado</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onPaymentChange(UNPAID_SELECTION)}>No pagado</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <OrderPaymentDialog
-            open={paymentDialogOpen}
-            onClose={() => setPaymentDialogOpen(false)}
-            onConfirm={async (method, concept) =>
-              onPaymentChange({ markAsPaid: true, method, concept })
-            }
+          <PendingPaymentControl
+            grandTotal={grandTotal}
+            currency={displayCurrency}
+            orderId={orderId}
+            pendingPayments={pendingPayments}
+            onAddPayment={onAddPayment}
+            onRemovePayment={onRemovePayment}
+            onClearPayments={onClearPayments}
           />
         </CardContent>
       </Card>

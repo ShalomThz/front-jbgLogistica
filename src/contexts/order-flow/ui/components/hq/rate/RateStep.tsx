@@ -1,16 +1,12 @@
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import type { PaymentSelection } from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import { useFormContext, useWatch } from "react-hook-form";
-import { SignatureCard } from "../../shared/SignatureCard";
 import { ZoneSelector } from "../../shared/ZoneSelector";
-import { AdditionalCostsCard } from "./AdditionalCostsCard";
 import { JBGFallbackBanner } from "./JBGFallbackBanner";
 import { JBGHintBanner } from "./JBGHintBanner";
-import { OrderTotalCard } from "./OrderTotalCard";
 import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
 import { RateTable } from "./RateTable";
 import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
@@ -25,13 +21,9 @@ interface RateStepProps {
   isLoadingRates: boolean;
   ratesError: string | null;
   onRefetch: () => void;
-  onSubmit: () => void;
   onBack: () => void;
-  isSubmitting: boolean;
   partnerPrice?: MoneyPrimitives | null;
   partnerCostBreakdown?: CostBreakdownPrimitives;
-  payment: PaymentSelection;
-  onPaymentChange: (value: PaymentSelection) => void;
   tariff: MoneyPrimitives | null;
   isLoadingTariff: boolean;
   tariffError: string | null;
@@ -52,13 +44,9 @@ export function RateStep({
   isLoadingRates,
   ratesError,
   onRefetch,
-  onSubmit,
   onBack,
-  isSubmitting,
   partnerPrice,
   partnerCostBreakdown,
-  payment,
-  onPaymentChange,
   tariff,
   isLoadingTariff,
   tariffError,
@@ -122,9 +110,6 @@ export function RateStep({
             onClearSelection={() => setValue("shippingService.selectedRate", null)}
           />
         )}
-
-        <AdditionalCostsCard />
-        {selectedRate && <SignatureCard />}
       </div>
 
       <div className="space-y-4 lg:sticky lg:top-0">
@@ -135,13 +120,6 @@ export function RateStep({
           />
         )}
         <ShipmentSummaryCard onEdit={onBack} />
-        <OrderTotalCard
-          onSubmit={onSubmit}
-          isSubmitting={isSubmitting}
-          payment={payment}
-          onPaymentChange={onPaymentChange}
-          disabled={!hasTariff}
-        />
       </div>
     </div>
   );

@@ -54,8 +54,6 @@ export const baseOrderFormSchema = z.object({
   /** "Recolección a domicilio": el chofer recoge la caja ya empacada del
    * remitente. Excluyente con emptyBoxDelivery. */
   homePickup: z.boolean(),
-  /** Anticipo cobrado al solicitar la caja vacía (monto libre). */
-  advanceAmount: z.string(),
   customerSignature: z.string().nullable(),
   shippingService: z.object({
     currency: z.string(),

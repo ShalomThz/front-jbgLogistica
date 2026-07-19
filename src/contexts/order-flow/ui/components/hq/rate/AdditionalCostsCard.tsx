@@ -94,30 +94,6 @@ export function AdditionalCostsCard() {
             ))}
           </div>
 
-          <div className="border-t pt-3 space-y-1">
-            <Label htmlFor="hq-advance-amount" className="text-xs">
-              Anticipo
-            </Label>
-            <div className="relative">
-              <span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground">$</span>
-              <Input
-                id="hq-advance-amount"
-                type="number"
-                step="0.01"
-                min="0"
-                {...register("advanceAmount")}
-                className="pl-6 pr-12 text-xs"
-                placeholder="0.00"
-              />
-              <span className="absolute right-2.5 top-2.5 text-xs text-muted-foreground">
-                {shippingService.tariff?.currency ?? ""}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Pago parcial cobrado al crear la orden (moneda de la tarifa)
-            </p>
-          </div>
-
           <div className="border-t pt-3 space-y-2">
             <Label className="text-xs flex items-center gap-1.5">
               <Tag className="size-3" />

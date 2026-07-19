@@ -1,5 +1,6 @@
 import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http/httpClient";
 import { ZodError } from "zod";
+import type { AddPaymentRequest } from "../../../application/order/AddPaymentRequest";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -88,6 +89,28 @@ export const orderRepository = {
 
   delete: async (id: string): Promise<void> => {
     await httpClient<unknown>(`/order/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  addPayment: async (
+    id: string,
+    payment: AddPaymentRequest,
+  ): Promise<void> => {
+    await httpClient<unknown>(`/order/${id}/payment`, {
+      method: "POST",
+      body: JSON.stringify(payment),
+    });
+  },
+
+  removePayment: async (id: string, paymentId: string): Promise<void> => {
+    await httpClient<unknown>(`/order/${id}/payment/${paymentId}`, {
+      method: "DELETE",
+    });
+  },
+
+  clearPayments: async (id: string): Promise<void> => {
+    await httpClient<unknown>(`/order/${id}/payments`, {
       method: "DELETE",
     });
   },

@@ -15,7 +15,7 @@ interface ShipmentSummaryCardProps {
 }
 
 export function ShipmentSummaryCard({ onEdit }: ShipmentSummaryCardProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const sender = useWatch<HQOrderFormValues, "sender">({ name: "sender" });
   const recipient = useWatch<HQOrderFormValues, "recipient">({ name: "recipient" });

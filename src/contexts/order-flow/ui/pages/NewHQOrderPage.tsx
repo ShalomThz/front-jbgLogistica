@@ -9,6 +9,7 @@ import type { HQOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import { HQContactStep } from "../components/hq/contact/HQContactStep";
 import { HQPackageStep } from "../components/hq/package/HQPackageStep";
 import { RateStep } from "../components/hq/rate/RateStep";
+import { CobroStep } from "../components/hq/rate/CobroStep";
 import { FulfillmentLoadingDialog } from "../components/hq/rate/FulfillmentLoadingDialog";
 import { OrderSuccessView } from "../components/order/OrderSuccessView";
 import { StepIndicator } from "../components/shared/StepIndicator";
@@ -124,13 +125,9 @@ const NewHQOrderPageInner = ({
             isLoadingRates={flow.isLoadingRates}
             ratesError={flow.ratesError}
             onRefetch={flow.refetchRates}
-            onSubmit={flow.selectAndFulfill}
             onBack={flow.handleBack}
-            isSubmitting={flow.isProcessingShipment}
             partnerPrice={partnerPrice}
             partnerCostBreakdown={partnerCostBreakdown}
-            payment={flow.payment}
-            onPaymentChange={flow.setPayment}
             tariff={flow.tariff}
             isLoadingTariff={flow.isLoadingTariff}
             tariffError={flow.tariffError}
@@ -142,6 +139,19 @@ const NewHQOrderPageInner = ({
             selectedWarehouseAddress={flow.selectedWarehouseAddress}
             onWarehouseAddressChange={flow.setSelectedWarehouseAddress}
             isLoadingAddresses={flow.isLoadingAddresses}
+          />
+        )}
+
+        {flow.step === "cobro" && (
+          <CobroStep
+            onSubmit={flow.selectAndFulfill}
+            isSubmitting={flow.isProcessingShipment}
+            tariff={flow.tariff}
+            orderId={flow.orderId}
+            pendingPayments={flow.pendingPayments}
+            onAddPayment={flow.addPendingPayment}
+            onRemovePayment={flow.removePendingPayment}
+            onClearPayments={flow.clearPendingPayments}
           />
         )}
 
@@ -169,7 +179,7 @@ const NewHQOrderPageInner = ({
       />
 
       {/* Bottom Navigation */}
-      {flow.step !== "rate" && flow.step !== "success" && (
+      {flow.step !== "cobro" && flow.step !== "success" && (
         <div className="mt-auto flex justify-between">
           <Button
             variant="outline"

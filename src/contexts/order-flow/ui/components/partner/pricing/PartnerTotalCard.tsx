@@ -1,11 +1,6 @@
 import {
-  Button,
   Card,
   CardContent,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -13,17 +8,11 @@ import {
   SelectValue,
   Separator,
 } from "@contexts/shared/shadcn";
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import {
-  OrderPaymentDialog,
-  PAYMENT_METHOD_LABELS,
-  type PaymentSelection,
-  UNPAID_SELECTION,
-} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
+import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
+import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
 const COST_BREAKDOWN_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
@@ -38,12 +27,21 @@ const COST_LABELS: Record<string, string> = {
 
 interface PartnerTotalCardProps {
   tariffPrice: MoneyPrimitives | null;
-  payment: PaymentSelection;
-  onPaymentChange: (value: PaymentSelection) => void;
+  orderId?: string;
+  pendingPayments: AddPaymentRequest[];
+  onAddPayment: (data: AddPaymentRequest) => void;
+  onRemovePayment: (index: number) => void;
+  onClearPayments: () => void;
 }
 
-export function PartnerTotalCard({ tariffPrice, payment, onPaymentChange }: PartnerTotalCardProps) {
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+export function PartnerTotalCard({
+  tariffPrice,
+  orderId,
+  pendingPayments,
+  onAddPayment,
+  onRemovePayment,
+  onClearPayments,
+}: PartnerTotalCardProps) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const shippingService = useWatch<PartnerOrderFormValues, "shippingService">({ name: "shippingService" });
 
@@ -102,35 +100,6 @@ export function PartnerTotalCard({ tariffPrice, payment, onPaymentChange }: Part
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Estado de pago</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 flex items-center justify-between gap-1 px-3 text-xs">
-                  {payment.markAsPaid && payment.method
-                    ? `Pagado · ${PAYMENT_METHOD_LABELS[payment.method]}`
-                    : payment.markAsPaid
-                      ? "Pagado"
-                      : "No pagado"}
-                  <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Marcar pagado pide método y concepto en el diálogo */}
-                <DropdownMenuItem onClick={() => setPaymentDialogOpen(true)}>Pagado</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onPaymentChange(UNPAID_SELECTION)}>No pagado</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <OrderPaymentDialog
-            open={paymentDialogOpen}
-            onClose={() => setPaymentDialogOpen(false)}
-            onConfirm={async (method, concept) =>
-              onPaymentChange({ markAsPaid: true, method, concept })
-            }
-          />
-
           <div className="rounded-lg bg-muted/50 p-4 space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">Total a cobrar</span>
@@ -164,6 +133,18 @@ export function PartnerTotalCard({ tariffPrice, payment, onPaymentChange }: Part
               </div>
             )}
           </div>
+
+          <Separator />
+
+          <PendingPaymentControl
+            grandTotal={grandTotal}
+            currency={displayCurrency}
+            orderId={orderId}
+            pendingPayments={pendingPayments}
+            onAddPayment={onAddPayment}
+            onRemovePayment={onRemovePayment}
+            onClearPayments={onClearPayments}
+          />
         </div>
       </CardContent>
     </Card>

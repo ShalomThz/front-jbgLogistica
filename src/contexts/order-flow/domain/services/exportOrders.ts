@@ -1,9 +1,17 @@
 import * as XLSX from "xlsx";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { ORDER_STATUS_LABELS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
+import {
+  PAYMENT_STATUS_LABELS,
+  resolveBilledBalance,
+  resolvePaymentStatus,
+} from "@contexts/shared/domain/schemas/PaymentStatus";
 
 export function exportOrders(orders: OrderListView[]) {
-  const rows = orders.map((o) => ({
+  const rows = orders.map((o) => {
+    const balance = resolveBilledBalance(o.financials);
+    return {
     "Ref. JBG": o.references.orderNumber ?? "",
     "Ref. Agente": o.references.partnerOrderNumber ?? "",
     Tipo: o.type === "PARTNER" ? "Agente" : "JBG",
@@ -20,11 +28,11 @@ export function exportOrders(orders: OrderListView[]) {
     "Estado Destino": o.destination.address.province,
     "País Destino": o.destination.address.country,
     Tienda: o.store.name,
-    Pagado: o.financials.isPaid ? "Sí" : "No",
+    "Estado de Pago": PAYMENT_STATUS_LABELS[resolvePaymentStatus(o.financials)],
+    "Total Pagado": balance?.paid ?? "",
+    Saldo: balance?.pending ?? "",
     "Método de Pago": o.financials.paymentMethod
-      ? { CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transferencia" }[
-          o.financials.paymentMethod
-        ]
+      ? PAYMENT_METHOD_LABELS[o.financials.paymentMethod]
       : "",
     "Concepto de Pago": o.financials.paymentConcept ?? "",
     Total: o.financials.totalPrice?.amount ?? 0,
@@ -32,7 +40,8 @@ export function exportOrders(orders: OrderListView[]) {
     "Guía": o.shipment?.label?.trackingNumber ?? "",
     Proveedor: o.shipment?.provider?.providerName ?? "",
     Creación: new Date(o.createdAt).toLocaleDateString("es-MX"),
-  }));
+    };
+  });
 
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();

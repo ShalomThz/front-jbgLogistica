@@ -3,6 +3,12 @@ import {
   ORDER_STATUS_LABELS,
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
+import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
+import {
+  PAYMENT_STATUS_LABELS,
+  resolveBilledBalance,
+  resolvePaymentStatus,
+} from "@contexts/shared/domain/schemas/PaymentStatus";
 import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import {
@@ -343,11 +349,7 @@ export const OrderDetailDialog = ({
                 {order.emptyBoxDelivery && (
                   <DetailRow
                     label="Caja vacía"
-                    value={
-                      order.financials.advance
-                        ? `Se deja a domicilio — anticipo $${order.financials.advance.amount.toFixed(2)} ${order.financials.advance.currency}`
-                        : "Se deja a domicilio"
-                    }
+                    value="Se deja a domicilio"
                   />
                 )}
               </div>
@@ -405,48 +407,36 @@ export const OrderDetailDialog = ({
                   label="Total"
                   value={financials.totalBilled ? formatMoney(financials.totalBilled) : "—"}
                 />
-                {financials.advance && (
-                  <>
-                    <DetailRow
-                      label="Anticipo pagado"
-                      value={`-${formatMoney(financials.advance)}`}
-                    />
-                    {/* Restante: solo sin liquidar y con monedas iguales
-                        (no restamos montos en monedas distintas) */}
-                    {financials.totalBilled &&
-                      !financials.isPaid &&
-                      financials.advance.currency ===
-                        financials.totalBilled.currency && (
+                {(() => {
+                  const balance = resolveBilledBalance(financials);
+                  const total = financials.totalBilled;
+                  if (!balance || !total || balance.paid <= 0) return null;
+                  return (
+                    <>
+                      <DetailRow
+                        label="Pagado"
+                        value={`-${formatMoney({ amount: balance.paid, currency: total.currency })}`}
+                      />
+                      {balance.pending > 0 && !financials.isPaid && (
                         <DetailRow
                           label="Restante"
                           value={formatMoney({
-                            amount: Math.max(0, financials.totalBilled.amount - financials.advance.amount),
-                            currency: financials.totalBilled.currency,
+                            amount: balance.pending,
+                            currency: total.currency,
                           })}
                         />
                       )}
-                  </>
-                )}
+                    </>
+                  );
+                })()}
                 <DetailRow
-                  label="Pagado"
-                  value={
-                    financials.isPaid
-                      ? "Sí"
-                      : financials.advance
-                        ? "Anticipo"
-                        : "No"
-                  }
+                  label="Estado"
+                  value={PAYMENT_STATUS_LABELS[resolvePaymentStatus(financials)]}
                 />
                 {financials.paymentMethod && (
                   <DetailRow
                     label="Método de pago"
-                    value={
-                      {
-                        CASH: "Efectivo",
-                        CARD: "Tarjeta",
-                        TRANSFER: "Transferencia",
-                      }[financials.paymentMethod]
-                    }
+                    value={PAYMENT_METHOD_LABELS[financials.paymentMethod]}
                   />
                 )}
                 {financials.paymentConcept && (
