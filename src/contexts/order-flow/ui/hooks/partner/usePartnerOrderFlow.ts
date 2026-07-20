@@ -128,7 +128,9 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     canChangeZone,
     setZoneOverride: setZoneOverrideId,
     originZoneId: effectiveZoneId,
-    payment: submission.payment,
-    setPayment: submission.setPayment,
+    pendingPayments: submission.pendingPayments,
+    addPendingPayment: submission.addPendingPayment,
+    removePendingPayment: submission.removePendingPayment,
+    clearPendingPayments: submission.clearPendingPayments,
   };
 };

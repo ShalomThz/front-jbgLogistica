@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import type { AddPaymentRequest } from "../../../application/order/AddPaymentRequest";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -93,6 +94,29 @@ export const useOrders = ({
     },
   });
 
+  const addPaymentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AddPaymentRequest }) =>
+      orderRepository.addPayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
+  const removePaymentMutation = useMutation({
+    mutationFn: ({ id, paymentId }: { id: string; paymentId: string }) =>
+      orderRepository.removePayment(id, paymentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
+  const clearPaymentsMutation = useMutation({
+    mutationFn: (id: string) => orderRepository.clearPayments(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
   return {
     orders,
     pagination,
@@ -110,6 +134,17 @@ export const useOrders = ({
     deleteOrder: async (id: string) =>
       await deleteMutation.mutateAsync(id),
     isDeleting: deleteMutation.isPending,
+
+    addPayment: async (id: string, data: AddPaymentRequest) =>
+      await addPaymentMutation.mutateAsync({ id, data }),
+    removePayment: async (id: string, paymentId: string) =>
+      await removePaymentMutation.mutateAsync({ id, paymentId }),
+    clearPayments: async (id: string) =>
+      await clearPaymentsMutation.mutateAsync(id),
+    isSavingPayment:
+      addPaymentMutation.isPending ||
+      removePaymentMutation.isPending ||
+      clearPaymentsMutation.isPending,
 
     isCreating:
       createHQMutation.isPending ||

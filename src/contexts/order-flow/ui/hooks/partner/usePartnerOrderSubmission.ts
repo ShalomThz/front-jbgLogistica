@@ -5,10 +5,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import {
-  type PaymentSelection,
-  UNPAID_SELECTION,
-} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
+import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildPartnerEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
@@ -33,9 +30,19 @@ export const usePartnerOrderSubmission = ({
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [payment, setPayment] = useState<PaymentSelection>(UNPAID_SELECTION);
+  // Abonos capturados en el paso de precios; se suben al crear la orden.
+  const [pendingPayments, setPendingPayments] = useState<AddPaymentRequest[]>(
+    [],
+  );
+  const addPendingPayment = (data: AddPaymentRequest) =>
+    setPendingPayments((prev) => [...prev, data]);
+  const removePendingPayment = (index: number) =>
+    setPendingPayments((prev) => prev.filter((_, i) => i !== index));
+  const clearPendingPayments = () => setPendingPayments([]);
   const { user } = useAuth();
-  const { createPartnerOrder, updateOrder, isCreating } = useOrders({ enabled: false });
+  const { createPartnerOrder, updateOrder, addPayment, isCreating } = useOrders({
+    enabled: false,
+  });
 
   const goToOrders = () => navigate("/orders");
 
@@ -44,8 +51,12 @@ export const usePartnerOrderSubmission = ({
   const submitPartnerOrder = async () => {
     if (orderId) {
       try {
-        const request = buildPartnerEditOrderRequest(form.getValues(), storeId, tariff);
+        const request = buildPartnerEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, request);
+        // La orden ya existe: los abonos capturados se registran directo.
+        for (const payment of pendingPayments) {
+          await addPayment(orderId, payment);
+        }
         setIsSubmitted(true);
         onSuccess();
       } catch (error) {
@@ -61,17 +72,22 @@ export const usePartnerOrderSubmission = ({
         toast.error("No se pudo obtener la tarifa. Intenta de nuevo.", { id: "order-flow" });
         return;
       }
+      if (form.getValues("emptyBoxDelivery") && pendingPayments.length === 0) {
+        toast.error("Registra el anticipo para dejar la caja vacía.", {
+          id: "order-flow",
+        });
+        return;
+      }
       try {
-        const request = buildPartnerOrderRequest(form.getValues(), storeId ?? user.store.id, tariff);
+        // Los abonos se siembran al crear la orden, en el propio request.
+        const request = buildPartnerOrderRequest(
+          form.getValues(),
+          storeId ?? user.store.id,
+          tariff,
+          pendingPayments,
+        );
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
-        if (payment.markAsPaid && payment.method) {
-          await updateOrder(order.id, {
-            markAsPaid: true,
-            paymentMethod: payment.method,
-            paymentConcept: payment.concept,
-          });
-        }
         setIsSubmitted(true);
         onSuccess();
       } catch (error) {
@@ -87,7 +103,9 @@ export const usePartnerOrderSubmission = ({
     goToOrders,
     submitPartnerOrder,
     isCreating,
-    payment,
-    setPayment,
+    pendingPayments,
+    addPendingPayment,
+    removePendingPayment,
+    clearPendingPayments,
   };
 };

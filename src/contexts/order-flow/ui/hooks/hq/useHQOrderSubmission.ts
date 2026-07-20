@@ -13,14 +13,11 @@ import {
   useShipmentRates,
 } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import {
-  type PaymentSelection,
-  UNPAID_SELECTION,
-} from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import type { UpdateBoxRequest } from "@contexts/inventory/infrastructure/services/boxes/boxRepository";
 import type { WarehouseAddressPrimitives } from "@contexts/shipping/domain/schemas/value-objects/WarehouseAddress";
+import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import { buildHQOrderRequest } from "@contexts/order-flow/application/buildHQOrderRequest";
 import { buildEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { buildSelectProviderRequest } from "@contexts/order-flow/application/buildSelectProviderRequest";
@@ -74,11 +71,21 @@ export const useHQOrderSubmission = ({
   const [shipmentId, setShipmentId] = useState<string | null>(null);
   const [fulfilledShipment, setFulfilledShipment] =
     useState<ShipmentPrimitives | null>(null);
-  const [payment, setPayment] = useState<PaymentSelection>(UNPAID_SELECTION);
   const { user } = useAuth();
-  const { createHQOrder, updateOrder, isCreating } = useOrders({
+  const { createHQOrder, updateOrder, addPayment, isCreating } = useOrders({
     enabled: false,
   });
+  // Abonos capturados en el paso de cobro: NO se suben al agregarlos, solo al
+  // finalizar la orden. Un ref evita reenviarlos si el completado se reintenta.
+  const [pendingPayments, setPendingPayments] = useState<AddPaymentRequest[]>(
+    [],
+  );
+  const paymentsAppliedRef = useRef(false);
+  const addPendingPayment = (data: AddPaymentRequest) =>
+    setPendingPayments((prev) => [...prev, data]);
+  const removePendingPayment = (index: number) =>
+    setPendingPayments((prev) => prev.filter((_, i) => i !== index));
+  const clearPendingPayments = () => setPendingPayments([]);
   const {
     findByOrderId,
     fulfillShipment,
@@ -342,17 +349,18 @@ export const useHQOrderSubmission = ({
         setFulfilledShipment(result);
       }
 
-      // Save the signature / mark-as-paid. A failure here surfaces the retry
-      // dialog, but the resume guard above prevents it from re-generating the guide.
+      // Save the signature. A failure here surfaces the retry dialog, but the
+      // resume guard above prevents it from re-generating the guide. El estado
+      // de pago (abonos) se sube aquí, al finalizar, no al agregarlo en el paso.
       if (orderId) {
         const orderRequest = buildEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, orderRequest);
-        if (payment.markAsPaid && payment.method) {
-          await updateOrder(orderId, {
-            markAsPaid: true,
-            paymentMethod: payment.method,
-            paymentConcept: payment.concept,
-          });
+        // La orden ya está tasada: recién ahora se registran los abonos.
+        if (!paymentsAppliedRef.current) {
+          for (const payment of pendingPayments) {
+            await addPayment(orderId, payment);
+          }
+          paymentsAppliedRef.current = true;
         }
       }
 
@@ -440,7 +448,9 @@ export const useHQOrderSubmission = ({
     tariffZoneId: zoneId,
     tariffDestinationCountry: destinationCountry ?? "",
     tariffBoxId: boxId ?? "",
-    payment,
-    setPayment,
+    pendingPayments,
+    addPendingPayment,
+    removePendingPayment,
+    clearPendingPayments,
   };
 };

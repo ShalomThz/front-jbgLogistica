@@ -6,7 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import type { PaymentSelection } from "@contexts/order-flow/ui/components/order/orders-table/OrderPaymentDialog";
+import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { PartnerAdditionalCostsCard } from "./PartnerAdditionalCostsCard";
 import { PartnerTariffCard } from "./PartnerTariffCard";
@@ -19,8 +19,12 @@ interface PartnerPricingStepProps {
   isLoadingPrice: boolean;
   tariffError: string | null;
   refetchPrice: () => void;
-  payment: PaymentSelection;
-  onPaymentChange: (value: PaymentSelection) => void;
+  pendingPayments: AddPaymentRequest[];
+  onAddPayment: (data: AddPaymentRequest) => void;
+  onRemovePayment: (index: number) => void;
+  onClearPayments: () => void;
+  /** Orden ya existente (edición): muestra sus abonos ya registrados. */
+  orderId?: string;
   /** Zona efectiva usada en la búsqueda de tarifa (override o la de la tienda). */
   zoneId?: string;
 }
@@ -65,7 +69,7 @@ function TariffNotFoundCard({ zoneId }: { zoneId?: string }) {
   );
 }
 
-export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, payment, onPaymentChange, zoneId }: PartnerPricingStepProps) {
+export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, pendingPayments, onAddPayment, onRemovePayment, onClearPayments, orderId, zoneId }: PartnerPricingStepProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
@@ -83,7 +87,14 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
           onRefetch={refetchPrice}
         />
         <PartnerOrderSummaryCard />
-        <PartnerTotalCard tariffPrice={tariffPrice} payment={payment} onPaymentChange={onPaymentChange} />
+        <PartnerTotalCard
+          tariffPrice={tariffPrice}
+          orderId={orderId}
+          pendingPayments={pendingPayments}
+          onAddPayment={onAddPayment}
+          onRemovePayment={onRemovePayment}
+          onClearPayments={onClearPayments}
+        />
       </div>
     </div>
   );

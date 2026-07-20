@@ -182,8 +182,11 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
             isLoadingPrice={flow.isLoadingPrice}
             tariffError={flow.tariffError}
             refetchPrice={flow.refetchPrice}
-            payment={flow.payment}
-            onPaymentChange={flow.setPayment}
+            pendingPayments={flow.pendingPayments}
+            onAddPayment={flow.addPendingPayment}
+            onRemovePayment={flow.removePendingPayment}
+            onClearPayments={flow.clearPendingPayments}
+            orderId={flow.orderId}
             zoneId={flow.originZoneId}
           />
         )}

@@ -2,8 +2,7 @@ import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-obje
 import { orderReferencesSchema } from "@contexts/sales/domain/schemas/value-objects/OrderReferences";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { discountSchema } from "@contexts/sales/domain/schemas/value-objects/Discount";
-import { PAYMENT_METHODS } from "@contexts/sales/domain/schemas/value-objects/OrderFinancials";
-import { moneySchema } from "@contexts/shared/domain/schemas/Money";
+import { PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
 import z from "zod";
 
@@ -21,8 +20,6 @@ export const editOrderRequestSchema = z.object({
   package: packageSchema.optional(),
   emptyBoxDelivery: z.boolean().optional(),
   homePickup: z.boolean().optional(),
-  /** undefined = sin cambio; null = limpiar el anticipo. */
-  advance: moneySchema.nullable().optional(),
   customerSignature: z.string().nullish(),
   markAsPaid: z.boolean().nullish(),
   /** El backend lo exige cuando markAsPaid es true. */

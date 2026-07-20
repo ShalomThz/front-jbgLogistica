@@ -1,7 +1,14 @@
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { OrderFinancialsPrimitives } from "@contexts/sales/domain/schemas/value-objects/OrderFinancials";
+import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { Badge } from "@contexts/shared/shadcn";
+import {
+  PAYMENT_STATUS_BADGE_CLASS,
+  PAYMENT_STATUS_LABELS,
+  resolveBilledBalance,
+  resolvePaymentStatus,
+} from "@contexts/shared/domain/schemas/PaymentStatus";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { Receipt, Truck } from "lucide-react";
 
@@ -39,12 +46,6 @@ const COST_LABELS: Record<string, string> = {
   tape: "Cinta",
 };
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  CASH: "Efectivo",
-  CARD: "Tarjeta",
-  TRANSFER: "Transferencia",
-};
-
 interface OrderFinancialSectionProps {
   rate: ShipmentPrimitives["rate"];
   financials: OrderFinancialsPrimitives;
@@ -61,38 +62,22 @@ export const OrderFinancialSection = ({
   financials,
   canViewFinancials,
 }: OrderFinancialSectionProps) => {
-  const { tariff, totalBilled, discount, advance, costBreakdown } = financials;
+  const { tariff, totalBilled, discount, costBreakdown, payments } =
+    financials;
 
-  // El restante solo tiene sentido con la orden sin liquidar, y solo se puede
-  // restar cuando el anticipo está en la misma moneda que el total (ambos
-  // montos ya se muestran por separado; no restamos monedas distintas).
-  const remaining =
-    advance && totalBilled && !financials.isPaid
-      ? advance.currency === totalBilled.currency
-        ? Math.max(0, totalBilled.amount - advance.amount)
-        : null
-      : null;
+  const status = resolvePaymentStatus(financials);
 
-  // Semáforo del pago, misma paleta que el control de la tabla de órdenes
-  const paymentBadge = financials.isPaid
-    ? {
-        label: financials.paymentMethod
-          ? `Pagado · ${PAYMENT_METHOD_LABELS[financials.paymentMethod] ?? financials.paymentMethod}`
-          : "Pagado",
-        className:
-          "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
-      }
-    : advance
-      ? {
-          label: "Anticipo",
-          className:
-            "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900",
-        }
-      : {
-          label: "No pagado",
-          className:
-            "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900",
-        };
+  // Saldo en la moneda del total (null con monedas mixtas → no se resta).
+  const remaining = resolveBilledBalance(financials)?.pending ?? null;
+
+  // Semáforo del pago (config compartida); PAID muestra el método si existe.
+  const paymentBadge = {
+    label:
+      status === "PAID" && financials.paymentMethod
+        ? `Pagado · ${PAYMENT_METHOD_LABELS[financials.paymentMethod] ?? financials.paymentMethod}`
+        : PAYMENT_STATUS_LABELS[status],
+    className: PAYMENT_STATUS_BADGE_CLASS[status],
+  };
 
   const hasExtras = Object.values(costBreakdown).some(Boolean);
   const breakdownRows =
@@ -155,21 +140,24 @@ export const OrderFinancialSection = ({
           </div>
         )}
 
-        {(advance || financials.paymentConcept) && (
+        {(payments.length > 0 || financials.paymentConcept) && (
           <div className="space-y-1.5 border-t border-emerald-200 px-4 py-3 dark:border-emerald-900/50">
-            {advance && (
+            {payments.map((p) => (
               <MoneyRow
-                label="Anticipo pagado"
-                value={formatMoney(advance)}
+                key={p.id}
+                label={`Abono · ${PAYMENT_METHOD_LABELS[p.method] ?? p.method}${p.concept ? ` (${p.concept})` : ""}`}
+                value={formatMoney(p.amount)}
                 negative
               />
-            )}
-            {remaining !== null && totalBilled && (
+            ))}
+            {remaining !== null && totalBilled && remaining !== 0 && (
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium">Restante</span>
+                <span className="text-sm font-medium">
+                  {remaining > 0 ? "Restante" : "Saldo a favor"}
+                </span>
                 <span className="text-sm font-semibold tabular-nums">
                   {formatMoney({
-                    amount: remaining,
+                    amount: Math.abs(remaining),
                     currency: totalBilled.currency,
                   })}
                 </span>

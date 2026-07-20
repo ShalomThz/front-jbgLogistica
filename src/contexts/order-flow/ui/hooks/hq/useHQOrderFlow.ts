@@ -15,6 +15,7 @@ const STEPS: { key: HQOrderStep; label: string }[] = [
   { key: "contact", label: "Contactos" },
   { key: "package", label: "Paquete" },
   { key: "rate", label: "Cotización" },
+  { key: "cobro", label: "Cobro" },
   { key: "success", label: "Listo" },
 ];
 
@@ -78,6 +79,9 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     setStep(target);
   };
 
+  // Una tarifa elegida (y una tarifa base disponible) habilita el paso a Cobro.
+  const selectedRate = form.watch("shippingService.selectedRate");
+
   const handleNext = async () => {
     if (step === "contact") {
       if (!(await validateStep("contact"))) return;
@@ -88,20 +92,29 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
       if (!(await form.trigger())) return;
       if (!(await processBox())) return;
       await submission.submitHQOrder();
+    } else if (step === "rate") {
+      if (!selectedRate || !submission.tariff) return;
+      setStep("cobro");
     }
   };
 
   const handleBack = () => {
     if (step === "package") setStep("contact");
     else if (step === "rate") navigateToStep("package");
+    else if (step === "cobro") setStep("rate");
   };
 
   const nextButtonLabel = (() => {
     if (step === "contact") return isSaving ? "Guardando..." : "Siguiente";
-    return submission.isCreating ? "Cotizando..." : "Cotizar";
+    if (step === "package") return submission.isCreating ? "Cotizando..." : "Cotizar";
+    return "Continuar";
   })();
 
-  const isNextDisabled = submission.isCreating || isSaving || isProcessingBox;
+  const isNextDisabled =
+    submission.isCreating ||
+    isSaving ||
+    isProcessingBox ||
+    (step === "rate" && (!selectedRate || !submission.tariff));
 
   return {
     orderId: submission.orderId,
@@ -147,7 +160,9 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     selectedWarehouseAddress: effectiveWarehouseAddress,
     setSelectedWarehouseAddress,
     isLoadingAddresses,
-    payment: submission.payment,
-    setPayment: submission.setPayment,
+    pendingPayments: submission.pendingPayments,
+    addPendingPayment: submission.addPendingPayment,
+    removePendingPayment: submission.removePendingPayment,
+    clearPendingPayments: submission.clearPendingPayments,
   };
 };
