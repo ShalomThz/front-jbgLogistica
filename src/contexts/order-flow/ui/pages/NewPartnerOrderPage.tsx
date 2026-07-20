@@ -25,11 +25,11 @@ interface NewPartnerOrderPageProps {
 }
 
 /**
- * La orden pidió "dejar caja vacía a domicilio": ofrece imprimir su etiqueta
- * apenas termina el flujo. El shipment se proyecta por evento, así que se
- * reintenta la consulta hasta que aparezca.
+ * La orden pidió una visita a domicilio (caja vacía o recolección): ofrece
+ * imprimir su etiqueta con anticipo apenas termina el flujo. El shipment se
+ * proyecta por evento, así que se reintenta la consulta hasta que aparezca.
  */
-function EmptyBoxLabelCard({ orderId }: { orderId: string }) {
+function AnticipoLabelCard({ orderId }: { orderId: string }) {
   const [isPrinting, setIsPrinting] = useState(false);
   const { data: order } = useQuery({
     queryKey: ["orders", orderId],
@@ -40,8 +40,14 @@ function EmptyBoxLabelCard({ orderId }: { orderId: string }) {
   const shipment = order?.shipment ?? null;
   const option =
     order && shipment
-      ? availableLabelOptionsByGroup(shipment, order, "caja-vacia")[0]
+      ? availableLabelOptionsByGroup(shipment, order, "anticipo")[0]
       : undefined;
+
+  const isHomePickup = order?.homePickup ?? false;
+  const title = isHomePickup ? "Recolección a domicilio" : "Caja vacía a domicilio";
+  const hint = isHomePickup
+    ? "Imprime la etiqueta y pégala en la caja que se recolectará"
+    : "Imprime la etiqueta y pégala en la caja que se dejará al cliente";
 
   const handlePrint = async () => {
     if (!shipment || !option) return;
@@ -57,10 +63,10 @@ function EmptyBoxLabelCard({ orderId }: { orderId: string }) {
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
       <div>
         <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-          Caja vacía a domicilio
+          {title}
         </p>
         <p className="text-xs text-amber-600/80 dark:text-amber-400/70">
-          Imprime la etiqueta y pégala en la caja que se dejará al cliente
+          {hint}
         </p>
       </div>
       <Button
@@ -74,7 +80,7 @@ function EmptyBoxLabelCard({ orderId }: { orderId: string }) {
           ? "Preparando etiqueta..."
           : isPrinting
             ? "Imprimiendo..."
-            : "Imprimir etiqueta de caja vacía"}
+            : "Imprimir etiqueta con anticipo"}
       </Button>
     </div>
   );
@@ -202,9 +208,9 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
                 La orden ha sido registrada y está pendiente de procesamiento
               </p>
             </div>
-            {flow.form.getValues("emptyBoxDelivery") && flow.orderId && (
-              <EmptyBoxLabelCard orderId={flow.orderId} />
-            )}
+            {(flow.form.getValues("emptyBoxDelivery") ||
+              flow.form.getValues("homePickup")) &&
+              flow.orderId && <AnticipoLabelCard orderId={flow.orderId} />}
             <div className="flex flex-wrap justify-between gap-3">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" className="gap-2" onClick={handleCreateBlank}>
