@@ -179,6 +179,8 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
         {flow.step === "pricing" && (
           <PartnerPricingStep
             tariffPrice={flow.tariffPrice}
+            effectiveTariff={flow.effectiveTariff}
+            onTariffChange={flow.onTariffChange}
             isLoadingPrice={flow.isLoadingPrice}
             tariffError={flow.tariffError}
             refetchPrice={flow.refetchPrice}

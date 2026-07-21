@@ -16,6 +16,8 @@ import { SignatureCard } from "../../shared/SignatureCard";
 
 interface PartnerPricingStepProps {
   tariffPrice: MoneyPrimitives | null;
+  effectiveTariff: MoneyPrimitives | null;
+  onTariffChange: (value: MoneyPrimitives) => void;
   isLoadingPrice: boolean;
   tariffError: string | null;
   refetchPrice: () => void;
@@ -69,7 +71,26 @@ function TariffNotFoundCard({ zoneId }: { zoneId?: string }) {
   );
 }
 
-export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, refetchPrice, pendingPayments, onAddPayment, onRemovePayment, onClearPayments, orderId, zoneId }: PartnerPricingStepProps) {
+export function PartnerPricingStep({
+  tariffPrice,
+  effectiveTariff,
+  onTariffChange,
+  isLoadingPrice,
+  tariffError,
+  refetchPrice,
+  pendingPayments,
+  onAddPayment,
+  onRemovePayment,
+  onClearPayments,
+  orderId,
+  zoneId,
+}: PartnerPricingStepProps) {
+  const { control } = useFormContext<PartnerOrderFormValues>();
+  const displayCurrency = useWatch<PartnerOrderFormValues, "shippingService.currency">({
+    control,
+    name: "shippingService.currency",
+  });
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
@@ -82,13 +103,16 @@ export function PartnerPricingStep({ tariffPrice, isLoadingPrice, tariffError, r
       <div className="space-y-4">
         <PartnerTariffCard
           tariffPrice={tariffPrice}
+          effectiveTariff={effectiveTariff}
+          onTariffChange={onTariffChange}
           isLoading={isLoadingPrice}
           error={tariffError}
           onRefetch={refetchPrice}
+          fallbackCurrency={displayCurrency}
         />
         <PartnerOrderSummaryCard />
         <PartnerTotalCard
-          tariffPrice={tariffPrice}
+          tariffPrice={effectiveTariff}
           orderId={orderId}
           pendingPayments={pendingPayments}
           onAddPayment={onAddPayment}

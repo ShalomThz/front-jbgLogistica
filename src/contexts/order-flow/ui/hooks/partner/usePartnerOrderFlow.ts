@@ -4,6 +4,7 @@ import { storeRepository } from "@contexts/iam/infrastructure/services/stores/st
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { useBoxOperations } from "../shared/useBoxOperations";
@@ -67,7 +68,22 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     enabled: step === "pricing" && !!effectiveZoneId && !!destinationCountry && !!boxId,
   });
 
-  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: tariffPrice, onSuccess: () => setStep("success") });
+  // Lets the seller override the auto-fetched tariff (or type one in
+  // manually when none was found for this zone/box/destination). Reset
+  // whenever the underlying lookup inputs change — a price typed for a
+  // different combination no longer applies. Adjusted during render (not in
+  // an effect) to avoid the extra render pass.
+  const tariffLookupKey = `${effectiveZoneId ?? ""}|${destinationCountry ?? ""}|${boxId ?? ""}`;
+  const [tariffOverride, setTariffOverride] = useState<MoneyPrimitives | null>(null);
+  const [lastTariffLookupKey, setLastTariffLookupKey] = useState(tariffLookupKey);
+  if (tariffLookupKey !== lastTariffLookupKey) {
+    setLastTariffLookupKey(tariffLookupKey);
+    setTariffOverride(null);
+  }
+
+  const effectiveTariff = tariffOverride ?? tariffPrice;
+
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: effectiveTariff, onSuccess: () => setStep("success") });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -103,7 +119,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     submission.isCreating ||
     isSaving ||
     isProcessingBox ||
-    (step === "pricing" && (isLoadingPrice || !tariffPrice));
+    (step === "pricing" &&
+      (isLoadingPrice || !effectiveTariff || effectiveTariff.amount <= 0));
 
   return {
     form,
@@ -119,6 +136,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     nextButtonLabel,
     isNextDisabled,
     tariffPrice,
+    effectiveTariff,
+    onTariffChange: setTariffOverride,
     isLoadingPrice,
     tariffError: priceError,
     refetchPrice,
