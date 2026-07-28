@@ -8,6 +8,12 @@ import {
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrderReport } from "@contexts/sales/infrastructure/hooks/orders/useOrderReport";
 import {
+  PAYMENT_STATUS_BADGE_CLASS,
+  PAYMENT_STATUS_LABELS,
+  PAYMENT_STATUSES,
+  type PaymentStatus,
+} from "@contexts/shared/domain/schemas/PaymentStatus";
+import {
   Badge,
   Button,
   Calendar,
@@ -34,11 +40,15 @@ import {
   TableRow,
 } from "@contexts/shared/shadcn";
 import {
+  Activity,
+  AlertTriangle,
   CalendarDays,
+  CreditCard,
   Download,
   FileText,
   Filter,
   Globe,
+  Layers,
   MapPin,
   RefreshCw,
   Store,
@@ -51,6 +61,11 @@ import {
   useOrderTableFilters,
   type DatePreset,
 } from "../../hooks/orders/useOrderTableFilters";
+
+const ORDER_TYPE_LABELS: Record<"HQ" | "PARTNER", string> = {
+  HQ: "Central (HQ)",
+  PARTNER: "Partner",
+};
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -114,6 +129,8 @@ export const OrderReport = () => {
 
   const [createdByFilter, setCreatedByFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [orderTypeFilter, setOrderTypeFilter] = useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   const [currency, setCurrency] = useState<"USD" | "MXN">("USD");
 
   const reportFilters = [
@@ -126,6 +143,12 @@ export const OrderReport = () => {
       : []),
     ...(countryFilter !== "all"
       ? [{ field: "destination.address.country", filterOperator: "=", value: countryFilter } as const]
+      : []),
+    ...(orderTypeFilter !== "all"
+      ? [{ field: "type", filterOperator: "=", value: orderTypeFilter } as const]
+      : []),
+    ...(paymentStatusFilter !== "all"
+      ? [{ field: "financials.paymentStatus", filterOperator: "=", value: paymentStatusFilter } as const]
       : []),
   ];
 
@@ -147,6 +170,8 @@ export const OrderReport = () => {
     resetFilters();
     setCreatedByFilter("all");
     setCountryFilter("all");
+    setOrderTypeFilter("all");
+    setPaymentStatusFilter("all");
     setCurrency("USD");
   };
 
@@ -156,18 +181,25 @@ export const OrderReport = () => {
     ).length +
     (createdByFilter !== "all" ? 1 : 0) +
     (countryFilter !== "all" ? 1 : 0) +
+    (orderTypeFilter !== "all" ? 1 : 0) +
+    (paymentStatusFilter !== "all" ? 1 : 0) +
     (currency !== "USD" ? 1 : 0);
 
   const activeRing = (v: string, def = "all") =>
     v !== def ? "ring-2 ring-primary/40 border-primary/40 bg-primary/5" : "";
 
-  const completedCount = report?.byStatus["COMPLETED"] ?? 0;
+  const completedCount =
+    report?.byStatus.find((s) => s.status === "COMPLETED")?.count ?? 0;
   const completedShare =
     report && report.totalOrders > 0
       ? Math.round((completedCount / report.totalOrders) * 100)
       : 0;
 
   const countryOptions = report?.byDestinationCountry ?? [];
+  const maxTimeSeriesRevenue = Math.max(
+    1,
+    ...(report?.timeSeries.map((t) => t.revenue) ?? [0]),
+  );
 
   return (
     <div className="space-y-6">
@@ -195,6 +227,23 @@ export const OrderReport = () => {
           Exportar XLSX
         </Button>
       </div>
+
+      {/* Conversion warnings */}
+      {report && report.conversionWarnings.length > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+          <AlertTriangle className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              Algunos montos no se pudieron convertir de moneda
+            </p>
+            <ul className="list-inside list-disc text-xs text-amber-600/80 dark:text-amber-400/70">
+              {report.conversionWarnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Filters card */}
       <Card>
@@ -271,9 +320,53 @@ export const OrderReport = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="DRAFT">Borrador</SelectItem>
                   <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
                   <SelectItem value="COMPLETED">Completada</SelectItem>
                   <SelectItem value="CANCELLED">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Order type */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Tipo de Orden
+              </Label>
+              <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(orderTypeFilter)}`}
+                >
+                  <Layers className="size-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los tipos</SelectItem>
+                  <SelectItem value="HQ">Central (HQ)</SelectItem>
+                  <SelectItem value="PARTNER">Partner</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment status */}
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Estado de Pago
+              </Label>
+              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                <SelectTrigger
+                  className={`h-10 gap-2 transition-colors ${activeRing(paymentStatusFilter)}`}
+                >
+                  <CreditCard className="size-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {PAYMENT_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {PAYMENT_STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -377,7 +470,7 @@ export const OrderReport = () => {
               {isLoading ? "—" : fmt(report?.totalRevenue ?? 0)}
             </div>
             <p className="mt-1 font-mono text-xs text-muted-foreground">
-              {isLoading ? "" : `Prom. ${fmt(report?.avgOrderValue ?? 0)}`}
+              {isLoading ? "" : `Prom. ${fmt(report?.avgOrderValue ?? 0)} · solo completadas`}
             </p>
           </CardContent>
         </Card>
@@ -421,7 +514,7 @@ export const OrderReport = () => {
       </div>
 
       {/* By status */}
-      {report && Object.keys(report.byStatus).length > 0 && (
+      {report && report.byStatus.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -432,7 +525,7 @@ export const OrderReport = () => {
           <Separator />
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {Object.entries(report.byStatus).map(([status, count]) => {
+              {report.byStatus.map(({ status, count, revenue }) => {
                 const share =
                   report.totalOrders > 0
                     ? Math.round((count / report.totalOrders) * 100)
@@ -443,9 +536,7 @@ export const OrderReport = () => {
                     className="space-y-2 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/30"
                   >
                     <div className="flex items-center justify-between">
-                      <Badge
-                        variant={ORDER_STATUS_VARIANT[status as OrderStatus]}
-                      >
+                      <Badge variant={ORDER_STATUS_VARIANT[status as OrderStatus]}>
                         {ORDER_STATUS_LABELS[status as OrderStatus] ?? status}
                       </Badge>
                       <span className="font-mono text-xs text-muted-foreground">
@@ -453,11 +544,118 @@ export const OrderReport = () => {
                       </span>
                     </div>
                     <p className="text-2xl font-bold tabular-nums">{count}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {fmt(revenue)}
+                    </p>
                     <Progress value={share} className="h-1" />
                   </div>
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* By payment status (accounts receivable) */}
+      {report && report.byPaymentStatus.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CreditCard className="size-4 text-muted-foreground" />
+              Por Cobrar
+            </CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {report.byPaymentStatus.map(({ status, count, outstandingAmount }) => (
+                <div
+                  key={status}
+                  className="space-y-2 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/30"
+                >
+                  <Badge
+                    variant="outline"
+                    className={PAYMENT_STATUS_BADGE_CLASS[status as PaymentStatus]}
+                  >
+                    {PAYMENT_STATUS_LABELS[status as PaymentStatus] ?? status}
+                  </Badge>
+                  <p className="text-2xl font-bold tabular-nums">{count}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {status === "PAID" ? "Cobrado en total" : `${fmt(outstandingAmount)} pendiente`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* By order type */}
+      {report && report.byOrderType.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Layers className="size-4 text-muted-foreground" />
+              Por Tipo de Orden
+            </CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-4">
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-center">Ordenes</TableHead>
+                    <TableHead className="text-right">Ingresos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.byOrderType.map(({ type, count, revenue }) => (
+                    <TableRow key={type}>
+                      <TableCell className="font-medium">
+                        {ORDER_TYPE_LABELS[type]}
+                      </TableCell>
+                      <TableCell className="text-center tabular-nums">
+                        {count}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold tabular-nums">
+                        {fmt(revenue)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Trend */}
+      {report && report.timeSeries.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Activity className="size-4 text-muted-foreground" />
+              Tendencia
+            </CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="space-y-3 pt-4">
+            {report.timeSeries.map(({ period, count, revenue }) => {
+              const width = Math.round((revenue / maxTimeSeriesRevenue) * 100);
+              return (
+                <div key={period} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium">{period}</span>
+                    <span className="font-mono text-muted-foreground">
+                      {count} ordenes · {fmt(revenue)}
+                    </span>
+                  </div>
+                  <Progress value={width} className="h-2" />
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}
