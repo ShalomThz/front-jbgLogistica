@@ -33,9 +33,11 @@ import type { EditDriverRequest } from "../../application/driver/EditDriverReque
 import type { DriverStatus } from "../../domain/schemas/driver/Driver";
 import type { DriverListViewPrimitives, } from "../../domain/schemas/driver/DriverListView";
 import { useDrivers } from "../../infrastructure/hooks/drivers/useDrivers";
+import { useDriverFilters } from "../hooks/useDriverFilters";
 import { CreateDriverUserDialog } from "../components/driver/CreateDriverUserDialog";
 import { DriverDeleteDialog } from "../components/driver/DriverDeleteDialog";
 import { DriverDetailDialog } from "../components/driver/DriverDetailDialog";
+import { DriverFilters } from "../components/driver/DriverFilters";
 import { EditDriverDialog } from "../components/driver/EditDriverDialog";
 
 const LIMIT = 20;
@@ -91,6 +93,18 @@ export const DriversPage = () => {
   const canCreateDrivers = user ? shippingPolicies.createDrivers(user) : false;
   const canEditDrivers = user ? shippingPolicies.editDrivers(user) : false;
 
+  const { state: filterState, setFilter, reset: resetFilters, criteria } = useDriverFilters();
+
+  // A new search/status/sort combination invalidates the current page.
+  // Adjusted during render (not in an effect) to avoid the extra render pass
+  // — `criteria` is a stable, memoized reference that only changes when the
+  // filters actually change.
+  const [lastCriteria, setLastCriteria] = useState(criteria);
+  if (criteria !== lastCriteria) {
+    setLastCriteria(criteria);
+    setPage(1);
+  }
+
   const {
     drivers,
     pagination,
@@ -101,7 +115,14 @@ export const DriversPage = () => {
     isCreatingDriver,
     updateDriver,
     isUpdating,
-  } = useDrivers({ filters: [], page, limit: LIMIT });
+  } = useDrivers({
+    filters: criteria.filters,
+    order: criteria.order,
+    search: criteria.search,
+    page,
+    limit: LIMIT,
+  });
+
   const { createUser, isCreating } = useUsers({ enabled: false });
 
   // Soft-deleted drivers (user.isActive = false) are hidden here but still
@@ -171,7 +192,10 @@ export const DriversPage = () => {
             Gestión de conductores y sus perfiles operativos.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="w-full sm:w-72">
+            <DriverFilters filters={filterState} setFilter={setFilter} onReset={resetFilters} />
+          </div>
           <Button variant="outline" className="gap-2" onClick={() => refetch()}>
             <RefreshCw className="size-4" />
             Actualizar
@@ -237,7 +261,9 @@ export const DriversPage = () => {
                       colSpan={5}
                       className="h-24 text-center text-muted-foreground"
                     >
-                      No hay conductores registrados.
+                      {filterState.searchQuery || filterState.statusFilter !== "all"
+                        ? "No se encontraron conductores."
+                        : "No hay conductores registrados."}
                     </TableCell>
                   </TableRow>
                 ) : (

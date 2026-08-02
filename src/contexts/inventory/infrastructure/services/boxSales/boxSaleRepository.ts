@@ -57,7 +57,12 @@ export const boxSaleRepository = {
   },
 
   find: async (
-    request: { filters?: unknown[]; limit?: number; offset?: number } = {},
+    request: {
+      filters?: unknown[];
+      limit?: number;
+      offset?: number;
+      search?: string;
+    } = {},
   ): Promise<FindBoxSalesResponsePrimitives> => {
     const data = await httpClient<unknown>("/box-sale/find", {
       method: "POST",

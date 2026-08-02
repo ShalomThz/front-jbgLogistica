@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
 import { boxSaleRepository } from "@contexts/inventory/infrastructure/services/boxSales/boxSaleRepository";
@@ -13,9 +13,15 @@ interface UseBoxSalesOptions {
   page?: number;
   limit?: number;
   enabled?: boolean;
+  search?: string;
 }
 
-export const useBoxSales = ({ page = 1, limit = 10, enabled = true }: UseBoxSalesOptions = {}) => {
+export const useBoxSales = ({
+  page = 1,
+  limit = 10,
+  enabled = true,
+  search,
+}: UseBoxSalesOptions = {}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const offset = (page - 1) * limit;
@@ -26,9 +32,13 @@ export const useBoxSales = ({ page = 1, limit = 10, enabled = true }: UseBoxSale
       : [];
 
   const { data, isLoading, error, refetch } = useQuery<FindBoxSalesResponsePrimitives>({
-    queryKey: [...BOX_SALES_QUERY_KEY, { page, limit, filters: effectiveFilters, storeId: user?.store.id }],
-    queryFn: () => boxSaleRepository.find({ filters: effectiveFilters, limit, offset }),
+    queryKey: [
+      ...BOX_SALES_QUERY_KEY,
+      { page, limit, filters: effectiveFilters, storeId: user?.store.id, search },
+    ],
+    queryFn: () => boxSaleRepository.find({ filters: effectiveFilters, limit, offset, search }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 
   const sales = data?.data ?? [];

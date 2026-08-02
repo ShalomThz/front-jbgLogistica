@@ -1,4 +1,4 @@
-import { ArrowDownAZ, Clock, Filter, RefreshCw, Search } from "lucide-react";
+import { Clock, Filter, RefreshCw, Search } from "lucide-react";
 import {
   Button,
   Input,
@@ -15,7 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@contexts/shared/shadcn";
-import type { DriverFiltersState, NameSort, DateSort } from "../../hooks/useDriverFilters";
+import type { DriverFiltersState, DateSort } from "../../hooks/useDriverFilters";
 
 interface DriverFiltersProps {
   filters: DriverFiltersState;
@@ -24,9 +24,7 @@ interface DriverFiltersProps {
 }
 
 const countActiveFilters = (filters: DriverFiltersState): number =>
-  (filters.statusFilter !== "all" ? 1 : 0) +
-  (filters.nameSort !== "none" ? 1 : 0) +
-  (filters.dateSort !== "none" ? 1 : 0);
+  (filters.statusFilter !== "all" ? 1 : 0) + (filters.dateSort !== "none" ? 1 : 0);
 
 const activeSelectClass = (value: string, defaultValue = "all") =>
   value !== defaultValue ? "ring-2 ring-primary/50" : "";
@@ -46,7 +44,7 @@ export const DriverFilters = ({
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por ID, usuario o licencia..."
+          placeholder="Buscar por nombre, email, teléfono o licencia..."
           value={filters.searchQuery}
           onChange={(e) => setFilter("searchQuery", e.target.value)}
           className="pl-9"
@@ -76,26 +74,6 @@ export const DriverFilters = ({
           </SheetHeader>
 
           <div className="space-y-5 px-4">
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ArrowDownAZ className="size-3.5" />
-                Ordenar por nombre
-              </Label>
-              <Select
-                value={filters.nameSort}
-                onValueChange={(v) => setFilter("nameSort", v as NameSort)}
-              >
-                <SelectTrigger className={activeSortClass(filters.nameSort)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin orden</SelectItem>
-                  <SelectItem value="asc">A-Z</SelectItem>
-                  <SelectItem value="desc">Z-A</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="size-3.5" />
