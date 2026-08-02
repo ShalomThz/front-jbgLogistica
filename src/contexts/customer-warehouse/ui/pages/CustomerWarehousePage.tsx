@@ -246,6 +246,7 @@ export const CustomerWarehousePage = () => {
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
+            type="search"
             placeholder="Buscar por factura o proveedor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

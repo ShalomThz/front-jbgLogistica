@@ -87,6 +87,7 @@ export function NotificationDrawer() {
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
+                            type="search"
                             placeholder="Buscar en notificaciones..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}

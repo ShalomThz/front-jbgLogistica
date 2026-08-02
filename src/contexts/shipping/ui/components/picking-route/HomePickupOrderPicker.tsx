@@ -91,6 +91,7 @@ export const HomePickupOrderPicker = ({
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
+            type="search"
             placeholder="Buscar por remitente, ciudad, n° factura o guía…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
