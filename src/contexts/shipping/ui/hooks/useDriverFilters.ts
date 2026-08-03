@@ -1,69 +1,71 @@
 import { useMemo, useState } from "react";
-import type { DriverPrimitives } from "../../domain/schemas/driver/Driver";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 
-export type NameSort = "none" | "asc" | "desc";
 export type DateSort = "none" | "asc" | "desc";
 
 export interface DriverFiltersState {
   searchQuery: string;
   statusFilter: string;
-  nameSort: NameSort;
   dateSort: DateSort;
 }
 
-export function useDriverFilters(drivers: DriverPrimitives[]) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [nameSort, setNameSort] = useState<NameSort>("none");
-  const [dateSort, setDateSort] = useState<DateSort>("desc");
+export interface DriverCriteria {
+  search?: string;
+  filters: Filter[];
+  order?: { field: string; direction: Direction };
+}
 
-  const filtered = useMemo(() => {
-    const result = drivers.filter((d) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        d.id.toLowerCase().includes(query) ||
-        d.userId.toLowerCase().includes(query) ||
-        d.licenseNumber.toLowerCase().includes(query);
-      const matchesStatus = statusFilter === "all" || d.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
+const initialState: DriverFiltersState = {
+  searchQuery: "",
+  statusFilter: "all",
+  dateSort: "desc",
+};
 
-    if (dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    else if (dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (nameSort === "asc") result.sort((a, b) => a.id.localeCompare(b.id));
-    else if (nameSort === "desc") result.sort((a, b) => b.id.localeCompare(a.id));
+export function useDriverFilters() {
+  const [state, setState] = useState<DriverFiltersState>(initialState);
+  const debouncedSearch = useDebouncedValue(state.searchQuery, 300);
 
-    return result;
-  }, [drivers, searchQuery, statusFilter, nameSort, dateSort]);
-
-  const filters: DriverFiltersState = {
-    searchQuery,
-    statusFilter,
-    nameSort,
-    dateSort,
+  const setFilter = <K extends keyof DriverFiltersState>(
+    key: K,
+    value: DriverFiltersState[K],
+  ) => {
+    setState((prev) => ({ ...prev, [key]: value }));
   };
 
-  const setFilter = <K extends keyof DriverFiltersState>(key: K, value: DriverFiltersState[K]) => {
-    if (key === "nameSort" && value !== "none") setDateSort("none");
-    if (key === "dateSort" && value !== "none") setNameSort("none");
+  const reset = () => setState(initialState);
 
-    const map = {
-      searchQuery: setSearchQuery,
-      statusFilter: setStatusFilter,
-      nameSort: setNameSort,
-      dateSort: setDateSort,
-    } as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (map[key] as any)(value);
+  const criteria = useMemo<DriverCriteria>(
+    () => toCriteria(state, debouncedSearch),
+    [state, debouncedSearch],
+  );
+
+  return { state, setFilter, reset, criteria };
+}
+
+function toCriteria(
+  state: DriverFiltersState,
+  debouncedSearch: string,
+): DriverCriteria {
+  const filters: Filter[] = [];
+
+  // Deterministic exact-match filter — `status` isn't (and shouldn't be) one
+  // of DRIVER_SEARCH_FIELDS, so it never goes through Meilisearch's fuzzy
+  // matching; it's a plain equality filter applied on top of it.
+  if (state.statusFilter !== "all") {
+    filters.push({ field: "status", filterOperator: "=", value: state.statusFilter });
+  }
+
+  const order =
+    state.dateSort === "asc"
+      ? { field: "createdAt", direction: "ASC" as const }
+      : state.dateSort === "desc"
+        ? { field: "createdAt", direction: "DESC" as const }
+        : undefined;
+
+  return {
+    search: debouncedSearch.trim() || undefined,
+    filters,
+    order,
   };
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setNameSort("none");
-    setDateSort("desc");
-  };
-
-  return { filters, setFilter, resetFilters, filtered };
 }

@@ -154,7 +154,7 @@ export const OriginMapPicker = ({ value, onChange, externalFlyTo }: Props) => {
           <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
           <input
             ref={inputRef}
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true); }}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}

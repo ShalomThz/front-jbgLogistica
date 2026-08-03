@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CreateDriverRequest } from "../../../application/driver/CreateDriverRequest";
 import type { EditDriverRequest } from "../../../application/driver/EditDriverRequest";
 import type { FindDriversRequest } from "../../../application/driver/FindDriversRequest";
@@ -18,20 +18,22 @@ export const useDrivers = ({
   limit = 10,
   filters = [],
   order,
+  search,
 }: UseDriversParams) => {
   const queryClient = useQueryClient();
   const offset = (page - 1) * limit;
 
   const { data, isLoading, error, refetch } = useQuery<FindDriversResponse>({
-    queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order }],
-    queryFn: () => driverRepository.find({ filters, order, limit, offset }),
-  });  
+    queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order, search }],
+    queryFn: () => driverRepository.find({ filters, order, limit, offset, search }),
+    placeholderData: keepPreviousData,
+  });
 
   const createMutation = useMutation({
     mutationFn: (request: CreateDriverRequest) =>
       driverRepository.create(request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order }] });
+      queryClient.invalidateQueries({ queryKey: DRIVERS_QUERY_KEY });
     },
   });
 
@@ -39,7 +41,7 @@ export const useDrivers = ({
     mutationFn: ({ id, data }: { id: string; data: EditDriverRequest }) =>
       driverRepository.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order }] });
+      queryClient.invalidateQueries({ queryKey: DRIVERS_QUERY_KEY });
     },
   });
 

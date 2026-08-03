@@ -1,4 +1,5 @@
-import { Bell, Check, Package, AlertTriangle, Truck, Warehouse } from "lucide-react";
+import { useState } from "react";
+import { Bell, Check, Package, AlertTriangle, Search, Truck, Warehouse } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -10,9 +11,11 @@ import {
     SheetTrigger,
     Button,
     Badge,
+    Input,
 } from "@contexts/shared/shadcn/components";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 import { useNotifications } from "@contexts/notifications/infrastructure/hooks/useNotifications";
 import type { Notification } from "@contexts/notifications/domain/schemas/Notification";
 import type { NotificationEntityType } from "@contexts/notifications/domain/schemas/Notification";
@@ -35,7 +38,11 @@ const ENTITY_COLOR: Record<NotificationEntityType, string> = {
 
 export function NotificationDrawer() {
     const { user } = useAuth();
-    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+    const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearch = useDebouncedValue(searchQuery, 300);
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({
+        search: debouncedSearch || undefined,
+    });
 
     const getIcon = (notification: Notification) => {
         if (notification.severity === "warning") {
@@ -76,11 +83,26 @@ export function NotificationDrawer() {
                     )}
                 </SheetHeader>
 
+                <div className="pt-4">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Buscar en notificaciones..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+                </div>
+
                 <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4">
                     <div className="flex flex-col space-y-4">
                         {notifications.length === 0 && (
                             <p className="text-sm text-muted-foreground text-center py-8">
-                                No tienes notificaciones.
+                                {searchQuery
+                                    ? "No se encontraron notificaciones."
+                                    : "No tienes notificaciones."}
                             </p>
                         )}
                         {notifications.map((notification) => {

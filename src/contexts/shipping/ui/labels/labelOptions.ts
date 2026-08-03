@@ -17,11 +17,12 @@ export type LabelSource =
  * controls (e.g. the agente printer button that expands to every agente
  * variant) without branching on individual variants at the call site.
  */
-export type LabelGroup = "cargo" | "agente" | "carrier" | "caja-vacia";
+export type LabelGroup = "cargo" | "agente" | "carrier" | "anticipo";
 
 /** The slice of the order a label option needs to decide availability. */
 export interface LabelOrderContext {
   emptyBoxDelivery: boolean;
+  homePickup: boolean;
 }
 
 export interface LabelOption {
@@ -44,13 +45,13 @@ const hasCarrierDocument = (shipment: ShipmentPrimitives): boolean =>
 const hasInternalLabel = (shipment: ShipmentPrimitives): boolean =>
   shipment.label !== null;
 
-/** The empty-box label lives in the box cycle, before any guía exists. A
- * direct home-pickup order shares these statuses but has no empty box. */
-const isInEmptyBoxCycle = (
+/** The anticipo label lives in the home-visit cycle, before any guía exists —
+ * both the empty-box delivery and the direct home-pickup (recolección) modes. */
+const isInHomeVisitCycle = (
   shipment: ShipmentPrimitives,
   order: LabelOrderContext,
 ): boolean =>
-  order.emptyBoxDelivery &&
+  (order.emptyBoxDelivery || order.homePickup) &&
   (shipment.status === "EMPTY_BOX_PENDING" ||
     shipment.status === "AWAITING_PICKUP" ||
     shipment.status === "AT_WAREHOUSE");
@@ -90,13 +91,13 @@ export const LABEL_OPTIONS: LabelOption[] = [
     isAvailable: hasInternalLabel,
   },
   {
-    id: "caja-vacia",
-    title: "JBG Caja Vacía",
-    source: { kind: "render", variant: "caja-vacia" },
-    group: "caja-vacia",
+    id: "anticipo",
+    title: "Etiqueta con anticipo",
+    source: { kind: "render", variant: "anticipo" },
+    group: "anticipo",
     className:
       "bg-amber-50 text-amber-700 focus:bg-amber-100 focus:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:focus:bg-amber-950/50",
-    isAvailable: isInEmptyBoxCycle,
+    isAvailable: isInHomeVisitCycle,
   },
   {
     id: "carrier",

@@ -141,6 +141,7 @@ export const OrderFilters = ({
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input
+          type="search"
           placeholder="Buscar por nombre, telefono, ciudad, ID o referencia..."
           value={filters.searchQuery}
           onChange={(e) => setFilter("searchQuery", e.target.value)}

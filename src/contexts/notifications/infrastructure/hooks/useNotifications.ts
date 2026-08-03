@@ -7,24 +7,29 @@ const NOTIFICATIONS_QUERY_KEY = ["notifications"];
 interface UseNotificationsOptions {
   limit?: number;
   enabled?: boolean;
+  search?: string;
 }
 
 export const useNotifications = ({
   limit = 20,
   enabled = true,
+  search,
 }: UseNotificationsOptions = {}) => {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery<FindNotificationsResponse>({
-    queryKey: [...NOTIFICATIONS_QUERY_KEY, { limit }],
+    queryKey: [...NOTIFICATIONS_QUERY_KEY, { limit, search }],
     queryFn: () =>
       notificationRepository.find({
         limit,
+        search,
         order: { field: "occurredOn", direction: "DESC" },
       }),
     enabled,
     placeholderData: keepPreviousData,
-    refetchInterval: 60_000,
+    // Polling a stale search result every 60s would be wasteful/confusing —
+    // only auto-refresh the default (unfiltered) view.
+    refetchInterval: search ? false : 60_000,
   });
 
   const markAsReadMutation = useMutation({

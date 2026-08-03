@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
 import { BoxSaleDetailDialog } from "../components/boxSale/BoxSaleDetailDialog";
 import {
   Button,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -21,6 +22,7 @@ import { useBoxSaleDialog } from "@contexts/inventory/ui/hooks/useBoxSaleDialog"
 import { UNIT_SHORT_LABELS } from "../components/box/constants";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -29,6 +31,13 @@ export const BoxSalesHistoryPage = () => {
   const canViewReports = user ? boxPolicies.viewSaleReports(user) : false;
   const [salesPage, setSalesPage] = useState(1);
   const [salesLimit, setSalesLimit] = useState(LIMIT_OPTIONS[0]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setSalesPage(1);
+  };
 
   const {
     sales,
@@ -39,7 +48,11 @@ export const BoxSalesHistoryPage = () => {
     isDownloadingReceipt,
     printReceipt,
     isPrintingReceipt,
-  } = useBoxSales({ page: salesPage, limit: salesLimit });
+  } = useBoxSales({
+    page: salesPage,
+    limit: salesLimit,
+    search: debouncedSearch || undefined,
+  });
 
   const {
     selectedSale,
@@ -51,31 +64,43 @@ export const BoxSalesHistoryPage = () => {
     <div className="flex flex-col h-full min-h-0 gap-4">
       <h1 className="text-2xl font-bold">Historial Venta de Cajas</h1>
 
-      <div className="flex items-center justify-end gap-2">
-        {canViewReports && (
-          <Button variant="outline" size="sm" onClick={() => exportBoxSales(sales)}>
-            <Download className="size-4" />
-            Exportar XLSX
-          </Button>
-        )}
-        <Select
-          value={String(salesLimit)}
-          onValueChange={(v) => {
-            setSalesLimit(Number(v));
-            setSalesPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[130px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIMIT_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={String(opt)}>
-                {opt} por página
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between gap-2">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar por cliente, tienda, vendedor o caja..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {canViewReports && (
+            <Button variant="outline" size="sm" onClick={() => exportBoxSales(sales)}>
+              <Download className="size-4" />
+              Exportar XLSX
+            </Button>
+          )}
+          <Select
+            value={String(salesLimit)}
+            onValueChange={(v) => {
+              setSalesLimit(Number(v));
+              setSalesPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LIMIT_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)}>
+                  {opt} por página
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
@@ -99,7 +124,9 @@ export const BoxSalesHistoryPage = () => {
             ) : sales.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-48 text-center">
-                  <p className="text-muted-foreground">No hay ventas registradas.</p>
+                  <p className="text-muted-foreground">
+                    {searchQuery ? "No se encontraron ventas." : "No hay ventas registradas."}
+                  </p>
                 </TableCell>
               </TableRow>
             ) : (

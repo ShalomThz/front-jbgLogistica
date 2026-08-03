@@ -190,6 +190,7 @@ export const BoxSalePage = () => {
           <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
+              type="search"
               placeholder="Buscar cajas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

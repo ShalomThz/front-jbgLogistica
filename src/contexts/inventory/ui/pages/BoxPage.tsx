@@ -179,7 +179,7 @@ export const BoxPage = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nombre..." value={searchQuery} onChange={(e) => setFilter("searchQuery", e.target.value)} className="pl-9" />
+              <Input type="search" placeholder="Buscar por nombre..." value={searchQuery} onChange={(e) => setFilter("searchQuery", e.target.value)} className="pl-9" />
             </div>
             <Select
               value={String(limit)}
