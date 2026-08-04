@@ -34,6 +34,5 @@ export const shipmentSchema = z.object({
   ...aggregateRootSchema.shape,
 });
 
-export type ShippingMode = z.infer<typeof shipmentSchema.shape.shippingMode>;
 export type ShipmentStatus = z.infer<typeof shipmentSchema.shape.status>;
 export type ShipmentPrimitives = z.infer<typeof shipmentSchema>;
