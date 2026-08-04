@@ -85,6 +85,7 @@ export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues 
       ...base.shippingService,
       selectedRate: null,
       tariff: order.financials.tariff,
+      shippingMode: order.shipment?.shippingMode ?? "GROUND",
     },
     package: {
       ...hqOrderDefaultValues.package,

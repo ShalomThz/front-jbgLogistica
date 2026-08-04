@@ -10,6 +10,7 @@ import { JBGHintBanner } from "./JBGHintBanner";
 import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
 import { RateTable } from "./RateTable";
 import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
+import { ShippingModeSelector } from "./ShippingModeSelector";
 import { TariffErrorBanner } from "./TariffErrorBanner";
 import { TariffLoadingBanner } from "./TariffLoadingBanner";
 import { WarehouseAddressSelector } from "./WarehouseAddressSelector";
@@ -88,6 +89,7 @@ export function RateStep({
         {onZoneChange && (
           <ZoneSelector zoneId={tariffZoneId || undefined} onZoneChange={onZoneChange} />
         )}
+        <ShippingModeSelector />
         {showTariffLoading && <TariffLoadingBanner />}
         {showTariffError && (
           <TariffErrorBanner

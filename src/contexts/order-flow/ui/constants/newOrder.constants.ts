@@ -72,6 +72,7 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
     ...baseDefaults.shippingService,
     selectedRate: null,
     tariff: null,
+    shippingMode: "GROUND",
   },
 };
 
