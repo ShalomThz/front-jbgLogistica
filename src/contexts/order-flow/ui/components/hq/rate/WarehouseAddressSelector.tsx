@@ -1,8 +1,5 @@
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+  Label,
   Select,
   SelectContent,
   SelectItem,
@@ -10,7 +7,7 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
-import { MapPin } from "lucide-react";
+import { Warehouse } from "lucide-react";
 
 interface WarehouseAddressSelectorProps {
   addresses: HQSkydropxAddressItemResponse[];
@@ -35,41 +32,34 @@ export function WarehouseAddressSelector({
   };
 
   return (
-    <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <MapPin className="size-4" />
-          Dirección de origen (almacén)
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Selecciona la dirección desde donde se envía el paquete
-        </p>
-      </CardHeader>
-      <CardContent>
-        <Select
-          value={selectedIndex >= 0 ? String(selectedIndex) : ""}
-          onValueChange={handleChange}
-          disabled={isLoading || addresses.length === 0}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={isLoading ? "Cargando direcciones..." : "Seleccionar dirección"} />
-          </SelectTrigger>
-          <SelectContent>
-            {addresses.map((addr, idx) => (
-              <SelectItem key={idx} value={String(idx)}>
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-medium">
-                    {addr.name} — {addr.company}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {addr.address.address1}, {addr.address.city}, {addr.address.province} {addr.address.zip}
-                  </span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardContent>
-    </Card>
+    <div className="space-y-1">
+      <Label htmlFor="warehouse-address-select" className="flex items-center gap-1.5">
+        <Warehouse className="size-3.5" />
+        Dirección de origen (almacén)
+      </Label>
+      <Select
+        value={selectedIndex >= 0 ? String(selectedIndex) : ""}
+        onValueChange={handleChange}
+        disabled={isLoading || addresses.length === 0}
+      >
+        <SelectTrigger id="warehouse-address-select" className="w-full">
+          <SelectValue placeholder={isLoading ? "Cargando direcciones..." : "Seleccionar dirección"} />
+        </SelectTrigger>
+        <SelectContent>
+          {addresses.map((addr, idx) => (
+            <SelectItem key={idx} value={String(idx)}>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium">
+                  {addr.name} — {addr.company}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {addr.address.address1}, {addr.address.city}, {addr.address.province} {addr.address.zip}
+                </span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

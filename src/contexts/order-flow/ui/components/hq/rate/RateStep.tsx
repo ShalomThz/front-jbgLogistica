@@ -3,6 +3,7 @@ import type { CostBreakdownPrimitives } from "@contexts/sales/domain/schemas/val
 import type { HQSkydropxAddressItemResponse } from "@contexts/settings/domain/schemas/HQSkydropxAddressResponse";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
+import { Card, CardContent, CardHeader, CardTitle } from "@contexts/shared/shadcn";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ZoneSelector } from "../../shared/ZoneSelector";
 import { JBGFallbackBanner } from "./JBGFallbackBanner";
@@ -80,16 +81,26 @@ export function RateStep({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 lg:items-start gap-6 flex-1 min-h-0 overflow-auto p-2">
       <div className="lg:col-span-2 space-y-4">
-        <WarehouseAddressSelector
-          addresses={warehouseAddresses}
-          selectedAddress={selectedWarehouseAddress}
-          onSelect={onWarehouseAddressChange}
-          isLoading={isLoadingAddresses}
-        />
-        {onZoneChange && (
-          <ZoneSelector zoneId={tariffZoneId || undefined} onZoneChange={onZoneChange} />
-        )}
-        <ShippingModeSelector />
+        <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Datos de cotización</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Origen del envío, zona de tarifas y modo de transporte
+            </p>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <WarehouseAddressSelector
+              addresses={warehouseAddresses}
+              selectedAddress={selectedWarehouseAddress}
+              onSelect={onWarehouseAddressChange}
+              isLoading={isLoadingAddresses}
+            />
+            {onZoneChange && (
+              <ZoneSelector zoneId={tariffZoneId || undefined} onZoneChange={onZoneChange} />
+            )}
+            <ShippingModeSelector />
+          </CardContent>
+        </Card>
         {showTariffLoading && <TariffLoadingBanner />}
         {showTariffError && (
           <TariffErrorBanner
