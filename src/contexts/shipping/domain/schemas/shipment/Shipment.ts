@@ -7,6 +7,7 @@ import { parcelSchema } from "../value-objects/Parcel";
 import { rateSchema } from "../value-objects/Rate";
 import { shippingLabelSchema } from "../value-objects/ShippingLabel";
 import { shipmentStatuses } from "./ShipmentStatuses";
+import { shippingModes } from "./ShippingModes";
 import z from "zod";
 import { warehouseAddressSchema } from "../value-objects/WarehouseAddress";
 
@@ -16,6 +17,7 @@ export const shipmentSchema = z.object({
   provider: carrierSchema.nullable(),
   label: shippingLabelSchema.nullable(),
   rate: rateSchema.nullable(),
+  shippingMode: z.enum(shippingModes).default("GROUND"),
   status: z.enum(shipmentStatuses),
   // Carrier shipment id, stamped while the label is generated asynchronously.
   // While PROVIDER_SELECTED: set = creating (await webhook), null = creation failed.

@@ -8,7 +8,11 @@ import { ChevronDown, Edit, MapPin, Package, Truck, User } from "lucide-react";
 import { useState } from "react";
 import { useWatch } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
+import {
+  calculateBillableWeight,
+  calculateMassWeight,
+  calculateVolumetricWeight,
+} from "@contexts/order-flow/domain/services/packageCalculations";
 
 interface ShipmentSummaryCardProps {
   onEdit: () => void;
@@ -21,6 +25,14 @@ export function ShipmentSummaryCard({ onEdit }: ShipmentSummaryCardProps) {
   const recipient = useWatch<HQOrderFormValues, "recipient">({ name: "recipient" });
   const pkg = useWatch<HQOrderFormValues, "package">({ name: "package" });
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
+  const shippingMode = useWatch<HQOrderFormValues, "shippingService.shippingMode">({ name: "shippingService.shippingMode" });
+
+  // Solo el aéreo cobra por el mayor entre masa y volumen, así que es el único
+  // modo donde mostrar la comparación aporta algo.
+  const isAir = shippingMode === "AIR";
+  const massWeight = calculateMassWeight(pkg);
+  const volumetricWeight = calculateVolumetricWeight(pkg);
+  const billableWeight = calculateBillableWeight(pkg, shippingMode);
 
   return (
     <Card>
@@ -89,7 +101,16 @@ export function ShipmentSummaryCard({ onEdit }: ShipmentSummaryCardProps) {
             </div>
             <div className="text-xs text-muted-foreground space-y-0.5">
               <div>{pkg.length} x {pkg.width} x {pkg.height} {pkg.dimensionUnit}</div>
-              <div>Peso a cotizar: {calculateBillableWeight(pkg).toFixed(2)} kg</div>
+              {isAir && (
+                <>
+                  <div>Peso masa: {massWeight.toFixed(2)} kg</div>
+                  <div>Peso volumétrico: {volumetricWeight.toFixed(2)} kg</div>
+                </>
+              )}
+              <div className={isAir ? "font-semibold text-primary motion-safe:animate-pulse" : undefined}>
+                Peso a cotizar: {billableWeight.toFixed(2)} kg
+                {isAir && <> (el mayor: {volumetricWeight > massWeight ? "volumétrico" : "masa"})</>}
+              </div>
             </div>
           </div>
 

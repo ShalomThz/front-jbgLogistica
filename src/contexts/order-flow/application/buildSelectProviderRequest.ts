@@ -26,6 +26,7 @@ export const buildSelectProviderRequest = (
     shipmentId,
     provider: { type: resolveCarrierType(rate.serviceName), providerName: rate.serviceName },
     rate,
+    shippingMode: shippingService.shippingMode,
     finalPrice: rate.price,
     tariff,
     costBreakdown: {

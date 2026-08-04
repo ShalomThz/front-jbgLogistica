@@ -15,7 +15,7 @@ import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { Building2, Info, User } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { calculateVolumetricWeight, calculateBillableWeight } from "@contexts/order-flow/domain/services/packageCalculations";
+import { calculateMassWeight, calculateVolumetricWeight } from "@contexts/order-flow/domain/services/packageCalculations";
 import { PhotosInput } from "@contexts/shared/ui/components";
 import { BoxSelector } from "../../shared/BoxSelector";
 import { DimensionsForm } from "./DimensionsForm";
@@ -115,16 +115,15 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground text-xs">Peso masa</span>
-                      <span className="font-semibold text-xs">{pkg.weight || 0} {pkg.weightUnit}</span>
+                      <span className="font-semibold text-xs">{calculateMassWeight(pkg).toFixed(2)} kg</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground text-xs">Peso volumétrico</span>
-                      <span className="font-semibold text-xs">{calculateVolumetricWeight(pkg).toFixed(2)} {pkg.weightUnit}</span>
+                      <span className="font-semibold text-xs">{calculateVolumetricWeight(pkg).toFixed(2)} kg</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground text-xs">Peso a cotizar</span>
-                      <span className="font-semibold text-xs text-primary">{calculateBillableWeight(pkg).toFixed(2)} {pkg.weightUnit}</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                      El peso a cotizar se define en el siguiente paso, según el modo de envío.
+                    </p>
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground text-center py-2">
