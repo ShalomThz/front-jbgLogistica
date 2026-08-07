@@ -287,11 +287,23 @@ export const DeliveryRouteDetailDialog = ({
                               <Icon className={`size-4 ${colorClass}`} />
                             </div>
                             <div className="flex-1 min-w-0">
+                              {stop.contact.name && (
+                                <p className="text-xs font-semibold truncate">
+                                  {stop.contact.name}
+                                  {stop.contact.company && (
+                                    <span className="text-muted-foreground font-normal">
+                                      {" "}
+                                      · {stop.contact.company}
+                                    </span>
+                                  )}
+                                </p>
+                              )}
                               <p className="text-xs font-medium truncate">
                                 {stop.address.address1}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
                                 {stop.address.city}, {stop.address.province}
+                                {stop.orderReference && ` · Orden #${stop.orderReference}`}
                               </p>
                               {stop.attempts.length > 0 && (
                                 <p className="text-[11px] text-muted-foreground mt-0.5 underline decoration-dotted">

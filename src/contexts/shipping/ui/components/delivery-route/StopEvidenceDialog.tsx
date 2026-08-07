@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { MapPin, Phone } from "lucide-react";
 import {
   Badge,
   Dialog,
@@ -127,11 +127,38 @@ export const StopEvidenceDialog = ({ stop, routeType, open, onClose }: Props) =>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto pt-8">
         <DialogHeader>
-          <DialogTitle>{stop.address.address1}</DialogTitle>
+          <DialogTitle>
+            {stop.contact.name || stop.address.address1}
+          </DialogTitle>
           <DialogDescription>
+            {stop.contact.name && (
+              <>
+                {stop.address.address1}
+                <br />
+              </>
+            )}
             {stop.address.city}, {stop.address.province}
           </DialogDescription>
         </DialogHeader>
+
+        {(stop.contact.company || stop.contact.phone || stop.orderReference) && (
+          <div className="rounded-md border p-3 space-y-1 text-sm">
+            {stop.contact.company && (
+              <p className="text-muted-foreground">{stop.contact.company}</p>
+            )}
+            {stop.contact.phone && (
+              <p className="flex items-center gap-1.5">
+                <Phone className="size-3.5 text-muted-foreground shrink-0" />
+                {stop.contact.phone}
+              </p>
+            )}
+            {stop.orderReference && (
+              <p className="text-muted-foreground">
+                Orden #{stop.orderReference}
+              </p>
+            )}
+          </div>
+        )}
 
         {attempts.length === 0 ? (
           <p className="text-sm text-muted-foreground">{copy.noAttemptsMessage}</p>

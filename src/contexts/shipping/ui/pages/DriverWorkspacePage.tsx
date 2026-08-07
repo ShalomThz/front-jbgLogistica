@@ -26,6 +26,7 @@ import {
   MapPinned,
   Navigation,
   PackageCheck,
+  Phone,
   RefreshCw,
   Route,
   Truck,
@@ -372,10 +373,33 @@ export const DriverWorkspacePage = () => {
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="font-medium">
-                      #{stop.stopOrder}                   </p>
+                      #{stop.stopOrder}
+                    </p>
+                    {stop.contact.name && (
+                      <p className="text-sm font-medium">
+                        {stop.contact.name}
+                        {stop.contact.company && (
+                          <span className="text-muted-foreground font-normal">
+                            {" "}
+                            · {stop.contact.company}
+                          </span>
+                        )}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       {stop.address.address1}, {stop.address.city}
                     </p>
+                    {stop.contact.phone && (
+                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Phone className="size-3.5" />
+                        {stop.contact.phone}
+                      </p>
+                    )}
+                    {stop.orderReference && (
+                      <p className="text-xs text-muted-foreground">
+                        Orden #{stop.orderReference}
+                      </p>
+                    )}
                     <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock3 className="size-3.5" />
                       Intentos: {stop.attempts.length}
