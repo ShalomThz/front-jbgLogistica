@@ -10,7 +10,11 @@ import {
   resolvePaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
-import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import {
+  canInvoice,
+  downloadInvoice as downloadInvoicePdf,
+  printInvoice as printInvoicePdf,
+} from "@contexts/sales/ui/invoices/invoiceActions";
 import {
   availableLabelOptions,
   downloadLabel as downloadLabelPdf,
@@ -152,11 +156,7 @@ export const OrderDetailDialog = ({
   // packages always ship from the JBG warehouse stamped on the shipment
   // (HQ default when none was stored).
   const shippingOrigin = shipment?.warehouseAddress ?? null;
-  // The invoice is generated on demand from the order, so it is available
-  // once the order has been priced (numbered + tariff + billed total).
-  const canPrintInvoice = Boolean(
-    references.orderNumber && financials.tariff && financials.totalBilled,
-  );
+  const canPrintInvoice = canInvoice(order);
 
   const canEditPartner = user ? orderPolicies.editPartner(user) : false;
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
@@ -170,13 +170,7 @@ export const OrderDetailDialog = ({
   const downloadInvoice = async () => {
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(order.id);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `factura-${order.references.orderNumber ?? order.references.partnerOrderNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadInvoicePdf(order);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -200,10 +194,7 @@ export const OrderDetailDialog = ({
   const printInvoice = async () => {
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(order.id);
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-      printWindow?.addEventListener("load", () => printWindow.print());
+      await printInvoicePdf(order);
     } finally {
       setIsDownloadingInvoice(false);
     }

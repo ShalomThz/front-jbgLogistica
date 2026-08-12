@@ -7,6 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@contexts/shared/shadcn";
+import { canInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
 import {
   availableLabelOptions,
   type LabelSource,
@@ -41,13 +42,7 @@ export const OrderActionsMenu = ({
   onDelete,
 }: OrderActionsMenuProps) => {
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
-  // The invoice is generated on demand from the order, so it is available
-  // once the order has been priced (numbered + tariff + billed total).
-  const canPrintInvoice = Boolean(
-    order.references.orderNumber &&
-      order.financials.tariff &&
-      order.financials.totalBilled,
-  );
+  const canPrintInvoice = canInvoice(order);
 
   return (
     <DropdownMenu>
