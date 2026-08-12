@@ -21,7 +21,7 @@ import {
   printLabel,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import { printInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import {
@@ -99,10 +99,7 @@ export const OrdersPage = () => {
   const handlePrintInvoice = async (order: OrderListView) => {
     setDownloadingInvoice(order.id);
     try {
-      const blob = await orderRepository.getInvoicePdf(order.id);
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-      printWindow?.addEventListener("load", () => printWindow.print());
+      await printInvoice(order);
     } finally {
       setDownloadingInvoice(null);
     }

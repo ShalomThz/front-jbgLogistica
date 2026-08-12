@@ -40,7 +40,11 @@ import {
   printLabel,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import {
+  canInvoice,
+  downloadInvoice,
+  printInvoice,
+} from "@contexts/sales/ui/invoices/invoiceActions";
 import { FileText } from "lucide-react";
 
 const CARRIER_TYPE_LABELS: Record<string, string> = {
@@ -121,29 +125,20 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
   };
 
   const handleDownloadInvoice = async () => {
-    if (!orderId) return;
+    if (!order) return;
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(orderId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `factura-${orderId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadInvoice(order);
     } finally {
       setIsDownloadingInvoice(false);
     }
   };
 
   const handlePrintInvoice = async () => {
-    if (!orderId) return;
+    if (!order) return;
     setIsDownloadingInvoice(true);
     try {
-      const blob = await orderRepository.getInvoicePdf(orderId);
-      const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank");
-      printWindow?.addEventListener("load", () => printWindow.print());
+      await printInvoice(order);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -406,7 +401,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       )}
 
       {/* Invoice Actions */}
-      {orderId && (
+      {order && canInvoice(order) && (
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
@@ -424,7 +419,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
             disabled={isDownloadingInvoice}
           >
             <Printer className="size-4" />
-            Imprimir factura
+            {isDownloadingInvoice ? "Generando..." : "Imprimir factura"}
           </Button>
         </div>
       )}
