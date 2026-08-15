@@ -43,6 +43,9 @@ interface OrderFiltersProps {
   filters: OrderTableFilterState;
   limit: number;
   limitOptions: number[];
+  /** El filtro de tienda solo tiene sentido con CAN_LIST_ALL_ORDERS: sin ese
+   * permiso la consulta ya viene acotada a la tienda del usuario. */
+  showStoreFilter: boolean;
   setFilter: <K extends keyof OrderTableFilterState>(
     key: K,
     value: OrderTableFilterState[K],
@@ -108,10 +111,13 @@ function DatePickerField({
   );
 }
 
-const countActiveFilters = (filters: OrderTableFilterState): number =>
+const countActiveFilters = (
+  filters: OrderTableFilterState,
+  showStoreFilter: boolean,
+): number =>
   [
     filters.statusFilter,
-    filters.storeFilter,
+    showStoreFilter ? filters.storeFilter : "all",
     filters.paymentFilter,
     filters.boxFilter,
     filters.dateFilter,
@@ -129,11 +135,12 @@ export const OrderFilters = ({
   filters,
   limit,
   limitOptions,
+  showStoreFilter,
   setFilter,
   onLimitChange,
   onResetAndRefetch,
 }: OrderFiltersProps) => {
-  const activeCount = countActiveFilters(filters);
+  const activeCount = countActiveFilters(filters, showStoreFilter);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -257,17 +264,19 @@ export const OrderFilters = ({
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Store className="size-3.5" />
-                Tienda
-              </Label>
-              <StoreFilterCombobox
-                value={filters.storeFilter}
-                onChange={(v) => setFilter("storeFilter", v)}
-                enabled={sheetOpen}
-              />
-            </div>
+            {showStoreFilter && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Store className="size-3.5" />
+                  Tienda
+                </Label>
+                <StoreFilterCombobox
+                  value={filters.storeFilter}
+                  onChange={(v) => setFilter("storeFilter", v)}
+                  enabled={sheetOpen}
+                />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
