@@ -113,6 +113,7 @@ export const OrdersPage = () => {
   const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
   const canViewReports = user ? orderPolicies.viewReports(user) : false;
   const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
+  const canListAllOrders = user ? orderPolicies.listAll(user) : false;
 
   const canEdit = (order: OrderListView) =>
     order.type === "PARTNER" ? canEditPartner : canEditHQ;
@@ -181,6 +182,7 @@ export const OrdersPage = () => {
         filters={filters}
         limit={limit}
         limitOptions={LIMIT_OPTIONS}
+        showStoreFilter={canListAllOrders}
         setFilter={setFilter}
         onLimitChange={(v) => {
           setLimit(v);
