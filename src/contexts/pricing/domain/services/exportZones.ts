@@ -4,6 +4,8 @@ import type { ZonePrimitives } from "@contexts/pricing/domain/schemas/zone/Zone"
 export function exportZones(zones: ZonePrimitives[]) {
   const rows = zones.map((z) => ({
     Nombre: z.name,
+    Pais: z.country,
+    Estado: z.state,
     Descripcion: z.description,
     Creacion: new Date(z.createdAt).toLocaleDateString("es-MX"),
   }));

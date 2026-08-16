@@ -93,7 +93,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
       if (!(await processBox())) return;
       await submission.submitHQOrder();
     } else if (step === "rate") {
-      if (!selectedRate || !submission.tariff) return;
+      if (!selectedRate) return;
       setStep("cobro");
     }
   };
@@ -114,7 +114,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     submission.isCreating ||
     isSaving ||
     isProcessingBox ||
-    (step === "rate" && (!selectedRate || !submission.tariff));
+    (step === "rate" && !selectedRate);
 
   return {
     orderId: submission.orderId,
@@ -145,11 +145,17 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     clearShipmentError: submission.clearShipmentError,
     fulfilledShipment: submission.fulfilledShipment,
     totalBilled: submission.totalBilled,
+    partnerPricing: submission.partnerPricing,
     tariff: submission.tariff,
     isLoadingTariff: submission.isLoadingTariff,
     tariffError: submission.tariffError,
     tariffZoneId: submission.tariffZoneId,
-    tariffDestinationCountry: submission.tariffDestinationCountry,
+    tariffServiceLevel: submission.tariffServiceLevel,
+    setServiceLevel: submission.setServiceLevel,
+    tariffPriceType: submission.tariffPriceType,
+    setPriceType: submission.setPriceType,
+    suggestedTariff: submission.suggestedTariff,
+    onTariffChange: submission.onTariffChange,
     tariffBoxId: submission.tariffBoxId,
     canSelectStore,
     selectedStoreId,

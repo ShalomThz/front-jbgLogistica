@@ -5,15 +5,12 @@ import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { RatePrimitives } from "@contexts/shipping/domain/schemas/value-objects/Rate";
 import { Card, CardContent, CardHeader, CardTitle } from "@contexts/shared/shadcn";
 import { useFormContext, useWatch } from "react-hook-form";
-import { ZoneSelector } from "../../shared/ZoneSelector";
 import { JBGFallbackBanner } from "./JBGFallbackBanner";
 import { JBGHintBanner } from "./JBGHintBanner";
 import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
 import { RateTable } from "./RateTable";
 import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
 import { ShippingModeSelector } from "./ShippingModeSelector";
-import { TariffErrorBanner } from "./TariffErrorBanner";
-import { TariffLoadingBanner } from "./TariffLoadingBanner";
 import { WarehouseAddressSelector } from "./WarehouseAddressSelector";
 
 const JBG_RATE_ID = "JBG_RATE";
@@ -26,14 +23,6 @@ interface RateStepProps {
   onBack: () => void;
   partnerPrice?: MoneyPrimitives | null;
   partnerCostBreakdown?: CostBreakdownPrimitives;
-  tariff: MoneyPrimitives | null;
-  isLoadingTariff: boolean;
-  tariffError: string | null;
-  tariffZoneId: string;
-  tariffDestinationCountry: string;
-  tariffBoxId: string;
-  /** Presente solo si el usuario tiene permiso para cambiar la zona. */
-  onZoneChange?: (zoneId: string) => void;
   onTariffCreated?: () => void;
   warehouseAddresses: HQSkydropxAddressItemResponse[];
   selectedWarehouseAddress: HQSkydropxAddressItemResponse | null;
@@ -49,13 +38,6 @@ export function RateStep({
   onBack,
   partnerPrice,
   partnerCostBreakdown,
-  tariff,
-  isLoadingTariff,
-  tariffError,
-  tariffZoneId,
-  tariffDestinationCountry,
-  tariffBoxId,
-  onZoneChange,
   warehouseAddresses,
   selectedWarehouseAddress,
   onWarehouseAddressChange,
@@ -63,19 +45,16 @@ export function RateStep({
 }: RateStepProps) {
   const { setValue } = useFormContext<HQOrderFormValues>();
   const selectedRate = useWatch<HQOrderFormValues, "shippingService.selectedRate">({ name: "shippingService.selectedRate" });
-  const costsCurrency = useWatch<HQOrderFormValues, "shippingService.costBreakdownCurrency">({ name: "shippingService.costBreakdownCurrency" });
 
   const handleRateSelection = (rate: RatePrimitives) => {
     setValue("shippingService.selectedRate", rate);
   };
 
-  const hasTariff = !!tariff;
   const skydropxRates = rates.filter((r) => r.id !== JBG_RATE_ID);
   const hasSkydropxRates = skydropxRates.length > 0;
-  const showTariffLoading = isLoadingTariff;
-  const showTariffError = !isLoadingTariff && (tariffError || !hasTariff);
-  const showJBGFallback = !showTariffLoading && !showTariffError && !isLoadingRates && !ratesError && !hasSkydropxRates && rates.length > 0;
-  const showRateTable = !showTariffLoading && !showTariffError && (hasSkydropxRates || isLoadingRates || !!ratesError);
+  const showJBGFallback =
+    !isLoadingRates && !ratesError && !hasSkydropxRates && rates.length > 0;
+  const showRateTable = hasSkydropxRates || isLoadingRates || !!ratesError;
   const showJBGHint = showRateTable && hasSkydropxRates;
 
   return (
@@ -85,7 +64,7 @@ export function RateStep({
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Datos de cotización</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Origen del envío, zona de tarifas y modo de transporte
+              Origen del envío y modo de transporte
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -95,21 +74,9 @@ export function RateStep({
               onSelect={onWarehouseAddressChange}
               isLoading={isLoadingAddresses}
             />
-            {onZoneChange && (
-              <ZoneSelector zoneId={tariffZoneId || undefined} onZoneChange={onZoneChange} />
-            )}
             <ShippingModeSelector />
           </CardContent>
         </Card>
-        {showTariffLoading && <TariffLoadingBanner />}
-        {showTariffError && (
-          <TariffErrorBanner
-            zoneId={tariffZoneId}
-            destinationCountry={tariffDestinationCountry}
-            boxId={tariffBoxId}
-            priceCurrency={costsCurrency}
-          />
-        )}
         {showJBGFallback && <JBGFallbackBanner />}
         {showJBGHint && <JBGHintBanner />}
         {showRateTable && (

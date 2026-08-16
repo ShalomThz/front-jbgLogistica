@@ -2,7 +2,9 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
+import { useQuotePrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useQuotePrice";
+import { PickupPoints } from "@contexts/pricing/application/QuotePrice";
+import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { useState } from "react";
@@ -56,16 +58,29 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     enabled: !!activeStoreId,
   });
 
-  const destinationCountry = form.watch("recipient.address.country");
   const boxId = form.watch("package.boxId");
 
   const effectiveZoneId = zoneOverrideId ?? store?.zone?.id;
 
-  const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useTariffPrice({
-    zoneId: effectiveZoneId ?? "",
-    destinationCountry,
+  // Una orden de socio se recoge en la tienda socia y se cobra a precio socio:
+  // los dos salen del tipo de orden, no de una elección del usuario. Lo único
+  // que se elige es la velocidad del servicio.
+  const [serviceLevel, setServiceLevel] = useState<ServiceLevel>("STANDARD");
+
+  // La zona override sigue siendo cosa del front: cambia contra qué zona se
+  // cotiza sin mover dónde está la tienda.
+  const pickup = zoneOverrideId
+    ? PickupPoints.atCustomerAddress(zoneOverrideId)
+    : activeStoreId
+      ? PickupPoints.atPartnerStore(activeStoreId)
+      : undefined;
+
+  const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useQuotePrice({
+    pickup,
     boxId: boxId ?? "",
-    enabled: step === "pricing" && !!effectiveZoneId && !!destinationCountry && !!boxId,
+    serviceLevel,
+    priceType: "PARTNER",
+    enabled: step === "pricing" && !!pickup && !!boxId,
   });
 
   // Lets the seller override the auto-fetched tariff (or type one in
@@ -73,7 +88,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   // whenever the underlying lookup inputs change — a price typed for a
   // different combination no longer applies. Adjusted during render (not in
   // an effect) to avoid the extra render pass.
-  const tariffLookupKey = `${effectiveZoneId ?? ""}|${destinationCountry ?? ""}|${boxId ?? ""}`;
+  const tariffLookupKey = `${effectiveZoneId ?? ""}|${serviceLevel}|${boxId ?? ""}`;
   const [tariffOverride, setTariffOverride] = useState<MoneyPrimitives | null>(null);
   const [lastTariffLookupKey, setLastTariffLookupKey] = useState(tariffLookupKey);
   if (tariffLookupKey !== lastTariffLookupKey) {
@@ -83,7 +98,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
 
   const effectiveTariff = tariffOverride ?? tariffPrice;
 
-  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: effectiveTariff, onSuccess: () => setStep("success") });
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: effectiveTariff, serviceLevel, onSuccess: () => setStep("success") });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -147,6 +162,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     canChangeZone,
     setZoneOverride: setZoneOverrideId,
     originZoneId: effectiveZoneId,
+    serviceLevel,
+    setServiceLevel,
     pendingPayments: submission.pendingPayments,
     addPendingPayment: submission.addPendingPayment,
     removePendingPayment: submission.removePendingPayment,

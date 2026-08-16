@@ -1,4 +1,13 @@
-import { useState } from "react";
+import {
+  AlignLeft,
+  CalendarClock,
+  CalendarPlus,
+  Globe,
+  Map,
+  Tag,
+} from "lucide-react";
+import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
@@ -13,7 +22,7 @@ import {
 import { ZoneDetailDialog } from "../components/zone/ZoneDetailDialog";
 import { ZoneFormDialog } from "../components/zone/ZoneFormDialog";
 import { ZoneDeleteDialog } from "../components/zone/ZoneDeleteDialog";
-import { ZoneFilters } from "../components/zone/ZoneFilters";
+import { ZoneFilters, type ZoneFilterOptions } from "../components/zone/ZoneFilters";
 import { exportZones } from "@contexts/pricing/domain/services/exportZones";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import { useZoneFilters } from "../hooks/useZoneFilters";
@@ -25,12 +34,40 @@ import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy
 const LIMIT_OPTIONS = [10, 20, 50];
 
 export const ZonesPage = () => {
+  const { countries } = useCountries();
+  const countryNames: Record<string, string> = Object.fromEntries(
+    countries.map((c) => [c.code, c.name]),
+  );
+
+  // Las opciones salen del catálogo completo y no de la página visible: filtrar
+  // por un estado que quedó en la página 3 tiene que ser posible.
+  const { zones: allZones } = useZones();
+
   const { user } = useAuth();
   const canViewReports = user ? pricingPolicies.viewZoneReports(user) : false;
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
   const { state: filters, setFilter, reset: resetFilters, criteria } = useZoneFilters();
+
+  const filterOptions = useMemo<ZoneFilterOptions>(() => {
+    const countryCodes = [...new Set(allZones.map((z) => z.country))].filter(Boolean);
+    const states = [
+      ...new Set(
+        allZones
+          .filter((z) => !filters.country || z.country === filters.country)
+          .map((z) => z.state)
+          .filter(Boolean),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+
+    return {
+      countries: countryCodes
+        .map((code) => ({ code, name: countryNames[code] ?? code }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      states,
+    };
+  }, [allZones, filters.country, countryNames]);
 
   const [prevCriteria, setPrevCriteria] = useState(criteria);
   if (criteria !== prevCriteria) {
@@ -110,6 +147,7 @@ export const ZonesPage = () => {
       </div>
       <ZoneFilters
         filters={filters}
+        options={filterOptions}
         limit={limit}
         limitOptions={LIMIT_OPTIONS}
         setFilter={setFilter}
@@ -121,16 +159,48 @@ export const ZonesPage = () => {
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead className="hidden sm:table-cell">Descripción</TableHead>
-              <TableHead className="hidden lg:table-cell">Creación</TableHead>
-              <TableHead className="hidden lg:table-cell">Actualización</TableHead>
+              <TableHead>
+                <span className="flex items-center gap-1.5">
+                  <Tag className="size-3.5" />
+                  Nombre
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="flex items-center gap-1.5">
+                  <Map className="size-3.5" />
+                  Estado
+                </span>
+              </TableHead>
+              <TableHead className="hidden md:table-cell">
+                <span className="flex items-center gap-1.5">
+                  <Globe className="size-3.5" />
+                  País
+                </span>
+              </TableHead>
+              <TableHead className="hidden sm:table-cell">
+                <span className="flex items-center gap-1.5">
+                  <AlignLeft className="size-3.5" />
+                  Descripción
+                </span>
+              </TableHead>
+              <TableHead className="hidden lg:table-cell">
+                <span className="flex items-center gap-1.5">
+                  <CalendarPlus className="size-3.5" />
+                  Creación
+                </span>
+              </TableHead>
+              <TableHead className="hidden lg:table-cell">
+                <span className="flex items-center gap-1.5">
+                  <CalendarClock className="size-3.5" />
+                  Actualización
+                </span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {zones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   No se encontraron zonas.
                 </TableCell>
               </TableRow>
@@ -138,6 +208,14 @@ export const ZonesPage = () => {
               zones.map((z) => (
                 <TableRow key={z.id} className="cursor-pointer" onClick={() => setSelected(z)}>
                   <TableCell className="font-medium">{z.name}</TableCell>
+                  <TableCell className="text-sm">
+                    {z.state || (
+                      <span className="text-muted-foreground/60">Sin definir</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                    {countryNames[z.country] ?? z.country}
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                     {z.description || "—"}
                   </TableCell>

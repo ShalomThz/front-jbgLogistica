@@ -1,50 +1,45 @@
 import { useMemo } from "react";
-import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
+import { useZonePriceMatrix } from "@contexts/pricing/infrastructure/hooks/tariffs/useZonePriceMatrix";
+import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 interface UseZoneBoxesOptions {
   zoneId: string | undefined;
-  destinationCountry: string | undefined;
+  /** Cuando se conoce, acota a las cajas con precio para ese servicio. */
+  serviceLevel?: ServiceLevel;
   enabled?: boolean;
 }
 
 /**
- * Cajas que una tienda puede usar en una orden: las que tienen una tarifa
- * configurada para su zona de origen + el país destino de la orden. No existe
- * un vínculo Box→zona; la relación vive en las tarifas, así que derivamos las
- * cajas de ahí (una caja puede repetirse en varias tarifas → deduplicamos).
+ * Cajas que se pueden usar en una orden: las que tienen precio en la zona donde
+ * se va a recoger.
+ *
+ * Antes esto leía la tabla de tarifas y deducía las cajas de ahí — el mecanismo
+ * de precios filtrándose al paso de paquete. Ahora se lo pregunta a la matriz,
+ * que es una respuesta armada por el servidor: si cambia cómo se forman los
+ * precios, este hook no se entera.
  */
 export const useZoneBoxes = ({
   zoneId,
-  destinationCountry,
+  serviceLevel,
   enabled = true,
 }: UseZoneBoxesOptions) => {
-  const filters = useMemo(
-    () =>
-      zoneId && destinationCountry
-        ? [
-            { field: "zone.id", filterOperator: "=" as const, value: zoneId },
-            {
-              field: "destinationCountry",
-              filterOperator: "=" as const,
-              value: destinationCountry,
-            },
-          ]
-        : [],
-    [zoneId, destinationCountry],
-  );
-
-  // Sin limit → trae todas las tarifas de la zona+país (no capamos el fetch).
-  const { tariffs, isLoading } = useTariffs({
-    filters,
-    enabled: enabled && !!zoneId && !!destinationCountry,
-  });
+  const { rows, isLoading } = useZonePriceMatrix(enabled ? zoneId : undefined);
 
   const boxes = useMemo(() => {
-    const byId = new Map<string, BoxPrimitives>();
-    for (const tariff of tariffs) byId.set(tariff.box.id, tariff.box);
-    return [...byId.values()];
-  }, [tariffs]);
+    const result: BoxPrimitives[] = [];
+
+    for (const row of rows) {
+      const hasPrice = row.cells.some(
+        (cell) =>
+          (!serviceLevel || cell.serviceLevel === serviceLevel) &&
+          (cell.public !== null || cell.partner !== null),
+      );
+      if (hasPrice) result.push(row.box);
+    }
+
+    return result;
+  }, [rows, serviceLevel]);
 
   return { boxes, isLoading };
 };

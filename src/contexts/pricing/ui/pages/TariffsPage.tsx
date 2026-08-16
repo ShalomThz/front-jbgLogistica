@@ -1,250 +1,440 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
-import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import {
+  Columns3,
+  Download,
+  Eraser,
+  Gauge,
+  Handshake,
+  Package,
+  Plus,
+  RefreshCw,
+  Users,
+} from "lucide-react";
 import {
   Button,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Label,
   Table,
-  TableHeader,
   TableBody,
-  TableHead,
-  TableRow,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@contexts/shared/shadcn";
-import { TariffDetailDialog } from "../components/tariff/TariffDetailDialog";
-import { TariffFormDialog } from "../components/tariff/TariffFormDialog";
-import { TariffDeleteDialog } from "../components/tariff/TariffDeleteDialog";
-import { TariffFilters } from "../components/tariff/TariffFilters";
+import { ZoneSelector } from "@contexts/pricing/ui/components/zone/ZoneSelector";
+import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
+import { ZonePriceCellDialog } from "../components/tariff/ZonePriceCellDialog";
 import { exportTariffs } from "@contexts/pricing/domain/services/exportTariffs";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
-import { applyClientNameSort, useTariffFilters, type TariffFilterOptions } from "../hooks/useTariffFilters";
-import type { TariffListViewPrimitives } from "@contexts/pricing/domain/schemas/tariff/TariffListView";
-import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
-import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
+import { useZonePriceMatrix } from "@contexts/pricing/infrastructure/hooks/tariffs/useZonePriceMatrix";
+import {
+  SERVICE_LEVEL_COLORS,
+  SERVICE_LEVEL_DOTS,
+  SERVICE_LEVEL_LABELS,
+  serviceLevels,
+  type ServiceLevel,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  ZonePriceCell,
+  ZonePriceRow,
+} from "@contexts/pricing/application/ZonePriceMatrix";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { BoxPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
 
-const LIMIT_OPTIONS = [10, 20, 50];
+interface EditingCell {
+  boxId: string;
+  boxName: string;
+  serviceLevel: ServiceLevel;
+  publicPrice: MoneyPrimitives | null;
+  partnerPrice: MoneyPrimitives | null;
+}
+
+const money = (m: MoneyPrimitives) =>
+  `$${m.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
+
+/** Margen que le queda al socio si revende al precio público. */
+function marginPercent(
+  publicPrice: MoneyPrimitives | null,
+  partnerPrice: MoneyPrimitives | null,
+): number | null {
+  if (!publicPrice || !partnerPrice) return null;
+  if (publicPrice.currency !== partnerPrice.currency) return null;
+  if (publicPrice.amount <= 0) return null;
+  return ((publicPrice.amount - partnerPrice.amount) / publicPrice.amount) * 100;
+}
+
+/**
+ * Una celda por caja × servicio, con los dos precios adentro.
+ *
+ * Es un solo bloque y no dos columnas porque **la unidad editable es la celda**:
+ * el diálogo escribe público y socio juntos. Con columnas separadas, el hover
+ * sugería que se editaba un precio suelto.
+ */
+function PriceCell({
+  cell,
+  canEdit,
+  onEdit,
+}: {
+  cell: ZonePriceCell | undefined;
+  canEdit: boolean;
+  onEdit: () => void;
+}) {
+  const publicPrice = cell?.public?.price ?? null;
+  const partnerPrice = cell?.partner?.price ?? null;
+  const margin = marginPercent(publicPrice, partnerPrice);
+  const isEmpty = !publicPrice && !partnerPrice;
+
+  const content = isEmpty ? (
+    <span className="flex items-center justify-center gap-1 py-1 text-xs text-muted-foreground">
+      {canEdit && <Plus className="size-3" />}
+      Sin precio
+    </span>
+  ) : (
+    <span className="flex flex-col gap-0.5">
+      <span className="flex items-baseline justify-between gap-3">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Users className="size-3 shrink-0" />
+          Público
+        </span>
+        <span className="font-mono tabular-nums">
+          {publicPrice ? money(publicPrice) : "—"}
+        </span>
+      </span>
+      <span className="flex items-baseline justify-between gap-3">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Handshake className="size-3 shrink-0" />
+          Socio
+        </span>
+        <span className="font-mono tabular-nums">
+          {partnerPrice ? money(partnerPrice) : "—"}
+        </span>
+      </span>
+      {margin !== null && (
+        <span
+          className={`text-right text-[11px] ${
+            margin < 0 ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground"
+          }`}
+        >
+          margen {margin.toFixed(0)}%
+        </span>
+      )}
+    </span>
+  );
+
+  if (!canEdit) {
+    return <div className="px-1 py-1.5">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onEdit}
+      className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {content}
+    </button>
+  );
+}
 
 export const TariffsPage = () => {
   const { user } = useAuth();
   const canViewReports = user ? pricingPolicies.viewTariffReports(user) : false;
-  const canCreate = user ? pricingPolicies.createTariff(user) : false;
   const canEdit = user ? pricingPolicies.editTariff(user) : false;
-  const canDelete = user ? pricingPolicies.deleteTariff(user) : false;
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(LIMIT_OPTIONS[0]);
 
-  const { countries } = useCountries();
-  const countryNames: Record<string, string> = Object.fromEntries(
-    countries.map((c) => [c.code, c.name]),
+  // Arranca en la zona de la tienda del usuario: es la que va a consultar el
+  // 90% de las veces. `user.zone` ya viene en la sesión, así que no hay que
+  // esperar una llamada extra para pintar la tabla.
+  const [zoneId, setZoneId] = useState<string>(user?.zone?.id ?? "");
+
+  // La sesión puede resolverse después del primer render (recarga de página).
+  const [lastUserZoneId, setLastUserZoneId] = useState(user?.zone?.id);
+  if (user?.zone?.id !== lastUserZoneId) {
+    setLastUserZoneId(user?.zone?.id);
+    if (!zoneId && user?.zone?.id) setZoneId(user.zone.id);
+  }
+  const { rows, zone, isLoading, refetch, setPrice, isSaving } =
+    useZonePriceMatrix(zoneId || undefined);
+
+  const [editing, setEditing] = useState<EditingCell | null>(null);
+  const [hiddenServices, setHiddenServices] = useState<ServiceLevel[]>([]);
+  const [boxFilter, setBoxFilter] = useState<BoxPrimitives | null>(null);
+
+  // Los cuatro servicios se muestran de entrada: así se ve de una qué
+  // combinaciones faltan. Ocultarlos es decisión del usuario, desde el control
+  // de columnas de la tabla.
+  const visibleServices = useMemo(
+    () => serviceLevels.filter((s) => !hiddenServices.includes(s)),
+    [hiddenServices],
   );
 
-  const { state: filters, setFilter, reset: resetFilters, criteria } = useTariffFilters();
+  const toggleService = (service: ServiceLevel) =>
+    setHiddenServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : // Nunca dejar la tabla sin columnas de precio.
+          prev.length === serviceLevels.length - 1
+          ? prev
+          : [...prev, service],
+    );
 
-  const [prevCriteria, setPrevCriteria] = useState(criteria);
-  if (criteria !== prevCriteria) {
-    setPrevCriteria(criteria);
-    setPage(1);
-  }
+  // El export reusa la lista plana: la matriz es una vista, las tarifas siguen
+  // siendo filas.
+  const { tariffs } = useTariffs({
+    filters: zoneId
+      ? [{ field: "zone.id", filterOperator: "=" as const, value: zoneId }]
+      : [],
+    enabled: canViewReports && !!zoneId,
+  });
 
-  const {
-    tariffs,
-    pagination,
-    totalPages,
-    isLoading,
-    refetch,
-    createTariff,
-    isCreating,
-    updateTariff,
-    isUpdating,
-    deleteTariff,
-    isDeleting,
-  } = useTariffs({ page, limit, ...criteria });
+  /**
+   * La matriz solo trae las cajas que ya tienen algún precio en la zona. Buscar
+   * una que no está la agrega igual, con la fila vacía: es la única forma de
+   * ponerle precio a una caja nueva.
+   */
+  const visibleRows = useMemo<ZonePriceRow[]>(() => {
+    if (!boxFilter) return rows;
 
-  const options = useMemo<TariffFilterOptions>(() => {
-    const countrySet = new Map<string, string>();
-    for (const t of tariffs) {
-      if (!countrySet.has(t.destinationCountry)) {
-        countrySet.set(t.destinationCountry, countryNames[t.destinationCountry] ?? t.destinationCountry);
-      }
-    }
-    return {
-      countries: Array.from(countrySet, ([code, name]) => ({ code, name })).sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
-    };
-  }, [tariffs, countryNames]);
+    const existing = rows.find((r) => r.box.id === boxFilter.id);
+    if (existing) return [existing];
 
-  const visibleTariffs = useMemo(
-    () => applyClientNameSort(tariffs, filters.nameSort),
-    [tariffs, filters.nameSort],
-  );
+    return [
+      {
+        box: boxFilter,
+        cells: serviceLevels.map((serviceLevel) => ({
+          serviceLevel,
+          public: null,
+          partner: null,
+        })),
+      },
+    ];
+  }, [rows, boxFilter]);
 
-  const [selected, setSelected] = useState<TariffListViewPrimitives | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editTariff, setEditTariff] = useState<TariffListViewPrimitives | null>(null);
-  const [deleteTariffDialog, setDeleteTariffDialog] = useState<TariffListViewPrimitives | null>(null);
-
-  const handleCreate = async (data: CreateTariffRequestPrimitives) => {
-    await createTariff(data);
-    setFormOpen(false);
-    setPage(1);
+  const openCell = (row: ZonePriceRow, serviceLevel: ServiceLevel) => {
+    if (!canEdit) return;
+    const cell = row.cells.find((c) => c.serviceLevel === serviceLevel);
+    setEditing({
+      boxId: row.box.id,
+      boxName: row.box.name,
+      serviceLevel,
+      publicPrice: cell?.public?.price ?? null,
+      partnerPrice: cell?.partner?.price ?? null,
+    });
   };
 
-  const handleUpdate = async (data: CreateTariffRequestPrimitives) => {
-    if (!editTariff) return;
-    await updateTariff(editTariff.id, data);
-    setEditTariff(null);
-  };
-
-  const handleDelete = async () => {
-    if (!deleteTariffDialog) return;
-    await deleteTariff(deleteTariffDialog.id);
-    setDeleteTariffDialog(null);
-    setPage(1);
-  };
-
-  const handleEditFromDetail = (tariff: TariffListViewPrimitives) => {
-    setSelected(null);
-    setEditTariff(tariff);
-  };
-
-  const handleDeleteFromDetail = (tariff: TariffListViewPrimitives) => {
-    setSelected(null);
-    setDeleteTariffDialog(tariff);
-  };
-
-  const from = pagination ? pagination.offset + 1 : 0;
-  const to = pagination ? pagination.offset + tariffs.length : 0;
-  const total = pagination?.total ?? 0;
-
-  if (isLoading) {
-    return <PageLoader text="Cargando tarifas..." />;
-  }
+  const columnCount = 1 + visibleServices.length;
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tarifas</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => { resetFilters(); refetch(); }}>
-            <RefreshCw className="size-4" />
-          </Button>
-          {canCreate && (
-            <Button onClick={() => setFormOpen(true)}>
-              <Plus className="size-4" />
-              Crear Tarifa
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Tarifas</h1>
+          <p className="text-sm text-muted-foreground">
+            Precios por zona de recolección. Una celda sin precio es una tarifa que falta.
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          {canViewReports && (
+            <Button
+              variant="outline"
+              size="icon"
+              title="Exportar"
+              disabled={!zoneId}
+              onClick={() => exportTariffs(tariffs)}
+            >
+              <Download className="size-4" />
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="icon"
+            title="Recargar"
+            onClick={() => void refetch()}
+          >
+            <RefreshCw className="size-4" />
+          </Button>
         </div>
       </div>
-      <TariffFilters
-        filters={filters}
-        options={options}
-        limit={limit}
-        limitOptions={LIMIT_OPTIONS}
-        setFilter={setFilter}
-        onLimitChange={(v) => { setLimit(v); setPage(1); }}
-        onResetAndRefetch={() => { resetFilters(); refetch(); }}
-        onExport={canViewReports ? () => exportTariffs(visibleTariffs) : undefined}
-      />
-      <div className="rounded-lg border min-h-0 overflow-hidden [&>div]:max-h-full [&>div]:overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 z-10 bg-background">
-            <TableRow>
-              <TableHead>Zona origen</TableHead>
-              <TableHead>País destino</TableHead>
-              <TableHead className="hidden sm:table-cell">Caja</TableHead>
-              <TableHead className="text-right">Precio</TableHead>
-              <TableHead className="hidden lg:table-cell">Actualización</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleTariffs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  No se encontraron tarifas.
-                </TableCell>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <ZoneSelector
+          zoneId={zoneId || undefined}
+          onZoneChange={setZoneId}
+          label="Zona"
+          className="w-full sm:w-80"
+        />
+        {zoneId && (
+          <div className="space-y-1">
+            <Label htmlFor="box-filter" className="flex items-center gap-1.5">
+              <Package className="size-3.5" />
+              Caja
+            </Label>
+            <div className="flex items-center gap-1">
+              <BoxPickerCombobox
+                id="box-filter"
+                value={boxFilter?.id}
+                onChange={setBoxFilter}
+                placeholder="Buscar caja..."
+                className="w-full sm:w-64"
+              />
+              {boxFilter && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  title="Ver todas las cajas"
+                  onClick={() => setBoxFilter(null)}
+                >
+                  <Eraser className="size-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!zoneId ? (
+        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed">
+          <p className="text-sm text-muted-foreground">
+            Elegí una zona para ver sus precios.
+          </p>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
+          {/* Control de columnas, arriba a la derecha de la tabla. */}
+          <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+            <p className="truncate text-xs text-muted-foreground">
+              {zone ? `${zone.name} · ${zone.state}, ${zone.country}` : ""}
+            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={hiddenServices.length > 0 ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 shrink-0 gap-1.5"
+                  title="Mostrar u ocultar servicios"
+                >
+                  <Columns3 className="size-4" />
+                  Columnas
+                  {hiddenServices.length > 0 && (
+                    <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                      {hiddenServices.length}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Servicios</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {serviceLevels.map((service) => (
+                  <DropdownMenuCheckboxItem
+                    key={service}
+                    checked={!hiddenServices.includes(service)}
+                    onCheckedChange={() => toggleService(service)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`size-2 rounded-full ${SERVICE_LEVEL_DOTS[service]}`}
+                      />
+                      {SERVICE_LEVEL_LABELS[service]}
+                    </span>
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="[&>th]:bg-background sticky top-0 z-10">
+                <TableHead className="w-48">
+                  <span className="flex items-center gap-1.5">
+                    <Package className="size-3.5" />
+                    Caja
+                  </span>
+                </TableHead>
+                {visibleServices.map((service) => (
+                  <TableHead
+                    key={service}
+                    className="min-w-40 border-l text-center"
+                  >
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 ${SERVICE_LEVEL_COLORS[service]}`}
+                    >
+                      <Gauge className="size-3.5" />
+                      {SERVICE_LEVEL_LABELS[service]}
+                    </span>
+                  </TableHead>
+                ))}
               </TableRow>
-            ) : (
-              visibleTariffs.map((t) => (
-                <TableRow key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
-                  <TableCell className="font-medium">{t.zone.name}</TableCell>
-                  <TableCell>{countryNames[t.destinationCountry] ?? t.destinationCountry}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm">{t.box.name}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    ${t.price.amount.toFixed(2)} {t.price.currency}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
-                    {new Date(t.updatedAt).toLocaleDateString("es-MX")}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columnCount}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Cargando precios...
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {pagination && total > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {from}-{to} de {total}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page <= 1}
-            >
-              <ChevronLeft className="size-4" />
-              Anterior
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!pagination.hasMore}
-            >
-              Siguiente
-              <ChevronRight className="size-4" />
-            </Button>
+              ) : visibleRows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columnCount}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    {zone?.name} no tiene ningún precio configurado todavía.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                visibleRows.map((row) => (
+                  <TableRow key={row.box.id}>
+                    <TableCell className="align-middle font-medium">
+                      <div>{row.box.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {row.box.dimensions.length} × {row.box.dimensions.width} ×{" "}
+                        {row.box.dimensions.height} {row.box.dimensions.unit}
+                      </div>
+                    </TableCell>
+                    {visibleServices.map((service) => (
+                      <TableCell key={service} className="border-l p-1 align-middle">
+                        <PriceCell
+                          cell={row.cells.find((c) => c.serviceLevel === service)}
+                          canEdit={canEdit}
+                          onEdit={() => openCell(row, service)}
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
           </div>
         </div>
       )}
-      <TariffDetailDialog
-        tariff={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        onEdit={canEdit ? handleEditFromDetail : undefined}
-        onDelete={canDelete ? handleDeleteFromDetail : undefined}
-      />
-      {canCreate && (
-        <TariffFormDialog
-          open={formOpen}
-          onClose={() => setFormOpen(false)}
-          onSave={handleCreate}
-          isLoading={isCreating}
-        />
-      )}
-      {canEdit && (
-        <TariffFormDialog
-          open={!!editTariff}
-          onClose={() => setEditTariff(null)}
-          onSave={handleUpdate}
-          tariff={editTariff}
-          isLoading={isUpdating}
-        />
-      )}
-      {canDelete && (
-        <TariffDeleteDialog
-          tariff={deleteTariffDialog}
-          open={!!deleteTariffDialog}
-          onClose={() => setDeleteTariffDialog(null)}
-          onConfirm={handleDelete}
-          isLoading={isDeleting}
+
+      {editing && (
+        <ZonePriceCellDialog
+          open
+          onClose={() => setEditing(null)}
+          onSave={setPrice}
+          zoneId={zoneId}
+          zoneName={zone?.name}
+          boxId={editing.boxId}
+          boxName={editing.boxName}
+          serviceLevel={editing.serviceLevel}
+          publicPrice={editing.publicPrice}
+          partnerPrice={editing.partnerPrice}
+          isLoading={isSaving}
         />
       )}
     </div>

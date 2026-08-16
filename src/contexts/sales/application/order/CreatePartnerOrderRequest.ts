@@ -1,3 +1,4 @@
+import { serviceLevels } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import { PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
@@ -20,7 +21,13 @@ export const createPartnerOrderSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }),
+  /** Lo que se le cobra al socio: la sugerencia de la tabla o un monto escrito
+   * a mano. */
   tariff: moneySchema,
+  /** Velocidad contratada. Es el único insumo del precio que no se deriva: el
+   * punto de recolección es la tienda socia y el peldaño es PARTNER por ser
+   * orden de socio. */
+  serviceLevel: z.enum(serviceLevels).optional(),
   costBreakdown: costBreakdownSchema.optional(),
   emptyBoxDelivery: z.boolean().optional(),
   /** "Recolección a domicilio": el chofer recoge la caja ya empacada del

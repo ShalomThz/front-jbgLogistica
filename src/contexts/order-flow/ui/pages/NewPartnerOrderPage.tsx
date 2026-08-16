@@ -178,7 +178,6 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
           <PartnerPackageStep
             onEditContacts={() => flow.setStep("contact")}
             originZoneId={flow.originZoneId}
-            {...(flow.canChangeZone && { onZoneChange: flow.setZoneOverride })}
           />
         )}
 
@@ -196,6 +195,9 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
             onClearPayments={flow.clearPendingPayments}
             orderId={flow.orderId}
             zoneId={flow.originZoneId}
+            {...(flow.canChangeZone && { onZoneChange: flow.setZoneOverride })}
+            serviceLevel={flow.serviceLevel}
+            onServiceLevelChange={flow.setServiceLevel}
           />
         )}
 

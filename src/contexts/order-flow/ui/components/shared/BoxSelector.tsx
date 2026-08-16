@@ -14,16 +14,17 @@ import { handleBoxError } from "@contexts/inventory/application/errors/handleBox
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
 import { useZoneBoxes } from "@contexts/order-flow/ui/hooks/shared/useZoneBoxes";
+import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { BoxPrimitives, CreateBoxRequestPrimitives } from "@contexts/inventory/domain/schemas/box/Box";
 
 interface BoxSelectorProps {
   /**
-   * Acota el selector a las cajas con tarifa en esta zona + país destino cuando
-   * el usuario no tiene `CAN_LIST_ALL_BOXES`. Omitir para mostrar siempre todo
-   * el catálogo (p. ej. el flujo HQ).
+   * Acota el selector a las cajas con precio en la zona donde se va a recoger,
+   * cuando el usuario no tiene `CAN_LIST_ALL_BOXES`. Omitir para mostrar
+   * siempre todo el catálogo (p. ej. el flujo HQ).
    */
-  zoneScope?: { zoneId: string | undefined; destinationCountry: string | undefined };
+  zoneScope?: { zoneId: string | undefined; serviceLevel?: ServiceLevel };
 }
 
 export function BoxSelector({ zoneScope }: BoxSelectorProps = {}) {
@@ -38,7 +39,7 @@ export function BoxSelector({ zoneScope }: BoxSelectorProps = {}) {
   const isScoped = !!zoneScope && !canListAllBoxes;
   const { boxes: zoneBoxes, isLoading: isLoadingZoneBoxes } = useZoneBoxes({
     zoneId: zoneScope?.zoneId,
-    destinationCountry: zoneScope?.destinationCountry,
+    serviceLevel: zoneScope?.serviceLevel,
     enabled: isScoped,
   });
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
