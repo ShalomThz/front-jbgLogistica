@@ -6,16 +6,27 @@ import { optionalEmailSchema } from "@contexts/shared/domain/schemas/Email";
 
 // --- Contact with address (sender/recipient) ---
 
-export const contactWithAddressSchema = z.object({
-  id: z.string().nullable(),
-  customerNumber: z.number().nullable().optional(),
-  name: z.string().min(1, "El nombre es requerido"),
-  company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
-  email: optionalEmailSchema,
-  phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
-  address: createAddressSchema,
-  save: z.boolean(),
-});
+export const contactWithAddressSchema = z
+  .object({
+    id: z.string().nullable(),
+    customerNumber: z.number().nullable().optional(),
+    photo: z.string().nullable(),
+    name: z.string().min(1, "El nombre es requerido"),
+    company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
+    email: optionalEmailSchema,
+    phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
+    address: createAddressSchema,
+    save: z.boolean(),
+  })
+  .superRefine((contact, context) => {
+    if (contact.save && !contact.photo) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La fotografía del cliente es requerida para guardarlo",
+        path: ["photo"],
+      });
+    }
+  });
 
 // --- Base package (shared dimensions) ---
 

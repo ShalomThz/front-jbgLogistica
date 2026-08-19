@@ -13,6 +13,7 @@ function mapContact(
   return {
     id: profile.id,
     customerNumber: profile.customerNumber ?? null,
+    photo: null,
     name: profile.name,
     company: profile.company,
     email: profile.email,

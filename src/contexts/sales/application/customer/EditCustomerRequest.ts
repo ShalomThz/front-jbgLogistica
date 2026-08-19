@@ -4,6 +4,7 @@ import z from "zod";
 
 export const editCustomerRequestSchema = z.object({
   id: customerSchema.shape.id,
+  photo: z.string().min(1).optional(),
   name: customerSchema.shape.name.optional(),
   company: customerSchema.shape.company.optional(),
   email: customerSchema.shape.email.optional(),

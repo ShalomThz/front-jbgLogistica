@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm, Controller, FormProvider } from "react-hook-form";
+import { useForm, Controller, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import {
@@ -23,6 +23,7 @@ import { StorePickerCombobox } from "@contexts/iam/ui/components/store/StorePick
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
 import { Store } from "lucide-react";
+import { CustomerPhotoInput } from "./CustomerPhotoInput";
 
 type FormInput = z.input<typeof createCustomerRequestSchema>;
 
@@ -40,6 +41,7 @@ function getDefaults(
 ): CreateCustomerRequest {
   return {
     userId: customer?.user?.id ?? null,
+    photo: customer?.photo ?? "",
     name: customer?.name ?? "",
     company: customer?.company ?? "",
     email: customer?.email ?? "",
@@ -87,6 +89,7 @@ export const CustomerFormDialog = ({
     reset,
     formState: { errors },
   } = form;
+  const customerName = useWatch({ control, name: "name" });
 
   useEffect(() => {
     if (open) reset(getDefaults(customer, user?.store.id));
@@ -107,6 +110,19 @@ export const CustomerFormDialog = ({
         </DialogHeader>
         <FormProvider {...form}>
           <form onSubmit={onSubmit} noValidate className="space-y-4">
+            <Controller
+              name="photo"
+              control={control}
+              render={({ field }) => (
+                <CustomerPhotoInput
+                  value={field.value}
+                  name={customerName}
+                  onChange={field.onChange}
+                  error={errors.photo?.message}
+                  disabled={isLoading}
+                />
+              )}
+            />
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre *</Label>

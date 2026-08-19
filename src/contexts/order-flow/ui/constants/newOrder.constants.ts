@@ -3,6 +3,7 @@ import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas
 
 const emptyContactWithAddress = {
   id: null,
+  photo: null,
   name: "",
   company: "",
   email: null,
