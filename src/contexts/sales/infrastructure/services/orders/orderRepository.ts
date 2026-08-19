@@ -8,6 +8,12 @@ import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../appl
 import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
 import type { OrderReportResponse } from "../../../application/order/OrderReportResponse";
 import {
+  cloverCheckoutSchema,
+  type CloverCheckout,
+  publicCloverCheckoutSchema,
+  type PublicCloverCheckout,
+} from "../../../domain/schemas/CloverCheckout";
+import {
   orderListViewResponseSchema,
   orderResponseSchema,
   type OrderListViewResponse,
@@ -113,6 +119,31 @@ export const orderRepository = {
     await httpClient<unknown>(`/order/${id}/payments`, {
       method: "DELETE",
     });
+  },
+
+  createCloverCheckout: async (
+    id: string,
+    amount: { amount: number; currency: "USD" },
+  ): Promise<CloverCheckout> => {
+    const data = await httpClient<unknown>(`/order/${id}/clover-checkout`, {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    });
+    return cloverCheckoutSchema.parse(data);
+  },
+
+  findCloverCheckout: async (id: string): Promise<CloverCheckout | null> => {
+    const data = await httpClient<unknown>(`/order/${id}/clover-checkout`);
+    return cloverCheckoutSchema.nullable().parse(data);
+  },
+
+  findPublicCloverCheckout: async (
+    publicToken: string,
+  ): Promise<PublicCloverCheckout> => {
+    const data = await httpClient<unknown>(
+      `/clover-checkout/${encodeURIComponent(publicToken)}`,
+    );
+    return publicCloverCheckoutSchema.parse(data);
   },
 
   report: async (

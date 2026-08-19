@@ -14,6 +14,14 @@ export const paymentSchema = z.object({
   concept: z.string().nullable().default(null),
   /** Marca de tiempo ISO en que se registró el abono. */
   date: z.string(),
+  externalReference: z
+    .object({
+      provider: z.literal("CLOVER"),
+      paymentId: z.string(),
+      checkoutSessionId: z.string(),
+    })
+    .nullable()
+    .default(null),
 });
 
 export type PaymentPrimitives = z.infer<typeof paymentSchema>;
