@@ -756,7 +756,7 @@ export const OrderDetailDialog = ({
                   <Printer className="size-4" />
                   Imprimir
                 </DropdownMenuItem>
-                {userCanEdit && destination.email && onSendInvoiceEmail && (
+                {userCanEdit && origin.email && onSendInvoiceEmail && (
                   <DropdownMenuItem
                     disabled={sendingInvoiceOrderId === order.id}
                     onClick={() => onSendInvoiceEmail(order)}

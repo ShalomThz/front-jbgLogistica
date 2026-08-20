@@ -98,7 +98,7 @@ export const OrderActionsMenu = ({
                   <Printer className="size-4" />
                   Imprimir factura
                 </DropdownMenuItem>
-                {canEdit && order.destination.email && (
+                {canEdit && order.origin.email && (
                   <DropdownMenuItem
                     disabled={sendingInvoiceOrderId === order.id}
                     onClick={() => onSendInvoiceEmail(order)}
