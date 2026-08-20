@@ -6,6 +6,7 @@ export const PAYMENT_METHODS = [
   "ZELLE",
   "BBVA",
   "PAGO_MEX",
+  "CLOVER",
   "PENDING",
 ] as const;
 
@@ -19,5 +20,6 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   ZELLE: "Zelle",
   BBVA: "BBVA",
   PAGO_MEX: "Pago Mex",
+  CLOVER: "Clover",
   PENDING: "Pendiente",
 };

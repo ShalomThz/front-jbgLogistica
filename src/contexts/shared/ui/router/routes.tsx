@@ -21,6 +21,7 @@ const NewHQOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewHQOrd
 const NewPartnerOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/NewPartnerOrderPage").then(m => ({ default: m.NewPartnerOrderPage })));
 const EditOrderPage = lazy(() => import("@contexts/order-flow/ui/pages/EditOrderPage").then(m => ({ default: m.EditOrderPage })));
 const CustomersPage = lazy(() => import("@contexts/sales/ui/pages/CustomersPage").then(m => ({ default: m.CustomersPage })));
+const CloverPaymentResultPage = lazy(() => import("@contexts/sales/ui/pages/CloverPaymentResultPage").then(m => ({ default: m.CloverPaymentResultPage })));
 
 const WarehousePage = lazy(() => import("@/contexts/warehouse/ui/pages/WarehousePage").then(m => ({ default: m.WarehousePage })));
 const CustomerWarehousePage = lazy(() => import("@/contexts/customer-warehouse/ui/pages/CustomerWarehousePage").then(m => ({ default: m.CustomerWarehousePage })));
@@ -47,6 +48,14 @@ const StoresPage = lazy(() => import("@contexts/iam/ui/pages/StoresPage").then(m
 const SettingsPage = lazy(() => import("@contexts/settings/ui/pages/SettingsPage").then(m => ({ default: m.SettingsPage })));
 
 export const routes: RouteObject[] = [
+  {
+    path: "/pago/clover",
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <CloverPaymentResultPage />
+      </Suspense>
+    ),
+  },
   // Dashboard - acceso general para usuarios autenticados
   { path: "/", element: <DashboardPage /> },
 

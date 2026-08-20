@@ -11,6 +11,8 @@ import {
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import { AddPaymentForm } from "./AddPaymentForm";
+import { CloverCheckoutPanel } from "./CloverCheckoutPanel";
+import { useCloverCheckout } from "@contexts/sales/infrastructure/hooks/orders/useCloverCheckout";
 
 const formatMoney = (amount: number, currency: string) =>
   `$${amount.toFixed(2)} ${currency}`;
@@ -48,6 +50,14 @@ export const PaymentLedgerPanel = ({
   const hasAnyPayment = status !== "UNPAID" || financials.payments.length > 0;
 
   const balance = resolveBilledBalance(financials);
+  const canUseClover =
+    financials.totalBilled?.currency === "USD" &&
+    balance !== null &&
+    balance.pending > 0;
+  const clover = useCloverCheckout(order.id, canUseClover);
+  const hasCloverPayment = financials.payments.some(
+    (payment) => payment.externalReference?.provider === "CLOVER",
+  );
 
   const handleClearPayments = async () => {
     await onClearPayments();
@@ -131,7 +141,11 @@ export const PaymentLedgerPanel = ({
                 {new Date(p.date).toLocaleDateString()}
               </div>
             </div>
-            {confirmingRemoveId === p.id ? (
+            {p.externalReference ? (
+              <Badge variant="outline" className="shrink-0">
+                Confirmado
+              </Badge>
+            ) : confirmingRemoveId === p.id ? (
               <div className="flex shrink-0 items-center gap-1">
                 <span className="mr-1 text-xs text-muted-foreground">
                   ¿Eliminar?
@@ -176,6 +190,17 @@ export const PaymentLedgerPanel = ({
         ))}
       </div>
 
+      {canUseClover && balance && (
+        <CloverCheckoutPanel
+          key={`${order.id}-${balance.pending}`}
+          outstanding={balance.pending}
+          checkout={clover.checkout}
+          onCreate={clover.createCheckout}
+          isLoading={clover.isLoading}
+          error={clover.error}
+        />
+      )}
+
       {/* Agregar pago */}
       <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
         <Label className={microLabel}>Agregar pago</Label>
@@ -189,6 +214,7 @@ export const PaymentLedgerPanel = ({
 
       {/* Marcar como no pagado */}
       {hasAnyPayment &&
+        !hasCloverPayment &&
         (confirmingClear ? (
           <div className="flex items-center justify-end gap-2">
             <span className="mr-auto text-xs text-muted-foreground">
