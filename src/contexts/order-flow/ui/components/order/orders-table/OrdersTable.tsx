@@ -42,9 +42,11 @@ interface OrdersTableProps {
   canViewFinancials: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
+  sendingInvoiceOrderId: string | null;
   onOpenDetail: (order: OrderListView) => void;
   onPrintLabel: (order: OrderListView, source: LabelSource) => void;
   onPrintInvoice: (order: OrderListView) => void;
+  onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
   onDelete: (order: OrderListView) => void;
@@ -59,9 +61,11 @@ export const OrdersTable = ({
   canViewFinancials,
   downloadingLabel,
   downloadingInvoice,
+  sendingInvoiceOrderId,
   onOpenDetail,
   onPrintLabel,
   onPrintInvoice,
+  onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
   onDelete,
@@ -86,9 +90,11 @@ export const OrdersTable = ({
               canViewFinancials={canViewFinancials}
               downloadingLabel={downloadingLabel}
               downloadingInvoice={downloadingInvoice}
+              sendingInvoiceOrderId={sendingInvoiceOrderId}
               onOpenDetail={onOpenDetail}
               onPrintLabel={onPrintLabel}
               onPrintInvoice={onPrintInvoice}
+              onSendInvoiceEmail={onSendInvoiceEmail}
               onEdit={onEdit}
               onCompleteSale={onCompleteSale}
               onDelete={onDelete}
@@ -356,8 +362,10 @@ export const OrdersTable = ({
                       canDelete={canDelete(order)}
                       downloadingLabel={downloadingLabel}
                       downloadingInvoice={downloadingInvoice}
+                      sendingInvoiceOrderId={sendingInvoiceOrderId}
                       onPrintLabel={onPrintLabel}
                       onPrintInvoice={onPrintInvoice}
+                      onSendInvoiceEmail={onSendInvoiceEmail}
                       onEdit={onEdit}
                       onCompleteSale={onCompleteSale}
                       onDelete={onDelete}

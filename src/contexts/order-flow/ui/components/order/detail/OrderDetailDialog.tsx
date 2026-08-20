@@ -46,7 +46,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Package, Pencil, Printer, Route, Tag, Trash2, Users } from "lucide-react";
+import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Tag, Trash2, Users } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -114,6 +114,8 @@ interface OrderDetailDialogProps {
   isDeleting?: boolean;
   onCancelShipment?: (shipmentId: string) => void;
   isCancelling?: boolean;
+  sendingInvoiceOrderId?: string | null;
+  onSendInvoiceEmail?: (order: OrderListView) => void;
 }
 
 export const OrderDetailDialog = ({
@@ -124,6 +126,8 @@ export const OrderDetailDialog = ({
   isDeleting,
   onCancelShipment,
   isCancelling,
+  sendingInvoiceOrderId,
+  onSendInvoiceEmail,
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -752,6 +756,21 @@ export const OrderDetailDialog = ({
                   <Printer className="size-4" />
                   Imprimir
                 </DropdownMenuItem>
+                {userCanEdit && destination.email && onSendInvoiceEmail && (
+                  <DropdownMenuItem
+                    disabled={sendingInvoiceOrderId === order.id}
+                    onClick={() => onSendInvoiceEmail(order)}
+                  >
+                    {sendingInvoiceOrderId === order.id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Mail className="size-4" />
+                    )}
+                    {sendingInvoiceOrderId === order.id
+                      ? "Enviando..."
+                      : "Enviar por correo"}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

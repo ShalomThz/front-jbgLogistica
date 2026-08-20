@@ -22,6 +22,7 @@ import {
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
 import { printInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
+import { useSendInvoiceEmail } from "@contexts/sales/infrastructure/hooks/orders/useSendInvoiceEmail";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import {
@@ -63,6 +64,7 @@ export const OrdersPage = () => {
   } = useOrders({ page, limit, ...criteria });
 
   const { cancelShipment, isCancelling } = useShipmentActions();
+  const { sendInvoiceEmail, sendingInvoiceOrderId } = useSendInvoiceEmail();
   const { user } = useAuth();
 
   const visibleOrders = useMemo(
@@ -103,6 +105,10 @@ export const OrdersPage = () => {
     } finally {
       setDownloadingInvoice(null);
     }
+  };
+
+  const handleSendInvoiceEmail = (order: OrderListView) => {
+    sendInvoiceEmail(order.id);
   };
 
   const canCreatePartner = user ? orderPolicies.createPartner(user) : false;
@@ -200,9 +206,11 @@ export const OrdersPage = () => {
         canViewFinancials={canViewFinancials}
         downloadingLabel={downloadingLabel}
         downloadingInvoice={downloadingInvoice}
+        sendingInvoiceOrderId={sendingInvoiceOrderId}
         onOpenDetail={handleOpenDialog}
         onPrintLabel={handlePrintLabel}
         onPrintInvoice={handlePrintInvoice}
+        onSendInvoiceEmail={handleSendInvoiceEmail}
         onEdit={(order) => navigate(`/orders/${order.id}/edit`)}
         onCompleteSale={(order) => navigate(`/orders/${order.id}/edit?mode=complete`)}
         onDelete={(order) => setOrderToDelete(order)}
@@ -256,6 +264,8 @@ export const OrdersPage = () => {
         isDeleting={isDeleting}
         onCancelShipment={handleCancelShipment}
         isCancelling={isCancelling}
+        sendingInvoiceOrderId={sendingInvoiceOrderId}
+        onSendInvoiceEmail={handleSendInvoiceEmail}
       />
 
       <OrderDeleteDialog

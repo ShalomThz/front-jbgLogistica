@@ -8,6 +8,10 @@ import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../appl
 import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
 import type { OrderReportResponse } from "../../../application/order/OrderReportResponse";
 import {
+  sendInvoiceEmailResponseSchema,
+  type SendInvoiceEmailResponse,
+} from "../../../application/order/SendInvoiceEmailResponse";
+import {
   cloverCheckoutSchema,
   type CloverCheckout,
   publicCloverCheckoutSchema,
@@ -161,5 +165,14 @@ export const orderRepository = {
 
   getInvoicePdf: async (orderId: string): Promise<Blob> => {
     return httpClientBlob(`/invoice/${orderId}/pdf`);
+  },
+
+  sendInvoiceEmail: async (
+    orderId: string,
+  ): Promise<SendInvoiceEmailResponse> => {
+    const data = await httpClient<unknown>(`/invoice/${orderId}/email`, {
+      method: "POST",
+    });
+    return sendInvoiceEmailResponseSchema.parse(data);
   },
 };

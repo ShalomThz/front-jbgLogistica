@@ -12,7 +12,7 @@ import {
   availableLabelOptions,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
+import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
 
 interface OrderActionsMenuProps {
   order: OrderListView;
@@ -21,8 +21,10 @@ interface OrderActionsMenuProps {
   canDelete: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
+  sendingInvoiceOrderId: string | null;
   onPrintLabel: (order: OrderListView, source: LabelSource) => void;
   onPrintInvoice: (order: OrderListView) => void;
+  onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
   onDelete: (order: OrderListView) => void;
@@ -35,8 +37,10 @@ export const OrderActionsMenu = ({
   canDelete,
   downloadingLabel,
   downloadingInvoice,
+  sendingInvoiceOrderId,
   onPrintLabel,
   onPrintInvoice,
+  onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
   onDelete,
@@ -86,13 +90,30 @@ export const OrderActionsMenu = ({
                 </DropdownMenuItem>
               ))}
             {canPrintInvoice && (
-              <DropdownMenuItem
-                disabled={downloadingInvoice === order.id}
-                onClick={() => onPrintInvoice(order)}
-              >
-                <Printer className="size-4" />
-                Imprimir factura
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem
+                  disabled={downloadingInvoice === order.id}
+                  onClick={() => onPrintInvoice(order)}
+                >
+                  <Printer className="size-4" />
+                  Imprimir factura
+                </DropdownMenuItem>
+                {canEdit && order.destination.email && (
+                  <DropdownMenuItem
+                    disabled={sendingInvoiceOrderId === order.id}
+                    onClick={() => onSendInvoiceEmail(order)}
+                  >
+                    {sendingInvoiceOrderId === order.id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Mail className="size-4" />
+                    )}
+                    {sendingInvoiceOrderId === order.id
+                      ? "Enviando factura..."
+                      : "Enviar factura por correo"}
+                  </DropdownMenuItem>
+                )}
+              </>
             )}
           </>
         )}
