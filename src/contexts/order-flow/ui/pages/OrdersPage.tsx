@@ -32,6 +32,7 @@ import {
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
+import { SendInvoiceEmailDialog } from "../components/order/SendInvoiceEmailDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
 import { OrdersTable } from "../components/order/orders-table/OrdersTable";
@@ -63,6 +64,7 @@ export const OrdersPage = () => {
     isDeleting,
   } = useOrders({ page, limit, ...criteria });
 
+  const [orderToEmail, setOrderToEmail] = useState<OrderListView | null>(null);
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { sendInvoiceEmail, sendingInvoiceOrderId } = useSendInvoiceEmail();
   const { user } = useAuth();
@@ -108,7 +110,14 @@ export const OrdersPage = () => {
   };
 
   const handleSendInvoiceEmail = (order: OrderListView) => {
-    sendInvoiceEmail(order.id);
+    setOrderToEmail(order);
+  };
+
+  const handleConfirmInvoiceEmail = () => {
+    if (!orderToEmail) return;
+    sendInvoiceEmail(orderToEmail.id, {
+      onSuccess: () => setOrderToEmail(null),
+    });
   };
 
   const canCreatePartner = user ? orderPolicies.createPartner(user) : false;
@@ -274,6 +283,14 @@ export const OrdersPage = () => {
         onClose={() => setOrderToDelete(null)}
         onConfirm={handleDelete}
         isLoading={isDeleting}
+      />
+
+      <SendInvoiceEmailDialog
+        order={orderToEmail}
+        open={!!orderToEmail}
+        isSending={sendingInvoiceOrderId === orderToEmail?.id}
+        onClose={() => setOrderToEmail(null)}
+        onConfirm={handleConfirmInvoiceEmail}
       />
 
       <Dialog open={showNewOrderDialog} onOpenChange={setShowNewOrderDialog}>
