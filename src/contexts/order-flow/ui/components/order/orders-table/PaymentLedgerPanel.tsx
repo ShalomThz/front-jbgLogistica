@@ -140,6 +140,16 @@ export const PaymentLedgerPanel = ({
                 {p.concept && ` · ${p.concept}`} ·{" "}
                 {new Date(p.date).toLocaleDateString()}
               </div>
+              {p.appliedAmount &&
+                p.appliedAmount.currency !== p.amount.currency && (
+                  <div className="truncate text-xs text-muted-foreground">
+                    Aplicado: {formatMoney(
+                      p.appliedAmount.amount,
+                      p.appliedAmount.currency,
+                    )}
+                    {p.exchangeRate && ` · TC ${p.exchangeRate}`}
+                  </div>
+                )}
             </div>
             {p.externalReference ? (
               <Badge variant="outline" className="shrink-0">
@@ -212,7 +222,7 @@ export const PaymentLedgerPanel = ({
         />
       </div>
 
-      {/* Marcar como no pagado */}
+      {/* Borrar abonos manuales y volver a pendiente */}
       {hasAnyPayment &&
         !hasCloverPayment &&
         (confirmingClear ? (
@@ -226,7 +236,7 @@ export const PaymentLedgerPanel = ({
               disabled={isSaving}
               onClick={handleClearPayments}
             >
-              Sí, no pagado
+              Sí, borrar
             </Button>
             <Button
               variant="ghost"
@@ -246,7 +256,7 @@ export const PaymentLedgerPanel = ({
             onClick={() => setConfirmingClear(true)}
           >
             <Trash2 className="size-4" />
-            Marcar como no pagado
+            Eliminar abonos y dejar pendiente
           </Button>
         ))}
     </div>

@@ -122,7 +122,7 @@ export const PendingPaymentControl = ({
               Pagado
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onClearPayments}>
-              No pagado
+              Pendiente
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -10,6 +10,10 @@ import z from "zod";
 export const paymentSchema = z.object({
   id: z.string(),
   amount: moneySchema,
+  /** Snapshot aplicado a la moneda facturada por el backend. */
+  appliedAmount: moneySchema.nullable().default(null),
+  exchangeRate: z.number().positive().nullable().default(null),
+  source: z.enum(["MANUAL", "CLOVER", "LEGACY"]).nullable().default(null),
   method: z.enum(PAYMENT_METHODS),
   concept: z.string().nullable().default(null),
   /** Marca de tiempo ISO en que se registró el abono. */
@@ -41,6 +45,10 @@ export const orderFinancialsSchema = z.object({
   /** Libro de abonos parciales. Vacío para órdenes previas al campo o
    * liquidadas por el flujo antiguo de pago único. */
   payments: z.array(paymentSchema).default([]),
+  totalPaid: moneySchema.nullable().optional(),
+  outstanding: moneySchema.nullable().optional(),
+  credit: moneySchema.nullable().optional(),
+  ledgerVersion: z.literal(1).optional(),
   costBreakdown: costBreakdownSchema,
   discount: discountSchema,
 });

@@ -3,7 +3,7 @@ export const PAYMENT_STATUSES = ["UNPAID", "PARTIALLY_PAID", "PAID"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  UNPAID: "No pagado",
+  UNPAID: "Pendiente",
   PARTIALLY_PAID: "Parcial",
   PAID: "Pagado",
 };
@@ -47,6 +47,10 @@ interface Amount {
 interface BilledBalanceSource {
   totalBilled: Amount | null;
   payments: { amount: Amount }[];
+  totalPaid?: Amount | null;
+  outstanding?: Amount | null;
+  credit?: Amount | null;
+  ledgerVersion?: 1;
 }
 
 export interface BilledBalance {
@@ -54,19 +58,34 @@ export interface BilledBalance {
   paid: number;
   /** total − pagado. Negativo = pagado de más (a favor). */
   pending: number;
+  credit: number;
 }
 
 /**
- * Pagado y saldo en la moneda de facturación. El front no convierte monedas,
- * así que solo es fiable cuando todos los abonos están en la moneda de
- * `totalBilled`; con monedas mixtas (o sin total) devuelve null y la UI muestra
- * únicamente el estado (que el backend deriva con FX).
+ * Consume el resumen autoritativo calculado por el backend. El fallback sólo
+ * cubre respuestas antiguas durante un despliegue escalonado y se limita a
+ * pagos en la misma moneda; el frontend nunca calcula FX.
  */
 export const resolveBilledBalance = (
   financials: BilledBalanceSource,
 ): BilledBalance | null => {
   const total = financials.totalBilled;
   if (!total) return null;
+
+  if (
+    financials.ledgerVersion === 1 &&
+    financials.totalPaid?.currency === total.currency &&
+    financials.outstanding?.currency === total.currency &&
+    financials.credit?.currency === total.currency
+  ) {
+    return {
+      total: total.amount,
+      paid: financials.totalPaid.amount,
+      pending:
+        financials.outstanding.amount - financials.credit.amount,
+      credit: financials.credit.amount,
+    };
+  }
 
   const paymentsOk = financials.payments.every(
     (p) => p.amount.currency === total.currency,
@@ -78,5 +97,10 @@ export const resolveBilledBalance = (
     0,
   );
 
-  return { total: total.amount, paid, pending: total.amount - paid };
+  return {
+    total: total.amount,
+    paid,
+    pending: total.amount - paid,
+    credit: Math.max(paid - total.amount, 0),
+  };
 };

@@ -295,7 +295,7 @@ export const OrderFilters = ({
                 <SelectContent>
                   <SelectItem value="all">Todos los pagos</SelectItem>
                   <SelectItem value="paid">Pagado</SelectItem>
-                  <SelectItem value="unpaid">No pagado</SelectItem>
+                  <SelectItem value="unpaid">Pendiente</SelectItem>
                 </SelectContent>
               </Select>
             </div>
