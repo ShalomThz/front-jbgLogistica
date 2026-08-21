@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Button,
   Input,
@@ -39,15 +39,34 @@ export const AddPaymentForm = ({
   const [currency, setCurrency] = useState(defaultCurrency);
   const [method, setMethod] = useState<ManualPaymentMethod | "">("");
   const [concept, setConcept] = useState("");
+  const pendingIntent = useRef<{
+    fingerprint: string;
+    idempotencyKey: string;
+  } | null>(null);
 
   const handleAdd = async () => {
     const numericAmount = Number(amount);
     if (!method || !numericAmount || numericAmount <= 0) return;
+    const normalizedConcept = concept.trim() || null;
+    const fingerprint = JSON.stringify({
+      amount: numericAmount,
+      currency,
+      method,
+      concept: normalizedConcept,
+    });
+    if (pendingIntent.current?.fingerprint !== fingerprint) {
+      pendingIntent.current = {
+        fingerprint,
+        idempotencyKey: crypto.randomUUID(),
+      };
+    }
     await onAdd({
+      idempotencyKey: pendingIntent.current.idempotencyKey,
       amount: { amount: numericAmount, currency },
       method,
-      concept: concept.trim() || null,
+      concept: normalizedConcept,
     });
+    pendingIntent.current = null;
     setAmount("");
     setCurrency(defaultCurrency);
     setMethod("");

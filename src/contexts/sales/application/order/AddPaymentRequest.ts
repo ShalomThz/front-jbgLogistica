@@ -3,6 +3,7 @@ import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import z from "zod";
 
 export const addPaymentRequestSchema = z.object({
+  idempotencyKey: z.uuid(),
   amount: moneySchema,
   method: z.enum(MANUAL_PAYMENT_METHODS),
   concept: z.string().nullish(),
