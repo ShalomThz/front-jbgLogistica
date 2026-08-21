@@ -28,7 +28,9 @@ export const CloverCheckoutPanel = ({
     Number.isFinite(numericAmount) &&
     numericAmount > 0 &&
     Math.round(numericAmount * 100) <= Math.round(outstanding * 100);
-  const isActive = checkout?.status === "PENDING";
+  const isActive =
+    checkout?.status === "PENDING" &&
+    Math.round(checkout.amount.amount * 100) <= Math.round(outstanding * 100);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -98,6 +100,12 @@ export const CloverCheckoutPanel = ({
           {checkout?.status === "EXPIRED" && (
             <p className="text-sm text-muted-foreground">
               El enlace anterior expiró. Genera uno nuevo para continuar.
+            </p>
+          )}
+          {checkout?.status === "PENDING" && !isActive && (
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              El saldo cambió después de generar el enlace anterior. Genera un
+              enlace actualizado antes de compartirlo.
             </p>
           )}
           <form className="space-y-3" onSubmit={submit}>
