@@ -6,6 +6,8 @@ import {
   Map,
   Tag,
 } from "lucide-react";
+import { toast } from "sonner";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors/parseApiError";
 import { useCountries } from "@contexts/shared/infrastructure/hooks/useCountries";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
@@ -94,23 +96,37 @@ export const ZonesPage = () => {
   const [editZone, setEditZone] = useState<ZonePrimitives | null>(null);
   const [deleteZoneDialog, setDeleteZoneDialog] = useState<ZonePrimitives | null>(null);
 
+  // El servidor rechaza el alta por nombre repetido en el estado, y el borrado
+  // por zona en uso. Sin esto el diálogo se queda abierto y sin decir por qué.
   const handleCreate = async (data: CreateZoneRequestPrimitives) => {
-    await createZone(data);
-    setFormOpen(false);
-    setPage(1);
+    try {
+      await createZone(data);
+      setFormOpen(false);
+      setPage(1);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleUpdate = async (data: CreateZoneRequestPrimitives) => {
     if (!editZone) return;
-    await updateZone(editZone.id, data);
-    setEditZone(null);
+    try {
+      await updateZone(editZone.id, data);
+      setEditZone(null);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteZoneDialog) return;
-    await deleteZone(deleteZoneDialog.id);
-    setDeleteZoneDialog(null);
-    setPage(1);
+    try {
+      await deleteZone(deleteZoneDialog.id);
+      setDeleteZoneDialog(null);
+      setPage(1);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
   };
 
   const handleEditFromDetail = (zone: ZonePrimitives) => {

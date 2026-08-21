@@ -21,23 +21,29 @@ import {
 import {
   AlertTriangle,
   Gauge,
+  Globe,
   Handshake,
   Loader2,
   MapPin,
   RotateCcw,
   Store,
+  Truck,
   Users,
 } from "lucide-react";
 import { ZoneSelector } from "@contexts/pricing/ui/components/zone/ZoneSelector";
 import { ServiceLevelSelector } from "../../shared/ServiceLevelSelector";
 import { CreateTariffButton } from "@contexts/pricing/ui/components/tariff/CreateTariffButton";
+import { ShippingModeSelector } from "./ShippingModeSelector";
+import { DestinationCountrySelector } from "../../shared/DestinationCountrySelector";
 import {
   PRICE_TYPE_LABELS,
   SERVICE_LEVEL_COLORS,
   SERVICE_LEVEL_LABELS,
+  SHIPPING_MODE_LABELS,
   priceTypes,
   type PriceType,
   type ServiceLevel,
+  type ShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { SignatureCard } from "../../shared/SignatureCard";
 import { AdditionalCostsCard } from "./AdditionalCostsCard";
@@ -52,7 +58,15 @@ interface CobroStepProps {
   /** Insumos de la tarifa: cambiarlos recotiza en el momento. */
   zoneId: string;
   onZoneChange?: (zoneId: string) => void;
+  /** País con el que se cotiza. Arranca en el del destinatario. */
+  destinationCountry: string;
+  onDestinationCountryChange: (country: string) => void;
+  /** El del destinatario, para avisar si el de cotización no coincide. */
+  recipientCountry: string;
   serviceLevel: ServiceLevel;
+  /** El modo con el que se está armando el envío: es parte de la clave de la
+   * tarifa, así que la cotización que se muestra depende de él. */
+  shippingMode: ShippingMode;
   onServiceLevelChange: (serviceLevel: ServiceLevel) => void;
   priceType: PriceType;
   onPriceTypeChange: (priceType: PriceType) => void;
@@ -62,9 +76,14 @@ interface CobroStepProps {
   /** Lo que sugirió la tabla, para contrastarlo con lo que se va a cobrar. */
   suggestedTariff: MoneyPrimitives | null;
   onTariffChange: (tariff: MoneyPrimitives | null) => void;
-  /** Con qué datos tomó la orden la tienda socia, cuando esta venta continúa
-   * una orden partner. Null en una orden HQ de mostrador. */
+  /** La orden viene de una orden partner: HQ la está completando. */
+  isPartnerOrder: boolean;
+  /** Con qué datos tomó la orden la tienda socia. Null cuando no había tarifa
+   * para la combinación y el socio puso el precio a mano. */
   partnerPricing: OrderPricingPrimitives | null;
+  /** Lo que el socio efectivamente le cobró a su cliente, haya habido tarifa
+   * o no. Es lo único que queda cuando `partnerPricing` es null. */
+  partnerTariff: MoneyPrimitives | null;
 
   /** Abonos capturados en este paso (locales; se suben al finalizar). */
   pendingPayments: AddPaymentRequest[];
@@ -87,7 +106,11 @@ export function CobroStep({
   orderId,
   zoneId,
   onZoneChange,
+  destinationCountry,
+  onDestinationCountryChange,
+  recipientCountry,
   serviceLevel,
+  shippingMode,
   onServiceLevelChange,
   priceType,
   onPriceTypeChange,
@@ -96,7 +119,9 @@ export function CobroStep({
   tariffError,
   suggestedTariff,
   onTariffChange,
+  isPartnerOrder,
   partnerPricing,
+  partnerTariff,
   pendingPayments,
   onAddPayment,
   onRemovePayment,
@@ -138,18 +163,43 @@ export function CobroStep({
         {/* La orden ya venía cotizada por el socio. Se muestra tal cual quedó
             registrada para no re-cotizar a ciegas: si acá se elige otra zona o
             servicio, es una decisión, no un descuido. */}
-        {partnerPricing && (
-          <Card className="border-sky-500/40 bg-sky-500/5 shadow-none">
+        {isPartnerOrder && (
+          <Card
+            className={
+              partnerPricing
+                ? "border-sky-500/40 bg-sky-500/5 shadow-none"
+                : "border-amber-500/50 bg-amber-500/5 shadow-none"
+            }
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Store className="size-4" />
                 Datos con los que la tienda socia tomó la orden
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Cotizado el{" "}
-                {new Date(partnerPricing.quotedAt).toLocaleString("es-MX")}
+                {partnerPricing ? (
+                  <>
+                    Cotizado el{" "}
+                    {new Date(partnerPricing.quotedAt).toLocaleString("es-MX")}
+                  </>
+                ) : (
+                  "No había tarifa para esa combinación: el socio puso el precio a mano, sin cotización del sistema."
+                )}
               </p>
             </CardHeader>
+            {!partnerPricing && (
+              <CardContent className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="gap-1.5 py-1 font-mono">
+                  <span className="text-[10px] uppercase tracking-wide opacity-70">
+                    Cobró
+                  </span>
+                  {partnerTariff
+                    ? `$${partnerTariff.amount.toFixed(2)} ${partnerTariff.currency}`
+                    : "—"}
+                </Badge>
+              </CardContent>
+            )}
+            {partnerPricing && (
             <CardContent className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="gap-1.5 py-1">
                 <MapPin className="size-3.5" />
@@ -168,6 +218,20 @@ export function CobroStep({
                 </span>
                 {SERVICE_LEVEL_LABELS[partnerPricing.serviceLevel]}
               </Badge>
+              <Badge variant="secondary" className="gap-1.5 py-1">
+                <Globe className="size-3.5" />
+                <span className="text-[10px] uppercase tracking-wide opacity-70">
+                  Destino
+                </span>
+                {partnerPricing.destinationCountry}
+              </Badge>
+              <Badge variant="secondary" className="gap-1.5 py-1">
+                <Truck className="size-3.5" />
+                <span className="text-[10px] uppercase tracking-wide opacity-70">
+                  Transporte
+                </span>
+                {SHIPPING_MODE_LABELS[partnerPricing.shippingMode]}
+              </Badge>
               <Badge variant="outline" className="gap-1.5 py-1">
                 <Handshake className="size-3.5" />
                 <span className="text-[10px] uppercase tracking-wide opacity-70">
@@ -183,6 +247,7 @@ export function CobroStep({
                 {partnerPricing.price.currency}
               </Badge>
             </CardContent>
+            )}
           </Card>
         )}
 
@@ -190,11 +255,12 @@ export function CobroStep({
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Tarifa</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Zona de recolección, servicio y a quién se le cobra.
+              Zona de recolección, servicio, transporte, país destino y a quién
+              se le cobra: los cinco forman el renglón de la tabla de precios.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <ZoneSelector
                 zoneId={zoneId || undefined}
                 onZoneChange={onZoneChange ?? (() => undefined)}
@@ -204,6 +270,15 @@ export function CobroStep({
               <ServiceLevelSelector
                 value={serviceLevel}
                 onChange={onServiceLevelChange}
+              />
+              {/* El mismo campo del envío, movido acá: es parte de la clave de
+                  la tarifa, así que cambiarlo recotiza y el efecto se ve en
+                  este mismo paso. Sigue viajando en `selectProvider`. */}
+              <ShippingModeSelector />
+              <DestinationCountrySelector
+                value={destinationCountry}
+                onChange={onDestinationCountryChange}
+                recipientCountry={recipientCountry}
               />
               <div className="space-y-1">
                 <Label htmlFor="price-type" className="flex items-center gap-1.5">
@@ -250,7 +325,9 @@ export function CobroStep({
                     <CreateTariffButton
                       zoneId={zoneId}
                       boxId={boxId}
+                      destinationCountry={destinationCountry}
                       serviceLevel={serviceLevel}
+                      shippingMode={shippingMode}
                       variant="outline"
                     />
                   )}

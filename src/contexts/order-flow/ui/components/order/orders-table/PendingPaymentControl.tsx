@@ -10,6 +10,8 @@ import { ChevronDown } from "lucide-react";
 import {
   PAYMENT_STATUS_BUTTON_CLASS,
   PAYMENT_STATUS_LABELS,
+  roundMoney,
+  toCents,
   type PaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
@@ -63,14 +65,21 @@ export const PendingPaymentControl = ({
     ...pendingPayments.map((p) => p.amount),
   ];
   const hasMixedCurrency = allAmounts.some((a) => a.currency !== currency);
+  // Todo en centavos: el total sale de multiplicar por tipos de cambio y
+  // arrastra residuos, así que `paid >= grandTotal` exacto daba falso al
+  // liquidar el saldo justo y el resumen se quedaba en parcial. Es el mismo
+  // criterio que aplica el backend al derivar el estado.
   const paid = hasMixedCurrency
     ? null
-    : allAmounts.reduce((sum, a) => sum + a.amount, 0);
-  const saldo = paid !== null && grandTotal !== null ? grandTotal - paid : null;
+    : roundMoney(allAmounts.reduce((sum, a) => sum + a.amount, 0));
+  const saldo =
+    paid !== null && grandTotal !== null ? roundMoney(grandTotal - paid) : null;
   const status: PaymentStatus =
     allAmounts.length === 0
       ? "UNPAID"
-      : paid !== null && grandTotal !== null && paid >= grandTotal
+      : paid !== null &&
+          grandTotal !== null &&
+          toCents(paid) >= toCents(grandTotal)
         ? "PAID"
         : "PARTIALLY_PAID";
 

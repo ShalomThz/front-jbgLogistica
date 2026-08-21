@@ -21,7 +21,6 @@ interface PartnerPackageStepProps {
   onEditContacts: () => void;
   /** Acota las cajas a las que tienen precio en la zona de recolección. La
    * zona se elige en el paso de costos, junto al resto de la tarifa. */
-  originZoneId: string | undefined;
 }
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
@@ -33,7 +32,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PartnerPackageStep({ onEditContacts, originZoneId }: PartnerPackageStepProps) {
+export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const pkg = useWatch<PartnerOrderFormValues, "package">({ name: "package" });
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
@@ -97,7 +96,7 @@ export function PartnerPackageStep({ onEditContacts, originZoneId }: PartnerPack
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Sub-col 1: box selector + dimensions */}
             <div className="space-y-4">
-              <BoxSelector zoneScope={{ zoneId: originZoneId }} />
+              <BoxSelector />
 
               {/* Inline dimensions — always derived from the selected box */}
               <div className="rounded-md border bg-muted/30 px-3 py-2">

@@ -7,7 +7,10 @@ import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrder
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildPartnerEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
@@ -21,6 +24,8 @@ interface UsePartnerOrderSubmissionOptions {
   /** Viaja al backend para que calcule la sugerencia contra la que se
    * contrasta el precio cobrado. */
   serviceLevel: ServiceLevel;
+  shippingMode: ShippingMode;
+  destinationCountry: string;
   onSuccess: () => void;
 }
 
@@ -30,6 +35,8 @@ export const usePartnerOrderSubmission = ({
   storeId,
   tariff,
   serviceLevel,
+  shippingMode,
+  destinationCountry,
   onSuccess,
 }: UsePartnerOrderSubmissionOptions) => {
   const navigate = useNavigate();
@@ -91,6 +98,8 @@ export const usePartnerOrderSubmission = ({
           tariff,
           pendingPayments,
           serviceLevel,
+          shippingMode,
+          destinationCountry,
         );
         const order = await createPartnerOrder(request);
         setOrderId(order.id);

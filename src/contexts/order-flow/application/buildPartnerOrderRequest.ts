@@ -1,7 +1,10 @@
 import { createPartnerOrderSchema } from "@contexts/sales/application/order/CreatePartnerOrderRequest";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
-import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { PartnerOrderFormValues } from "../domain/schemas/NewOrderForm";
 
 const parseMoney = (amount: string, currency: string): MoneyPrimitives | null => {
@@ -15,9 +18,12 @@ export const buildPartnerOrderRequest = (
   tariff: MoneyPrimitives,
   /** Abonos cobrados al crear → se siembran en el libro de la orden. */
   payments: AddPaymentRequest[] = [],
-  /** Insumo de la sugerencia: el servidor cotiza con esto para poder medir el
-   * desvío contra el precio que finalmente se cobra. */
+  /** Insumos de la sugerencia: el servidor cotiza con esto para poder medir el
+   * desvío contra el precio que finalmente se cobra. El renglón de la tarifa es
+   * (zona, país destino, caja, servicio, modo, tipo). */
   serviceLevel?: ServiceLevel,
+  shippingMode?: ShippingMode,
+  destinationCountry?: string,
 ) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
@@ -53,6 +59,8 @@ export const buildPartnerOrderRequest = (
     destination: { ...recipientContact, address: recipientAddress },
     tariff,
     ...(serviceLevel && { serviceLevel }),
+    ...(shippingMode && { shippingMode }),
+    ...(destinationCountry && { destinationCountry }),
     ...(hasCosts && { costBreakdown }),
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,

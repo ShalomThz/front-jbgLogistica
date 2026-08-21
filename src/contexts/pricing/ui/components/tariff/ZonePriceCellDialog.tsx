@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Coins, Gauge, Handshake, MapPin, Package, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  Coins,
+  Gauge,
+  Globe,
+  Handshake,
+  MapPin,
+  Package,
+  Truck,
+  Users,
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -18,10 +28,14 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import type { SetZonePriceRequest } from "@contexts/pricing/application/ZonePriceMatrix";
-import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import {
   SERVICE_LEVEL_COLORS,
   SERVICE_LEVEL_LABELS,
+  SHIPPING_MODE_LABELS,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 
@@ -33,9 +47,11 @@ interface Props {
   onSave: (data: SetZonePriceRequest) => Promise<unknown>;
   zoneId: string;
   zoneName?: string;
+  destinationCountry: string;
   boxId: string;
   boxName?: string;
   serviceLevel: ServiceLevel;
+  shippingMode: ShippingMode;
   publicPrice: MoneyPrimitives | null;
   partnerPrice: MoneyPrimitives | null;
   isLoading?: boolean;
@@ -54,9 +70,11 @@ export function ZonePriceCellDialog({
   onSave,
   zoneId,
   zoneName,
+  destinationCountry,
   boxId,
   boxName,
   serviceLevel,
+  shippingMode,
   publicPrice,
   partnerPrice,
   isLoading,
@@ -92,8 +110,10 @@ export function ZonePriceCellDialog({
   const handleSubmit = async () => {
     await onSave({
       zoneId,
+      destinationCountry,
       boxId,
       serviceLevel,
+      shippingMode,
       publicPrice: publicMoney,
       partnerPrice: partnerMoney,
     });
@@ -104,7 +124,7 @@ export function ZonePriceCellDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Precios de la celda</DialogTitle>
+          <DialogTitle>Precios de la tarifa</DialogTitle>
           <DialogDescription>
             Qué caja, con qué servicio y en qué zona se está cotizando.
           </DialogDescription>
@@ -131,6 +151,20 @@ export function ZonePriceCellDialog({
               Servicio
             </span>
             {SERVICE_LEVEL_LABELS[serviceLevel]}
+          </Badge>
+          <Badge variant="secondary" className="gap-1.5 py-1">
+            <Globe className="size-3.5" />
+            <span className="text-[10px] uppercase tracking-wide opacity-70">
+              Destino
+            </span>
+            {destinationCountry}
+          </Badge>
+          <Badge variant="secondary" className="gap-1.5 py-1">
+            <Truck className="size-3.5" />
+            <span className="text-[10px] uppercase tracking-wide opacity-70">
+              Transporte
+            </span>
+            {SHIPPING_MODE_LABELS[shippingMode]}
           </Badge>
           <Badge variant="outline" className="gap-1.5 py-1">
             <MapPin className="size-3.5" />

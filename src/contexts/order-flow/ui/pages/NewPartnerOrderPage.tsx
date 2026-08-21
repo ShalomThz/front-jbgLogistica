@@ -16,12 +16,16 @@ import { PartnerPackageStep } from "../components/partner/package/PartnerPackage
 import { PartnerPricingStep } from "../components/partner/pricing/PartnerPricingStep";
 import { StepIndicator } from "../components/shared/StepIndicator";
 import type { PartnerOrderFormValues } from "../../domain/schemas/NewOrderForm";
+import type { OrderPricingPrimitives } from "@contexts/sales/domain/schemas/order/Order";
 
 interface NewPartnerOrderPageProps {
   initialValues?: PartnerOrderFormValues;
   orderId?: string;
   storeName?: string;
   storeId?: string;
+  /** Con qué se cotizó la orden que se está reabriendo, para que los
+   * selectores de precio arranquen ahí y no en los defaults. */
+  initialPricing?: OrderPricingPrimitives | null;
 }
 
 /**
@@ -98,9 +102,9 @@ export const NewPartnerOrderPage = (props: NewPartnerOrderPageProps = {}) => {
   );
 };
 
-const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }: NewPartnerOrderPageProps) => {
+const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, initialPricing }: NewPartnerOrderPageProps) => {
   const navigate = useNavigate();
-  const flow = usePartnerOrderFlow({ initialValues, orderId, storeId });
+  const flow = usePartnerOrderFlow({ initialValues, orderId, storeId, initialPricing });
 
   const selectedStoreFilters = useMemo(
     () =>
@@ -175,10 +179,7 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
         )}
 
         {flow.step === "package" && (
-          <PartnerPackageStep
-            onEditContacts={() => flow.setStep("contact")}
-            originZoneId={flow.originZoneId}
-          />
+          <PartnerPackageStep onEditContacts={() => flow.setStep("contact")} />
         )}
 
         {flow.step === "pricing" && (
@@ -198,6 +199,11 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId }
             {...(flow.canChangeZone && { onZoneChange: flow.setZoneOverride })}
             serviceLevel={flow.serviceLevel}
             onServiceLevelChange={flow.setServiceLevel}
+            destinationCountry={flow.destinationCountry}
+            onDestinationCountryChange={flow.setDestinationCountry}
+            recipientCountry={flow.recipientCountry}
+            shippingMode={flow.shippingMode}
+            onShippingModeChange={flow.setShippingMode}
           />
         )}
 

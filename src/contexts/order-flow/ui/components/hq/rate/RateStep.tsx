@@ -10,7 +10,6 @@ import { JBGHintBanner } from "./JBGHintBanner";
 import { PartnerBreakdownCard } from "./PartnerBreakdownCard";
 import { RateTable } from "./RateTable";
 import { ShipmentSummaryCard } from "./ShipmentSummaryCard";
-import { ShippingModeSelector } from "./ShippingModeSelector";
 import { WarehouseAddressSelector } from "./WarehouseAddressSelector";
 
 const JBG_RATE_ID = "JBG_RATE";
@@ -67,14 +66,13 @@ export function RateStep({
               Origen del envío y modo de transporte
             </p>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent>
             <WarehouseAddressSelector
               addresses={warehouseAddresses}
               selectedAddress={selectedWarehouseAddress}
               onSelect={onWarehouseAddressChange}
               isLoading={isLoadingAddresses}
             />
-            <ShippingModeSelector />
           </CardContent>
         </Card>
         {showJBGFallback && <JBGFallbackBanner />}

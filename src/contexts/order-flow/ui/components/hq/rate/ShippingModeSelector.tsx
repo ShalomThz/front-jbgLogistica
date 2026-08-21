@@ -11,15 +11,20 @@ import { Plane, Ship, Truck } from "lucide-react";
 import { Controller, useFormContext } from "react-hook-form";
 
 /**
- * Modo de transporte del envío. Viaja al backend en la selección de paquetería
- * (`selectProvider`), por eso se elige en este paso y no en el de paquete.
+ * Modo de transporte. Es a la vez parte del envío —viaja al backend en
+ * `selectProvider`— y parte de la clave de la tarifa, así que se elige en el
+ * paso de cobro junto a la zona, el servicio y el tipo de precio: cambiarlo
+ * recotiza y el efecto se ve ahí mismo.
  */
 export function ShippingModeSelector() {
   const { control } = useFormContext<HQOrderFormValues>();
 
   return (
     <div className="space-y-1">
-      <Label htmlFor="shipping-mode-select">Modo de envío</Label>
+      <Label htmlFor="shipping-mode-select" className="flex items-center gap-1.5">
+        <Truck className="size-3.5" />
+        Transporte
+      </Label>
       <Controller
         control={control}
         name="shippingService.shippingMode"

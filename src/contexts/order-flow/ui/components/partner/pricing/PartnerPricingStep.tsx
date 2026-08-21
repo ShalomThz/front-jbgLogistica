@@ -1,12 +1,24 @@
 import { ServiceLevelSelector } from "../../shared/ServiceLevelSelector";
+import { ShippingModeSelector } from "../../shared/ShippingModeSelector";
+import { DestinationCountrySelector } from "../../shared/DestinationCountrySelector";
 import { ZoneSelector } from "@contexts/pricing/ui/components/zone/ZoneSelector";
 import {
   SERVICE_LEVEL_COLORS,
   SERVICE_LEVEL_LABELS,
+  SHIPPING_MODE_LABELS,
   type ServiceLevel,
+  type ShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { Badge, Card, CardContent } from "@contexts/shared/shadcn";
-import { AlertTriangle, Gauge, Handshake, MapPin, Package } from "lucide-react";
+import {
+  AlertTriangle,
+  Gauge,
+  Globe,
+  Handshake,
+  MapPin,
+  Package,
+  Truck,
+} from "lucide-react";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
@@ -38,20 +50,31 @@ interface PartnerPricingStepProps {
   onZoneChange?: (zoneId: string) => void;
   serviceLevel: ServiceLevel;
   onServiceLevelChange: (serviceLevel: ServiceLevel) => void;
+  shippingMode: ShippingMode;
+  onShippingModeChange: (shippingMode: ShippingMode) => void;
+  /** País con el que se cotiza. Arranca en el del destinatario. */
+  destinationCountry: string;
+  onDestinationCountryChange: (country: string) => void;
+  /** El del destinatario, para avisar si el de cotización no coincide. */
+  recipientCountry: string;
 }
 
 /**
  * Muestra la combinación exacta que no tiene precio, para que el vendedor la
- * reporte a JBG sin adivinar. Los tres factores son los que forman la clave de
- * la tarifa: zona de recolección, caja y servicio — el país destino ya no
- * participa del precio.
+ * reporte a JBG sin adivinar. Son los cinco factores que forman la clave de la
+ * tarifa: zona de recolección, país destino, caja, servicio y modo de
+ * transporte.
  */
 function TariffNotFoundCard({
   zoneId,
+  destinationCountry,
   serviceLevel,
+  shippingMode,
 }: {
   zoneId?: string;
+  destinationCountry: string;
   serviceLevel: ServiceLevel;
+  shippingMode: ShippingMode;
 }) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const packageType = useWatch<PartnerOrderFormValues, "package.packageType">({
@@ -97,6 +120,20 @@ function TariffNotFoundCard({
               </span>
               {SERVICE_LEVEL_LABELS[serviceLevel]}
             </Badge>
+            <Badge variant="secondary" className="gap-1.5 py-1">
+              <Globe className="size-3.5" />
+              <span className="text-[10px] uppercase tracking-wide opacity-70">
+                Destino
+              </span>
+              {destinationCountry || "—"}
+            </Badge>
+            <Badge variant="secondary" className="gap-1.5 py-1">
+              <Truck className="size-3.5" />
+              <span className="text-[10px] uppercase tracking-wide opacity-70">
+                Transporte
+              </span>
+              {SHIPPING_MODE_LABELS[shippingMode]}
+            </Badge>
             <Badge variant="outline" className="gap-1.5 py-1">
               <Handshake className="size-3.5" />
               <span className="text-[10px] uppercase tracking-wide opacity-70">
@@ -131,6 +168,11 @@ export function PartnerPricingStep({
   onZoneChange,
   serviceLevel,
   onServiceLevelChange,
+  shippingMode,
+  onShippingModeChange,
+  destinationCountry,
+  onDestinationCountryChange,
+  recipientCountry,
 }: PartnerPricingStepProps) {
   const { control } = useFormContext<PartnerOrderFormValues>();
   const displayCurrency = useWatch<PartnerOrderFormValues, "shippingService.currency">({
@@ -158,10 +200,26 @@ export function PartnerPricingStep({
               <ZoneSelector zoneId={zoneId} onZoneChange={onZoneChange} label="Zona" />
             )}
             <ServiceLevelSelector value={serviceLevel} onChange={onServiceLevelChange} />
+            <ShippingModeSelector
+              value={shippingMode}
+              onChange={onShippingModeChange}
+            />
+            <DestinationCountrySelector
+              value={destinationCountry}
+              onChange={onDestinationCountryChange}
+              recipientCountry={recipientCountry}
+            />
           </div>
         </PartnerTariffCard>
 
-        {tariffError && <TariffNotFoundCard zoneId={zoneId} serviceLevel={serviceLevel} />}
+        {tariffError && (
+          <TariffNotFoundCard
+            zoneId={zoneId}
+            destinationCountry={destinationCountry}
+            serviceLevel={serviceLevel}
+            shippingMode={shippingMode}
+          />
+        )}
 
         <PartnerAdditionalCostsCard />
         <SignatureCard collapsible={false} />

@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
-import { serviceLevels, priceTypes } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import {
+  serviceLevels,
+  priceTypes,
+  shippingModes,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 // Dónde se recoge la caja. Es lo que determina la zona, y por lo tanto el
 // precio: el negocio cobra por ir a buscarla, no por llevarla.
@@ -22,8 +26,10 @@ export const PickupPoints = {
 
 export const quotePriceRequestSchema = z.object({
   pickup: pickupPointSchema,
+  destinationCountry: z.string(),
   boxId: z.string(),
   serviceLevel: z.enum(serviceLevels),
+  shippingMode: z.enum(shippingModes),
   priceType: z.enum(priceTypes),
 });
 
@@ -34,8 +40,10 @@ export type QuotePriceRequest = z.infer<typeof quotePriceRequestSchema>;
 export const quotePriceResponseSchema = z.object({
   price: moneySchema,
   zoneId: z.string(),
+  destinationCountry: z.string(),
   tariffId: z.string(),
   serviceLevel: z.enum(serviceLevels),
+  shippingMode: z.enum(shippingModes),
   priceType: z.enum(priceTypes),
   resolvedFrom: z.enum(["PARTNER_STORE", "COUNTER_DROPOFF", "PUBLIC_ADDRESS"]),
 });

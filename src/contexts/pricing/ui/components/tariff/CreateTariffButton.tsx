@@ -5,7 +5,10 @@ import { Button } from "@contexts/shared/shadcn";
 import { ZonePriceCellDialog } from "./ZonePriceCellDialog";
 import { useZonePriceMatrix } from "@contexts/pricing/infrastructure/hooks/tariffs/useZonePriceMatrix";
 import type { SetZonePriceRequest } from "@contexts/pricing/application/ZonePriceMatrix";
-import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
@@ -13,7 +16,9 @@ import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy
 interface CreateTariffButtonProps {
   zoneId: string;
   boxId: string;
+  destinationCountry: string;
   serviceLevel: ServiceLevel;
+  shippingMode: ShippingMode;
   onCreated?: () => void;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm";
@@ -28,7 +33,9 @@ interface CreateTariffButtonProps {
 export function CreateTariffButton({
   zoneId,
   boxId,
+  destinationCountry,
   serviceLevel,
+  shippingMode,
   onCreated,
   variant = "default",
   size = "sm",
@@ -38,6 +45,8 @@ export function CreateTariffButton({
   const { user } = useAuth();
   const { rows, zone, isLoading, setPrice, isSaving } = useZonePriceMatrix(
     open ? zoneId : undefined,
+    destinationCountry,
+    shippingMode,
   );
 
   // La celda puede tener ya uno de los dos precios: el que falta suele ser el
@@ -86,7 +95,9 @@ export function CreateTariffButton({
           zoneName={zone?.name}
           boxId={boxId}
           boxName={row?.box.name}
+          destinationCountry={destinationCountry}
           serviceLevel={serviceLevel}
+          shippingMode={shippingMode}
           publicPrice={cell?.public?.price ?? null}
           partnerPrice={cell?.partner?.price ?? null}
           isLoading={isSaving}

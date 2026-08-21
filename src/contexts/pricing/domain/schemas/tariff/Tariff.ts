@@ -2,17 +2,22 @@ import { z } from "zod";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 
-// La escalera de las paqueterías (FedEx, UPS, DHL). No confundir con el
-// ShippingMode del envío (GROUND | AIR | SEA): aquél describe el transporte,
-// éste la velocidad que se le vende al cliente.
+// La escalera de las paqueterías (FedEx, UPS, DHL). Va junto al modo de
+// transporte, no en su lugar: el modo dice por dónde viaja la caja y el peldaño
+// qué tan rápido dentro de ese modo.
 export const serviceLevels = ["ECONOMY", "STANDARD", "EXPRESS", "PRIORITY"] as const;
 
 // PUBLIC es lo que la tienda JBG le cobra al público; PARTNER lo que le cobra a
 // una tienda socia, más barato para que el socio tenga margen.
 export const priceTypes = ["PUBLIC", "PARTNER"] as const;
 
+// Por dónde viaja la caja. Es el mismo vocabulario que el envío: la tarifa le
+// pone precio al modo con el que después se despacha.
+export const shippingModes = ["GROUND", "AIR", "SEA"] as const;
+
 export type ServiceLevel = (typeof serviceLevels)[number];
 export type PriceType = (typeof priceTypes)[number];
+export type ShippingMode = (typeof shippingModes)[number];
 
 export const SERVICE_LEVEL_LABELS: Record<ServiceLevel, string> = {
   ECONOMY: "Económico",
@@ -44,6 +49,12 @@ export const SERVICE_LEVEL_DOTS: Record<ServiceLevel, string> = {
   PRIORITY: "bg-violet-500",
 };
 
+export const SHIPPING_MODE_LABELS: Record<ShippingMode, string> = {
+  GROUND: "Terrestre",
+  AIR: "Aéreo",
+  SEA: "Marítimo",
+};
+
 export const PRICE_TYPE_LABELS: Record<PriceType, string> = {
   PUBLIC: "Público",
   PARTNER: "Socio",
@@ -54,8 +65,19 @@ export const PRICE_TYPE_LABELS: Record<PriceType, string> = {
 export const tariffSchema = z.object({
   id: z.string(),
   zoneId: z.string(),
+  // El destino sí mueve el precio: mandar a Guatemala no cuesta lo mismo que
+  // a Nicaragua. Sale del destinatario, no de una elección de quien cobra.
+  destinationCountry: z
+    .string()
+    .nullish()
+    .transform((v) => v ?? "MX"),
   boxId: z.string(),
   serviceLevel: z.enum(serviceLevels),
+  // Las tarifas anteriores al campo se leen como terrestre.
+  shippingMode: z
+    .enum(shippingModes)
+    .nullish()
+    .transform((v) => v ?? "GROUND"),
   priceType: z.enum(priceTypes),
   price: moneySchema,
   ...aggregateRootSchema.shape,

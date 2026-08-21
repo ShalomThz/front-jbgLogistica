@@ -23,7 +23,12 @@ export const buildSelectProviderRequest = (
   shippingService: HQShippingServiceState,
   /** Insumos con los que el servidor recalcula la sugerencia y la contrasta
    * contra el tarifa que se cobra. */
-  pricing?: { pickup: PickupPoint; serviceLevel: ServiceLevel; priceType: PriceType },
+  pricing?: {
+    pickup: PickupPoint;
+    destinationCountry: string;
+    serviceLevel: ServiceLevel;
+    priceType: PriceType;
+  },
 ) => {
   const rate = shippingService.selectedRate!;
   const tariff = shippingService.tariff!;

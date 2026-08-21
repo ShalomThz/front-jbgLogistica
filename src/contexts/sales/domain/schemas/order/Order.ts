@@ -9,6 +9,7 @@ import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import {
   priceTypes,
   serviceLevels,
+  shippingModes,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import z from "zod";
 
@@ -22,8 +23,17 @@ import z from "zod";
 export const orderPricingSchema = z.object({
   price: moneySchema,
   zoneId: z.string(),
+  destinationCountry: z
+    .string()
+    .nullish()
+    .transform((v) => v ?? "MX"),
   tariffId: z.string(),
   serviceLevel: z.enum(serviceLevels),
+  // Las sugerencias anteriores al campo se leen como terrestre.
+  shippingMode: z
+    .enum(shippingModes)
+    .nullish()
+    .transform((v) => v ?? "GROUND"),
   priceType: z.enum(priceTypes),
   resolvedFrom: z.enum(["PARTNER_STORE", "COUNTER_DROPOFF", "PUBLIC_ADDRESS"]),
   quotedAt: z.string(),

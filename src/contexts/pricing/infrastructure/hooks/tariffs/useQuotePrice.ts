@@ -4,13 +4,20 @@ import type {
   PickupPoint,
   QuotePriceResponse,
 } from "@contexts/pricing/application/QuotePrice";
-import type { PriceType, ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  PriceType,
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { tariffKeys } from "./tariffKeys";
 
 interface UseQuotePriceOptions {
   pickup: PickupPoint | undefined;
+  /** Del destinatario de la orden, no de un selector. */
+  destinationCountry: string | undefined;
   boxId: string | undefined;
   serviceLevel: ServiceLevel | undefined;
+  shippingMode: ShippingMode | undefined;
   priceType: PriceType;
   enabled?: boolean;
 }
@@ -25,25 +32,32 @@ interface UseQuotePriceOptions {
  */
 export const useQuotePrice = ({
   pickup,
+  destinationCountry,
   boxId,
   serviceLevel,
+  shippingMode,
   priceType,
   enabled = true,
 }: UseQuotePriceOptions) => {
-  const ready = !!pickup && !!boxId && !!serviceLevel;
+  const ready =
+    !!pickup && !!destinationCountry && !!boxId && !!serviceLevel && !!shippingMode;
 
   const { data, isLoading, error, refetch } = useQuery<QuotePriceResponse>({
     queryKey: tariffKeys.quote({
       pickup: pickup!,
+      destinationCountry: destinationCountry ?? "",
       boxId: boxId ?? "",
       serviceLevel: serviceLevel!,
+      shippingMode: shippingMode!,
       priceType,
     }),
     queryFn: () =>
       tariffRepository.quote({
         pickup: pickup!,
+        destinationCountry: destinationCountry!,
         boxId: boxId!,
         serviceLevel: serviceLevel!,
+        shippingMode: shippingMode!,
         priceType,
       }),
     enabled: enabled && ready,

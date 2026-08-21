@@ -1,14 +1,26 @@
 import { AlertTriangle } from "lucide-react";
 import { CreateTariffButton } from "@contexts/pricing/ui/components/tariff/CreateTariffButton";
-import type { ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 interface TariffErrorBannerProps {
   zoneId: string;
   boxId: string;
+  /** Del destinatario: es parte de la clave de la tarifa. */
+  destinationCountry: string;
   serviceLevel: ServiceLevel | undefined;
+  shippingMode: ShippingMode;
 }
 
-export function TariffErrorBanner({ zoneId, boxId, serviceLevel }: TariffErrorBannerProps) {
+export function TariffErrorBanner({
+  zoneId,
+  destinationCountry,
+  boxId,
+  serviceLevel,
+  shippingMode,
+}: TariffErrorBannerProps) {
   const canCreate = !!zoneId && !!boxId && !!serviceLevel;
 
   return (
@@ -25,7 +37,9 @@ export function TariffErrorBanner({ zoneId, boxId, serviceLevel }: TariffErrorBa
           <CreateTariffButton
             zoneId={zoneId}
             boxId={boxId}
+            destinationCountry={destinationCountry}
             serviceLevel={serviceLevel}
+            shippingMode={shippingMode}
             variant="outline"
           />
         )}

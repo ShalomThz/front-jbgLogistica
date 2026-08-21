@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input, Label, Textarea } from "@contexts/shared/shadcn";
 import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
+import { StateSelect } from "@contexts/shared/ui/components/StateSelect";
 import { AlignLeft, Globe, Map, Tag } from "lucide-react";
 import {
   createZoneRequestSchema,
@@ -36,11 +37,14 @@ export const ZoneFormDialog = ({ open, onClose, onSave, zone, isLoading }: Props
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormInput>({
     resolver: zodResolver(createZoneRequestSchema),
     defaultValues: getDefaults(zone),
   });
+
+  const country = useWatch({ control, name: "country" });
 
   useEffect(() => {
     if (open) reset(getDefaults(zone));
@@ -88,7 +92,15 @@ export const ZoneFormDialog = ({ open, onClose, onSave, zone, isLoading }: Props
                 control={control}
                 name="country"
                 render={({ field }) => (
-                  <CountrySelect value={field.value} onChange={field.onChange} />
+                  <CountrySelect
+                    value={field.value}
+                    onChange={(code) => {
+                      field.onChange(code);
+                      // "Jalisco" no significa nada con país US: al cambiar de
+                      // país el estado se vuelve a elegir.
+                      if (code !== field.value) setValue("state", "");
+                    }}
+                  />
                 )}
               />
               {errors.country && (
@@ -100,11 +112,17 @@ export const ZoneFormDialog = ({ open, onClose, onSave, zone, isLoading }: Props
                 <Map className="size-3.5" />
                 Estado
               </Label>
-              <Input
-                id="state"
-                placeholder="Ej: Nuevo León"
-                aria-invalid={!!errors.state}
-                {...register("state")}
+              <Controller
+                control={control}
+                name="state"
+                render={({ field }) => (
+                  <StateSelect
+                    id="state"
+                    value={field.value}
+                    country={country}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               {errors.state && (
                 <p className="text-xs text-destructive">{errors.state.message}</p>

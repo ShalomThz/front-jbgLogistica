@@ -5,13 +5,15 @@ import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTar
 import type { FindTariffsRequestPrimitives } from "@contexts/pricing/application/FindTariffsRequest";
 import type { QuotePriceRequest, QuotePriceResponse } from "@contexts/pricing/application/QuotePrice";
 import { quotePriceResponseSchema } from "@contexts/pricing/application/QuotePrice";
+import type { ShippingMode } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { SetZonePriceRequest, ZonePriceMatrix } from "@contexts/pricing/application/ZonePriceMatrix";
 import { zonePriceMatrixSchema } from "@contexts/pricing/application/ZonePriceMatrix";
 import { httpClient } from "@contexts/shared/infrastructure/http";
 import { z } from "zod";
 
 export type CreateTariffRequest = Omit<TariffPrimitives, "id" | "createdAt" | "updatedAt">;
-export type UpdateTariffRequest = CreateTariffRequest;
+/** Parche: lo que no viaja no se toca, igual que `UpdateZoneRequest`. */
+export type UpdateTariffRequest = Partial<CreateTariffRequest>;
 
 export const tariffRepository = {
   find: async (
@@ -59,8 +61,14 @@ export const tariffRepository = {
   },
 
   /** La zona como tabla: caja × servicio con los dos precios. */
-  matrix: async (zoneId: string): Promise<ZonePriceMatrix> => {
-    const data = await httpClient<unknown>(`/tariff/matrix/${zoneId}`);
+  matrix: async (
+    zoneId: string,
+    destinationCountry: string,
+    shippingMode: ShippingMode,
+  ): Promise<ZonePriceMatrix> => {
+    const data = await httpClient<unknown>(
+      `/tariff/matrix/${zoneId}?destinationCountry=${destinationCountry}&shippingMode=${shippingMode}`,
+    );
     return zonePriceMatrixSchema.parse(data);
   },
 

@@ -76,6 +76,25 @@ export function PartnerTotalCard({
   const convertedCosts = costsConversionRate !== null ? costsTotal * costsConversionRate : null;
   const grandTotal = convertedTariff !== null && convertedCosts !== null ? convertedTariff + convertedCosts : null;
 
+  // El libro de abonos se concilia en la MONEDA DE FACTURACIÓN (la de la
+  // tarifa), no en la de visualización: el backend calcula totalBilled así, y
+  // redondear el saldo en otra moneda antes de convertirlo pierde bastante más
+  // que un centavo — por eso liquidar dejaba la orden en parcial.
+  //
+  // El número grande sigue mostrándose en la moneda elegida; lo que cambia es
+  // contra qué se cobra.
+  const needsCostsToTariff = costsCurrency !== tariffCurrency;
+  const { exchangeRate: costsToTariffExchange } = useExchangeRate({
+    from: costsCurrency,
+    to: tariffCurrency,
+    enabled: needsCostsToTariff,
+  });
+  const costsToTariffRate = needsCostsToTariff
+    ? (costsToTariffExchange?.rate ?? null)
+    : 1;
+  const billedTotal =
+    costsToTariffRate !== null ? tariffAmount + costsTotal * costsToTariffRate : null;
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -137,8 +156,8 @@ export function PartnerTotalCard({
           <Separator />
 
           <PendingPaymentControl
-            grandTotal={grandTotal}
-            currency={displayCurrency}
+            grandTotal={billedTotal}
+            currency={tariffCurrency}
             orderId={orderId}
             pendingPayments={pendingPayments}
             onAddPayment={onAddPayment}

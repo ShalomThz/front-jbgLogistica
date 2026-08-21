@@ -150,6 +150,45 @@ export const useHQOrderSubmission = ({
   // caso normal de una orden HQ.
   const [priceType, setPriceType] = useState<PriceType>("PUBLIC");
 
+  // País con el que se cotiza. Arranca en el del destinatario y sigue sus
+  // cambios mientras el usuario no elija otro.
+  const recipientCountry = useWatch<
+    HQOrderFormValues,
+    "recipient.address.country"
+  >({ control: form.control, name: "recipient.address.country" });
+
+  const [destinationCountry, setDestinationCountry] = useState(recipientCountry);
+  const [lastRecipientCountry, setLastRecipientCountry] =
+    useState(recipientCountry);
+  if (recipientCountry !== lastRecipientCountry) {
+    setLastRecipientCountry(recipientCountry);
+    setDestinationCountry(recipientCountry);
+  }
+
+  // Al reabrir una orden ya cotizada, los selectores arrancan en lo que se
+  // usó, no en los defaults: si no, la venta se recotiza a ciegas contra otra
+  // combinación y el vendedor tiene que reconstruirla de memoria.
+  //
+  // Se hace en render y no en un effect para no pintar un paso con los valores
+  // equivocados. `shippingMode` no está acá: ya lo rehidrata
+  // mapOrderToFormValues desde el envío.
+  // Se sincroniza por orden y no por tarifa: dos órdenes distintas pueden
+  // haberse cotizado con el mismo renglón, y la segunda no se rehidrataría.
+  const savedPricing = orderData?.pricing ?? null;
+  const [rehydratedOrderId, setRehydratedOrderId] = useState<string | null>(
+    null,
+  );
+  if (orderData && savedPricing && orderData.id !== rehydratedOrderId) {
+    setRehydratedOrderId(orderData.id);
+    setServiceLevel(savedPricing.serviceLevel);
+    setPriceType(savedPricing.priceType);
+    setDestinationCountry(savedPricing.destinationCountry);
+  }
+
+  const shippingMode = useWatch<HQOrderFormValues, "shippingService.shippingMode">(
+    { control: form.control, name: "shippingService.shippingMode" },
+  );
+
   const pickup = zoneOverrideId
     ? PickupPoints.atCustomerAddress(zoneOverrideId)
     : activeStoreId
@@ -163,8 +202,14 @@ export const useHQOrderSubmission = ({
     priceError: tariffError,
   } = useQuotePrice({
     pickup,
+    destinationCountry,
     boxId: boxId ?? "",
     serviceLevel,
+    // El modo sale del envío que se está armando, no de un selector aparte:
+    // cotizar aéreo algo que va por tierra daría una sugerencia que no
+    // corresponde a nada. Es el mismo criterio que aplica el servidor al
+    // recotizar en SelectShipmentProviderUseCase.
+    shippingMode,
     priceType,
     // Se cotiza en el paso de cobro: ahí viven los selectores y ahí se ve el
     // efecto de cambiarlos sobre lo que se va a cobrar.
@@ -333,7 +378,9 @@ export const useHQOrderSubmission = ({
         const request = buildSelectProviderRequest(
           shipmentId,
           shippingService,
-          pickup ? { pickup, serviceLevel, priceType } : undefined,
+          pickup
+            ? { pickup, destinationCountry, serviceLevel, priceType }
+            : undefined,
         );
         await selectProvider(request);
 
@@ -478,16 +525,24 @@ export const useHQOrderSubmission = ({
     clearShipmentError,
     fulfilledShipment,
     totalBilled: orderData?.financials.totalBilled ?? null,
-    /** Cotización de la etapa del socio, cuando esta orden viene de una
-     * orden partner. Se muestra para no re-cotizar a ciegas. */
+    /** Esta orden viene de una orden partner: HQ la está completando. */
+    isPartnerOrder: orderData?.type === "PARTNER",
+    /** Cotización de la etapa del socio. Es `null` cuando no había tarifa para
+     * la combinación y el socio puso el precio a mano — hoy, el caso normal. */
     partnerPricing:
       orderData?.type === "PARTNER" ? (orderData.pricing ?? null) : null,
+    /** Lo que el socio efectivamente cobró, haya habido tarifa o no. */
+    partnerTariff: orderData?.financials.tariff ?? null,
     tariff,
     isLoadingTariff,
     tariffError,
     tariffZoneId: quote?.zoneId ?? zoneId,
     tariffBoxId: boxId ?? "",
     tariffServiceLevel: serviceLevel,
+    tariffShippingMode: shippingMode,
+    tariffDestinationCountry: destinationCountry,
+    setDestinationCountry,
+    recipientCountry,
     setServiceLevel,
     tariffPriceType: priceType,
     setPriceType,

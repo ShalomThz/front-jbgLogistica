@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 import {
+  ChevronsUpDown,
   Columns3,
   Download,
   Eraser,
   Gauge,
+  Globe,
   Handshake,
+  MapPin,
   Package,
   Plus,
   RefreshCw,
@@ -26,7 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
-import { ZoneSelector } from "@contexts/pricing/ui/components/zone/ZoneSelector";
+import { ZonePickerDialog } from "@contexts/pricing/ui/components/zone/ZonePickerDialog";
+import type { ShippingMode } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { ShippingModeSelector } from "@contexts/order-flow/ui/components/shared/ShippingModeSelector";
+import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
 import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 import { ZonePriceCellDialog } from "../components/tariff/ZonePriceCellDialog";
 import { exportTariffs } from "@contexts/pricing/domain/services/exportTariffs";
@@ -36,6 +42,7 @@ import {
   SERVICE_LEVEL_COLORS,
   SERVICE_LEVEL_DOTS,
   SERVICE_LEVEL_LABELS,
+  SHIPPING_MODE_LABELS,
   serviceLevels,
   type ServiceLevel,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
@@ -149,19 +156,29 @@ export const TariffsPage = () => {
   const canEdit = user ? pricingPolicies.editTariff(user) : false;
 
   // Arranca en la zona de la tienda del usuario: es la que va a consultar el
-  // 90% de las veces. `user.zone` ya viene en la sesión, así que no hay que
-  // esperar una llamada extra para pintar la tabla.
-  const [zoneId, setZoneId] = useState<string>(user?.zone?.id ?? "");
+  // 90% de las veces. Sale de `store.zoneId`, que ya viene en la sesión, así
+  // que no hay que esperar una llamada extra para pintar la tabla.
+  const userZoneId = user?.store?.zoneId;
+  const [zoneId, setZoneId] = useState<string>(userZoneId ?? "");
 
   // La sesión puede resolverse después del primer render (recarga de página).
-  const [lastUserZoneId, setLastUserZoneId] = useState(user?.zone?.id);
-  if (user?.zone?.id !== lastUserZoneId) {
-    setLastUserZoneId(user?.zone?.id);
-    if (!zoneId && user?.zone?.id) setZoneId(user.zone.id);
+  const [lastUserZoneId, setLastUserZoneId] = useState(userZoneId);
+  if (userZoneId !== lastUserZoneId) {
+    setLastUserZoneId(userZoneId);
+    if (!zoneId && userZoneId) setZoneId(userZoneId);
   }
-  const { rows, zone, isLoading, refetch, setPrice, isSaving } =
-    useZonePriceMatrix(zoneId || undefined);
+  // La tabla se lee de a un modo: caja × servicio ya son dos ejes, y el modo
+  // como tercero daría doce columnas por caja.
+  const [shippingMode, setShippingMode] = useState<ShippingMode>("GROUND");
+  // A dónde va la caja. Es el tercer eje de contexto de la tabla, junto a la
+  // zona y el modo: los tres se eligen arriba y la tabla queda en caja ×
+  // servicio.
+  const [destinationCountry, setDestinationCountry] = useState("MX");
 
+  const { rows, zone, isLoading, refetch, setPrice, isSaving } =
+    useZonePriceMatrix(zoneId || undefined, destinationCountry, shippingMode);
+
+  const [zonePickerOpen, setZonePickerOpen] = useState(false);
   const [editing, setEditing] = useState<EditingCell | null>(null);
   const [hiddenServices, setHiddenServices] = useState<ServiceLevel[]>([]);
   const [boxFilter, setBoxFilter] = useState<BoxPrimitives | null>(null);
@@ -262,41 +279,93 @@ export const TariffsPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <ZoneSelector
-          zoneId={zoneId || undefined}
-          onZoneChange={setZoneId}
-          label="Zona"
-          className="w-full sm:w-80"
-        />
-        {zoneId && (
-          <div className="space-y-1">
-            <Label htmlFor="box-filter" className="flex items-center gap-1.5">
-              <Package className="size-3.5" />
-              Caja
-            </Label>
-            <div className="flex items-center gap-1">
-              <BoxPickerCombobox
-                id="box-filter"
-                value={boxFilter?.id}
-                onChange={setBoxFilter}
-                placeholder="Buscar caja..."
-                className="w-full sm:w-64"
-              />
-              {boxFilter && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  title="Ver todas las cajas"
-                  onClick={() => setBoxFilter(null)}
-                >
-                  <Eraser className="size-4" />
-                </Button>
-              )}
+      {/* Los cuatro controles en una tarjeta, en el orden en que se piensan:
+          de dónde sale la caja, a dónde va, cómo viaja, y cuál es. Los tres
+          primeros son parte de la clave del precio y recargan la tabla; el
+          último acota lo ya cargado. */}
+      <div>
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full space-y-1 sm:w-80">
+              <Label className="flex items-center gap-1.5">
+                <MapPin className="size-3.5" />
+                Zona
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between font-normal"
+                onClick={() => setZonePickerOpen(true)}
+              >
+                {zone ? (
+                  <span className="flex min-w-0 items-baseline gap-2">
+                    <span className="truncate">{zone.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {[zone.state, zone.country].filter(Boolean).join(", ")}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Elegir zona</span>
+                )}
+                <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+              </Button>
             </div>
+            {zoneId && (
+              <div className="w-full space-y-1 sm:w-56">
+                <Label
+                  htmlFor="destination"
+                  className="flex items-center gap-1.5"
+                >
+                  <Globe className="size-3.5" />
+                  País destino
+                </Label>
+                <CountrySelect
+                  value={destinationCountry}
+                  onChange={setDestinationCountry}
+                />
+              </div>
+            )}
+            {zoneId && (
+              <div className="w-full sm:w-44">
+                <ShippingModeSelector
+                  value={shippingMode}
+                  onChange={setShippingMode}
+                />
+              </div>
+            )}
+            {zoneId && (
+              <div className="space-y-1">
+                <Label
+                  htmlFor="box-filter"
+                  className="flex items-center gap-1.5"
+                >
+                  <Package className="size-3.5" />
+                  Seleccionar caja
+                </Label>
+                <div className="flex items-center gap-1">
+                  <BoxPickerCombobox
+                    id="box-filter"
+                    value={boxFilter?.id}
+                    onChange={setBoxFilter}
+                    placeholder="Buscar caja..."
+                    className="w-full sm:w-64"
+                  />
+                  {boxFilter && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Ver todas las cajas"
+                      onClick={() => setBoxFilter(null)}
+                    >
+                      <Eraser className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {!zoneId ? (
@@ -309,8 +378,13 @@ export const TariffsPage = () => {
         <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
           {/* Control de columnas, arriba a la derecha de la tabla. */}
           <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+            {/* La combinación completa que se está viendo. El botón de arriba
+                ya dice la zona; acá importa el resto de la clave, que es lo
+                que distingue una tabla de otra. */}
             <p className="truncate text-xs text-muted-foreground">
-              {zone ? `${zone.name} · ${zone.state}, ${zone.country}` : ""}
+              {zone
+                ? `${zone.name} → ${destinationCountry} · ${SHIPPING_MODE_LABELS[shippingMode]}`
+                : ""}
             </p>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -432,11 +506,20 @@ export const TariffsPage = () => {
           boxId={editing.boxId}
           boxName={editing.boxName}
           serviceLevel={editing.serviceLevel}
+          destinationCountry={destinationCountry}
+          shippingMode={shippingMode}
           publicPrice={editing.publicPrice}
           partnerPrice={editing.partnerPrice}
           isLoading={isSaving}
         />
       )}
+
+      <ZonePickerDialog
+        open={zonePickerOpen}
+        onClose={() => setZonePickerOpen(false)}
+        onSelect={(z) => setZoneId(z.id)}
+        current={zone}
+      />
     </div>
   );
 };
