@@ -11,8 +11,8 @@ import {
 import { Plus } from "lucide-react";
 import {
   PAYMENT_METHOD_LABELS,
-  PAYMENT_METHODS,
-  type PaymentMethod,
+  MANUAL_PAYMENT_METHODS,
+  type ManualPaymentMethod,
 } from "@contexts/shared/domain/schemas/PaymentMethod";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 
@@ -37,7 +37,7 @@ export const AddPaymentForm = ({
 }: Props) => {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
-  const [method, setMethod] = useState<PaymentMethod | "">("");
+  const [method, setMethod] = useState<ManualPaymentMethod | "">("");
   const [concept, setConcept] = useState("");
 
   const handleAdd = async () => {
@@ -94,12 +94,15 @@ export const AddPaymentForm = ({
           </SelectContent>
         </Select>
       </div>
-      <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
+      <Select
+        value={method}
+        onValueChange={(value) => setMethod(value as ManualPaymentMethod)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Método de pago" />
         </SelectTrigger>
         <SelectContent>
-          {PAYMENT_METHODS.map((m) => (
+          {MANUAL_PAYMENT_METHODS.map((m) => (
             <SelectItem key={m} value={m}>
               {PAYMENT_METHOD_LABELS[m]}
             </SelectItem>

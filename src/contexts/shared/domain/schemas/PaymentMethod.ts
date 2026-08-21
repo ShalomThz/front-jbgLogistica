@@ -12,6 +12,18 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+export const MANUAL_PAYMENT_METHODS = [
+  "CASH",
+  "CARD",
+  "TRANSFER",
+  "CC",
+  "ZELLE",
+  "BBVA",
+  "PAGO_MEX",
+] as const satisfies readonly PaymentMethod[];
+
+export type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number];
+
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Efectivo",
   CARD: "Tarjeta",

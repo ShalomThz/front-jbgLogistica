@@ -1,6 +1,6 @@
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
-import { PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
+import { MANUAL_PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
@@ -32,7 +32,7 @@ export const createPartnerOrderSchema = z.object({
     .array(
       z.object({
         amount: moneySchema,
-        method: z.enum(PAYMENT_METHODS),
+        method: z.enum(MANUAL_PAYMENT_METHODS),
         concept: z.string().nullish(),
       }),
     )
