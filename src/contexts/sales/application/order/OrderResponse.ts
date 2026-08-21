@@ -24,7 +24,11 @@ export type OrderResponsePrimitives = z.infer<typeof orderResponseSchema>;
 export const orderListViewResponseSchema = orderResponseSchema
   .omit({ storeId: true, createdBy: true })
   .extend({
-    store: storeResponseSchema,
+    store: storeResponseSchema.pick({
+      id: true,
+      name: true,
+      contactEmail: true,
+    }),
     createdBy: userRefSchema,
     shipment: shipmentResponseSchema.nullable(),
   });

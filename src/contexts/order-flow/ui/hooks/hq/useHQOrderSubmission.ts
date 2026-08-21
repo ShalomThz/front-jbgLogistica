@@ -7,7 +7,10 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
-import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
+import { useQuotePrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useQuotePrice";
+import { PickupPoints } from "@contexts/pricing/application/QuotePrice";
+import type { PriceType, ServiceLevel } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import {
   useShipmentActions,
   useShipmentRates,
@@ -135,23 +138,97 @@ export const useHQOrderSubmission = ({
     enabled: !!activeStoreId,
   });
 
-  const destinationCountry = useWatch({
-    control: form.control,
-    name: "recipient.address.country",
-  });
   const boxId = useWatch({ control: form.control, name: "package.boxId" });
   const zoneId = zoneOverrideId ?? store?.zone?.id ?? "";
+
+  // Una orden HQ se le vende al público. La caja llega al mostrador de la
+  // tienda JBG salvo que el operador haya elegido otra zona, que es el caso de
+  // la recolección a domicilio.
+  const [serviceLevel, setServiceLevel] = useState<ServiceLevel>("STANDARD");
+  // Elegible: por el mostrador de una tienda JBG también pasa una tienda socia,
+  // y en ese caso se le cobra precio de socio. Arranca en público, que es el
+  // caso normal de una orden HQ.
+  const [priceType, setPriceType] = useState<PriceType>("PUBLIC");
+
+  // País con el que se cotiza. Arranca en el del destinatario y sigue sus
+  // cambios mientras el usuario no elija otro.
+  const recipientCountry = useWatch<
+    HQOrderFormValues,
+    "recipient.address.country"
+  >({ control: form.control, name: "recipient.address.country" });
+
+  const [destinationCountry, setDestinationCountry] = useState(recipientCountry);
+  const [lastRecipientCountry, setLastRecipientCountry] =
+    useState(recipientCountry);
+  if (recipientCountry !== lastRecipientCountry) {
+    setLastRecipientCountry(recipientCountry);
+    setDestinationCountry(recipientCountry);
+  }
+
+  // Al reabrir una orden ya cotizada, los selectores arrancan en lo que se
+  // usó, no en los defaults: si no, la venta se recotiza a ciegas contra otra
+  // combinación y el vendedor tiene que reconstruirla de memoria.
+  //
+  // Se hace en render y no en un effect para no pintar un paso con los valores
+  // equivocados. `shippingMode` no está acá: ya lo rehidrata
+  // mapOrderToFormValues desde el envío.
+  // Se sincroniza por orden y no por tarifa: dos órdenes distintas pueden
+  // haberse cotizado con el mismo renglón, y la segunda no se rehidrataría.
+  const savedPricing = orderData?.pricing ?? null;
+  const [rehydratedOrderId, setRehydratedOrderId] = useState<string | null>(
+    null,
+  );
+  if (orderData && savedPricing && orderData.id !== rehydratedOrderId) {
+    setRehydratedOrderId(orderData.id);
+    setServiceLevel(savedPricing.serviceLevel);
+    setPriceType(savedPricing.priceType);
+    setDestinationCountry(savedPricing.destinationCountry);
+  }
+
+  const shippingMode = useWatch<HQOrderFormValues, "shippingService.shippingMode">(
+    { control: form.control, name: "shippingService.shippingMode" },
+  );
+
+  const pickup = zoneOverrideId
+    ? PickupPoints.atCustomerAddress(zoneOverrideId)
+    : activeStoreId
+      ? PickupPoints.atCounter(activeStoreId)
+      : undefined;
+
   const {
+    quote,
     tariffPrice,
     isLoadingPrice: isLoadingTariff,
     priceError: tariffError,
-  } = useTariffPrice({
-    zoneId,
-    destinationCountry: destinationCountry ?? "",
+  } = useQuotePrice({
+    pickup,
+    destinationCountry,
     boxId: boxId ?? "",
-    enabled: step === "rate" && !!zoneId && !!destinationCountry && !!boxId,
+    serviceLevel,
+    // El modo sale del envío que se está armando, no de un selector aparte:
+    // cotizar aéreo algo que va por tierra daría una sugerencia que no
+    // corresponde a nada. Es el mismo criterio que aplica el servidor al
+    // recotizar en SelectShipmentProviderUseCase.
+    shippingMode,
+    priceType,
+    // Se cotiza en el paso de cobro: ahí viven los selectores y ahí se ve el
+    // efecto de cambiarlos sobre lo que se va a cobrar.
+    enabled: step === "cobro" && !!pickup && !!boxId,
   });
-  const tariff = tariffPrice;
+  // El sistema sugiere, el usuario decide: la tarifa se puede reescribir a mano
+  // (o escribir de cero cuando no hay ninguna para la combinación). Se resetea
+  // cuando cambian los insumos, porque un precio tecleado para otra zona o
+  // servicio ya no aplica. Se ajusta en render y no en un efecto para evitar
+  // el pase de render extra.
+  const tariffLookupKey = `${zoneId}|${serviceLevel}|${priceType}|${boxId ?? ""}`;
+  const [tariffOverride, setTariffOverride] = useState<MoneyPrimitives | null>(null);
+  const [lastTariffLookupKey, setLastTariffLookupKey] = useState(tariffLookupKey);
+  if (tariffLookupKey !== lastTariffLookupKey) {
+    setLastTariffLookupKey(tariffLookupKey);
+    setTariffOverride(null);
+  }
+
+  const tariff = tariffOverride ?? tariffPrice;
 
   const consignmentNoteClassCode = useWatch({
     control: form.control,
@@ -298,7 +375,13 @@ export const useHQOrderSubmission = ({
       if (!result) {
         // First select the provider.
         setShipmentPhase("selecting");
-        const request = buildSelectProviderRequest(shipmentId, shippingService);
+        const request = buildSelectProviderRequest(
+          shipmentId,
+          shippingService,
+          pickup
+            ? { pickup, destinationCountry, serviceLevel, priceType }
+            : undefined,
+        );
         await selectProvider(request);
 
         // Trigger the async label creation once. The carrier completes it via
@@ -442,12 +525,30 @@ export const useHQOrderSubmission = ({
     clearShipmentError,
     fulfilledShipment,
     totalBilled: orderData?.financials.totalBilled ?? null,
+    /** Esta orden viene de una orden partner: HQ la está completando. */
+    isPartnerOrder: orderData?.type === "PARTNER",
+    /** Cotización de la etapa del socio. Es `null` cuando no había tarifa para
+     * la combinación y el socio puso el precio a mano — hoy, el caso normal. */
+    partnerPricing:
+      orderData?.type === "PARTNER" ? (orderData.pricing ?? null) : null,
+    /** Lo que el socio efectivamente cobró, haya habido tarifa o no. */
+    partnerTariff: orderData?.financials.tariff ?? null,
     tariff,
     isLoadingTariff,
     tariffError,
-    tariffZoneId: zoneId,
-    tariffDestinationCountry: destinationCountry ?? "",
+    tariffZoneId: quote?.zoneId ?? zoneId,
     tariffBoxId: boxId ?? "",
+    tariffServiceLevel: serviceLevel,
+    tariffShippingMode: shippingMode,
+    tariffDestinationCountry: destinationCountry,
+    setDestinationCountry,
+    recipientCountry,
+    setServiceLevel,
+    tariffPriceType: priceType,
+    setPriceType,
+    /** Lo que sugirió la tabla, para contrastarlo con lo que se va a cobrar. */
+    suggestedTariff: tariffPrice,
+    onTariffChange: setTariffOverride,
     pendingPayments,
     addPendingPayment,
     removePendingPayment,

@@ -7,7 +7,14 @@ import { shipmentSchema } from "@contexts/shipping/domain/schemas/shipment/Shipm
 export const orderListViewSchema = orderSchema
   .omit({ storeId: true, createdBy: true })
   .extend({
-    store: storeSchema,
+    // Identidad de la tienda, no la tienda entera: es lo que el backend
+    // embebe en la orden. La zona con la que se cotizó vive en
+    // `pricing.zoneId`.
+    store: storeSchema.pick({
+      id: true,
+      name: true,
+      contactEmail: true,
+    }),
     createdBy: userRefSchema,
     shipment: shipmentSchema.nullable(),
   });

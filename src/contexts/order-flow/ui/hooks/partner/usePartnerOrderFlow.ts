@@ -2,7 +2,13 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { useTariffPrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffPrice";
+import { useQuotePrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useQuotePrice";
+import { PickupPoints } from "@contexts/pricing/application/QuotePrice";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import type { OrderPricingPrimitives } from "@contexts/sales/domain/schemas/order/Order";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { useState } from "react";
@@ -23,9 +29,11 @@ interface UsePartnerOrderFlowOptions {
   initialValues?: PartnerOrderFormValues;
   orderId?: string;
   storeId?: string;
+  /** Con qué se cotizó la orden que se reabre. */
+  initialPricing?: OrderPricingPrimitives | null;
 }
 
-export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePartnerOrderFlowOptions = {}) => {
+export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPricing }: UsePartnerOrderFlowOptions = {}) => {
   const [step, setStep] = useState<PartnerOrderStep>("contact");
   const { user } = useAuth();
 
@@ -56,16 +64,53 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     enabled: !!activeStoreId,
   });
 
-  const destinationCountry = form.watch("recipient.address.country");
   const boxId = form.watch("package.boxId");
+  const recipientCountry = form.watch("recipient.address.country");
 
   const effectiveZoneId = zoneOverrideId ?? store?.zone?.id;
 
-  const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useTariffPrice({
-    zoneId: effectiveZoneId ?? "",
+  // Al reabrir una orden ya cotizada, los selectores arrancan en lo que se usó
+  // y no en los defaults: si no, la venta se recotiza contra otra combinación
+  // y el vendedor tiene que reconstruirla de memoria. La página se remonta por
+  // navegación (`key={location.key}`), así que basta con el valor inicial.
+  //
+  // Una orden de socio se recoge en la tienda socia y se cobra a precio socio:
+  // los dos salen del tipo de orden, no de una elección del vendedor.
+  const [serviceLevel, setServiceLevel] = useState<ServiceLevel>(
+    initialPricing?.serviceLevel ?? "STANDARD",
+  );
+  const [shippingMode, setShippingMode] = useState<ShippingMode>(
+    initialPricing?.shippingMode ?? "GROUND",
+  );
+
+  // País con el que se cotiza. Arranca en el de la cotización guardada, o en el
+  // del destinatario, y sigue los cambios de éste mientras no se elija otro.
+  const [destinationCountry, setDestinationCountry] = useState(
+    initialPricing?.destinationCountry ?? recipientCountry,
+  );
+  const [lastRecipientCountry, setLastRecipientCountry] =
+    useState(recipientCountry);
+  if (recipientCountry !== lastRecipientCountry) {
+    setLastRecipientCountry(recipientCountry);
+    setDestinationCountry(recipientCountry);
+  }
+
+  // La zona override sigue siendo cosa del front: cambia contra qué zona se
+  // cotiza sin mover dónde está la tienda.
+  const pickup = zoneOverrideId
+    ? PickupPoints.atCustomerAddress(zoneOverrideId)
+    : activeStoreId
+      ? PickupPoints.atPartnerStore(activeStoreId)
+      : undefined;
+
+  const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useQuotePrice({
+    pickup,
     destinationCountry,
     boxId: boxId ?? "",
-    enabled: step === "pricing" && !!effectiveZoneId && !!destinationCountry && !!boxId,
+    serviceLevel,
+    shippingMode,
+    priceType: "PARTNER",
+    enabled: step === "pricing" && !!pickup && !!boxId,
   });
 
   // Lets the seller override the auto-fetched tariff (or type one in
@@ -73,7 +118,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
   // whenever the underlying lookup inputs change — a price typed for a
   // different combination no longer applies. Adjusted during render (not in
   // an effect) to avoid the extra render pass.
-  const tariffLookupKey = `${effectiveZoneId ?? ""}|${destinationCountry ?? ""}|${boxId ?? ""}`;
+  const tariffLookupKey = `${effectiveZoneId ?? ""}|${destinationCountry}|${serviceLevel}|${shippingMode}|${boxId ?? ""}`;
   const [tariffOverride, setTariffOverride] = useState<MoneyPrimitives | null>(null);
   const [lastTariffLookupKey, setLastTariffLookupKey] = useState(tariffLookupKey);
   if (tariffLookupKey !== lastTariffLookupKey) {
@@ -83,7 +128,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
 
   const effectiveTariff = tariffOverride ?? tariffPrice;
 
-  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: effectiveTariff, onSuccess: () => setStep("success") });
+  const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: effectiveTariff, serviceLevel, shippingMode, destinationCountry, onSuccess: () => setStep("success") });
 
   const isEditing = !!submission.orderId;
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -135,6 +180,11 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     isEditing,
     nextButtonLabel,
     isNextDisabled,
+    destinationCountry,
+    setDestinationCountry,
+    recipientCountry,
+    shippingMode,
+    setShippingMode,
     tariffPrice,
     effectiveTariff,
     onTariffChange: setTariffOverride,
@@ -147,6 +197,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId }: UsePart
     canChangeZone,
     setZoneOverride: setZoneOverrideId,
     originZoneId: effectiveZoneId,
+    serviceLevel,
+    setServiceLevel,
     pendingPayments: submission.pendingPayments,
     addPendingPayment: submission.addPendingPayment,
     removePendingPayment: submission.removePendingPayment,

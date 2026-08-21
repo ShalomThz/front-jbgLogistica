@@ -9,8 +9,31 @@ import type { FindStoresRequestPrimitives } from "@contexts/iam/application/stor
 import type { FindStoresResponsePrimitives } from "@contexts/iam/application/store/FindStoresResponse";
 import { findStoresResponseSchema } from "@contexts/iam/application/store/FindStoresResponse";
 import { httpClient } from "@contexts/shared/infrastructure/http";
+import type { z } from "zod";
 
 export type UpdateStoreRequest = Partial<CreateStoreRequestPrimitives>;
+
+/**
+ * Valida con el schema y, si falla, deja en consola qué campo vino mal antes de
+ * propagar el error. Sin esto un `parse` directo tira "expected string,
+ * received undefined" sin decir de qué llamada salió — que es exactamente lo
+ * que cuesta rastrear cuando un campo nuevo todavía no está en los documentos.
+ */
+function parseOrLog<T extends z.ZodType>(
+  schema: T,
+  data: unknown,
+  operation: string,
+): z.infer<T> {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    console.error(
+      `[storeRepository] ${operation}: respuesta inválida`,
+      result.error.issues,
+    );
+    throw result.error;
+  }
+  return result.data;
+}
 
 export const storeRepository = {
   find: async (
@@ -20,12 +43,12 @@ export const storeRepository = {
       method: "POST",
       body: JSON.stringify({ filters: [], ...request }),
     });
-    return findStoresResponseSchema.parse(data);
+    return parseOrLog(findStoresResponseSchema, data, "find");
   },
 
   getById: async (id: string): Promise<StoreListViewResponsePrimitives> => {
     const data = await httpClient<unknown>(`/store/${id}`);
-    return storeListViewResponseSchema.parse(data);
+    return parseOrLog(storeListViewResponseSchema, data, `getById(${id})`);
   },
 
   create: async (
@@ -35,7 +58,7 @@ export const storeRepository = {
       method: "POST",
       body: JSON.stringify(store),
     });
-    return storeResponseSchema.parse(data);
+    return parseOrLog(storeResponseSchema, data, "create");
   },
 
   update: async (
@@ -46,7 +69,7 @@ export const storeRepository = {
       method: "PUT",
       body: JSON.stringify(store),
     });
-    return storeResponseSchema.parse(data);
+    return parseOrLog(storeResponseSchema, data, `update(${id})`);
   },
 
   delete: async (id: string): Promise<void> => {

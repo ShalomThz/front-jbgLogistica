@@ -2,6 +2,11 @@ import type { HQShippingServiceState } from "../domain/schemas/NewOrderForm";
 import { buildDiscountPayload } from "./buildEditOrderRequest";
 import type { CarrierType } from "@contexts/shipping/domain/schemas/value-objects/Carrier";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type { PickupPoint } from "@contexts/pricing/application/QuotePrice";
+import type {
+  PriceType,
+  ServiceLevel,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 const JBG_SERVICE_NAME = "JBG Logistics";
 
@@ -16,6 +21,14 @@ const parseMoney = (amount: string, currency: string): MoneyPrimitives | null =>
 export const buildSelectProviderRequest = (
   shipmentId: string,
   shippingService: HQShippingServiceState,
+  /** Insumos con los que el servidor recalcula la sugerencia y la contrasta
+   * contra el tarifa que se cobra. */
+  pricing?: {
+    pickup: PickupPoint;
+    destinationCountry: string;
+    serviceLevel: ServiceLevel;
+    priceType: PriceType;
+  },
 ) => {
   const rate = shippingService.selectedRate!;
   const tariff = shippingService.tariff!;
@@ -29,6 +42,7 @@ export const buildSelectProviderRequest = (
     shippingMode: shippingService.shippingMode,
     finalPrice: rate.price,
     tariff,
+    ...(pricing && { pricing }),
     costBreakdown: {
       insurance: parseMoney(cb.insurance, costsCurrency),
       tools: parseMoney(cb.tools, costsCurrency),

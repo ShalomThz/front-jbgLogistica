@@ -3,7 +3,6 @@ import { emailSchema } from "@contexts/shared/domain/schemas/Email";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { userRoleSchema } from "./UserRole";
 import { storeSchema } from "../store/Store";
-import { zoneSchema } from "../../../../pricing/domain/schemas/zone/Zone";
 
 export const USER_TYPES = ["EMPLOYEE", "CUSTOMER", "DRIVER"] as const;
 export type UserType = (typeof USER_TYPES)[number];
@@ -35,7 +34,6 @@ export const userListViewSchema = userSchema
   })
   .extend({
     store: storeSchema,
-    zone: zoneSchema,
     lastLoginAt: z.iso.datetime({ offset: true }).nullable(),
   });
 

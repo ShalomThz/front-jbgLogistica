@@ -1,31 +1,41 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@contexts/shared/shadcn";
-import { TariffFormDialog } from "./TariffFormDialog";
-import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
-import type { CreateTariffRequestPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import { ZonePriceCellDialog } from "./ZonePriceCellDialog";
+import { useZonePriceMatrix } from "@contexts/pricing/infrastructure/hooks/tariffs/useZonePriceMatrix";
+import type { SetZonePriceRequest } from "@contexts/pricing/application/ZonePriceMatrix";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { pricingPolicies } from "@contexts/shared/domain/policies/pricing.policy";
 
 interface CreateTariffButtonProps {
   zoneId: string;
-  destinationCountry: string;
   boxId: string;
-  /** Default currency for the new tariff (e.g. the order's costs currency). */
-  priceCurrency?: string;
+  destinationCountry: string;
+  serviceLevel: ServiceLevel;
+  shippingMode: ShippingMode;
   onCreated?: () => void;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm";
   label?: string;
 }
 
+/**
+ * Da de alta la tarifa que falta sin salir de la orden. Escribe la celda
+ * completa —público y socio— igual que la pantalla de administración: crear
+ * solo el precio que hace falta ahora dejaría la celda a medias.
+ */
 export function CreateTariffButton({
   zoneId,
-  destinationCountry,
   boxId,
-  priceCurrency,
+  destinationCountry,
+  serviceLevel,
+  shippingMode,
   onCreated,
   variant = "default",
   size = "sm",
@@ -33,14 +43,23 @@ export function CreateTariffButton({
 }: CreateTariffButtonProps) {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
-  // enabled:false — only need the mutation, don't fire the list query.
-  const { createTariff, isCreating } = useTariffs({ enabled: false });
+  const { rows, zone, isLoading, setPrice, isSaving } = useZonePriceMatrix(
+    open ? zoneId : undefined,
+    destinationCountry,
+    shippingMode,
+  );
 
-  const handleSave = async (data: CreateTariffRequestPrimitives) => {
+  // La celda puede tener ya uno de los dos precios: el que falta suele ser el
+  // de socio, porque la migración solo trajo los públicos. Hay que precargarlos
+  // — el diálogo interpreta un campo vacío como "borrar este precio", así que
+  // abrirlo en blanco y guardar eliminaría el que existía.
+  const row = rows.find((r) => r.box.id === boxId);
+  const cell = row?.cells.find((c) => c.serviceLevel === serviceLevel);
+
+  const handleSave = async (data: SetZonePriceRequest) => {
     try {
-      await createTariff(data);
-      setOpen(false);
-      toast.success("Tarifa creada");
+      await setPrice(data);
+      toast.success("Tarifa guardada");
       onCreated?.();
     } catch (error) {
       toast.error(parseApiError(error));
@@ -51,22 +70,39 @@ export function CreateTariffButton({
 
   return (
     <>
-      <Button type="button" variant={variant} size={size} onClick={() => setOpen(true)}>
-        <Plus className="size-3.5 mr-1" />
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        disabled={open && isLoading}
+        onClick={() => setOpen(true)}
+      >
+        {open && isLoading ? (
+          <Loader2 className="size-3.5 mr-1 animate-spin" />
+        ) : (
+          <Plus className="size-3.5 mr-1" />
+        )}
         {label}
       </Button>
-      <TariffFormDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        onSave={handleSave}
-        initialValues={{
-          originZoneId: zoneId,
-          destinationCountry,
-          boxId,
-          ...(priceCurrency && { price: { amount: 0, currency: priceCurrency } }),
-        }}
-        isLoading={isCreating}
-      />
+      {/* Se espera a la matriz antes de abrir: con los precios todavía sin
+          cargar, el diálogo mostraría los campos vacíos y guardar borraría. */}
+      {open && !isLoading && (
+        <ZonePriceCellDialog
+          open
+          onClose={() => setOpen(false)}
+          onSave={handleSave}
+          zoneId={zoneId}
+          zoneName={zone?.name}
+          boxId={boxId}
+          boxName={row?.box.name}
+          destinationCountry={destinationCountry}
+          serviceLevel={serviceLevel}
+          shippingMode={shippingMode}
+          publicPrice={cell?.public?.price ?? null}
+          partnerPrice={cell?.partner?.price ?? null}
+          isLoading={isSaving}
+        />
+      )}
     </>
   );
 }

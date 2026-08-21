@@ -20,6 +20,9 @@ interface PartnerTariffCardProps {
   onTariffChange: (value: MoneyPrimitives) => void;
   /** Moneda a usar cuando aún no hay ninguna tarifa (ni automática ni manual). */
   fallbackCurrency: string;
+  /** Insumos que determinan la tarifa (zona, servicio): se muestran arriba del
+   * monto para que se lean como una sola cosa. */
+  children?: React.ReactNode;
 }
 
 export function PartnerTariffCard({
@@ -30,6 +33,7 @@ export function PartnerTariffCard({
   onRefetch,
   onTariffChange,
   fallbackCurrency,
+  children,
 }: PartnerTariffCardProps) {
   const currency = effectiveTariff?.currency ?? tariffPrice?.currency ?? fallbackCurrency;
   const amount = effectiveTariff?.amount ?? 0;
@@ -56,7 +60,8 @@ export function PartnerTariffCard({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-2">
+      <CardContent className="pt-0 space-y-4">
+        {children}
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />

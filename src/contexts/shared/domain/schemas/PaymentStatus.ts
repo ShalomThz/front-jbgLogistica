@@ -62,6 +62,14 @@ export interface BilledBalance {
  * `totalBilled`; con monedas mixtas (o sin total) devuelve null y la UI muestra
  * únicamente el estado (que el backend deriva con FX).
  */
+/** El dinero se compara y se muestra en centavos: `totalBilled` viene de sumar
+ * importes multiplicados por tipos de cambio, así que arrastra residuos de coma
+ * flotante (840.6510000000001) y una resta o un `>=` exactos fallan por una
+ * fracción de centavo. */
+export const toCents = (amount: number): number => Math.round(amount * 100);
+
+export const roundMoney = (amount: number): number => toCents(amount) / 100;
+
 export const resolveBilledBalance = (
   financials: BilledBalanceSource,
 ): BilledBalance | null => {
@@ -78,5 +86,9 @@ export const resolveBilledBalance = (
     0,
   );
 
-  return { total: total.amount, paid, pending: total.amount - paid };
+  return {
+    total: roundMoney(total.amount),
+    paid: roundMoney(paid),
+    pending: roundMoney(total.amount - paid),
+  };
 };
