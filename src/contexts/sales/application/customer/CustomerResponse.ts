@@ -15,7 +15,9 @@ export type CustomerResponsePrimitives = z.infer<typeof customerResponseSchema>;
 export const customerListViewResponseSchema = customerResponseSchema
   .omit({ registeredByStoreId: true, userId: true })
   .extend({
-    store: storeSchema,
+    // Identidad de la tienda, no la tienda entera: el backend dejó de mandar
+    // el resto y nadie lo leía.
+    store: storeSchema.pick({ id: true, name: true }),
     user: z.object({ id: z.string() }).passthrough().nullable().default(null),
   });
 

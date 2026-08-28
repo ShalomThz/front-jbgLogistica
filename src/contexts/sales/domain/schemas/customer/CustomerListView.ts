@@ -5,7 +5,7 @@ import { customerSchema } from "./Customer";
 export const customerListViewSchema = customerSchema
   .omit({ registeredByStoreId: true, userId: true })
   .extend({
-    store: storeSchema,
+    store: storeSchema.pick({ id: true, name: true }),
     user: z.object({ id: z.string() }).passthrough().nullable().default(null),
   });
 
