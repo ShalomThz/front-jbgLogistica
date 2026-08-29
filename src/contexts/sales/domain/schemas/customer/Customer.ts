@@ -34,7 +34,10 @@ export const createCustomerSchema = customerSchema.omit({
   updatedAt: true,
   address: true,
 }).extend({
-  photo: z.string().min(1, "La fotografía del cliente es requerida"),
+  photo: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   address: createAddressSchema,
 });
 

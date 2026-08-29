@@ -116,7 +116,7 @@ export const CustomerFormDialog = ({
               control={control}
               render={({ field }) => (
                 <CustomerPhotoInput
-                  value={field.value}
+                  value={field.value ?? ""}
                   name={customerName}
                   onChange={field.onChange}
                   error={errors.photo?.message}

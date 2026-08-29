@@ -23,15 +23,12 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
     const updates: Promise<void>[] = [];
     let hasError = false;
 
-    if (sender.save && !sender.photo) {
-      hasError = true;
-      toast.error("Agrega la fotografía del remitente antes de guardarlo");
-    } else if (sender.save && !sender.id) {
+    if (sender.save && !sender.id) {
       updates.push(
         // `secondaryPhone: null` porque el paso de contactos captura un solo
         // teléfono. Las ediciones de abajo lo omiten a propósito: mandarlo en
         // null borraría el número extra que el cliente ya tuviera cargado.
-        createCustomer({ userId: null, photo: sender.photo, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, secondaryPhone: null, address: sender.address, registeredByStoreId: user.store.id })
+        createCustomer({ userId: null, photo: sender.photo ?? undefined, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, secondaryPhone: null, address: sender.address, registeredByStoreId: user.store.id })
           .then((created) => {
             toast.success(`Remitente "${sender.name}" guardado`);
             form.setValue("sender.id", created.id);
@@ -44,9 +41,10 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
       );
     }
 
-    if (sender.save && sender.id && sender.photo) {
+    if (sender.save && sender.id) {
       updates.push(
-        updateCustomer(sender.id, { photo: sender.photo, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address })
+        // La foto se manda solo si hay: omitirla deja la que el cliente ya tenía.
+        updateCustomer(sender.id, { ...(sender.photo ? { photo: sender.photo } : {}), name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address })
           .then(() => {
             toast.success(`Remitente "${sender.name}" actualizado`);
             form.setValue("sender.save", false);
@@ -58,12 +56,9 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
       );
     }
 
-    if (recipient.save && !recipient.photo) {
-      hasError = true;
-      toast.error("Agrega la fotografía del destinatario antes de guardarlo");
-    } else if (recipient.save && !recipient.id) {
+    if (recipient.save && !recipient.id) {
       updates.push(
-        createCustomer({ userId: null, photo: recipient.photo, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, secondaryPhone: null, address: recipient.address, registeredByStoreId: user.store.id })
+        createCustomer({ userId: null, photo: recipient.photo ?? undefined, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, secondaryPhone: null, address: recipient.address, registeredByStoreId: user.store.id })
           .then((created) => {
             toast.success(`Destinatario "${recipient.name}" guardado`);
             form.setValue("recipient.id", created.id);
@@ -76,9 +71,9 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
       );
     }
 
-    if (recipient.save && recipient.id && recipient.photo) {
+    if (recipient.save && recipient.id) {
       updates.push(
-        updateCustomer(recipient.id, { photo: recipient.photo, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address })
+        updateCustomer(recipient.id, { ...(recipient.photo ? { photo: recipient.photo } : {}), name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address })
           .then(() => {
             toast.success(`Destinatario "${recipient.name}" actualizado`);
             form.setValue("recipient.save", false);

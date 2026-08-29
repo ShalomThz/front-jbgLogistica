@@ -96,7 +96,7 @@ export const CustomerPhotoInput = ({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="customer-photo">Fotografía del cliente *</Label>
+      <Label htmlFor="customer-photo">Fotografía del cliente</Label>
       <div className="flex items-center gap-4 rounded-md border p-3">
         <CustomerAvatar
           photo={value || null}

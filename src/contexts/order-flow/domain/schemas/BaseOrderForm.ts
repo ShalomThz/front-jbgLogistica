@@ -17,15 +17,6 @@ export const contactWithAddressSchema = z
     phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
     address: createAddressSchema,
     save: z.boolean(),
-  })
-  .superRefine((contact, context) => {
-    if (contact.save && !contact.photo) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "La fotografía del cliente es requerida para guardarlo",
-        path: ["photo"],
-      });
-    }
   });
 
 // --- Base package (shared dimensions) ---
