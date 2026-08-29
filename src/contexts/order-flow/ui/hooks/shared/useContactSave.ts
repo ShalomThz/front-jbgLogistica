@@ -28,7 +28,10 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
       toast.error("Agrega la fotografía del remitente antes de guardarlo");
     } else if (sender.save && !sender.id) {
       updates.push(
-        createCustomer({ userId: null, photo: sender.photo, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, address: sender.address, registeredByStoreId: user.store.id })
+        // `secondaryPhone: null` porque el paso de contactos captura un solo
+        // teléfono. Las ediciones de abajo lo omiten a propósito: mandarlo en
+        // null borraría el número extra que el cliente ya tuviera cargado.
+        createCustomer({ userId: null, photo: sender.photo, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, secondaryPhone: null, address: sender.address, registeredByStoreId: user.store.id })
           .then((created) => {
             toast.success(`Remitente "${sender.name}" guardado`);
             form.setValue("sender.id", created.id);
@@ -60,7 +63,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
       toast.error("Agrega la fotografía del destinatario antes de guardarlo");
     } else if (recipient.save && !recipient.id) {
       updates.push(
-        createCustomer({ userId: null, photo: recipient.photo, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, address: recipient.address, registeredByStoreId: user.store.id })
+        createCustomer({ userId: null, photo: recipient.photo, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, secondaryPhone: null, address: recipient.address, registeredByStoreId: user.store.id })
           .then((created) => {
             toast.success(`Destinatario "${recipient.name}" guardado`);
             form.setValue("recipient.id", created.id);
