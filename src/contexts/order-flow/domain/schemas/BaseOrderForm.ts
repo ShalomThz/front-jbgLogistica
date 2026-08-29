@@ -15,6 +15,9 @@ export const contactWithAddressSchema = z
     company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
     email: optionalEmailSchema,
     phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
+    // Opcional, y solo llega a la ficha del cliente si se tilda "guardar": la
+    // orden lleva un teléfono nada más, el de `CustomerProfile`.
+    secondaryPhone: z.string().max(20, "Máximo 20 caracteres").nullish(),
     address: createAddressSchema,
     save: z.boolean(),
   });

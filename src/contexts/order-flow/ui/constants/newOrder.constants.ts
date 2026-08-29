@@ -8,6 +8,7 @@ const emptyContactWithAddress = {
   company: "",
   email: null,
   phone: "",
+  secondaryPhone: "",
   address: {
     country: "MX",
     address1: "",

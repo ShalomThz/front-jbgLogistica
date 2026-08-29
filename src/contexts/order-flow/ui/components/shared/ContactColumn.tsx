@@ -51,6 +51,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.company`, "");
     setValue(`${prefix}.email`, "");
     setValue(`${prefix}.phone`, "");
+    setValue(`${prefix}.secondaryPhone`, "");
     setValue(`${prefix}.address.country`, "MX");
     setValue(`${prefix}.address.address1`, "");
     setValue(`${prefix}.address.address2`, "");
@@ -71,6 +72,7 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.company`, c.company);
     setValue(`${prefix}.email`, c.email);
     setValue(`${prefix}.phone`, c.phone);
+    setValue(`${prefix}.secondaryPhone`, c.secondaryPhone ?? "");
     setValue(`${prefix}.address.country`, c.address.country);
     setValue(`${prefix}.address.address1`, c.address.address1);
     setValue(`${prefix}.address.address2`, c.address.address2);
@@ -171,6 +173,18 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
               />
               {getNestedError(errors, prefix, "phone") && (
                 <p className="text-sm text-destructive">{getNestedError(errors, prefix, "phone")}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor={`${title}-secondary-phone`}>Teléfono adicional</Label>
+              <Input
+                id={`${title}-secondary-phone`}
+                aria-invalid={!!getNestedError(errors, prefix, "secondaryPhone")}
+                placeholder="Opcional"
+                {...register(`${prefix}.secondaryPhone`)}
+              />
+              {getNestedError(errors, prefix, "secondaryPhone") && (
+                <p className="text-sm text-destructive">{getNestedError(errors, prefix, "secondaryPhone")}</p>
               )}
             </div>
           </div>
