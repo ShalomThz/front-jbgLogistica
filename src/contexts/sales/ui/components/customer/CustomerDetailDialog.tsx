@@ -57,6 +57,9 @@ export const CustomerDetailDialog = ({ customer, open, onClose, onEdit, onDelete
               <DetailRow label="Nombre" value={customer.name} />
               <DetailRow label="Empresa" value={customer.company} />
               <DetailRow label="Teléfono" value={customer.phone} />
+              {customer.secondaryPhone && (
+                <DetailRow label="Teléfono adicional" value={customer.secondaryPhone} />
+              )}
               <DetailRow label="Email" value={customer.email ?? "—"} />
             </div>
           </div>

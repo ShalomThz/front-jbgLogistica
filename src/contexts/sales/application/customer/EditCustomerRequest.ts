@@ -9,6 +9,7 @@ export const editCustomerRequestSchema = z.object({
   company: customerSchema.shape.company.optional(),
   email: customerSchema.shape.email.optional(),
   phone: customerSchema.shape.phone.optional(),
+  secondaryPhone: customerSchema.shape.secondaryPhone.optional(),
   address: createAddressSchema.optional(),
 });
 

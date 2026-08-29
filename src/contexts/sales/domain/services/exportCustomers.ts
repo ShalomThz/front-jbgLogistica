@@ -9,6 +9,7 @@ export function exportCustomers(customers: CustomerListViewPrimitives[]) {
     Empresa: c.company,
     Email: c.email,
     Telefono: c.phone,
+    "Telefono Adicional": c.secondaryPhone ?? "",
     Direccion: c.address.address1,
     "Direccion 2": c.address.address2,
     Ciudad: c.address.city,

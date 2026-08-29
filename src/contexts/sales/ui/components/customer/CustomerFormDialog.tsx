@@ -46,6 +46,7 @@ function getDefaults(
     company: customer?.company ?? "",
     email: customer?.email ?? "",
     phone: customer?.phone ?? "",
+    secondaryPhone: customer?.secondaryPhone ?? "",
     registeredByStoreId: customer?.store.id ?? defaultStoreId ?? "",
     address: {
       address1: customer?.address.address1 ?? "",
@@ -169,6 +170,17 @@ export const CustomerFormDialog = ({
                 />
                 {errors.phone && (
                   <p className="text-xs text-destructive">{errors.phone.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="secondaryPhone">Teléfono adicional</Label>
+                <Input
+                  id="secondaryPhone"
+                  aria-invalid={!!errors.secondaryPhone}
+                  {...register("secondaryPhone")}
+                />
+                {errors.secondaryPhone && (
+                  <p className="text-xs text-destructive">{errors.secondaryPhone.message}</p>
                 )}
               </div>
             </div>
