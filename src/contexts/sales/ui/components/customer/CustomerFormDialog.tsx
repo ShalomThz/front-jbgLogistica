@@ -102,116 +102,122 @@ export const CustomerFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      {/* Tres capas, igual que el detalle: `flex flex-col` en vez del `grid` del
+          primitivo, y `gap-0 p-0` para que cada capa ponga su espaciado. */}
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-lg">
+        <DialogHeader className="border-b px-6 py-4 pr-12">
           <DialogTitle>{isEdit ? "Editar Cliente" : "Crear Cliente"}</DialogTitle>
           <DialogDescription>
             {isEdit ? "Modifica los datos del cliente." : "Ingresa los datos del nuevo cliente."}
           </DialogDescription>
         </DialogHeader>
         <FormProvider {...form}>
-          <form onSubmit={onSubmit} noValidate className="space-y-4">
-            <Controller
-              name="photo"
-              control={control}
-              render={({ field }) => (
-                <CustomerPhotoInput
-                  value={field.value ?? ""}
-                  name={customerName}
-                  onChange={field.onChange}
-                  error={errors.photo?.message}
-                  disabled={isLoading}
-                />
-              )}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre *</Label>
-                <Input
-                  id="name"
-                  aria-invalid={!!errors.name}
-                  {...register("name")}
-                />
-                {errors.name && (
-                  <p className="text-xs text-destructive">{errors.name.message}</p>
+          {/* El form envuelve contenido y pie —el submit del botón depende de
+              eso—, así que es él quien se estira y reparte las dos capas. */}
+          <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              <Controller
+                name="photo"
+                control={control}
+                render={({ field }) => (
+                  <CustomerPhotoInput
+                    value={field.value ?? ""}
+                    name={customerName}
+                    onChange={field.onChange}
+                    error={errors.photo?.message}
+                    disabled={isLoading}
+                  />
                 )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company">Empresa *</Label>
-                <Input
-                  id="company"
-                  aria-invalid={!!errors.company}
-                  {...register("company")}
-                />
-                {errors.company && (
-                  <p className="text-xs text-destructive">{errors.company.message}</p>
-                )}
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  aria-invalid={!!errors.email}
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono *</Label>
-                <Input
-                  id="phone"
-                  aria-invalid={!!errors.phone}
-                  {...register("phone")}
-                />
-                {errors.phone && (
-                  <p className="text-xs text-destructive">{errors.phone.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="secondaryPhone">Teléfono adicional</Label>
-                <Input
-                  id="secondaryPhone"
-                  aria-invalid={!!errors.secondaryPhone}
-                  {...register("secondaryPhone")}
-                />
-                {errors.secondaryPhone && (
-                  <p className="text-xs text-destructive">{errors.secondaryPhone.message}</p>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Tienda *</Label>
-              {canPickStore ? (
-                <Controller
-                  name="registeredByStoreId"
-                  control={control}
-                  render={({ field }) => (
-                    <StorePickerCombobox
-                      value={field.value}
-                      onChange={(s) => field.onChange(s.id)}
-                      error={!!errors.registeredByStoreId}
-                    />
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre *</Label>
+                  <Input
+                    id="name"
+                    aria-invalid={!!errors.name}
+                    {...register("name")}
+                  />
+                  {errors.name && (
+                    <p className="text-xs text-destructive">{errors.name.message}</p>
                   )}
-                />
-              ) : (
-                <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
-                  <Store className="size-4" />
-                  {readOnlyStoreName}
                 </div>
-              )}
-              {errors.registeredByStoreId && (
-                <p className="text-xs text-destructive">{errors.registeredByStoreId.message}</p>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="company">Empresa *</Label>
+                  <Input
+                    id="company"
+                    aria-invalid={!!errors.company}
+                    {...register("company")}
+                  />
+                  {errors.company && (
+                    <p className="text-xs text-destructive">{errors.company.message}</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    aria-invalid={!!errors.email}
+                    {...register("email")}
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-destructive">{errors.email.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono *</Label>
+                  <Input
+                    id="phone"
+                    aria-invalid={!!errors.phone}
+                    {...register("phone")}
+                  />
+                  {errors.phone && (
+                    <p className="text-xs text-destructive">{errors.phone.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondaryPhone">Teléfono adicional</Label>
+                  <Input
+                    id="secondaryPhone"
+                    aria-invalid={!!errors.secondaryPhone}
+                    {...register("secondaryPhone")}
+                  />
+                  {errors.secondaryPhone && (
+                    <p className="text-xs text-destructive">{errors.secondaryPhone.message}</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Tienda *</Label>
+                {canPickStore ? (
+                  <Controller
+                    name="registeredByStoreId"
+                    control={control}
+                    render={({ field }) => (
+                      <StorePickerCombobox
+                        value={field.value}
+                        onChange={(s) => field.onChange(s.id)}
+                        error={!!errors.registeredByStoreId}
+                      />
+                    )}
+                  />
+                ) : (
+                  <div className="flex h-9 items-center gap-2 rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                    <Store className="size-4" />
+                    {readOnlyStoreName}
+                  </div>
+                )}
+                {errors.registeredByStoreId && (
+                  <p className="text-xs text-destructive">{errors.registeredByStoreId.message}</p>
+                )}
+              </div>
+              <div className="border-t pt-4">
+                <AddressFormSection fieldPrefix="address" labelPrefix="Cliente" />
+              </div>
             </div>
-            <div className="border-t pt-4">
-              <AddressFormSection fieldPrefix="address" labelPrefix="Cliente" />
-            </div>
-            <DialogFooter>
+            <DialogFooter className="border-t px-6 py-4">
               <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                 Cancelar
               </Button>
