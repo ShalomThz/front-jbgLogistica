@@ -1,13 +1,20 @@
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
   Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@contexts/shared/shadcn";
+import { HelpCircle } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
@@ -42,7 +49,7 @@ export function PartnerTotalCard({
   onRemovePayment,
   onClearPayments,
 }: PartnerTotalCardProps) {
-  const { control } = useFormContext<PartnerOrderFormValues>();
+  const { control, register } = useFormContext<PartnerOrderFormValues>();
   const shippingService = useWatch<PartnerOrderFormValues, "shippingService">({ name: "shippingService" });
 
   const displayCurrency = shippingService.currency;
@@ -97,11 +104,16 @@ export function PartnerTotalCard({
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Desglose de costos</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
         <div className="space-y-3">
           {tariffPrice && (
             <div className="flex justify-between text-sm">
-              <span>Precio del servicio</span>
+              {/* Explícito: en esta card ahora conviven dos montos de dos
+                  relaciones distintas, y "precio del servicio" no decía cuál. */}
+              <span>Tarifa JBG</span>
               <span>${tariffAmount.toFixed(2)} {tariffCurrency}</span>
             </div>
           )}
@@ -121,7 +133,10 @@ export function PartnerTotalCard({
 
           <div className="rounded-lg bg-muted/50 p-4 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Total a cobrar</span>
+              {/* "Total a cobrar" quedó ambiguo al entrar el cobro al cliente
+                  del socio: cobrar, ¿a quién? Éste es el que el socio le paga
+                  a JBG. */}
+              <span className="text-sm font-medium text-muted-foreground">Total a pagar a JBG</span>
               <Controller
                 control={control}
                 name="shippingService.currency"
@@ -151,6 +166,49 @@ export function PartnerTotalCard({
                 )}
               </div>
             )}
+          </div>
+
+          <Separator />
+
+          {/* Debajo del total y no arriba: primero lo que el socio le debe a
+              JBG, después lo que él le cobra por su lado. Los dos montos son de
+              relaciones distintas y ninguno entra en el otro. */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Cobro a tu cliente</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <HelpCircle className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  Es el monto que sale en la factura que le entregas a tu
+                  cliente, en lugar de la tarifa JBG. No cambia lo que le pagas
+                  a JBG ni tus abonos. Opcional: sin esto la orden se crea igual
+                  y solo queda sin factura.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                $
+              </span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                className="h-10 pl-6 pr-14 font-semibold"
+                {...register("partnerSale")}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {tariffCurrency}
+              </span>
+            </div>
           </div>
 
           <Separator />

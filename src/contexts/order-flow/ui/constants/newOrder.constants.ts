@@ -81,6 +81,7 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
 export const partnerOrderDefaultValues: PartnerOrderFormValues = {
   ...baseDefaults,
   orderType: "PARTNER",
+  partnerSale: "",
   package: {
     boxId: "",
     ownership: "CUSTOMER",

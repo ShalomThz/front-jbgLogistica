@@ -21,6 +21,7 @@ function mapContact(
     // La orden guarda un solo teléfono. Si el contacto es un cliente ya dado de
     // alta, `ContactColumn` trae el extra de su ficha al volver a elegirlo.
     secondaryPhone: "",
+
     address: {
       address1: addr.address1 ?? "",
       address2: addr.address2 ?? "",
@@ -109,6 +110,11 @@ export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderF
   return {
     ...mapBaseFields(order),
     orderType: "PARTNER",
+    // Vacío cuando la orden no lo tiene: las anteriores al campo y las que se
+    // crearon sin cargarlo.
+    partnerSale: order.financials.partnerSale
+      ? String(order.financials.partnerSale.total.amount)
+      : "",
     package: {
       boxId: order.package.boxId,
       ownership: order.package.ownership,

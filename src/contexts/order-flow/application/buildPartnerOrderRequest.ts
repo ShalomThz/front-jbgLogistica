@@ -42,6 +42,8 @@ export const buildPartnerOrderRequest = (
 
   const hasCosts = Object.values(costBreakdown).some((v) => v !== null);
 
+  const partnerSaleTotal = parseMoney(formValues.partnerSale, tariff.currency);
+
   return createPartnerOrderSchema.parse({
     storeId,
     partnerOrderNumber: formValues.orderData.partnerOrderNumber,
@@ -58,6 +60,10 @@ export const buildPartnerOrderRequest = (
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     tariff,
+    // En la moneda de la tarifa, que es la que muestra el campo. `parseMoney`
+    // devuelve null si está vacío o en cero: ahí la orden queda sin factura de
+    // socio, que es distinto de tener una en cero.
+    partnerSale: partnerSaleTotal ? { total: partnerSaleTotal } : null,
     ...(serviceLevel && { serviceLevel }),
     ...(shippingMode && { shippingMode }),
     ...(destinationCountry && { destinationCountry }),

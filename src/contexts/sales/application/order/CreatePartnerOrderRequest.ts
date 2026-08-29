@@ -24,6 +24,9 @@ export const createPartnerOrderSchema = z.object({
   /** Lo que se le cobra al socio: la sugerencia de la tabla o un monto escrito
    * a mano. */
   tariff: moneySchema,
+  /** Lo que el socio le cobra a su propio cliente. Opcional: sin esto la orden
+   * se crea igual y solo queda sin factura de socio. */
+  partnerSale: z.object({ total: moneySchema }).nullish(),
   /** Velocidad contratada. Es el único insumo del precio que no se deriva: el
    * punto de recolección es la tienda socia y el peldaño es PARTNER por ser
    * orden de socio. */

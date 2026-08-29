@@ -43,6 +43,11 @@ export const orderFinancialsSchema = z.object({
   payments: z.array(paymentSchema).default([]),
   costBreakdown: costBreakdownSchema,
   discount: discountSchema,
+  /** Lo que el socio le vendió el servicio a su propio cliente. No es plata de
+   * JBG: no entra en `totalBilled` ni en el estado de pago, y existe para la
+   * factura que el socio le entrega a su cliente. `null` en órdenes HQ y en las
+   * de socio anteriores al campo. */
+  partnerSale: z.object({ total: moneySchema }).nullish(),
 });
 
 export type OrderFinancialsPrimitives = z.infer<typeof orderFinancialsSchema>;
