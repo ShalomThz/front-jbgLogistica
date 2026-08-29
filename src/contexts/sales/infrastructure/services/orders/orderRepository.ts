@@ -163,8 +163,13 @@ export const orderRepository = {
     });
   },
 
-  getInvoicePdf: async (orderId: string): Promise<Blob> => {
-    return httpClientBlob(`/invoice/${orderId}/pdf`);
+  /** `variant` elige qué factura arma el backend: la de JBG (por omisión) o la
+   * que el socio le entrega a su propio cliente. */
+  getInvoicePdf: async (
+    orderId: string,
+    variant: "jbg" | "partner" = "jbg",
+  ): Promise<Blob> => {
+    return httpClientBlob(`/invoice/${orderId}/pdf?variant=${variant}`);
   },
 
   sendInvoiceEmail: async (

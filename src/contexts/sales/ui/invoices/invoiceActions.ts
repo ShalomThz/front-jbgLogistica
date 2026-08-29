@@ -9,13 +9,22 @@ import { orderRepository } from "@contexts/sales/infrastructure/services/orders/
  * call reflects the order's current state.
  */
 
+/**
+ * Qué factura se pide. `jbg` es la de siempre —lo que JBG cobra— y `partner` es
+ * la que el socio le entrega a su propio cliente, por el monto que él le puso.
+ * Cada una la arma un generador distinto en el backend.
+ */
+export type InvoiceVariant = "jbg" | "partner";
+
 /** The slice of the order these actions need. */
 export interface InvoiceOrderContext {
   id: string;
+  type?: string;
   references: { orderNumber: string | null };
   financials: {
     tariff: MoneyPrimitives | null;
     totalBilled: MoneyPrimitives | null;
+    partnerSale?: { total: MoneyPrimitives } | null;
   };
 }
 
@@ -35,13 +44,33 @@ export const canInvoice = (order: InvoiceOrderContext): boolean =>
       order.financials.totalBilled,
   );
 
-const invoiceFilename = (order: InvoiceOrderContext): string =>
-  `factura-${order.references.orderNumber ?? order.id}.pdf`;
+/**
+ * La factura de socio existe solo en órdenes de socio y solo si se cargó el
+ * cobro a su cliente. Sin eso el backend la rechaza, así que el botón no se
+ * ofrece: es la misma regla, del lado de acá.
+ */
+export const canInvoicePartner = (order: InvoiceOrderContext): boolean =>
+  Boolean(
+    order.type === "PARTNER" &&
+      order.references.orderNumber &&
+      order.financials.partnerSale,
+  );
+
+const invoiceFilename = (
+  order: InvoiceOrderContext,
+  variant: InvoiceVariant,
+): string => {
+  const number = order.references.orderNumber ?? order.id;
+  return variant === "partner"
+    ? `factura-agente-${number}.pdf`
+    : `factura-${number}.pdf`;
+};
 
 const fetchInvoice = async (
   order: InvoiceOrderContext,
+  variant: InvoiceVariant,
 ): Promise<{ url: string; cleanup: () => void }> => {
-  const blob = await orderRepository.getInvoicePdf(order.id);
+  const blob = await orderRepository.getInvoicePdf(order.id, variant);
   const url = URL.createObjectURL(blob);
   return { url, cleanup: () => URL.revokeObjectURL(url) };
 };
@@ -49,12 +78,13 @@ const fetchInvoice = async (
 /** Downloads the invoice as `factura-<número de orden>.pdf`. */
 export const downloadInvoice = async (
   order: InvoiceOrderContext,
+  variant: InvoiceVariant = "jbg",
 ): Promise<void> => {
   try {
-    const { url, cleanup } = await fetchInvoice(order);
+    const { url, cleanup } = await fetchInvoice(order, variant);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = invoiceFilename(order);
+    anchor.download = invoiceFilename(order, variant);
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -73,6 +103,7 @@ export const downloadInvoice = async (
  */
 export const printInvoice = async (
   order: InvoiceOrderContext,
+  variant: InvoiceVariant = "jbg",
 ): Promise<void> => {
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
@@ -84,7 +115,7 @@ export const printInvoice = async (
   }
 
   try {
-    const { url, cleanup } = await fetchInvoice(order);
+    const { url, cleanup } = await fetchInvoice(order, variant);
     printWindow.addEventListener("load", () => printWindow.print());
     printWindow.location.replace(url);
     window.setTimeout(cleanup, REVOKE_DELAY_MS);

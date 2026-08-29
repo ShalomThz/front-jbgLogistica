@@ -42,8 +42,10 @@ import {
 } from "@contexts/shipping/ui/labels/labelOptions";
 import {
   canInvoice,
+  canInvoicePartner,
   downloadInvoice,
   printInvoice,
+  type InvoiceVariant,
 } from "@contexts/sales/ui/invoices/invoiceActions";
 import { FileText } from "lucide-react";
 
@@ -124,21 +126,21 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
     }
   };
 
-  const handleDownloadInvoice = async () => {
+  const handleDownloadInvoice = async (variant: InvoiceVariant = "jbg") => {
     if (!order) return;
     setIsDownloadingInvoice(true);
     try {
-      await downloadInvoice(order);
+      await downloadInvoice(order, variant);
     } finally {
       setIsDownloadingInvoice(false);
     }
   };
 
-  const handlePrintInvoice = async () => {
+  const handlePrintInvoice = async (variant: InvoiceVariant = "jbg") => {
     if (!order) return;
     setIsDownloadingInvoice(true);
     try {
-      await printInvoice(order);
+      await printInvoice(order, variant);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -406,7 +408,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
           <Button
             variant="outline"
             className="gap-2"
-            onClick={handleDownloadInvoice}
+            onClick={() => handleDownloadInvoice("jbg")}
             disabled={isDownloadingInvoice}
           >
             <FileText className="size-4" />
@@ -415,11 +417,35 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
           <Button
             variant="outline"
             className="gap-2"
-            onClick={handlePrintInvoice}
+            onClick={() => handlePrintInvoice("jbg")}
             disabled={isDownloadingInvoice}
           >
             <Printer className="size-4" />
             {isDownloadingInvoice ? "Generando..." : "Imprimir factura"}
+          </Button>
+        </div>
+      )}
+
+      {/* La factura que el agente le entrega a su cliente. Solo aparece si él
+          cargó el cobro: sin eso el backend la rechaza. */}
+      {order && canInvoicePartner(order) && (
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            className="gap-2"
+            onClick={() => handleDownloadInvoice("partner")}
+            disabled={isDownloadingInvoice}
+          >
+            <FileText className="size-4" />
+            {isDownloadingInvoice ? "Descargando..." : "Factura para tu cliente"}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => handlePrintInvoice("partner")}
+            disabled={isDownloadingInvoice}
+          >
+            <Printer className="size-4" />
+            {isDownloadingInvoice ? "Generando..." : "Imprimir"}
           </Button>
         </div>
       )}

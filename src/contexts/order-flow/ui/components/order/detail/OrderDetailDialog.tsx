@@ -12,8 +12,10 @@ import {
 import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import {
   canInvoice,
+  canInvoicePartner,
   downloadInvoice as downloadInvoicePdf,
   printInvoice as printInvoicePdf,
+  type InvoiceVariant,
 } from "@contexts/sales/ui/invoices/invoiceActions";
 import {
   availableLabelOptions,
@@ -171,10 +173,10 @@ export const OrderDetailDialog = ({
     : false;
   const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
 
-  const downloadInvoice = async () => {
+  const downloadInvoice = async (variant: InvoiceVariant = "jbg") => {
     setIsDownloadingInvoice(true);
     try {
-      await downloadInvoicePdf(order);
+      await downloadInvoicePdf(order, variant);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -195,10 +197,10 @@ export const OrderDetailDialog = ({
     }
   };
 
-  const printInvoice = async () => {
+  const printInvoice = async (variant: InvoiceVariant = "jbg") => {
     setIsDownloadingInvoice(true);
     try {
-      await printInvoicePdf(order);
+      await printInvoicePdf(order, variant);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -748,14 +750,29 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={downloadInvoice}>
+                <DropdownMenuItem onClick={() => downloadInvoice("jbg")}>
                   <Download className="size-4" />
                   Descargar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={printInvoice}>
+                <DropdownMenuItem onClick={() => printInvoice("jbg")}>
                   <Printer className="size-4" />
                   Imprimir
                 </DropdownMenuItem>
+                {/* Solo en órdenes de socio con el cobro cargado: sin eso el
+                    backend rechaza la factura. */}
+                {canInvoicePartner(order) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => downloadInvoice("partner")}>
+                      <Download className="size-4" />
+                      Descargar factura de agente
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => printInvoice("partner")}>
+                      <Printer className="size-4" />
+                      Imprimir factura de agente
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {userCanEdit && origin.email && onSendInvoiceEmail && (
                   <DropdownMenuItem
                     disabled={sendingInvoiceOrderId === order.id}
