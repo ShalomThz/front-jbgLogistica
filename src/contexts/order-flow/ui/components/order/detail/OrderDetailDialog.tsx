@@ -163,6 +163,7 @@ export const OrderDetailDialog = ({
   // (HQ default when none was stored).
   const shippingOrigin = shipment?.warehouseAddress ?? null;
   const canPrintInvoice = canInvoice(order);
+  const canPrintPartnerInvoice = canInvoicePartner(order);
 
   const canEditPartner = user ? orderPolicies.editPartner(user) : false;
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
@@ -735,7 +736,11 @@ export const OrderDetailDialog = ({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {canPrintInvoice && (
+          {/* Basta con que exista **alguna** de las dos. Antes el botón entero
+              colgaba de `canInvoice`, que exige el número de JBG: en una orden
+              de socio recién creada eso todavía no existe, así que la factura
+              del agente quedaba escondida junto con el menú. */}
+          {(canPrintInvoice || canPrintPartnerInvoice) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -750,19 +755,10 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => downloadInvoice("jbg")}>
-                  <Download className="size-4" />
-                  Descargar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => printInvoice("jbg")}>
-                  <Printer className="size-4" />
-                  Imprimir
-                </DropdownMenuItem>
-                {/* Solo en órdenes de socio con el cobro cargado: sin eso el
-                    backend rechaza la factura. */}
-                {canInvoicePartner(order) && (
+                {/* Primero la del agente: es la que él le entrega a su cliente,
+                    y en una orden de socio suele ser la única disponible. */}
+                {canPrintPartnerInvoice && (
                   <>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => downloadInvoice("partner")}>
                       <Download className="size-4" />
                       Descargar factura de agente
@@ -773,7 +769,22 @@ export const OrderDetailDialog = ({
                     </DropdownMenuItem>
                   </>
                 )}
-                {userCanEdit && origin.email && onSendInvoiceEmail && (
+                {canPrintInvoice && canPrintPartnerInvoice && (
+                  <DropdownMenuSeparator />
+                )}
+                {canPrintInvoice && (
+                  <>
+                    <DropdownMenuItem onClick={() => downloadInvoice("jbg")}>
+                      <Download className="size-4" />
+                      Descargar factura de JBG
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => printInvoice("jbg")}>
+                      <Printer className="size-4" />
+                      Imprimir factura de JBG
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {canPrintInvoice && userCanEdit && origin.email && onSendInvoiceEmail && (
                   <DropdownMenuItem
                     disabled={sendingInvoiceOrderId === order.id}
                     onClick={() => onSendInvoiceEmail(order)}

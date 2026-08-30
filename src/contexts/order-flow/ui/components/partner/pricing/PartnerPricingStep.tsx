@@ -1,240 +1,146 @@
-import { ServiceLevelSelector } from "../../shared/ServiceLevelSelector";
-import { ShippingModeSelector } from "../../shared/ShippingModeSelector";
-import { DestinationCountrySelector } from "../../shared/DestinationCountrySelector";
-import { ZoneSelector } from "@contexts/pricing/ui/components/zone/ZoneSelector";
 import {
-  SERVICE_LEVEL_COLORS,
-  SERVICE_LEVEL_LABELS,
-  SHIPPING_MODE_LABELS,
-  type ServiceLevel,
-  type ShippingMode,
-} from "@contexts/pricing/domain/schemas/tariff/Tariff";
-import { Badge, Card, CardContent } from "@contexts/shared/shadcn";
-import {
-  AlertTriangle,
-  Gauge,
-  Globe,
-  Handshake,
-  MapPin,
-  Package,
-  Truck,
-} from "lucide-react";
-import { useMemo } from "react";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@contexts/shared/shadcn";
+import { HelpCircle, Store } from "lucide-react";
 import { useFormContext, useWatch } from "react-hook-form";
-import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
-import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
-import { PartnerAdditionalCostsCard } from "./PartnerAdditionalCostsCard";
-import { PartnerTariffCard } from "./PartnerTariffCard";
+import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
 import { PartnerOrderSummaryCard } from "./PartnerOrderSummaryCard";
-import { PartnerTotalCard } from "./PartnerTotalCard";
 import { SignatureCard } from "../../shared/SignatureCard";
 
 interface PartnerPricingStepProps {
-  tariffPrice: MoneyPrimitives | null;
-  effectiveTariff: MoneyPrimitives | null;
-  onTariffChange: (value: MoneyPrimitives) => void;
-  isLoadingPrice: boolean;
-  tariffError: string | null;
-  refetchPrice: () => void;
-  pendingPayments: AddPaymentRequest[];
-  onAddPayment: (data: AddPaymentRequest) => void;
-  onRemovePayment: (index: number) => void;
-  onClearPayments: () => void;
-  /** Orden ya existente (edición): muestra sus abonos ya registrados. */
+  /** La moneda del precio que se le cobra al socio: el cobro a su cliente se
+   * captura en la misma para que los dos números se lean juntos. */
+  currency: string;
+  /** La tienda a nombre de la que se crea la orden. Va en la card porque este
+   * cobro es de esa tienda, no de JBG, y es lo que sale en su factura. */
+  storeName: string;
+  /** Abonos que el cliente del socio ya le pagó **a él**. */
+  partnerSalePayments: AddPaymentRequest[];
+  onAddPartnerSalePayment: (data: AddPaymentRequest) => void;
+  onRemovePartnerSalePayment: (index: number) => void;
+  onClearPartnerSalePayments: () => void;
   orderId?: string;
-  /** Zona efectiva usada en la búsqueda de tarifa (override o la de la tienda). */
-  zoneId?: string;
-  /** Presente solo si el usuario tiene permiso para cambiar la zona. */
-  onZoneChange?: (zoneId: string) => void;
-  serviceLevel: ServiceLevel;
-  onServiceLevelChange: (serviceLevel: ServiceLevel) => void;
-  shippingMode: ShippingMode;
-  onShippingModeChange: (shippingMode: ShippingMode) => void;
-  /** País con el que se cotiza. Arranca en el del destinatario. */
-  destinationCountry: string;
-  onDestinationCountryChange: (country: string) => void;
-  /** El del destinatario, para avisar si el de cotización no coincide. */
-  recipientCountry: string;
 }
 
 /**
- * Muestra la combinación exacta que no tiene precio, para que el vendedor la
- * reporte a JBG sin adivinar. Son los cinco factores que forman la clave de la
- * tarifa: zona de recolección, país destino, caja, servicio y modo de
- * transporte.
+ * El paso del agente: lo único que es suyo.
+ *
+ * Cuánto le cobra a su cliente y cuánto le pagó ese cliente. Nada de lo que él
+ * le debe a JBG —tarifa, costos, sus propios abonos— vive acá: eso es el paso de
+ * cotización, y mezclarlos era lo que hacía ilegible la pantalla.
  */
-function TariffNotFoundCard({
-  zoneId,
-  destinationCountry,
-  serviceLevel,
-  shippingMode,
-}: {
-  zoneId?: string;
-  destinationCountry: string;
-  serviceLevel: ServiceLevel;
-  shippingMode: ShippingMode;
-}) {
-  const { control } = useFormContext<PartnerOrderFormValues>();
-  const packageType = useWatch<PartnerOrderFormValues, "package.packageType">({
-    control,
-    name: "package.packageType",
-  });
-
-  // Se busca solo la zona en uso: el catálogo se pagina y traerlo entero para
-  // resolver un nombre ya no es viable.
-  const zoneFilters = useMemo(
-    () => (zoneId ? [{ field: "id", filterOperator: "=" as const, value: zoneId }] : []),
-    [zoneId],
-  );
-  const { zones } = useZones({ filters: zoneFilters, enabled: !!zoneId });
-  const zone = zones[0];
-
-  return (
-    <Card className="border-destructive bg-destructive/5">
-      <CardContent className="flex items-start gap-3 pt-6">
-        <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-destructive">
-            No se encontró tarifa para esta orden
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="gap-1.5 py-1">
-              <MapPin className="size-3.5" />
-              <span className="text-[10px] uppercase tracking-wide opacity-70">Zona</span>
-              {zone ? `${zone.name} · ${zone.state}` : "—"}
-            </Badge>
-            <Badge variant="secondary" className="gap-1.5 py-1">
-              <Package className="size-3.5" />
-              <span className="text-[10px] uppercase tracking-wide opacity-70">Caja</span>
-              {packageType || "—"}
-            </Badge>
-            <Badge
-              variant="secondary"
-              className={`gap-1.5 py-1 ${SERVICE_LEVEL_COLORS[serviceLevel]}`}
-            >
-              <Gauge className="size-3.5" />
-              <span className="text-[10px] uppercase tracking-wide opacity-70">
-                Servicio
-              </span>
-              {SERVICE_LEVEL_LABELS[serviceLevel]}
-            </Badge>
-            <Badge variant="secondary" className="gap-1.5 py-1">
-              <Globe className="size-3.5" />
-              <span className="text-[10px] uppercase tracking-wide opacity-70">
-                Destino
-              </span>
-              {destinationCountry || "—"}
-            </Badge>
-            <Badge variant="secondary" className="gap-1.5 py-1">
-              <Truck className="size-3.5" />
-              <span className="text-[10px] uppercase tracking-wide opacity-70">
-                Transporte
-              </span>
-              {SHIPPING_MODE_LABELS[shippingMode]}
-            </Badge>
-            <Badge variant="outline" className="gap-1.5 py-1">
-              <Handshake className="size-3.5" />
-              <span className="text-[10px] uppercase tracking-wide opacity-70">
-                Precio
-              </span>
-              Socio
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Comunícate con JBG para que se asigne una tarifa a esta combinación, o
-            escribe el precio a mano para continuar.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function PartnerPricingStep({
-  tariffPrice,
-  effectiveTariff,
-  onTariffChange,
-  isLoadingPrice,
-  tariffError,
-  refetchPrice,
-  pendingPayments,
-  onAddPayment,
-  onRemovePayment,
-  onClearPayments,
+  currency,
+  storeName,
+  partnerSalePayments,
+  onAddPartnerSalePayment,
+  onRemovePartnerSalePayment,
+  onClearPartnerSalePayments,
   orderId,
-  zoneId,
-  onZoneChange,
-  serviceLevel,
-  onServiceLevelChange,
-  shippingMode,
-  onShippingModeChange,
-  destinationCountry,
-  onDestinationCountryChange,
-  recipientCountry,
 }: PartnerPricingStepProps) {
-  const { control } = useFormContext<PartnerOrderFormValues>();
-  const displayCurrency = useWatch<PartnerOrderFormValues, "shippingService.currency">({
+  const { control, register } = useFormContext<PartnerOrderFormValues>();
+  const partnerSale = useWatch<PartnerOrderFormValues, "partnerSale">({
     control,
-    name: "shippingService.currency",
+    name: "partnerSale",
   });
 
+  const total = parseFloat(partnerSale) || null;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
-        {/* Zona, servicio y monto en una sola tarjeta y en la columna ancha:
-            igual que el paso de cobro de HQ. Mover un insumo recotiza al
-            instante y el efecto se ve ahí mismo. */}
-        <PartnerTariffCard
-          tariffPrice={tariffPrice}
-          effectiveTariff={effectiveTariff}
-          onTariffChange={onTariffChange}
-          isLoading={isLoadingPrice}
-          error={tariffError}
-          onRefetch={refetchPrice}
-          fallbackCurrency={displayCurrency}
-        >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {onZoneChange && (
-              <ZoneSelector zoneId={zoneId} onZoneChange={onZoneChange} label="Zona" />
-            )}
-            <ServiceLevelSelector value={serviceLevel} onChange={onServiceLevelChange} />
-            <ShippingModeSelector
-              value={shippingMode}
-              onChange={onShippingModeChange}
-            />
-            <DestinationCountrySelector
-              value={destinationCountry}
-              onChange={onDestinationCountryChange}
-              recipientCountry={recipientCountry}
-            />
-          </div>
-        </PartnerTariffCard>
-
-        {tariffError && (
-          <TariffNotFoundCard
-            zoneId={zoneId}
-            destinationCountry={destinationCountry}
-            serviceLevel={serviceLevel}
-            shippingMode={shippingMode}
-          />
-        )}
-
-        <PartnerAdditionalCostsCard />
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="space-y-4 lg:col-span-2">
         <SignatureCard collapsible={false} />
       </div>
 
       <div className="space-y-4">
         <PartnerOrderSummaryCard />
-        <PartnerTotalCard
-          tariffPrice={effectiveTariff}
-          orderId={orderId}
-          pendingPayments={pendingPayments}
-          onAddPayment={onAddPayment}
-          onRemovePayment={onRemovePayment}
-          onClearPayments={onClearPayments}
-        />
+
+        {/* Una sola card, espejo del desglose de JBG del paso anterior: el monto
+            y lo que ya se cobró de ese monto son la misma cuenta, y tenerlos
+            separados obligaba a mirar dos lugares para saber cuánto falta. */}
+        <Card>
+          <CardHeader className="pb-3">
+            {/* La tienda arriba: el espejo del logo de JBG. Allá cobra JBG, acá
+                cobra esta tienda. */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Store className="size-3.5" />
+              {storeName}
+            </div>
+            <CardTitle className="flex items-center gap-1.5 text-base">
+              Cobro a tu cliente
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <HelpCircle className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  Es el monto que sale en la factura que le entregas a tu
+                  cliente, en lugar de la tarifa de JBG. No cambia lo que le
+                  pagas a JBG ni tus abonos. Opcional: sin esto la orden se crea
+                  igual y solo queda sin factura.
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                $
+              </span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                className="h-10 pl-6 pr-14 text-lg font-bold"
+                {...register("partnerSale")}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {currency}
+              </span>
+            </div>
+
+            {/* Abonar solo tiene sentido contra un monto ya definido. */}
+            {total !== null && total > 0 && (
+              <>
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Abonos de tu cliente</p>
+                    <p className="text-xs text-muted-foreground">
+                      Lo que ya te pagó a ti. No reduce lo que le debes a JBG.
+                    </p>
+                  </div>
+
+                  <PendingPaymentControl
+                    grandTotal={total}
+                    currency={currency}
+                    orderId={orderId}
+                    pendingPayments={partnerSalePayments}
+                    onAddPayment={onAddPartnerSalePayment}
+                    onRemovePayment={onRemovePartnerSalePayment}
+                    onClearPayments={onClearPartnerSalePayments}
+                  />
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { Button } from "@contexts/shared/shadcn";
-import { ArrowLeft, CheckCircle2, FilePlus2, Printer, UserPlus } from "lucide-react";
+import { ArrowLeft, Handshake, Printer } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback, useMemo, useState } from "react";
@@ -14,6 +14,8 @@ import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { PartnerContactStep } from "../components/partner/contact/PartnerContactStep";
 import { PartnerPackageStep } from "../components/partner/package/PartnerPackageStep";
 import { PartnerPricingStep } from "../components/partner/pricing/PartnerPricingStep";
+import { PartnerRateStep } from "../components/partner/rate/PartnerRateStep";
+import { PartnerOrderSuccessView } from "../components/partner/PartnerOrderSuccessView";
 import { StepIndicator } from "../components/shared/StepIndicator";
 import type { PartnerOrderFormValues } from "../../domain/schemas/NewOrderForm";
 import type { OrderPricingPrimitives } from "@contexts/sales/domain/schemas/order/Order";
@@ -135,18 +137,19 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
     navigate("/orders/new/partner", { replace: true, state: { initialValues: cleaned } });
   }, [flow.form, navigate]);
 
-  const title = (() => {
-    const action = flow.isEditing ? "Editar Orden" : "Nueva Orden";
-    const name = storeName ?? selectedStoreLookup[0]?.name;
-    if (name) return `${action} — ${name}`;
-    return `${action} Partner`;
-  })();
+  const title = flow.isEditing ? "Editar orden agente" : "Nueva orden agente";
+  // El prop gana cuando viene (edición); si no, la que resolvió el flujo.
+  const headerStore = storeName ?? flow.storeName ?? selectedStoreLookup[0]?.name;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    /* Tres capas. `h-full` para llenar el contenedor del layout, que ya viene
+       acotado (`h-screen overflow-hidden` en DashboardLayout): sin eso la página
+       crecería y el que scrollea sería el wrapper de afuera, moviendo el título
+       y los botones junto con el contenido. */
+    <div className="flex h-full flex-col gap-6">
+      {/* ── Header: fijo ─────────────────────────────────────────────── */}
       {flow.step !== "success" && (
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -154,21 +157,40 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
           >
             <ArrowLeft className="size-5" />
           </Button>
-          <h1 className="text-2xl font-bold">
+          {/* El apretón de manos es el mismo que marca el precio de socio en la
+              tabla de tarifas: acá dice de entrada que la orden es de un agente
+              y no de mostrador. */}
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Handshake className="size-5" />
+          </span>
+          <h1 className="min-w-0 truncate text-2xl font-bold leading-tight">
             {title}
+            {headerStore && (
+              <>
+                <span className="mx-2 font-normal text-muted-foreground">·</span>
+                {/* La tienda resaltada dentro del título: es de quién es la
+                    orden, y en esta pantalla hay dos partes cobrando. */}
+                <span className="text-primary">{headerStore}</span>
+              </>
+            )}
           </h1>
         </div>
       )}
 
-      {/* Step Indicator */}
-      <StepIndicator
-        steps={flow.steps}
-        currentStep={flow.step}
-        onStepClick={flow.setStep}
-      />
+      <div className="shrink-0">
+        <StepIndicator
+          steps={flow.steps}
+          currentStep={flow.step}
+          onStepClick={flow.setStep}
+        />
+      </div>
 
-      {/* Form */}
-      <FormProvider {...flow.form}>
+      {/* ── Contenido: lo único que scrollea ─────────────────────────────
+          `min-h-0` es lo que lo habilita: sin él un hijo flex no se encoge por
+          debajo de su contenido y el overflow nunca se dispara. El `pr-1` deja
+          la barra sin taparle el borde a las cards. */}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <FormProvider {...flow.form}>
         {flow.step === "contact" && (
           <PartnerContactStep
             selectedStoreId={flow.selectedStoreId}
@@ -182,14 +204,19 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
           <PartnerPackageStep onEditContacts={() => flow.setStep("contact")} />
         )}
 
-        {flow.step === "pricing" && (
-          <PartnerPricingStep
-            tariffPrice={flow.tariffPrice}
+        {/* Lo que el socio le paga a JBG. */}
+        {flow.step === "rate" && (
+          <PartnerRateStep
+            options={flow.options}
+            isLoadingOptions={flow.isLoadingOptions}
+            optionsError={flow.optionsError}
+            refetchOptions={flow.refetchOptions}
+            selectedTariffId={flow.selectedTariffId}
+            onSelectOption={flow.onSelectOption}
+            onClearSelection={flow.onClearSelection}
             effectiveTariff={flow.effectiveTariff}
             onTariffChange={flow.onTariffChange}
-            isLoadingPrice={flow.isLoadingPrice}
-            tariffError={flow.tariffError}
-            refetchPrice={flow.refetchPrice}
+            isManualTariff={flow.isManualTariff}
             pendingPayments={flow.pendingPayments}
             onAddPayment={flow.addPendingPayment}
             onRemovePayment={flow.removePendingPayment}
@@ -197,52 +224,46 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
             orderId={flow.orderId}
             zoneId={flow.originZoneId}
             {...(flow.canChangeZone && { onZoneChange: flow.setZoneOverride })}
-            serviceLevel={flow.serviceLevel}
-            onServiceLevelChange={flow.setServiceLevel}
             destinationCountry={flow.destinationCountry}
             onDestinationCountryChange={flow.setDestinationCountry}
             recipientCountry={flow.recipientCountry}
-            shippingMode={flow.shippingMode}
-            onShippingModeChange={flow.setShippingMode}
+            canViewFinancials={flow.canViewFinancials}
+          />
+        )}
+
+        {/* Lo que el socio le cobra a su cliente. */}
+        {flow.step === "pricing" && (
+          <PartnerPricingStep
+            currency={flow.effectiveTariff?.currency ?? "USD"}
+            storeName={headerStore ?? "—"}
+            partnerSalePayments={flow.partnerSalePayments}
+            onAddPartnerSalePayment={flow.addPartnerSalePayment}
+            onRemovePartnerSalePayment={flow.removePartnerSalePayment}
+            onClearPartnerSalePayments={flow.clearPartnerSalePayments}
+            orderId={flow.orderId}
           />
         )}
 
         {flow.step === "success" && (
-          <div className="mx-auto max-w-2xl space-y-6">
-            <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-950/30">
-              <CheckCircle2 className="mx-auto size-12 text-green-600" />
-              <h2 className="mt-3 text-xl font-bold text-green-700 dark:text-green-400">
-                Orden creada exitosamente
-              </h2>
-              <p className="mt-1 text-sm text-green-600/80 dark:text-green-400/70">
-                La orden ha sido registrada y está pendiente de procesamiento
-              </p>
-            </div>
+          <PartnerOrderSuccessView
+            orderId={flow.orderId}
+            canViewFinancials={flow.canViewFinancials}
+            onCreateBlank={handleCreateBlank}
+            onCreateSameClient={handleCreateSameClient}
+            onFinish={flow.goToOrders}
+          >
             {(flow.form.getValues("emptyBoxDelivery") ||
               flow.form.getValues("homePickup")) &&
               flow.orderId && <AnticipoLabelCard orderId={flow.orderId} />}
-            <div className="flex flex-wrap justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="gap-2" onClick={handleCreateBlank}>
-                  <FilePlus2 className="size-4" />
-                  Nueva orden en blanco
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={handleCreateSameClient}>
-                  <UserPlus className="size-4" />
-                  Nueva orden del mismo cliente
-                </Button>
-              </div>
-              <Button className="ml-auto" onClick={flow.goToOrders}>
-                Ir a órdenes
-              </Button>
-            </div>
-          </div>
+          </PartnerOrderSuccessView>
         )}
-      </FormProvider>
+        </FormProvider>
+      </div>
 
-      {/* Bottom Navigation */}
+      {/* ── Pie: fijo. Antes había que bajar hasta el fondo del formulario
+             para llegar a "Siguiente". ──────────────────────────────────── */}
       {flow.step !== "success" && (
-        <div className="flex justify-between">
+        <div className="flex shrink-0 justify-between border-t pt-4">
           <Button variant="outline" onClick={flow.step === "contact" ? flow.goToOrders : flow.handleBack}>
             {flow.step === "contact" ? "Cancelar" : "Anterior"}
           </Button>

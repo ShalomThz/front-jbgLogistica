@@ -51,6 +51,17 @@ export const usePartnerOrderSubmission = ({
   const removePendingPayment = (index: number) =>
     setPendingPayments((prev) => prev.filter((_, i) => i !== index));
   const clearPendingPayments = () => setPendingPayments([]);
+
+  // El libro del socio con su cliente, aparte del de JBG. Se captura en el paso
+  // de cobro y viaja dentro de `partnerSale` al crear la orden.
+  const [partnerSalePayments, setPartnerSalePayments] = useState<
+    AddPaymentRequest[]
+  >([]);
+  const addPartnerSalePayment = (data: AddPaymentRequest) =>
+    setPartnerSalePayments((prev) => [...prev, data]);
+  const removePartnerSalePayment = (index: number) =>
+    setPartnerSalePayments((prev) => prev.filter((_, i) => i !== index));
+  const clearPartnerSalePayments = () => setPartnerSalePayments([]);
   const { user } = useAuth();
   const { createPartnerOrder, updateOrder, addPayment, isCreating } = useOrders({
     enabled: false,
@@ -84,10 +95,23 @@ export const usePartnerOrderSubmission = ({
         toast.error("No se pudo obtener la tarifa. Intenta de nuevo.", { id: "order-flow" });
         return;
       }
-      if (form.getValues("emptyBoxDelivery") && pendingPayments.length === 0) {
-        toast.error("Registra el anticipo para dejar la caja vacía.", {
-          id: "order-flow",
-        });
+      // El anticipo lo paga el cliente del socio: cubre el viaje del chofer que
+      // le lleva la caja vacía. Se exige contra el libro del socio con su
+      // cliente, no contra lo que él le abona a JBG.
+      //
+      // Se mira también el monto, y no solo los abonos: el libro cuelga de
+      // `partnerSale`, así que sin total los abonos no viajan en el request y el
+      // backend rechazaría con un error que no explica nada. Pasa si se carga un
+      // monto, se abona y después se borra el monto.
+      const hasPartnerSale = (parseFloat(form.getValues("partnerSale")) || 0) > 0;
+      if (
+        form.getValues("emptyBoxDelivery") &&
+        (!hasPartnerSale || partnerSalePayments.length === 0)
+      ) {
+        toast.error(
+          "Registra cuánto le cobras a tu cliente y el anticipo que te pagó para dejar la caja vacía.",
+          { id: "order-flow" },
+        );
         return;
       }
       try {
@@ -100,6 +124,7 @@ export const usePartnerOrderSubmission = ({
           serviceLevel,
           shippingMode,
           destinationCountry,
+          partnerSalePayments,
         );
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
@@ -122,5 +147,9 @@ export const usePartnerOrderSubmission = ({
     addPendingPayment,
     removePendingPayment,
     clearPendingPayments,
+    partnerSalePayments,
+    addPartnerSalePayment,
+    removePartnerSalePayment,
+    clearPartnerSalePayments,
   };
 };

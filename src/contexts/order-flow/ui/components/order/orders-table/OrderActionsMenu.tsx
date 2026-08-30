@@ -7,7 +7,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@contexts/shared/shadcn";
-import { canInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
+import {
+  canInvoice,
+  canInvoicePartner,
+  type InvoiceVariant,
+} from "@contexts/sales/ui/invoices/invoiceActions";
 import {
   availableLabelOptions,
   type LabelSource,
@@ -23,7 +27,7 @@ interface OrderActionsMenuProps {
   downloadingInvoice: string | null;
   sendingInvoiceOrderId: string | null;
   onPrintLabel: (order: OrderListView, source: LabelSource) => void;
-  onPrintInvoice: (order: OrderListView) => void;
+  onPrintInvoice: (order: OrderListView, variant?: InvoiceVariant) => void;
   onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
@@ -47,6 +51,7 @@ export const OrderActionsMenu = ({
 }: OrderActionsMenuProps) => {
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const canPrintInvoice = canInvoice(order);
+  const canPrintPartnerInvoice = canInvoicePartner(order);
 
   return (
     <DropdownMenu>
@@ -74,7 +79,7 @@ export const OrderActionsMenu = ({
             Completar venta
           </DropdownMenuItem>
         )}
-        {(order.shipment || canPrintInvoice) && (
+        {(order.shipment || canPrintInvoice || canPrintPartnerInvoice) && (
           <>
             <DropdownMenuSeparator />
             {order.shipment &&
@@ -89,11 +94,22 @@ export const OrderActionsMenu = ({
                   Imprimir {option.title}
                 </DropdownMenuItem>
               ))}
+            {/* La del socio no depende de que JBG haya procesado la orden: es
+                la que él le entrega a su cliente el mismo día. */}
+            {canPrintPartnerInvoice && (
+              <DropdownMenuItem
+                disabled={downloadingInvoice === order.id}
+                onClick={() => onPrintInvoice(order, "partner")}
+              >
+                <Printer className="size-4" />
+                Imprimir factura de agente
+              </DropdownMenuItem>
+            )}
             {canPrintInvoice && (
               <>
                 <DropdownMenuItem
                   disabled={downloadingInvoice === order.id}
-                  onClick={() => onPrintInvoice(order)}
+                  onClick={() => onPrintInvoice(order, "jbg")}
                 >
                   <Printer className="size-4" />
                   Imprimir factura

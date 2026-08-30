@@ -2,7 +2,8 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { storeRepository } from "@contexts/iam/infrastructure/services/stores/storeRepository";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { useQuotePrice } from "@contexts/pricing/infrastructure/hooks/tariffs/useQuotePrice";
+import { useQuotePriceOptions } from "@contexts/pricing/infrastructure/hooks/tariffs/useQuotePriceOptions";
+import type { QuotePriceResponse } from "@contexts/pricing/application/QuotePrice";
 import { PickupPoints } from "@contexts/pricing/application/QuotePrice";
 import type {
   ServiceLevel,
@@ -18,10 +19,12 @@ import { useContactSave } from "../shared/useContactSave";
 import { usePartnerOrderFlowForm, type PartnerOrderStep } from "./usePartnerOrderFlowForm";
 import { usePartnerOrderSubmission } from "./usePartnerOrderSubmission";
 
+// Igual que HQ: primero se sabe cuánto cuesta, después se decide qué se cobra.
 const STEPS: { key: PartnerOrderStep; label: string }[] = [
   { key: "contact", label: "Contactos" },
   { key: "package", label: "Paquete" },
-  { key: "pricing", label: "Costos" },
+  { key: "rate", label: "Cotización" },
+  { key: "pricing", label: "Cobro" },
   { key: "success", label: "Listo" },
 ];
 
@@ -42,6 +45,9 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
   const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(storeId ?? user?.store.id);
 
   const canChangeZone = user ? orderPolicies.changeZone(user) : false;
+  // Los abonos a JBG son de esa relación: el rol SalesAgent no tiene este
+  // permiso, así que el agente no los ve.
+  const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
   // undefined = usar la zona de la tienda seleccionada
   const [zoneOverrideId, setZoneOverrideId] = useState<string | undefined>(undefined);
 
@@ -68,6 +74,12 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
   const recipientCountry = form.watch("recipient.address.country");
 
   const effectiveZoneId = zoneOverrideId ?? store?.zone?.id;
+
+  // La tienda a nombre de la que se crea la orden, no necesariamente la del
+  // usuario: un admin puede armarla para otra. Mientras la consulta viaja se
+  // usa la propia, que es la correcta en el caso normal. Queda `undefined` si
+  // no hay ninguna, para que cada pantalla decida qué mostrar en su lugar.
+  const storeName = store?.name ?? user?.store.name;
 
   // Al reabrir una orden ya cotizada, los selectores arrancan en lo que se usó
   // y no en los defaults: si no, la venta se recotiza contra otra combinación
@@ -103,30 +115,67 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
       ? PickupPoints.atPartnerStore(activeStoreId)
       : undefined;
 
-  const { tariffPrice, isLoadingPrice, priceError, refetchPrice } = useQuotePrice({
-    pickup,
-    destinationCountry,
-    boxId: boxId ?? "",
-    serviceLevel,
-    shippingMode,
-    priceType: "PARTNER",
-    enabled: step === "pricing" && !!pickup && !!boxId,
-  });
+  // El menú de servicios tarifados. Reemplaza a la cotización de una sola
+  // combinación: el vendedor elige una fila en vez de mover cuatro selectores.
+  const { options, isLoadingOptions, optionsError, refetchOptions } =
+    useQuotePriceOptions({
+      pickup,
+      destinationCountry,
+      boxId: boxId ?? "",
+      priceType: "PARTNER",
+      enabled: step === "rate" && !!pickup && !!boxId,
+    });
 
-  // Lets the seller override the auto-fetched tariff (or type one in
-  // manually when none was found for this zone/box/destination). Reset
-  // whenever the underlying lookup inputs change — a price typed for a
-  // different combination no longer applies. Adjusted during render (not in
-  // an effect) to avoid the extra render pass.
-  const tariffLookupKey = `${effectiveZoneId ?? ""}|${destinationCountry}|${serviceLevel}|${shippingMode}|${boxId ?? ""}`;
+  // La fila elegida y, aparte, el monto escrito a mano. Se resetean juntos
+  // cuando cambian los ejes de la consulta: un precio elegido para otra zona o
+  // destino ya no aplica. Se ajusta durante el render y no en un efecto, para
+  // no pagar una pasada extra.
+  const tariffLookupKey = `${effectiveZoneId ?? ""}|${destinationCountry}|${boxId ?? ""}`;
+  // Al reabrir una orden ya cotizada arranca en el renglón con el que se cobró:
+  // `OrderPricing` guarda exactamente los campos de una opción. Sin esto la
+  // edición llegaba sin precio y el botón de continuar quedaba trabado hasta
+  // volver a elegir a mano.
+  const [selectedOption, setSelectedOption] =
+    useState<QuotePriceResponse | null>(
+      initialPricing
+        ? {
+            price: initialPricing.price,
+            zoneId: initialPricing.zoneId,
+            destinationCountry: initialPricing.destinationCountry,
+            tariffId: initialPricing.tariffId,
+            serviceLevel: initialPricing.serviceLevel,
+            shippingMode: initialPricing.shippingMode,
+            priceType: initialPricing.priceType,
+            resolvedFrom: initialPricing.resolvedFrom,
+          }
+        : null,
+    );
   const [tariffOverride, setTariffOverride] = useState<MoneyPrimitives | null>(null);
   const [lastTariffLookupKey, setLastTariffLookupKey] = useState(tariffLookupKey);
   if (tariffLookupKey !== lastTariffLookupKey) {
     setLastTariffLookupKey(tariffLookupKey);
     setTariffOverride(null);
+    setSelectedOption(null);
   }
 
+  // Elegir una fila **es** fijar el precio: descarta el ajuste a mano anterior,
+  // que si no le ganaría en silencio a lo recién elegido.
+  const selectOption = (option: QuotePriceResponse) => {
+    setSelectedOption(option);
+    setTariffOverride(null);
+    setServiceLevel(option.serviceLevel);
+    setShippingMode(option.shippingMode);
+  };
+
+  const clearSelection = () => {
+    setSelectedOption(null);
+    setTariffOverride(null);
+  };
+
+  const tariffPrice = selectedOption?.price ?? null;
   const effectiveTariff = tariffOverride ?? tariffPrice;
+  const isLoadingPrice = isLoadingOptions;
+  const priceError = optionsError;
 
   const submission = usePartnerOrderSubmission({ form, initialOrderId: orderId, storeId: selectedStoreId, tariff: effectiveTariff, serviceLevel, shippingMode, destinationCountry, onSuccess: () => setStep("success") });
 
@@ -141,6 +190,9 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
     } else if (step === "package") {
       if (!(await validateStep("package"))) return;
       if (!(await processBox())) return;
+      setStep("rate");
+    } else if (step === "rate") {
+      if (!(await validateStep("rate"))) return;
       setStep("pricing");
     } else if (step === "pricing") {
       if (!(await validateStep("pricing"))) return;
@@ -150,12 +202,14 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
 
   const handleBack = () => {
     if (step === "package") setStep("contact");
-    else if (step === "pricing") setStep("package");
+    else if (step === "rate") setStep("package");
+    else if (step === "pricing") setStep("rate");
   };
 
   const nextButtonLabel = (() => {
     if (step === "contact") return isSaving ? "Guardando..." : "Siguiente";
-    if (step === "package") return "Siguiente";
+    if (step === "package") return "Cotizar";
+    if (step === "rate") return "Continuar";
     if (submission.isCreating) return isEditing ? "Actualizando..." : "Creando...";
     return isEditing ? "Actualizar Orden" : "Crear Orden";
   })();
@@ -164,7 +218,9 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
     submission.isCreating ||
     isSaving ||
     isProcessingBox ||
-    (step === "pricing" &&
+    // Sin precio no se avanza: es lo que se le va a cobrar al socio. Se exige al
+    // salir de Cotización y no de Cobro, que es donde se define ahora.
+    (step === "rate" &&
       (isLoadingPrice || !effectiveTariff || effectiveTariff.amount <= 0));
 
   return {
@@ -188,18 +244,36 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
     tariffPrice,
     effectiveTariff,
     onTariffChange: setTariffOverride,
+    options,
+    isLoadingOptions,
+    optionsError,
+    refetchOptions,
+    selectedTariffId: selectedOption?.tariffId ?? null,
+    // Sale del override y no de si hay fila elegida: escribir un monto a mano
+    // **no** deselecciona el renglón —la orden necesita su servicio y su modo
+    // para guardar contra qué se comparó el precio—, así que mirar la selección
+    // hacía que el badge dijera "De la tabla" sobre un número escrito.
+    isManualTariff: tariffOverride !== null,
+    onSelectOption: selectOption,
+    onClearSelection: clearSelection,
     isLoadingPrice,
     tariffError: priceError,
-    refetchPrice,
+    refetchPrice: refetchOptions,
     canSelectStore,
     selectedStoreId,
+    storeName,
     setSelectedStoreId: handleStoreChange,
     canChangeZone,
+    canViewFinancials,
     setZoneOverride: setZoneOverrideId,
     originZoneId: effectiveZoneId,
     serviceLevel,
     setServiceLevel,
     pendingPayments: submission.pendingPayments,
+    partnerSalePayments: submission.partnerSalePayments,
+    addPartnerSalePayment: submission.addPartnerSalePayment,
+    removePartnerSalePayment: submission.removePartnerSalePayment,
+    clearPartnerSalePayments: submission.clearPartnerSalePayments,
     addPendingPayment: submission.addPendingPayment,
     removePendingPayment: submission.removePendingPayment,
     clearPendingPayments: submission.clearPendingPayments,

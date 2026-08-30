@@ -40,6 +40,18 @@ export const buildPartnerEditOrderRequest = (
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
+  // Solo el total: el libro de abonos del socio se mueve por sus propias rutas,
+  // y mandarlo acá lo pisaría con lo que tenga el formulario abierto. Vacío o
+  // cero borra la venta, que es lo que significa dejar el campo sin nada.
+  const partnerSaleAmount = parseFloat(formValues.partnerSale);
+  const partnerSaleTotal =
+    Number.isFinite(partnerSaleAmount) && partnerSaleAmount > 0
+      ? {
+          amount: partnerSaleAmount,
+          currency: formValues.shippingService.currency,
+        }
+      : null;
+
   return editOrderRequestSchema.parse({
     storeId,
     references: {
@@ -50,5 +62,6 @@ export const buildPartnerEditOrderRequest = (
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
     customerSignature: formValues.customerSignature,
+    partnerSaleTotal,
   });
 };

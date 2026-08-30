@@ -1,4 +1,5 @@
 import {
+  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -10,12 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
   Separator,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { HelpCircle } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
+import jbgLogo from "@/assets/carriers/jbg.png";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
@@ -34,22 +32,32 @@ const COST_LABELS: Record<string, string> = {
 
 interface PartnerTotalCardProps {
   tariffPrice: MoneyPrimitives | null;
+  /** Corrige la tarifa desde la misma línea del desglose. */
+  onTariffChange: (value: MoneyPrimitives) => void;
+  /** El monto no salió de la tabla. Sin esto, un precio tarifado y uno escrito
+   * a mano se ven idénticos. */
+  isManualTariff: boolean;
   orderId?: string;
   pendingPayments: AddPaymentRequest[];
   onAddPayment: (data: AddPaymentRequest) => void;
   onRemovePayment: (index: number) => void;
   onClearPayments: () => void;
+  /** `CAN_VIEW_ORDER_FINANCIALS`. Sin esto no se muestran los abonos a JBG. */
+  canViewFinancials: boolean;
 }
 
 export function PartnerTotalCard({
   tariffPrice,
+  onTariffChange,
+  isManualTariff,
   orderId,
   pendingPayments,
   onAddPayment,
   onRemovePayment,
   onClearPayments,
+  canViewFinancials,
 }: PartnerTotalCardProps) {
-  const { control, register } = useFormContext<PartnerOrderFormValues>();
+  const { control } = useFormContext<PartnerOrderFormValues>();
   const shippingService = useWatch<PartnerOrderFormValues, "shippingService">({ name: "shippingService" });
 
   const displayCurrency = shippingService.currency;
@@ -105,18 +113,57 @@ export function PartnerTotalCard({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Desglose de costos</CardTitle>
+        {/* Con el logo, igual que la tabla de servicios: todo lo de esta card
+            —tarifa, costos, total y abonos— es de la relación con JBG. */}
+        <CardTitle className="flex items-center gap-2 text-base">
+          <img
+            src={jbgLogo}
+            alt="JBG"
+            className="size-6 shrink-0 rounded object-contain"
+          />
+          Desglose de costos
+        </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-3">
-          {tariffPrice && (
-            <div className="flex justify-between text-sm">
-              {/* Explícito: en esta card ahora conviven dos montos de dos
-                  relaciones distintas, y "precio del servicio" no decía cuál. */}
-              <span>Tarifa JBG</span>
-              <span>${tariffAmount.toFixed(2)} {tariffCurrency}</span>
+          {/* Editable en la propia línea del desglose, y no en una card aparte:
+              el monto se corrige donde se lee, y el efecto en el total queda dos
+              renglones más abajo. El badge dice de dónde salió, porque un precio
+              de la tabla y uno escrito a mano se veían idénticos. */}
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="flex items-center gap-2">
+              Tarifa JBG
+              <Badge
+                variant={isManualTariff ? "outline" : "secondary"}
+                className="px-1.5 py-0 text-[10px] font-normal"
+              >
+                {isManualTariff ? "A mano" : "De la tabla"}
+              </Badge>
+            </span>
+            <div className="relative w-32 shrink-0">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                $
+              </span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={tariffAmount || ""}
+                onChange={(e) => {
+                  const parsed = parseFloat(e.target.value);
+                  onTariffChange({
+                    amount: Number.isFinite(parsed) && parsed >= 0 ? parsed : 0,
+                    currency: tariffCurrency,
+                  });
+                }}
+                className="h-8 pl-5 pr-12 text-right text-sm font-semibold"
+                placeholder="0.00"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                {tariffCurrency}
+              </span>
             </div>
-          )}
+          </div>
 
           {COST_BREAKDOWN_FIELDS.map((field) => {
             const val = parseFloat(shippingService.costBreakdown[field]);
@@ -168,60 +215,41 @@ export function PartnerTotalCard({
             )}
           </div>
 
-          <Separator />
+          {/* Los abonos a JBG son plata de la relación con JBG: un agente no
+              los ve. `SalesAgent` no tiene CAN_VIEW_ORDER_FINANCIALS. */}
+          {canViewFinancials && (
+            <>
+              <Separator />
 
-          {/* Debajo del total y no arriba: primero lo que el socio le debe a
-              JBG, después lo que él le cobra por su lado. Los dos montos son de
-              relaciones distintas y ninguno entra en el otro. */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Cobro a tu cliente</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <HelpCircle className="size-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  Es el monto que sale en la factura que le entregas a tu
-                  cliente, en lugar de la tarifa JBG. No cambia lo que le pagas
-                  a JBG ni tus abonos. Opcional: sin esto la orden se crea igual
-                  y solo queda sin factura.
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                $
-              </span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                className="h-10 pl-6 pr-14 font-semibold"
-                {...register("partnerSale")}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                {tariffCurrency}
-              </span>
-            </div>
-          </div>
+              <div className="space-y-2">
+                {/* Con nombre propio: en esta orden hay dos libros de abonos y
+                    sin encabezado el de arriba se leía como "los abonos". */}
+                <div className="space-y-0.5">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <img
+                      src={jbgLogo}
+                      alt="JBG"
+                      className="size-4 shrink-0 rounded object-contain"
+                    />
+                    Tus abonos a JBG
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Lo que ya pagaste de esta orden.
+                  </p>
+                </div>
 
-          <Separator />
-
-          <PendingPaymentControl
-            grandTotal={billedTotal}
-            currency={tariffCurrency}
-            orderId={orderId}
-            pendingPayments={pendingPayments}
-            onAddPayment={onAddPayment}
-            onRemovePayment={onRemovePayment}
-            onClearPayments={onClearPayments}
-          />
+                <PendingPaymentControl
+                  grandTotal={billedTotal}
+                  currency={tariffCurrency}
+                  orderId={orderId}
+                  pendingPayments={pendingPayments}
+                  onAddPayment={onAddPayment}
+                  onRemovePayment={onRemovePayment}
+                  onClearPayments={onClearPayments}
+                />
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

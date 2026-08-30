@@ -4,7 +4,12 @@ import type { FindTariffsResponsePrimitives } from "@contexts/pricing/applicatio
 import { findTariffsResponseSchema } from "@contexts/pricing/application/FindTariffsResponse";
 import type { FindTariffsRequestPrimitives } from "@contexts/pricing/application/FindTariffsRequest";
 import type { QuotePriceRequest, QuotePriceResponse } from "@contexts/pricing/application/QuotePrice";
-import { quotePriceResponseSchema } from "@contexts/pricing/application/QuotePrice";
+import {
+  quotePriceResponseSchema,
+  quotePriceOptionsResponseSchema,
+  type QuotePriceOptionsRequest,
+  type QuotePriceOptionsResponse,
+} from "@contexts/pricing/application/QuotePrice";
 import type { ShippingMode } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { SetZonePriceRequest, ZonePriceMatrix } from "@contexts/pricing/application/ZonePriceMatrix";
 import { zonePriceMatrixSchema } from "@contexts/pricing/application/ZonePriceMatrix";
@@ -58,6 +63,18 @@ export const tariffRepository = {
       body: JSON.stringify(request),
     });
     return quotePriceResponseSchema.parse(data);
+  },
+
+  /** Todos los renglones tarifados para los ejes fijos. Devuelve lista vacía
+   * cuando esa combinación no está tarifada: no es un error. */
+  quoteOptions: async (
+    request: QuotePriceOptionsRequest,
+  ): Promise<QuotePriceOptionsResponse> => {
+    const data = await httpClient<unknown>("/tariff/quote-options", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    return quotePriceOptionsResponseSchema.parse(data);
   },
 
   /** La zona como tabla: caja × servicio con los dos precios. */

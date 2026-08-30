@@ -4,6 +4,7 @@ import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Pack
 import { discountSchema } from "@contexts/sales/domain/schemas/value-objects/Discount";
 import { PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Address";
+import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import z from "zod";
 
 export const editOrderRequestSchema = z.object({
@@ -26,6 +27,10 @@ export const editOrderRequestSchema = z.object({
   paymentMethod: z.enum(PAYMENT_METHODS).nullish(),
   paymentConcept: z.string().nullish(),
   discount: discountSchema.optional(),
+  /** El monto que el socio le cobra a su cliente. Solo el total: el libro de
+   * abonos se mueve por `/order/:id/partner-sale/payment`. Omitirlo deja lo que
+   * había; `null` borra la venta. */
+  partnerSaleTotal: moneySchema.nullish(),
 });
 
 export type EditOrderRequest = z.infer<typeof editOrderRequestSchema>;

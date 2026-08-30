@@ -48,6 +48,7 @@ import {
   type InvoiceVariant,
 } from "@contexts/sales/ui/invoices/invoiceActions";
 import { FileText } from "lucide-react";
+import cajaSonriendo from "@/assets/cajaFondoTransparenteJBG.png";
 
 const CARRIER_TYPE_LABELS: Record<string, string> = {
   INTERNAL_FLEET: "Flota interna",
@@ -504,7 +505,14 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="border-green-200 bg-green-50 sm:max-w-md dark:border-green-800 dark:bg-green-950/30">
           <DialogHeader className="items-center text-center">
-            <CheckCircle2 className="size-14 text-green-600" />
+            {/* La mascota en vez del tilde: es el único momento del flujo que
+                vale la pena celebrar, y el tilde ya aparece en media app. */}
+            <img
+              src={cajaSonriendo}
+              alt=""
+              aria-hidden="true"
+              className="animate-caja-feliz size-32 object-contain"
+            />
             <DialogTitle className="text-xl text-green-700 dark:text-green-400">
               Creado exitosamente
             </DialogTitle>

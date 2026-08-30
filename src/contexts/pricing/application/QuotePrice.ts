@@ -49,3 +49,22 @@ export const quotePriceResponseSchema = z.object({
 });
 
 export type QuotePriceResponse = z.infer<typeof quotePriceResponseSchema>;
+
+/** La misma pregunta sin los dos ejes que elige el vendedor: la respuesta es el
+ * menú de esas combinaciones, que es lo que pinta la tabla de selección. */
+export const quotePriceOptionsRequestSchema = quotePriceRequestSchema.omit({
+  serviceLevel: true,
+  shippingMode: true,
+});
+
+export type QuotePriceOptionsRequest = z.infer<
+  typeof quotePriceOptionsRequestSchema
+>;
+
+export const quotePriceOptionsResponseSchema = z.object({
+  options: z.array(quotePriceResponseSchema),
+});
+
+export type QuotePriceOptionsResponse = z.infer<
+  typeof quotePriceOptionsResponseSchema
+>;

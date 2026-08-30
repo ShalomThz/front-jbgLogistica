@@ -43,11 +43,19 @@ export const orderFinancialsSchema = z.object({
   payments: z.array(paymentSchema).default([]),
   costBreakdown: costBreakdownSchema,
   discount: discountSchema,
-  /** Lo que el socio le vendió el servicio a su propio cliente. No es plata de
-   * JBG: no entra en `totalBilled` ni en el estado de pago, y existe para la
-   * factura que el socio le entrega a su cliente. `null` en órdenes HQ y en las
-   * de socio anteriores al campo. */
-  partnerSale: z.object({ total: moneySchema }).nullish(),
+  /** Lo que el socio le vendió el servicio a su propio cliente, con lo que ese
+   * cliente ya le pagó **a él**. No es plata de JBG: no entra en `totalBilled`
+   * ni en el estado de pago, y existe para la factura que el socio le entrega a
+   * su cliente. `null` en órdenes HQ y en las de socio anteriores al campo.
+   *
+   * `payments` es `.default([])` porque las ventas guardadas antes del libro no
+   * traen la clave. */
+  partnerSale: z
+    .object({
+      total: moneySchema,
+      payments: z.array(paymentSchema.omit({ externalReference: true })).default([]),
+    })
+    .nullish(),
 });
 
 export type OrderFinancialsPrimitives = z.infer<typeof orderFinancialsSchema>;

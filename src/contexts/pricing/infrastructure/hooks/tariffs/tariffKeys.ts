@@ -5,7 +5,7 @@
  */
 
 import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
-import type { QuotePriceRequest } from "@contexts/pricing/application/QuotePrice";
+import type { QuotePriceOptionsRequest, QuotePriceRequest } from "@contexts/pricing/application/QuotePrice";
 import type { ShippingMode } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 interface ListArgs {
@@ -22,6 +22,8 @@ export const tariffKeys = {
   list: (args: ListArgs) => [...tariffKeys.lists(), args] as const,
   quotes: () => [...tariffKeys.all, "quote"] as const,
   quote: (args: QuotePriceRequest) => [...tariffKeys.quotes(), args] as const,
+  quoteOptions: (args: QuotePriceOptionsRequest) =>
+    [...tariffKeys.quotes(), "options", args] as const,
   matrices: () => [...tariffKeys.all, "matrix"] as const,
   matrix: (
     zoneId: string,

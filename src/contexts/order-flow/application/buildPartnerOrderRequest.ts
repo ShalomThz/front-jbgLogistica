@@ -24,6 +24,9 @@ export const buildPartnerOrderRequest = (
   serviceLevel?: ServiceLevel,
   shippingMode?: ShippingMode,
   destinationCountry?: string,
+  /** Lo que el cliente del socio ya le pagó a él. Va dentro de `partnerSale`
+   * porque cuelga de ese monto, no de la orden. */
+  partnerSalePayments: AddPaymentRequest[] = [],
 ) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
@@ -63,7 +66,16 @@ export const buildPartnerOrderRequest = (
     // En la moneda de la tarifa, que es la que muestra el campo. `parseMoney`
     // devuelve null si está vacío o en cero: ahí la orden queda sin factura de
     // socio, que es distinto de tener una en cero.
-    partnerSale: partnerSaleTotal ? { total: partnerSaleTotal } : null,
+    partnerSale: partnerSaleTotal
+      ? {
+          total: partnerSaleTotal,
+          payments: partnerSalePayments.map((payment) => ({
+            amount: payment.amount,
+            method: payment.method,
+            concept: payment.concept ?? null,
+          })),
+        }
+      : null,
     ...(serviceLevel && { serviceLevel }),
     ...(shippingMode && { shippingMode }),
     ...(destinationCountry && { destinationCountry }),

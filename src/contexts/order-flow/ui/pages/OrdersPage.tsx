@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Handshake, Plus, RefreshCw } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -21,7 +21,10 @@ import {
   printLabel,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { printInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
+import {
+  printInvoice,
+  type InvoiceVariant,
+} from "@contexts/sales/ui/invoices/invoiceActions";
 import { useSendInvoiceEmail } from "@contexts/sales/infrastructure/hooks/orders/useSendInvoiceEmail";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
@@ -100,10 +103,13 @@ export const OrdersPage = () => {
     }
   };
 
-  const handlePrintInvoice = async (order: OrderListView) => {
+  const handlePrintInvoice = async (
+    order: OrderListView,
+    variant: InvoiceVariant = "jbg",
+  ) => {
     setDownloadingInvoice(order.id);
     try {
-      await printInvoice(order);
+      await printInvoice(order, variant);
     } finally {
       setDownloadingInvoice(null);
     }
@@ -314,7 +320,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Building2 className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Oficina JBG Cargo</span>
+                <span className="font-semibold">Orden oficina JBG</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden completa con cotización de envío, peso, producto y guía.
@@ -330,9 +336,11 @@ export const OrdersPage = () => {
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="rounded-lg bg-primary/10 p-2">
-                  <Users className="size-5 text-primary" />
+                  {/* El mismo apretón de manos que encabeza la página que abre
+                      y que marca el precio de socio en las tarifas. */}
+                  <Handshake className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Agentes Autorizados</span>
+                <span className="font-semibold">Orden agente</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden simplificada: contactos, dimensiones y creación directa.

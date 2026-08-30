@@ -192,3 +192,27 @@
 .dark .animate-flash-order {
   --flash-order-color: rgb(59 130 246 / 0.25); /* blue-500/25 (dark hover) */
 }
+
+/* La caja de JBG al terminar una orden: entra dando un saltito y después queda
+   flotando. Dos animaciones encadenadas y no una sola, porque la entrada debe
+   correr una vez y el flote seguir para siempre. */
+@keyframes caja-entra {
+  0% { transform: scale(0.6) translateY(12px); opacity: 0; }
+  60% { transform: scale(1.08) translateY(-6px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes caja-flota {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-8px) rotate(1.5deg); }
+}
+.animate-caja-feliz {
+  animation:
+    caja-entra 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    caja-flota 3.5s ease-in-out 0.6s infinite;
+}
+/* Quien pidió menos movimiento ve la caja quieta, no una animación atenuada. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-caja-feliz {
+    animation: none;
+  }
+}

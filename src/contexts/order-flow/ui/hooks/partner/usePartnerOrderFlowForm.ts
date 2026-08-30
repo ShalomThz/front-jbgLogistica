@@ -6,7 +6,14 @@ import {
 } from "@contexts/order-flow/domain/schemas/PartnerOrderForm";
 import { partnerOrderDefaultValues } from "../../constants/newOrder.constants";
 
-export type PartnerOrderStep = "contact" | "package" | "pricing" | "success";
+/** `rate` es lo que el socio le paga a JBG; `pricing` es lo que él le cobra a
+ * su cliente. Dos relaciones de plata, dos pasos. */
+export type PartnerOrderStep =
+  | "contact"
+  | "package"
+  | "rate"
+  | "pricing"
+  | "success";
 
 interface UsePartnerOrderFlowFormOptions {
   initialValues?: PartnerOrderFormValues;
@@ -18,14 +25,17 @@ export const usePartnerOrderFlowForm = ({ initialValues }: UsePartnerOrderFlowFo
     defaultValues: initialValues ?? partnerOrderDefaultValues,
   });
 
-  const validateStep = async (currentStep: "contact" | "package" | "pricing") => {
+  const validateStep = async (
+    currentStep: "contact" | "package" | "rate" | "pricing",
+  ) => {
     if (currentStep === "contact") {
       return form.trigger(["sender", "recipient", "orderData", "orderType"]);
     }
     if (currentStep === "package") {
       return form.trigger(["package.length", "package.width", "package.height"]);
     }
-    // pricing: sin validación de form (el anticipo/abono se valida al enviar).
+    // rate y pricing: sin validación de form. El precio se valida por el botón
+    // (no se avanza sin monto) y los abonos al enviar.
     return true;
   };
 

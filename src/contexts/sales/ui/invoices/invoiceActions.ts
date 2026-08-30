@@ -20,7 +20,12 @@ export type InvoiceVariant = "jbg" | "partner";
 export interface InvoiceOrderContext {
   id: string;
   type?: string;
-  references: { orderNumber: string | null };
+  references: {
+    orderNumber: string | null;
+    /** El folio del socio. Es lo que su cliente reconoce, y lo único que hay
+     * antes de que JBG procese la orden. */
+    partnerOrderNumber?: string | null;
+  };
   financials: {
     tariff: MoneyPrimitives | null;
     totalBilled: MoneyPrimitives | null;
@@ -46,24 +51,32 @@ export const canInvoice = (order: InvoiceOrderContext): boolean =>
 
 /**
  * La factura de socio existe solo en órdenes de socio y solo si se cargó el
- * cobro a su cliente. Sin eso el backend la rechaza, así que el botón no se
- * ofrece: es la misma regla, del lado de acá.
+ * cobro a su cliente. Es la misma regla que aplica el backend, del lado de acá.
+ *
+ * A diferencia de `canInvoice`, **no exige `orderNumber`**: ése es el número de
+ * JBG y se asigna recién cuando JBG procesa la orden (`isProcessedByHQ`). Esta
+ * factura es la que el socio le entrega a su cliente al momento de crearla, y
+ * exigirlo la dejaba disponible recién días después. El backend numera con el
+ * folio del socio o, si no hay, con el id de la orden.
  */
 export const canInvoicePartner = (order: InvoiceOrderContext): boolean =>
-  Boolean(
-    order.type === "PARTNER" &&
-      order.references.orderNumber &&
-      order.financials.partnerSale,
-  );
+  Boolean(order.type === "PARTNER" && order.financials.partnerSale);
 
 const invoiceFilename = (
   order: InvoiceOrderContext,
   variant: InvoiceVariant,
 ): string => {
-  const number = order.references.orderNumber ?? order.id;
-  return variant === "partner"
-    ? `factura-agente-${number}.pdf`
-    : `factura-${number}.pdf`;
+  if (variant === "partner") {
+    // El folio del socio primero: es el que su cliente reconoce, y muchas veces
+    // el único que existe cuando descarga esta factura.
+    const number =
+      order.references.partnerOrderNumber ??
+      order.references.orderNumber ??
+      order.id;
+    return `factura-agente-${number}.pdf`;
+  }
+
+  return `factura-${order.references.orderNumber ?? order.id}.pdf`;
 };
 
 const fetchInvoice = async (
