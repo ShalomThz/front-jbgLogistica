@@ -15,6 +15,8 @@ export type DateSort = "none" | "asc" | "desc";
 
 export interface OrderTableFilterState {
   searchQuery: string;
+  originCustomerFilter: string;
+  destinationCustomerFilter: string;
   statusFilter: string;
   storeFilter: string;
   paymentFilter: string;
@@ -34,6 +36,8 @@ export interface OrderCriteria {
 
 const initialState: OrderTableFilterState = {
   searchQuery: "",
+  originCustomerFilter: "all",
+  destinationCustomerFilter: "all",
   statusFilter: "all",
   storeFilter: "all",
   paymentFilter: "all",
@@ -79,6 +83,20 @@ function toCriteria(
 
   if (state.statusFilter !== "all") {
     filters.push({ field: "status", filterOperator: "=", value: state.statusFilter });
+  }
+  if (state.originCustomerFilter !== "all") {
+    filters.push({
+      field: "origin.id",
+      filterOperator: "=",
+      value: state.originCustomerFilter,
+    });
+  }
+  if (state.destinationCustomerFilter !== "all") {
+    filters.push({
+      field: "destination.id",
+      filterOperator: "=",
+      value: state.destinationCustomerFilter,
+    });
   }
   if (state.storeFilter !== "all") {
     filters.push({ field: "store.id", filterOperator: "=", value: state.storeFilter });
