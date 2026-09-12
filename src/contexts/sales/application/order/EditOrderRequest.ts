@@ -1,3 +1,4 @@
+import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { orderReferencesSchema } from "@contexts/sales/domain/schemas/value-objects/OrderReferences";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
@@ -31,6 +32,12 @@ export const editOrderRequestSchema = z.object({
    * abonos se mueve por `/order/:id/partner-sale/payment`. Omitirlo deja lo que
    * había; `null` borra la venta. */
   partnerSaleTotal: moneySchema.nullish(),
+  /** Los extras que el socio le suma a su cliente. Sin la clave declarada acá,
+   * `.parse()` la descartaba en silencio y nunca llegaba a la API. */
+  partnerSaleCostBreakdown: costBreakdownSchema.optional(),
+  /** El descuento del socio a su cliente. Distinto de `discount`, que es el que
+   * JBG le hace a él. Sin declararla, `.parse()` la borra en silencio. */
+  partnerSaleDiscount: discountSchema.optional(),
 });
 
 export type EditOrderRequest = z.infer<typeof editOrderRequestSchema>;

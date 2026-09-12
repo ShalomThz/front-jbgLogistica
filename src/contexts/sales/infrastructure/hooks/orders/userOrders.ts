@@ -117,6 +117,24 @@ export const useOrders = ({
     },
   });
 
+  // El libro del socio con su cliente. Invalida las mismas claves: la venta vive
+  // dentro de `financials`, así que se relee la orden entera.
+  const addPartnerSalePaymentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AddPaymentRequest }) =>
+      orderRepository.addPartnerSalePayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
+  const removePartnerSalePaymentMutation = useMutation({
+    mutationFn: ({ id, paymentId }: { id: string; paymentId: string }) =>
+      orderRepository.removePartnerSalePayment(id, paymentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
   return {
     orders,
     pagination,
@@ -145,6 +163,14 @@ export const useOrders = ({
       addPaymentMutation.isPending ||
       removePaymentMutation.isPending ||
       clearPaymentsMutation.isPending,
+
+    addPartnerSalePayment: async (id: string, data: AddPaymentRequest) =>
+      await addPartnerSalePaymentMutation.mutateAsync({ id, data }),
+    removePartnerSalePayment: async (id: string, paymentId: string) =>
+      await removePartnerSalePaymentMutation.mutateAsync({ id, paymentId }),
+    isSavingPartnerSalePayment:
+      addPartnerSalePaymentMutation.isPending ||
+      removePartnerSalePaymentMutation.isPending,
 
     isCreating:
       createHQMutation.isPending ||

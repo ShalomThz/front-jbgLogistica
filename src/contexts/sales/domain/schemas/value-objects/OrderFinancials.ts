@@ -48,14 +48,53 @@ export const orderFinancialsSchema = z.object({
    * ni en el estado de pago, y existe para la factura que el socio le entrega a
    * su cliente. `null` en órdenes HQ y en las de socio anteriores al campo.
    *
-   * `payments` es `.default([])` porque las ventas guardadas antes del libro no
-   * traen la clave. */
+   * `payments` y `costBreakdown` son `.default(...)` porque las ventas guardadas
+   * antes de cada uno no traen la clave. */
   partnerSale: z
     .object({
+      /** El cargo **base**: el servicio, sin los extras. Lo que el cliente debe
+       * es esto más `costBreakdown`, y así lo calcula el back. */
       total: moneySchema,
       payments: z.array(paymentSchema.omit({ externalReference: true })).default([]),
+      /** Los extras que el socio le suma a su cliente. Misma forma que el
+       * desglose de JBG, otra plata: aquél es lo que JBG le cobra a él. */
+      costBreakdown: costBreakdownSchema.nullish(),
+      /** Lo que el socio le rebaja a su cliente. No es el de JBG: aquél se lo
+       * hizo JBG **a él** y vive en `discount`, un nivel más arriba. */
+      discount: discountSchema.nullish(),
     })
     .nullish(),
 });
 
 export type OrderFinancialsPrimitives = z.infer<typeof orderFinancialsSchema>;
+
+export type PartnerSalePrimitives = NonNullable<
+  OrderFinancialsPrimitives["partnerSale"]
+>;
+
+/**
+ * Lo que el cliente del socio le debe: el servicio más los extras menos el
+ * descuento.
+ *
+ * Espeja al getter `billed` de `PartnerSale` en el back, que es contra el que se
+ * derivan el saldo y el estado de la venta. Vive acá, y no repetido en cada
+ * card, porque tres vistas lo necesitan —el detalle, su diálogo de abonos y la
+ * pantalla de éxito— y si cada una lo calculara por su cuenta terminarían
+ * mostrando saldos distintos de la misma orden.
+ *
+ * El `?? 0` en cadena cubre las ventas guardadas antes de cada campo: no traen
+ * la clave, y ahí lo facturado es la base sola. Con piso en cero, igual que el
+ * dominio: un descuento mayor que la cuenta no da un total negativo.
+ */
+export const partnerSaleBilled = (partnerSale: PartnerSalePrimitives): number => {
+  const costs = partnerSale.costBreakdown;
+  const extras =
+    (costs?.insurance?.amount ?? 0) +
+    (costs?.tools?.amount ?? 0) +
+    (costs?.additionalCost?.amount ?? 0) +
+    (costs?.wrap?.amount ?? 0) +
+    (costs?.tape?.amount ?? 0);
+  const discount = partnerSale.discount?.amount?.amount ?? 0;
+
+  return Math.max(0, partnerSale.total.amount + extras - discount);
+};

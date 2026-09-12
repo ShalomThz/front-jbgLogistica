@@ -45,7 +45,28 @@ export const buildPartnerOrderRequest = (
 
   const hasCosts = Object.values(costBreakdown).some((v) => v !== null);
 
-  const partnerSaleTotal = parseMoney(formValues.partnerSale, tariff.currency);
+  // Su propia moneda, no la de la tarifa: el socio puede cobrarle a su cliente
+  // en otra. Los abonos usan la misma —el value object exige una sola—, y la UI
+  // ya solo ofrece ésa.
+  const partnerSaleTotal = parseMoney(
+    formValues.partnerSale.amount,
+    formValues.partnerSale.currency,
+  );
+
+  // En la moneda de la venta y no en la del desglose de JBG: son dos plata
+  // distintas y `PartnerSale` exige una sola en todo el objeto.
+  const partnerSaleCurrency = formValues.partnerSale.currency;
+  const partnerSaleCosts = formValues.partnerSale.costBreakdown;
+  const partnerSaleCostBreakdown = {
+    insurance: parseMoney(partnerSaleCosts.insurance, partnerSaleCurrency),
+    tools: parseMoney(partnerSaleCosts.tools, partnerSaleCurrency),
+    additionalCost: parseMoney(
+      partnerSaleCosts.additionalCost,
+      partnerSaleCurrency,
+    ),
+    wrap: parseMoney(partnerSaleCosts.wrap, partnerSaleCurrency),
+    tape: parseMoney(partnerSaleCosts.tape, partnerSaleCurrency),
+  };
 
   return createPartnerOrderSchema.parse({
     storeId,
@@ -74,6 +95,14 @@ export const buildPartnerOrderRequest = (
             method: payment.method,
             concept: payment.concept ?? null,
           })),
+          costBreakdown: partnerSaleCostBreakdown,
+          discount: {
+            amount: parseMoney(
+              formValues.partnerSale.discount.amount,
+              partnerSaleCurrency,
+            ),
+            concept: formValues.partnerSale.discount.concept.trim() || null,
+          },
         }
       : null,
     ...(serviceLevel && { serviceLevel }),

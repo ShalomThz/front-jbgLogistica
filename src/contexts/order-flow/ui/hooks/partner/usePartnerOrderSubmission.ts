@@ -103,7 +103,8 @@ export const usePartnerOrderSubmission = ({
       // `partnerSale`, así que sin total los abonos no viajan en el request y el
       // backend rechazaría con un error que no explica nada. Pasa si se carga un
       // monto, se abona y después se borra el monto.
-      const hasPartnerSale = (parseFloat(form.getValues("partnerSale")) || 0) > 0;
+      const hasPartnerSale =
+        (parseFloat(form.getValues("partnerSale.amount")) || 0) > 0;
       if (
         form.getValues("emptyBoxDelivery") &&
         (!hasPartnerSale || partnerSalePayments.length === 0)

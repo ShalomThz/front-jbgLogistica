@@ -142,7 +142,10 @@ export function CobroStep({
   const partnerZoneName = partnerZones[0]?.name;
 
   const noTariff = !isLoadingTariff && (!!tariffError || !tariff);
-  const currency = tariff?.currency ?? suggestedTariff?.currency ?? "MXN";
+  // El último respaldo es el default de los formularios, no MXN: sin tarifa ni
+  // sugerencia, esta moneda viaja con el precio escrito a mano y termina siendo
+  // la de facturación de la orden.
+  const currency = tariff?.currency ?? suggestedTariff?.currency ?? "USD";
   const wasEdited =
     !!suggestedTariff && !!tariff && suggestedTariff.amount !== tariff.amount;
 

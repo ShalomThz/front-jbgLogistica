@@ -204,7 +204,11 @@ export function OrderTotalCard({
 
           <PendingPaymentControl
             grandTotal={grandTotal}
-            currency={displayCurrency}
+            // La de la tarifa, no la de visualización: el saldo se concilia
+            // contra `totalBilled`, que el backend calcula en la de la tarifa.
+            // Es la misma corrección que ya lleva `PartnerTotalCard`.
+            currency={tariffCurrency}
+            currencies={[tariffCurrency]}
             orderId={orderId}
             pendingPayments={pendingPayments}
             onAddPayment={onAddPayment}

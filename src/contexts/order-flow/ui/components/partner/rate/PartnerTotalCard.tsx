@@ -241,6 +241,11 @@ export function PartnerTotalCard({
                 <PendingPaymentControl
                   grandTotal={billedTotal}
                   currency={tariffCurrency}
+                  // Solo la de la tarifa: el saldo se concilia contra
+                  // `totalBilled`, que el backend calcula en esa moneda.
+                  // Ofrecer otra invitaba a cargar un abono que después no
+                  // cerraba el saldo.
+                  currencies={[tariffCurrency]}
                   orderId={orderId}
                   pendingPayments={pendingPayments}
                   onAddPayment={onAddPayment}

@@ -44,7 +44,7 @@ const baseDefaults = {
     },
     discount: {
       amount: "",
-      currency: "MXN",
+      currency: "USD",
       concept: "",
     },
   },
@@ -81,7 +81,18 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
 export const partnerOrderDefaultValues: PartnerOrderFormValues = {
   ...baseDefaults,
   orderType: "PARTNER",
-  partnerSale: "",
+  partnerSale: {
+    amount: "",
+    currency: "USD",
+    costBreakdown: {
+      insurance: "",
+      tools: "",
+      additionalCost: "",
+      wrap: "",
+      tape: "",
+    },
+    discount: { amount: "", concept: "" },
+  },
   package: {
     boxId: "",
     ownership: "CUSTOMER",

@@ -1,6 +1,7 @@
 import { serviceLevels } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
+import { discountSchema } from "@contexts/sales/domain/schemas/value-objects/Discount";
 import { PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
@@ -29,6 +30,7 @@ export const createPartnerOrderSchema = z.object({
    * socio. Los ids y las fechas de los abonos los pone el servidor. */
   partnerSale: z
     .object({
+      /** El cargo **base**: el servicio, sin los extras. */
       total: moneySchema,
       payments: z
         .array(
@@ -39,6 +41,11 @@ export const createPartnerOrderSchema = z.object({
           }),
         )
         .default([]),
+      /** Los extras que el socio le suma a su cliente. Sin la clave declarada
+       * acá, `.parse()` la descartaba en silencio y nunca llegaba a la API. */
+      costBreakdown: costBreakdownSchema.optional(),
+      /** El descuento del socio a su cliente. Mismo cuidado que arriba. */
+      discount: discountSchema.optional(),
     })
     .nullish(),
   /** Velocidad contratada. Es el único insumo del precio que no se deriva: el

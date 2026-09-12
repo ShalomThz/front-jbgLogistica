@@ -47,6 +47,20 @@ const mapCostBreakdown = (order: OrderListView) => {
   };
 };
 
+/** El desglose del socio a su cliente, no el de JBG. Misma forma, otra plata. */
+const mapPartnerSaleCostBreakdown = (order: OrderListView) => {
+  const cb = order.financials.partnerSale?.costBreakdown;
+  return {
+    insurance: cb?.insurance?.amount ? String(cb.insurance.amount) : "",
+    tools: cb?.tools?.amount ? String(cb.tools.amount) : "",
+    additionalCost: cb?.additionalCost?.amount
+      ? String(cb.additionalCost.amount)
+      : "",
+    wrap: cb?.wrap?.amount ? String(cb.wrap.amount) : "",
+    tape: cb?.tape?.amount ? String(cb.tape.amount) : "",
+  };
+};
+
 const inferCostBreakdownCurrency = (order: OrderListView): string => {
   const cb = order.financials.costBreakdown;
   const fields = [cb.insurance, cb.tools, cb.additionalCost, cb.wrap, cb.tape];
@@ -112,9 +126,22 @@ export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderF
     orderType: "PARTNER",
     // Vacío cuando la orden no lo tiene: las anteriores al campo y las que se
     // crearon sin cargarlo.
-    partnerSale: order.financials.partnerSale
-      ? String(order.financials.partnerSale.total.amount)
-      : "",
+    partnerSale: {
+      amount: order.financials.partnerSale
+        ? String(order.financials.partnerSale.total.amount)
+        : "",
+      // La suya si ya la tiene; si no, el default del formulario.
+      currency: order.financials.partnerSale?.total.currency ?? "USD",
+      // El `?? null` en cadena no sobra: las ventas guardadas antes del desglose
+      // no traen la clave, y `OrderListView` se construye sin parsear.
+      costBreakdown: mapPartnerSaleCostBreakdown(order),
+      discount: {
+        amount: order.financials.partnerSale?.discount?.amount?.amount
+          ? String(order.financials.partnerSale.discount.amount.amount)
+          : "",
+        concept: order.financials.partnerSale?.discount?.concept ?? "",
+      },
+    },
     package: {
       boxId: order.package.boxId,
       ownership: order.package.ownership,

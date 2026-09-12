@@ -15,6 +15,7 @@ import {
   type PaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
+import type { PaymentMethod } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { CobroModal, type RegisteredPayment } from "./CobroModal";
 
@@ -30,6 +31,13 @@ interface Props {
   /** Orden ya existente: muestra sus abonos ya registrados (p. ej. cobrados en
    * partner) y los cuenta hacia el pagado/saldo. */
   orderId?: string;
+  /** Métodos a ofrecer al cargar un abono. El libro del socio los recorta a los
+   * tres instrumentos. */
+  methods?: readonly PaymentMethod[];
+  /** Monedas a ofrecer. Obligatoria en toda la cadena: el saldo se concilia
+   * contra `totalBilled`, que se calcula en la moneda de la tarifa, así que
+   * ofrecer otra deja abonos que nunca cierran el saldo. */
+  currencies: readonly string[];
 }
 
 /**
@@ -47,6 +55,8 @@ export const PendingPaymentControl = ({
   onRemovePayment,
   onClearPayments,
   orderId,
+  methods,
+  currencies,
 }: Props) => {
   const [cobroModalOpen, setCobroModalOpen] = useState(false);
   const { data: order } = useOrder(orderId);
@@ -148,6 +158,8 @@ export const PendingPaymentControl = ({
         payments={pendingPayments}
         onAddPayment={async (data) => onAddPayment(data)}
         onRemovePayment={onRemovePayment}
+        methods={methods}
+        currencies={currencies}
       />
     </div>
   );

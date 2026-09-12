@@ -37,6 +37,10 @@ interface Props {
   pending?: number | null;
   /** Moneda preseleccionada del abono. */
   defaultCurrency: string;
+  /** Métodos a ofrecer. El libro del socio los recorta. */
+  methods?: readonly PaymentMethod[];
+  /** Monedas a ofrecer. Obligatoria: la manda la de facturación. */
+  currencies: readonly string[];
   /** Abonos ya registrados en la orden (solo lectura). */
   existingPayments: RegisteredPayment[];
   /** Abonos capturados en este paso (locales, se pueden quitar). */
@@ -53,6 +57,8 @@ export const CobroModal = ({
   currency,
   pending,
   defaultCurrency,
+  methods,
+  currencies,
   existingPayments,
   payments,
   onAddPayment,
@@ -180,6 +186,8 @@ export const CobroModal = ({
             onAdd={onAddPayment}
             isSaving={isSaving}
             settlePending={pending ?? total}
+            methods={methods}
+            currencies={currencies}
           />
         </div>
         </div>

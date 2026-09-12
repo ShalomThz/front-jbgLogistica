@@ -234,7 +234,6 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
         {/* Lo que el socio le cobra a su cliente. */}
         {flow.step === "pricing" && (
           <PartnerPricingStep
-            currency={flow.effectiveTariff?.currency ?? "USD"}
             storeName={headerStore ?? "—"}
             partnerSalePayments={flow.partnerSalePayments}
             onAddPartnerSalePayment={flow.addPartnerSalePayment}

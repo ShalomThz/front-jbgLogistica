@@ -119,6 +119,28 @@ export const orderRepository = {
     });
   },
 
+  /** El libro del socio con su cliente, aparte del de JBG. Solo acepta los tres
+   * instrumentos y la moneda de la venta: lo valida el value object. */
+  addPartnerSalePayment: async (
+    id: string,
+    payment: AddPaymentRequest,
+  ): Promise<void> => {
+    await httpClient<unknown>(`/order/${id}/partner-sale/payment`, {
+      method: "POST",
+      body: JSON.stringify(payment),
+    });
+  },
+
+  removePartnerSalePayment: async (
+    id: string,
+    paymentId: string,
+  ): Promise<void> => {
+    await httpClient<unknown>(
+      `/order/${id}/partner-sale/payment/${paymentId}`,
+      { method: "DELETE" },
+    );
+  },
+
   clearPayments: async (id: string): Promise<void> => {
     await httpClient<unknown>(`/order/${id}/payments`, {
       method: "DELETE",

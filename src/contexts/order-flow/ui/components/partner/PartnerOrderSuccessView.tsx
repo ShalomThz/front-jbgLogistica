@@ -1,3 +1,4 @@
+import { partnerSaleBilled } from "@contexts/sales/domain/schemas/value-objects/OrderFinancials";
 import {
   Badge,
   Button,
@@ -79,9 +80,10 @@ export function PartnerOrderSuccessView({
     (sum, payment) => sum + payment.amount.amount,
     0,
   );
-  const balance = partnerSale
-    ? Math.max(0, partnerSale.total.amount - paid)
-    : 0;
+  // Contra el servicio más los extras, igual que el back: conciliar contra la
+  // base sola daría por saldada una venta a la que le faltan los extras.
+  const billed = partnerSale ? partnerSaleBilled(partnerSale) : 0;
+  const balance = Math.max(0, billed - paid);
 
   const withBusy = async (action: () => Promise<void>) => {
     setIsBusy(true);
@@ -192,7 +194,7 @@ export function PartnerOrderSuccessView({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total</span>
                   <span className="font-semibold">
-                    {money(partnerSale.total)}
+                    ${billed.toFixed(2)} {partnerSale.total.currency}
                   </span>
                 </div>
                 <div className="flex justify-between">

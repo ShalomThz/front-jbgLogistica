@@ -48,7 +48,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Tag, Trash2, Users } from "lucide-react";
+import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, Trash2, Users } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +61,12 @@ import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumb
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { OrderShipmentSection } from "./OrderShipmentSection";
 import { OrderFinancialSection } from "./OrderFinancialSection";
+import { partnerSaleBilled } from "@contexts/sales/domain/schemas/value-objects/OrderFinancials";
+import {
+  PAYMENT_STATUS_SURFACE,
+  resolveLedgerStatus,
+} from "@contexts/shared/domain/schemas/PaymentStatus";
+import { PartnerSaleSection } from "./PartnerSaleSection";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
@@ -303,8 +309,22 @@ export const OrderDetailDialog = ({
             {isCompleted && shipment && (
               <TabsTrigger value="envio" className="flex-none">Envío</TabsTrigger>
             )}
-            {isCompleted && shipment && (
-              <TabsTrigger value="financiero" className="flex-none">Financiero</TabsTrigger>
+            {/* Todo lo de acá es plata de JBG —lo que cobra y lo que le cuesta—,
+                así que va detrás del permiso. */}
+            {isCompleted && shipment && canViewFinancials && (
+              <TabsTrigger value="financiero" className="flex-none">
+                Financiero JBG
+              </TabsTrigger>
+            )}
+            {/* La de enfrente: lo que el socio le cobra a su cliente.
+                Deliberadamente sin `canViewFinancials` —el agente no lo tiene y
+                es su propia plata— y sin `isCompleted && shipment`, porque una
+                orden de socio nace en PENDING_HQ_PROCESS y sin envío: con esa
+                condición la pestaña estaría escondida justo cuando se usa. */}
+            {order.type === "PARTNER" && (
+              <TabsTrigger value="agente" className="flex-none">
+                Financiero agente
+              </TabsTrigger>
             )}
           </TabsList>
         </div>
@@ -377,7 +397,11 @@ export const OrderDetailDialog = ({
                 />
               </div>
 
-              {/* Financiero */}
+              {/* Financiero de JBG: `totalBilled` es lo que JBG cobra por esta
+                  orden —al cliente en una HQ, al socio en una de agente—, así
+                  que va detrás del permiso igual que su pestaña. Lo del agente
+                  con su cliente es la caja de abajo. */}
+              {canViewFinancials && (
               <div
                 role={isCompleted && shipment ? "button" : undefined}
                 tabIndex={isCompleted && shipment ? 0 : undefined}
@@ -391,14 +415,26 @@ export const OrderDetailDialog = ({
                   }
                 }}
                 className={cn(
-                  "rounded-md border border-emerald-200 bg-emerald-50/60 p-3 space-y-1 dark:border-emerald-900/50 dark:bg-emerald-950/20",
-                  isCompleted && shipment && "cursor-pointer transition-colors hover:bg-emerald-100/70 dark:hover:bg-emerald-950/40",
+                  "space-y-1 rounded-md border p-3",
+                  // El color lo pone el estado del pago, no el dueño: rojo sin
+                  // pagar, ámbar parcial, verde saldado.
+                  PAYMENT_STATUS_SURFACE[resolvePaymentStatus(financials)].card,
+                  isCompleted && shipment && "cursor-pointer transition-opacity hover:opacity-80",
                 )}
               >
-                <h4 className="flex items-center gap-1.5 text-sm font-semibold mb-2 text-emerald-900 dark:text-emerald-200">
+                <h4 className={cn(
+                  "flex items-center gap-1.5 text-sm font-semibold",
+                  PAYMENT_STATUS_SURFACE[resolvePaymentStatus(financials)].accent,
+                )}>
                   <DollarSign className="size-4" />
-                  Financiero
+                  Financiero JBG
                 </h4>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Lo que JBG cobra por esta orden y lo que ya se le pagó.
+                  {order.type === "PARTNER"
+                    ? " Es la deuda del agente con JBG."
+                    : ""}
+                </p>
                 {/* totalBilled ya trae el descuento restado; el desglose
                     completo vive en el tab Financiero */}
                 <DetailRow
@@ -441,6 +477,73 @@ export const OrderDetailDialog = ({
                   <DetailRow label="Concepto" value={financials.paymentConcept} />
                 )}
               </div>
+              )}
+
+              {/* La caja de enfrente: la otra relación de plata de la orden.
+                  Deliberadamente **sin** `canViewFinancials` —el agente no lo
+                  tiene y esto es suyo— y sin `isCompleted && shipment`, porque
+                  una orden de socio nace sin envío. El color la separa de la de
+                  JBG: cielo para el agente, esmeralda para JBG, el mismo código
+                  que usan sus pestañas. */}
+              {order.type === "PARTNER" && order.financials.partnerSale && (() => {
+                const sale = order.financials.partnerSale;
+                const billed = partnerSaleBilled(sale);
+                const paid = (sale.payments ?? []).reduce(
+                  (sum, payment) => sum + payment.amount.amount,
+                  0,
+                );
+                const currency = sale.total.currency;
+                // Mismo semáforo que la de JBG, derivado: este libro no guarda
+                // `paymentStatus`.
+                const surface =
+                  PAYMENT_STATUS_SURFACE[resolveLedgerStatus(billed, paid)];
+
+                return (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setActiveTab("agente")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveTab("agente");
+                    }
+                  }}
+                  className={cn(
+                    "cursor-pointer space-y-1 rounded-md border p-3 transition-opacity hover:opacity-80",
+                    surface.card,
+                  )}
+                >
+                  <h4 className={cn("flex items-center gap-1.5 text-sm font-semibold", surface.accent)}>
+                    <Store className="size-4" />
+                    Financiero agente
+                  </h4>
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Lo que el agente le cobra a su propio cliente y lo que ese
+                    cliente ya le pagó. No cambia lo que se le debe a JBG.
+                  </p>
+                  <DetailRow
+                    label="Total"
+                    value={formatMoney({ amount: billed, currency })}
+                  />
+                  {paid > 0 && (
+                    <DetailRow
+                      label="Pagado"
+                      value={`-${formatMoney({ amount: paid, currency })}`}
+                    />
+                  )}
+                  <DetailRow
+                    label="Estado"
+                    value={
+                      paid >= billed
+                        ? "Saldado"
+                        : formatMoney({ amount: billed - paid, currency }) +
+                          " pendiente"
+                    }
+                  />
+                </div>
+                );
+              })()}
 
               {/* Referencias */}
               <div
@@ -491,6 +594,32 @@ export const OrderDetailDialog = ({
                   <DetailRow label="Proveedor" value={shipment.provider.providerName} />
                 )}
               </div>
+            )}
+
+          </TabsContent>
+
+          {/* Financiero agente: lo que el socio le cobra a su cliente y lo que
+              ese cliente ya le pagó. Es la otra relación de plata de la orden, y
+              tiene pestaña propia para no leerse como parte de lo de JBG. */}
+          <TabsContent value="agente" className="space-y-3">
+            {/* Sin encabezado propio: `PartnerSaleSection` ya trae el suyo con
+                la tienda y el cliente, y dos títulos seguidos se leían como un
+                error de la pantalla. */}
+            {order.financials.partnerSale ? (
+              <PartnerSaleSection
+                orderId={order.id}
+                partnerSale={order.financials.partnerSale}
+                storeName={order.store.name}
+                clientName={origin.name}
+                canEdit={userCanEdit}
+              />
+            ) : (
+              // La pestaña aparece igual y explica el vacío: si desapareciera,
+              // no habría cómo saber que a esta orden le falta cargar el cobro.
+              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Esta orden no tiene registrado un cobro a tu cliente. Se puede
+                cargar editando la orden, en el paso de Cobro.
+              </p>
             )}
           </TabsContent>
 
@@ -679,13 +808,19 @@ export const OrderDetailDialog = ({
             </TabsContent>
           )}
 
-          {/* Financiero */}
-          {isCompleted && shipment && (
+          {/* Financiero: la plata de JBG. Misma condición que el disparador. */}
+          {isCompleted && shipment && canViewFinancials && (
             <TabsContent value="financiero" className="space-y-3">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <DollarSign className="size-4 text-muted-foreground" />
-                Financiero
-              </h3>
+              <div className="space-y-0.5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <DollarSign className="size-4 text-muted-foreground" />
+                  Financiero de la orden — JBG
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Lo que JBG cobra por esta orden y lo que le cuesta. Lo que el
+                  agente le cobra a su cliente está en Financiero agente.
+                </p>
+              </div>
               <OrderFinancialSection
                 rate={shipment.rate}
                 financials={financials}

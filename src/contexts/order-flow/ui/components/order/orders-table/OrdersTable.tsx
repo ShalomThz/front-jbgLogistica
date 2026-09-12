@@ -118,7 +118,10 @@ export const OrdersTable = ({
               <TableHead className="hidden lg:table-cell">Ref. Agente</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="hidden lg:table-cell">Creacion</TableHead>
-              <TableHead>Pago</TableHead>
+              {/* "Pago" a secas no decía a quién: en una orden de socio hay dos
+                  libros, y éste es el de lo que se le paga a JBG. El del agente
+                  con su cliente vive en el detalle, en su propia pestaña. */}
+              <TableHead>Pago JBG</TableHead>
               {canViewFinancials && (
                 <TableHead className="text-right">Total guías</TableHead>
               )}
