@@ -23,17 +23,10 @@ import z from "zod";
 export const orderPricingSchema = z.object({
   price: moneySchema,
   zoneId: z.string(),
-  destinationCountry: z
-    .string()
-    .nullish()
-    .transform((v) => v ?? "MX"),
+  destinationCountry: z.string(),
   tariffId: z.string(),
   serviceLevel: z.enum(serviceLevels),
-  // Las sugerencias anteriores al campo se leen como terrestre.
-  shippingMode: z
-    .enum(shippingModes)
-    .nullish()
-    .transform((v) => v ?? "GROUND"),
+  shippingMode: z.enum(shippingModes),
   priceType: z.enum(priceTypes),
   resolvedFrom: z.enum(["PARTNER_STORE", "COUNTER_DROPOFF", "PUBLIC_ADDRESS"]),
   quotedAt: z.string(),
@@ -61,8 +54,18 @@ export const orderSchema = z.object({
   homePickup: z.boolean().default(false),
   customerSignature: z.string().nullish(),
   /** Null en órdenes anteriores al campo, o cuando el precio se puso a mano
-   * sin que hubiera tarifa para la combinación. */
-  pricing: orderPricingSchema.nullish().transform((v) => v ?? null),
+   * sin que hubiera tarifa para la combinación.
+   *
+   * El `.catch(null)` no es adorno: `orderRepository` parsea la respuesta de
+   * `/order/find` **entera** y lanza, así que las 50 órdenes de la página viajan
+   * en un solo `parse`. Sin esto, una sola foto vieja —guardada antes de que
+   * `destinationCountry` y `shippingMode` fueran obligatorios— dejaría la
+   * pantalla de órdenes en blanco en vez de perder una foto de diagnóstico.
+   * Es la misma regla que aplica el backend en `OrderPricing.fromPrimitives`. */
+  pricing: orderPricingSchema
+    .nullish()
+    .transform((v) => v ?? null)
+    .catch(null),
   ...aggregateRootSchema.shape,
 });
 
