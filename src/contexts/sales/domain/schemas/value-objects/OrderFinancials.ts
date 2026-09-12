@@ -26,9 +26,19 @@ export const paymentSchema = z.object({
 
 export type PaymentPrimitives = z.infer<typeof paymentSchema>;
 
+/**
+ * Cada clave defaultea, igual que en el back: un `financials` incompleto se lee
+ * como cuenta vacía —o sea, un DRAFT— en vez de tumbar la orden.
+ *
+ * Acá importa más que en el back: `orderRepository` parsea la respuesta de
+ * `/order/find` **entera**, las 50 órdenes en un solo `.parse()`. Sin los
+ * defaults, un documento viejo al que le falte una clave no deja un hueco en la
+ * tabla: deja la pantalla de órdenes en blanco. Es el mismo criterio que ya
+ * aplica el `.catch(null)` de `pricing`.
+ */
 export const orderFinancialsSchema = z.object({
-  tariff: moneySchema.nullable(),
-  totalPrice: moneySchema.nullable(),
+  tariff: moneySchema.nullable().default(null),
+  totalPrice: moneySchema.nullable().default(null),
   totalBilled: moneySchema.nullable().default(null),
   /** Derivado de paymentStatus (=== "PAID"); se conserva por compatibilidad. */
   isPaid: z.boolean().default(false),
@@ -41,8 +51,11 @@ export const orderFinancialsSchema = z.object({
   /** Libro de abonos parciales. Vacío para órdenes previas al campo o
    * liquidadas por el flujo antiguo de pago único. */
   payments: z.array(paymentSchema).default([]),
-  costBreakdown: costBreakdownSchema,
-  discount: discountSchema,
+  // `.prefault` y no `.default`: en zod 4 el default toma el tipo de salida, y
+  // acá lo que se quiere es hacer pasar un `{}` por el schema para que actúen
+  // los defaults de adentro.
+  costBreakdown: costBreakdownSchema.prefault({}),
+  discount: discountSchema.prefault({}),
   /** Lo que el socio le vendió el servicio a su propio cliente, con lo que ese
    * cliente ya le pagó **a él**. No es plata de JBG: no entra en `totalBilled`
    * ni en el estado de pago, y existe para la factura que el socio le entrega a

@@ -40,7 +40,9 @@ export const orderSchema = z.object({
   createdBy: z.string(),
   origin: customerProfileSchema,
   destination: customerProfileSchema,
-  financials: orderFinancialsSchema,
+  /** El `.prefault({})` cubre la orden guardada sin la clave: se lee como cuenta
+   * vacía, que es lo que significa. Ver {@link orderFinancialsSchema}. */
+  financials: orderFinancialsSchema.prefault({}),
   references: orderReferencesSchema,
   status: z.enum(orderStatuses),
   package: packageSchema,
