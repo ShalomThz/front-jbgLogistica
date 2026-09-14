@@ -1,9 +1,6 @@
 import {
-  weightRateSchema,
   weightRatesResponseSchema,
-  type CreateWeightRateRequest,
   type SetZoneWeightRateRequest,
-  type UpdateWeightRateRequest,
   type WeightRatePrimitives,
 } from "@contexts/pricing/application/WeightRate";
 import { httpClient } from "@contexts/shared/infrastructure/http";
@@ -16,34 +13,15 @@ export const weightRateRepository = {
     return weightRatesResponseSchema.parse(data);
   },
 
-  create: async (
-    request: CreateWeightRateRequest,
-  ): Promise<WeightRatePrimitives> => {
-    const data = await httpClient<unknown>("/weight-rate", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
-
-    return weightRateSchema.parse(data);
-  },
-
-  update: async (
-    id: string,
-    request: UpdateWeightRateRequest,
-  ): Promise<WeightRatePrimitives> => {
-    const data = await httpClient<unknown>(`/weight-rate/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(request),
-    });
-
-    return weightRateSchema.parse(data);
-  },
-
-  remove: async (id: string): Promise<void> => {
-    await httpClient<unknown>(`/weight-rate/${id}`, { method: "DELETE" });
-  },
-
-  /** Escribe la celda entera: público y socio en un solo comando. */
+  /**
+   * Escribe la celda entera: público y socio en un solo comando.
+   *
+   * Es el único camino de escritura desde el front. Los endpoints por fila
+   * (`POST /weight-rate`, `PUT`/`DELETE /weight-rate/:id`) siguen existiendo en
+   * el servidor, pero permiten que las dos mitades de una celda queden con
+   * distinta unidad o moneda —la llave única no las incluye— y la matriz no
+   * sabe representar eso: muestra una sola y la pisa al guardar.
+   */
   setZoneWeightRate: async (
     request: SetZoneWeightRateRequest,
   ): Promise<WeightRatePrimitives[]> => {

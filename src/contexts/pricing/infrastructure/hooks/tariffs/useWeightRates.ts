@@ -1,7 +1,5 @@
 import type {
-  CreateWeightRateRequest,
   SetZoneWeightRateRequest,
-  UpdateWeightRateRequest,
   WeightRatePrimitives,
 } from "@contexts/pricing/application/WeightRate";
 import { weightRateRepository } from "@contexts/pricing/infrastructure/services/tariffs/weightRateRepository";
@@ -36,41 +34,15 @@ export const useWeightRates = (zoneId: string | undefined) => {
     onSuccess: invalidate,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (request: CreateWeightRateRequest) =>
-      weightRateRepository.create(request),
-    onSuccess: invalidate,
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      request,
-    }: {
-      id: string;
-      request: UpdateWeightRateRequest;
-    }) => weightRateRepository.update(id, request),
-    onSuccess: invalidate,
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: (id: string) => weightRateRepository.remove(id),
-    onSuccess: invalidate,
-  });
-
+  // Sin altas ni ediciones por fila: la pantalla escribe la celda entera, y una
+  // fila suelta puede quedar con distinta unidad o moneda que su par, algo que
+  // la matriz no sabe representar y pisaría al guardar.
   return {
     weightRates: data ?? EMPTY,
     isLoading,
     error: error?.message ?? null,
     refetch,
     setWeightRate: setRateMutation.mutateAsync,
-    createWeightRate: createMutation.mutateAsync,
-    updateWeightRate: updateMutation.mutateAsync,
-    removeWeightRate: removeMutation.mutateAsync,
-    isSaving:
-      setRateMutation.isPending ||
-      createMutation.isPending ||
-      updateMutation.isPending ||
-      removeMutation.isPending,
+    isSaving: setRateMutation.isPending,
   };
 };
