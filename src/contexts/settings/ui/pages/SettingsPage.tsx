@@ -1,4 +1,12 @@
+import {
+  saveVolumetricDivisorSchema,
+  volumetricDivisorSchema,
+  VOLUMETRIC_BASIS_LABELS,
+  VOLUMETRIC_DIVISOR_PRESETS,
+  type VolumetricDivisor,
+} from "@contexts/settings/application/VolumetricDivisor";
 import { useHQSettings } from "@contexts/settings/infrastructure/hooks/useSkydropxSettings";
+import { useVolumetricDivisor } from "@contexts/settings/infrastructure/hooks/useVolumetricDivisor";
 import {
   Button,
   Card,
@@ -8,6 +16,11 @@ import {
   CardTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@contexts/shared/shadcn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Circle, Plus, Trash2 } from "lucide-react";
@@ -215,6 +228,128 @@ function AddressEditForm({ index }: { index: number }) {
   );
 }
 
+// ─── Volumetric divisor ───────────────────────────────────────────────────────
+
+/**
+ * El divisor que convierte el volumen de un bulto en peso.
+ *
+ * Vive acá y no en cada tarifa porque es un solo número para toda la operación,
+ * y tenerlo repetido por fila garantiza que un día dejen de coincidir. Lo usan
+ * las tarifas por peso, que cobran el mayor entre el peso real y el volumétrico.
+ */
+function VolumetricDivisorCard() {
+  const { volumetricDivisor, isLoading, saveVolumetricDivisor, isSaving } =
+    useVolumetricDivisor();
+
+  const form = useForm<VolumetricDivisor>({
+    resolver: zodResolver(volumetricDivisorSchema),
+    defaultValues: { value: 166, basis: "in3/lb" },
+  });
+
+  const { register, control, handleSubmit, reset, setValue, formState } = form;
+
+  useEffect(() => {
+    if (volumetricDivisor) reset(volumetricDivisor);
+  }, [volumetricDivisor, reset]);
+
+  const basis = useWatch({ control, name: "basis" });
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      // Se manda con la forma del request y no el objeto pelado: el back espera
+      // `{ volumetricDivisor }`, y `saveVolumetricDivisorSchema` lo comprueba
+      // acá en vez de descubrirlo con un 400.
+      await saveVolumetricDivisor(
+        saveVolumetricDivisorSchema.parse({ volumetricDivisor: data }),
+      );
+      toast.success("Divisor volumétrico actualizado");
+    } catch (error) {
+      toast.error(parseApiError(error));
+    }
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Divisor volumétrico</CardTitle>
+        <CardDescription>
+          Cuánto volumen equivale a una unidad de peso. Las tarifas por peso
+          cobran el mayor entre el peso real y el volumétrico, así que este
+          número decide la mayoría de esos cobros.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} noValidate className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Divisor</Label>
+              <Input
+                type="number"
+                step="any"
+                aria-invalid={!!formState.errors.value}
+                {...register("value", { valueAsNumber: true })}
+              />
+              {formState.errors.value && (
+                <p className="text-xs text-destructive">
+                  {formState.errors.value.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Escala</Label>
+              <Select
+                value={basis}
+                onValueChange={(next) =>
+                  setValue("basis", next as VolumetricDivisor["basis"], {
+                    shouldDirty: true,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(VOLUMETRIC_BASIS_LABELS).map(
+                    ([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* La escala no es cosmética: 166 in³/lb y 6000 cm³/kg son el mismo
+              divisor, pero 166 leído como cm³/kg no se parece a nada. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">Valores usuales:</span>
+            {VOLUMETRIC_DIVISOR_PRESETS.map((preset) => (
+              <Button
+                key={preset.label}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => reset(preset.divisor, { keepDefaultValues: true })}
+              >
+                {preset.label}: {preset.divisor.value}
+              </Button>
+            ))}
+          </div>
+
+          <div className="border-t pt-4">
+            <Button type="submit" disabled={isLoading || isSaving}>
+              {isSaving ? "Guardando..." : "Guardar divisor"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
@@ -369,6 +504,10 @@ export function SettingsPage() {
           </div>
         </form>
       </FormProvider>
+
+      {/* Fuera del form de arriba: dos formularios anidados no son HTML válido,
+          y además éste se guarda por su cuenta. */}
+      <VolumetricDivisorCard />
     </div>
   );
 }
