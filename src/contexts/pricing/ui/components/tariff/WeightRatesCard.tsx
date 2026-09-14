@@ -3,6 +3,7 @@ import {
   PRICE_TYPE_LABELS,
   SERVICE_LEVEL_LABELS,
   SHIPPING_MODE_LABELS,
+  type ShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { useWeightRates } from "@contexts/pricing/infrastructure/hooks/tariffs/useWeightRates";
 import { WeightRateFormDialog } from "@contexts/pricing/ui/components/tariff/WeightRateFormDialog";
@@ -22,6 +23,9 @@ interface WeightRatesCardProps {
   zoneId: string;
   zoneName?: string;
   destinationCountry: string;
+  /** Lo decide el selector de la página, no esta tabla: es el mismo eje que
+   * elige si se ve la matriz de cajas o esto. */
+  shippingMode: ShippingMode;
   canEdit: boolean;
 }
 
@@ -35,6 +39,7 @@ export function WeightRatesCard({
   zoneId,
   zoneName,
   destinationCountry,
+  shippingMode,
   canEdit,
 }: WeightRatesCardProps) {
   const {
@@ -52,10 +57,14 @@ export function WeightRatesCard({
    * Un diálogo aparte sería más ceremonia de la que amerita una fila. */
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  // El hook trae la zona entera; el destino se filtra acá para que la tabla
-  // coincida con el país elegido arriba, igual que la matriz.
+  // El hook trae la zona entera; destino y modo se filtran acá para que la
+  // tabla coincida con lo elegido arriba, igual que la matriz. Sin filtrar por
+  // modo, una fila de otro transporte aparecería bajo un encabezado que no le
+  // corresponde.
   const rows = weightRates.filter(
-    (rate) => rate.destinationCountry === destinationCountry,
+    (rate) =>
+      rate.destinationCountry === destinationCountry &&
+      rate.shippingMode === shippingMode,
   );
 
   const openNew = () => {
@@ -95,8 +104,9 @@ export function WeightRatesCard({
         <Table>
           <TableHeader>
             <TableRow>
+              {/* Sin columna de modo: la tabla ya está filtrada por el que se
+                  eligió arriba, así que repetiría el mismo valor en cada fila. */}
               <TableHead>Servicio</TableHead>
-              <TableHead>Modo</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead className="text-right">Precio por unidad</TableHead>
               <TableHead className="text-right">Mínimo</TableHead>
@@ -108,7 +118,7 @@ export function WeightRatesCard({
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={canEdit ? 7 : 6}
+                  colSpan={canEdit ? 6 : 5}
                   className="text-center text-sm text-muted-foreground"
                 >
                   Cargando...
@@ -117,17 +127,18 @@ export function WeightRatesCard({
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={canEdit ? 7 : 6}
+                  colSpan={canEdit ? 6 : 5}
                   className="text-center text-sm text-muted-foreground"
                 >
-                  Esta zona no cobra por peso hacia {destinationCountry}.
+                  Esta zona no tiene tarifas por peso hacia {destinationCountry}
+                  {" "}
+                  por {SHIPPING_MODE_LABELS[shippingMode].toLowerCase()}.
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((rate) => (
                 <TableRow key={rate.id}>
                   <TableCell>{SERVICE_LEVEL_LABELS[rate.serviceLevel]}</TableCell>
-                  <TableCell>{SHIPPING_MODE_LABELS[rate.shippingMode]}</TableCell>
                   <TableCell>{PRICE_TYPE_LABELS[rate.priceType]}</TableCell>
                   <TableCell className="text-right font-medium">
                     ${rate.pricePerUnit.amount.toFixed(2)}{" "}
@@ -201,6 +212,7 @@ export function WeightRatesCard({
         zoneId={zoneId}
         zoneName={zoneName}
         destinationCountry={destinationCountry}
+        shippingMode={shippingMode}
         editing={editing}
         isSaving={isSaving}
       />

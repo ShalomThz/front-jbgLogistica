@@ -184,6 +184,14 @@ export const TariffsPage = () => {
   const [hiddenServices, setHiddenServices] = useState<ServiceLevel[]>([]);
   const [boxFilter, setBoxFilter] = useState<BoxPrimitives | null>(null);
 
+  /**
+   * Lo aéreo se cobra por peso, no por caja, así que el modo decide qué tabla
+   * se ve: terrestre y marítimo muestran la matriz de cajas, aéreo muestra las
+   * tarifas por peso. No conviven — una fila por peso no entra en una celda de
+   * caja × servicio, y una tarifa plana aérea ya no se puede ni crear.
+   */
+  const isAir = shippingMode === "AIR";
+
   // Los cuatro servicios se muestran de entrada: así se ve de una qué
   // combinaciones faltan. Ocultarlos es decisión del usuario, desde el control
   // de columnas de la tabla.
@@ -334,7 +342,9 @@ export const TariffsPage = () => {
                 />
               </div>
             )}
-            {zoneId && (
+            {/* Sin caja en aéreo: ese servicio cobra por peso, y elegir una
+                caja no cambiaría nada de lo que se ve abajo. */}
+            {zoneId && !isAir && (
               <div className="space-y-1">
                 <Label
                   htmlFor="box-filter"
@@ -375,7 +385,7 @@ export const TariffsPage = () => {
             Elegí una zona para ver sus precios.
           </p>
         </div>
-      ) : (
+      ) : isAir ? null : (
         <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
           {/* Control de columnas, arriba a la derecha de la tabla. */}
           <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
@@ -497,14 +507,14 @@ export const TariffsPage = () => {
         </div>
       )}
 
-      {/* Debajo de la matriz y con la misma zona y el mismo destino: son
-          precios de la misma zona, pero no entran en una celda de caja ×
-          servicio porque no tienen caja. */}
-      {zoneId && (
+      {/* En lugar de la matriz, no debajo: con aéreo no hay precio por caja
+          que mostrar. La zona y el destino son los mismos de arriba. */}
+      {zoneId && isAir && (
         <WeightRatesCard
           zoneId={zoneId}
           zoneName={zone?.name}
           destinationCountry={destinationCountry}
+          shippingMode={shippingMode}
           canEdit={canEdit}
         />
       )}

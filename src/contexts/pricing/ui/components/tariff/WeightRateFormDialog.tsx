@@ -8,7 +8,6 @@ import {
   SHIPPING_MODE_LABELS,
   priceTypes,
   serviceLevels,
-  shippingModes,
   type PriceType,
   type ServiceLevel,
   type ShippingMode,
@@ -37,6 +36,10 @@ interface WeightRateFormDialogProps {
   zoneId: string;
   zoneName?: string;
   destinationCountry: string;
+  /** Viene de la página, no se elige acá: es el mismo selector que decide si se
+   * ve la matriz de cajas o esta tabla. Ofrecerlo de nuevo dejaría crear una
+   * fila que después no aparece bajo el modo en que se está mirando. */
+  shippingMode: ShippingMode;
   /** La fila que se edita, o `null` para un alta. */
   editing: WeightRatePrimitives | null;
   isSaving: boolean;
@@ -62,11 +65,11 @@ export function WeightRateFormDialog({
   zoneId,
   zoneName,
   destinationCountry,
+  shippingMode,
   editing,
   isSaving,
 }: WeightRateFormDialogProps) {
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>("EXPRESS");
-  const [shippingMode, setShippingMode] = useState<ShippingMode>("AIR");
   const [priceType, setPriceType] = useState<PriceType>("PUBLIC");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -87,7 +90,6 @@ export function WeightRateFormDialog({
 
     if (editing) {
       setServiceLevel(editing.serviceLevel);
-      setShippingMode(editing.shippingMode);
       setPriceType(editing.priceType);
       setAmount(String(editing.pricePerUnit.amount));
       setCurrency(editing.pricePerUnit.currency);
@@ -95,10 +97,9 @@ export function WeightRateFormDialog({
       setMinWeight(String(editing.minWeight));
       setMaxWeight(editing.maxWeight === null ? "" : String(editing.maxWeight));
     } else {
-      // El alta arranca en aéreo express: es el único servicio que hoy se cobra
-      // por peso. Se puede cambiar.
+      // El alta arranca en express: es el nivel de las filas por peso que
+      // existen hoy. Se puede cambiar; el modo no, lo fija la página.
       setServiceLevel("EXPRESS");
-      setShippingMode("AIR");
       setPriceType("PUBLIC");
       setAmount("");
       setCurrency("USD");
@@ -156,13 +157,14 @@ export function WeightRateFormDialog({
             {editing ? "Editar tarifa por peso" : "Nueva tarifa por peso"}
           </DialogTitle>
           <DialogDescription>
-            {zoneName ?? "Zona"} → {destinationCountry}. Se cobra el mayor entre
-            el peso real y el volumétrico, con piso en el mínimo.
+            {zoneName ?? "Zona"} → {destinationCountry} ·{" "}
+            {SHIPPING_MODE_LABELS[shippingMode]}. Se cobra el mayor entre el
+            peso real y el volumétrico, con piso en el mínimo.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Nivel de servicio</Label>
               <Select
@@ -176,25 +178,6 @@ export function WeightRateFormDialog({
                   {serviceLevels.map((level) => (
                     <SelectItem key={level} value={level}>
                       {SERVICE_LEVEL_LABELS[level]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Modo</Label>
-              <Select
-                value={shippingMode}
-                onValueChange={(v) => setShippingMode(v as ShippingMode)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {shippingModes.map((mode) => (
-                    <SelectItem key={mode} value={mode}>
-                      {SHIPPING_MODE_LABELS[mode]}
                     </SelectItem>
                   ))}
                 </SelectContent>
