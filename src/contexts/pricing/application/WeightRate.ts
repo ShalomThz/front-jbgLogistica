@@ -42,20 +42,6 @@ export type WeightRatePrimitives = z.infer<typeof weightRateSchema>;
 
 export const weightRatesResponseSchema = z.array(weightRateSchema);
 
-/** El alta. `maxWeight` es nulable pero **no opcional**: sin techo se manda
- * `null`, y omitirlo es un error — así no se confunde "sin techo" con "me
- * olvidé de cargarlo". */
-export const createWeightRateSchema = weightRateSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type CreateWeightRateRequest = z.infer<typeof createWeightRateSchema>;
-
-/** La edición: lo que no viaja no se toca. */
-export type UpdateWeightRateRequest = Partial<CreateWeightRateRequest>;
-
 /**
  * La celda entera: público y socio juntos, como en la matriz de cajas.
  *
