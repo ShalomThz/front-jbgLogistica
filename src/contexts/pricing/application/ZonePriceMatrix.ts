@@ -4,6 +4,7 @@ import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import {
   serviceLevels,
   shippingModes,
+  tariffShippingModes,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { zoneSchema } from "@contexts/pricing/domain/schemas/zone/Zone";
 
@@ -45,7 +46,9 @@ export const setZonePriceRequestSchema = z.object({
   destinationCountry: z.string(),
   boxId: z.string(),
   serviceLevel: z.enum(serviceLevels),
-  shippingMode: z.enum(shippingModes),
+  /** Sin aéreo: ese servicio se cobra por peso y no entra en una celda con
+   * caja. El back también lo rechaza; acá lo atrapa el tipo antes del 400. */
+  shippingMode: z.enum(tariffShippingModes),
   // null borra la fila: es como se deja una combinación sin precio, que no es
   // lo mismo que cobrar cero.
   publicPrice: moneySchema.nullable(),

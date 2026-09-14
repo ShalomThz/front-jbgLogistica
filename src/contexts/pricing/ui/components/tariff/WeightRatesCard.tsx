@@ -219,6 +219,9 @@ export function WeightRatesCard({
 
       {editing && (
         <WeightRateCellDialog
+          // Remonta al cambiar de servicio: el diálogo siembra su estado con
+          // los inicializadores, que solo corren al montar.
+          key={editing}
           open
           onClose={() => setEditing(null)}
           onSave={setWeightRate}

@@ -519,7 +519,9 @@ export const TariffsPage = () => {
         />
       )}
 
-      {editing && (
+      {/* `shippingMode !== "AIR"` y no `!isAir`: escrito así, TypeScript angosta
+          el tipo y el diálogo recibe un modo que la matriz puede escribir. */}
+      {editing && shippingMode !== "AIR" && (
         <ZonePriceCellDialog
           open
           onClose={() => setEditing(null)}

@@ -74,30 +74,25 @@ export function WeightRateCellDialog({
   maxWeight,
   isLoading,
 }: WeightRateCellDialogProps) {
-  const [publicAmount, setPublicAmount] = useState("");
-  const [partnerAmount, setPartnerAmount] = useState("");
-  const [currency, setCurrency] = useState<string>("USD");
-  const [unitValue, setUnitValue] = useState<"kg" | "lb">("lb");
-  const [min, setMin] = useState("");
-  const [max, setMax] = useState("");
+  // El estado arranca en los valores de la celda, no vacío. Quien lo renderiza
+  // monta este componente recién al abrirlo y le pone `key` por servicio, así
+  // que los inicializadores corren con la celda correcta cada vez.
+  //
+  // Sin esto —sembrando después, en un efecto o comparando claves— el primer
+  // pintado sale vacío, y vacío significa "borrar esta tarifa".
+  const [publicAmount, setPublicAmount] = useState(
+    publicPrice ? String(publicPrice.amount) : "",
+  );
+  const [partnerAmount, setPartnerAmount] = useState(
+    partnerPrice ? String(partnerPrice.amount) : "",
+  );
+  const [currency, setCurrency] = useState<string>(
+    publicPrice?.currency ?? partnerPrice?.currency ?? "USD",
+  );
+  const [unitValue, setUnitValue] = useState<"kg" | "lb">(unit);
+  const [min, setMin] = useState(minWeight === null ? "" : String(minWeight));
+  const [max, setMax] = useState(maxWeight === null ? "" : String(maxWeight));
   const [error, setError] = useState<string | null>(null);
-
-  // Se siembra en render y no en un efecto: un efecto pinta una vez con los
-  // valores de la celda anterior antes de corregirse, y al abrir otra celda eso
-  // se ve. Mismo patrón que `usePartnerOrderFlow`.
-  const cellKey = open ? `${serviceLevel}` : "cerrado";
-  const [lastCellKey, setLastCellKey] = useState(cellKey);
-
-  if (cellKey !== lastCellKey) {
-    setLastCellKey(cellKey);
-    setError(null);
-    setPublicAmount(publicPrice ? String(publicPrice.amount) : "");
-    setPartnerAmount(partnerPrice ? String(partnerPrice.amount) : "");
-    setCurrency(publicPrice?.currency ?? partnerPrice?.currency ?? "USD");
-    setUnitValue(unit);
-    setMin(minWeight === null ? "" : String(minWeight));
-    setMax(maxWeight === null ? "" : String(maxWeight));
-  }
 
   const parsePrice = (raw: string): MoneyPrimitives | null => {
     const amount = Number.parseFloat(raw);

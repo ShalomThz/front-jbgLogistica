@@ -15,6 +15,17 @@ export const priceTypes = ["PUBLIC", "PARTNER"] as const;
 // pone precio al modo con el que después se despacha.
 export const shippingModes = ["GROUND", "AIR", "SEA"] as const;
 
+/**
+ * Los modos que una tarifa **plana** puede tener. Sin aéreo: eso se cobra por
+ * peso y vive en `weightRates`.
+ *
+ * Espeja a `tariffShippingModes` del back, que lo rechaza al escribir. Acá
+ * existe para que lo atrape `tsc` y no un 400.
+ */
+export const tariffShippingModes = ["GROUND", "SEA"] as const;
+
+export type TariffShippingMode = (typeof tariffShippingModes)[number];
+
 export type ServiceLevel = (typeof serviceLevels)[number];
 export type PriceType = (typeof priceTypes)[number];
 export type ShippingMode = (typeof shippingModes)[number];

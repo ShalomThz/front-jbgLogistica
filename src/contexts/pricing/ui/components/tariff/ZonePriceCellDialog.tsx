@@ -30,7 +30,7 @@ import {
 import type { SetZonePriceRequest } from "@contexts/pricing/application/ZonePriceMatrix";
 import type {
   ServiceLevel,
-  ShippingMode,
+  TariffShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import {
   SERVICE_LEVEL_COLORS,
@@ -51,7 +51,9 @@ interface Props {
   boxId: string;
   boxName?: string;
   serviceLevel: ServiceLevel;
-  shippingMode: ShippingMode;
+  /** Sin aéreo: la matriz de cajas no existe para ese modo, y el request lo
+   * rechazaría. */
+  shippingMode: TariffShippingMode;
   publicPrice: MoneyPrimitives | null;
   partnerPrice: MoneyPrimitives | null;
   isLoading?: boolean;

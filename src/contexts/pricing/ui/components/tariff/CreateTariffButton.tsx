@@ -68,6 +68,11 @@ export function CreateTariffButton({
 
   if (!user || !pricingPolicies.createTariff(user)) return null;
 
+  // Lo aéreo se cobra por peso: no hay tarifa plana que crear desde acá y el
+  // request la rechazaría. Esa fila se carga en la pantalla de Tarifas, que es
+  // donde están la zona y el destino que necesita.
+  if (shippingMode === "AIR") return null;
+
   return (
     <>
       <Button
