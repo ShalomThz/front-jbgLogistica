@@ -198,30 +198,55 @@ export const useHQOrderSubmission = ({
   // El bulto, para que el servidor pueda cotizar los servicios que cobran por
   // peso. Solo HQ los ve, y no por una regla escrita en ningún lado: es el
   // único flujo donde hay dónde cargar el peso.
-  const quotedPackage = useWatch<HQOrderFormValues, "package">({
+  //
+  // Se suscribe a los seis campos y no al objeto `package` entero: éste incluye
+  // las fotos, y mirarlo haría re-renderizar todo el flujo cada vez que se sube
+  // una imagen.
+  const [
+    rawWeight,
+    weightUnit,
+    rawLength,
+    rawWidth,
+    rawHeight,
+    dimensionUnit,
+  ] = useWatch<HQOrderFormValues>({
     control: form.control,
-    name: "package",
-  });
+    name: [
+      "package.weight",
+      "package.weightUnit",
+      "package.length",
+      "package.width",
+      "package.height",
+      "package.dimensionUnit",
+    ],
+  }) as [
+    string | undefined,
+    "kg" | "lb" | undefined,
+    string | undefined,
+    string | undefined,
+    string | undefined,
+    "cm" | "in" | undefined,
+  ];
 
-  const parsedWeight = parseFloat(quotedPackage?.weight ?? "");
-  const parsedLength = parseFloat(quotedPackage?.length ?? "");
-  const parsedWidth = parseFloat(quotedPackage?.width ?? "");
-  const parsedHeight = parseFloat(quotedPackage?.height ?? "");
+  const parsedWeight = parseFloat(rawWeight ?? "");
+  const parsedLength = parseFloat(rawLength ?? "");
+  const parsedWidth = parseFloat(rawWidth ?? "");
+  const parsedHeight = parseFloat(rawHeight ?? "");
 
   // Se mandan solo si están completos: media medida daría un peso volumétrico
   // equivocado, y el resultado seguiría pareciendo un precio válido.
   const quoteWeight =
-    parsedWeight > 0
-      ? { value: parsedWeight, unit: quotedPackage.weightUnit }
+    parsedWeight > 0 && weightUnit
+      ? { value: parsedWeight, unit: weightUnit }
       : undefined;
 
   const quoteDimensions =
-    parsedLength > 0 && parsedWidth > 0 && parsedHeight > 0
+    parsedLength > 0 && parsedWidth > 0 && parsedHeight > 0 && dimensionUnit
       ? {
           length: parsedLength,
           width: parsedWidth,
           height: parsedHeight,
-          unit: quotedPackage.dimensionUnit,
+          unit: dimensionUnit,
         }
       : undefined;
 

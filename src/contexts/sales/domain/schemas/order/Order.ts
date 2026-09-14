@@ -6,6 +6,7 @@ import { packageSchema } from "../value-objects/Package";
 import { orderStatuses } from "./OrderStatuses";
 import { orderTypes } from "./OrderTypes";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
+import { weightSchema } from "@contexts/shared/domain/schemas/Weight";
 import {
   priceTypes,
   serviceLevels,
@@ -30,6 +31,30 @@ export const orderPricingSchema = z.object({
   priceType: z.enum(priceTypes),
   resolvedFrom: z.enum(["PARTNER_STORE", "COUNTER_DROPOFF", "PUBLIC_ADDRESS"]),
   quotedAt: z.string(),
+  /** `FLAT` es el total de una caja; `PER_WEIGHT`, peso facturable por precio
+   * unitario. Con default: las fotos anteriores al campo son todas planas. */
+  source: z.enum(["FLAT", "PER_WEIGHT"]).default("FLAT"),
+  /**
+   * Cómo se llegó al monto cuando se cobró por peso. `null` en las planas.
+   *
+   * Se guarda en la orden porque **no se puede reconstruir**: el peso
+   * facturable depende del divisor volumétrico, que es un ajuste global y
+   * puede cambiar. Recalcular una orden vieja con el divisor de hoy da otro
+   * número.
+   */
+  weight: z
+    .object({
+      realWeight: weightSchema,
+      volumetricWeight: weightSchema,
+      billableWeight: weightSchema,
+      pricePerUnit: moneySchema,
+      volumetricDivisor: z.object({
+        value: z.number(),
+        basis: z.enum(["in3/lb", "cm3/kg"]),
+      }),
+    })
+    .nullish()
+    .default(null),
 });
 
 export type OrderPricingPrimitives = z.infer<typeof orderPricingSchema>;

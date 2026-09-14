@@ -147,11 +147,11 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
             shippingMode: initialPricing.shippingMode,
             priceType: initialPricing.priceType,
             resolvedFrom: initialPricing.resolvedFrom,
-            // `OrderPricing` no guarda de dónde salió el precio, así que acá no
-            // se sabe. Se asume plano porque es el único caso que el alta de
-            // socio puede producir —no pesa la caja—, y en cuanto llega el menú
-            // la fila real reemplaza a esta foto.
-            source: "FLAT",
+            // Ya no se asume: la orden guarda de dónde salió el precio.
+            source: initialPricing.source,
+            // El desglose no se reconstruye desde la foto —le falta el aviso de
+            // techo, que no se guarda— y tampoco hace falta: en cuanto llega el
+            // menú, la fila real trae el suyo recién calculado.
             weightBreakdown: null,
           }
         : null,

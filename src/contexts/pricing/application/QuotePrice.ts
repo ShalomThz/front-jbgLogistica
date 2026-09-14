@@ -1,5 +1,13 @@
 import { z } from "zod";
+import {
+  dimensionsSchema,
+  type DimensionsPrimitives,
+} from "@contexts/shared/domain/schemas/Dimensions";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
+import {
+  weightSchema,
+  type WeightPrimitives,
+} from "@contexts/shared/domain/schemas/Weight";
 import {
   serviceLevels,
   priceTypes,
@@ -24,20 +32,8 @@ export const PickupPoints = {
   atCustomerAddress: (zoneId: string): PickupPoint => ({ kind: "PUBLIC_ADDRESS", zoneId }),
 };
 
-export const weightSchema = z.object({
-  value: z.number(),
-  unit: z.enum(["kg", "lb"]),
-});
-
-export const dimensionsSchema = z.object({
-  length: z.number().positive(),
-  width: z.number().positive(),
-  height: z.number().positive(),
-  unit: z.enum(["cm", "in"]),
-});
-
-export type Weight = z.infer<typeof weightSchema>;
-export type Dimensions = z.infer<typeof dimensionsSchema>;
+export type Weight = WeightPrimitives;
+export type Dimensions = DimensionsPrimitives;
 
 export const quotePriceRequestSchema = z.object({
   pickup: pickupPointSchema,
@@ -69,6 +65,12 @@ export const weightBreakdownSchema = z.object({
   /** El mayor de los dos, con el piso de la fila ya aplicado. */
   billableWeight: weightSchema,
   pricePerUnit: moneySchema,
+  /** Con qué divisor se sacó el volumétrico. La orden lo guarda porque es un
+   * ajuste global que puede cambiar, y sin él la cuenta no se rehace. */
+  volumetricDivisor: z.object({
+    value: z.number(),
+    basis: z.enum(["in3/lb", "cm3/kg"]),
+  }),
   /** Pasó el techo de la fila. Es un aviso, no un bloqueo. */
   exceedsMaximum: z.boolean(),
 });
