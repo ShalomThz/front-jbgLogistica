@@ -35,6 +35,7 @@ import { ShippingModeSelector } from "@contexts/order-flow/ui/components/shared/
 import { CountrySelect } from "@contexts/shared/ui/components/CountrySelect";
 import { BoxPickerCombobox } from "@contexts/inventory/ui/components/box/BoxPickerCombobox";
 import { ZonePriceCellDialog } from "../components/tariff/ZonePriceCellDialog";
+import { WeightRatesCard } from "../components/tariff/WeightRatesCard";
 import { exportTariffs } from "@contexts/pricing/domain/services/exportTariffs";
 import { useTariffs } from "@contexts/pricing/infrastructure/hooks/tariffs/useTariffs";
 import { useZonePriceMatrix } from "@contexts/pricing/infrastructure/hooks/tariffs/useZonePriceMatrix";
@@ -494,6 +495,18 @@ export const TariffsPage = () => {
           </Table>
           </div>
         </div>
+      )}
+
+      {/* Debajo de la matriz y con la misma zona y el mismo destino: son
+          precios de la misma zona, pero no entran en una celda de caja ×
+          servicio porque no tienen caja. */}
+      {zoneId && (
+        <WeightRatesCard
+          zoneId={zoneId}
+          zoneName={zone?.name}
+          destinationCountry={destinationCountry}
+          canEdit={canEdit}
+        />
       )}
 
       {editing && (

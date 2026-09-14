@@ -24,6 +24,10 @@ export const tariffKeys = {
   quote: (args: QuotePriceRequest) => [...tariffKeys.quotes(), args] as const,
   quoteOptions: (args: QuotePriceOptionsRequest) =>
     [...tariffKeys.quotes(), "options", args] as const,
+  /** Las tarifas por peso de una zona. Cuelgan de `all` para que escribir una
+   * invalide también las cotizaciones. */
+  weightRates: (zoneId: string) =>
+    [...tariffKeys.all, "weight-rates", zoneId] as const,
   matrices: () => [...tariffKeys.all, "matrix"] as const,
   matrix: (
     zoneId: string,
