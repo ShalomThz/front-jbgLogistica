@@ -1,4 +1,7 @@
-import { serviceLevels } from "@contexts/pricing/domain/schemas/tariff/Tariff";
+import {
+  serviceLevels,
+  shippingModes,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
 import { discountSchema } from "@contexts/sales/domain/schemas/value-objects/Discount";
@@ -48,10 +51,19 @@ export const createPartnerOrderSchema = z.object({
       discount: discountSchema.optional(),
     })
     .nullish(),
-  /** Velocidad contratada. Es el único insumo del precio que no se deriva: el
-   * punto de recolección es la tienda socia y el peldaño es PARTNER por ser
-   * orden de socio. */
+  /**
+   * Los tres insumos del precio que no se derivan. El punto de recolección es
+   * la tienda socia y el peldaño es PARTNER por ser orden de socio; éstos los
+   * elige quien cotiza.
+   *
+   * `shippingMode` y `destinationCountry` **faltaban acá**. El builder los
+   * mandaba, este `.parse()` los descartaba en silencio, y el backend —que
+   * exige los tres para cotizar— devolvía `null`: toda orden de socio se creaba
+   * sin sugerencia de precio y nada lo avisaba.
+   */
   serviceLevel: z.enum(serviceLevels).optional(),
+  shippingMode: z.enum(shippingModes).optional(),
+  destinationCountry: z.string().optional(),
   costBreakdown: costBreakdownSchema.optional(),
   emptyBoxDelivery: z.boolean().optional(),
   /** "Recolección a domicilio": el chofer recoge la caja ya empacada del
