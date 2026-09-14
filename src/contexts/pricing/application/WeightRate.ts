@@ -55,3 +55,24 @@ export type CreateWeightRateRequest = z.infer<typeof createWeightRateSchema>;
 
 /** La edición: lo que no viaja no se toca. */
 export type UpdateWeightRateRequest = Partial<CreateWeightRateRequest>;
+
+/**
+ * La celda entera: público y socio juntos, como en la matriz de cajas.
+ *
+ * Con precios sueltos, tarde o temprano alguien actualiza el público y se
+ * olvida del de socio. El piso, el techo y la unidad son de la celda —son
+ * condiciones del servicio— y un precio en `null` borra esa fila.
+ */
+export const setZoneWeightRateSchema = z.object({
+  zoneId: z.string(),
+  destinationCountry: z.string(),
+  serviceLevel: z.enum(serviceLevels),
+  shippingMode: z.enum(shippingModes),
+  unit: z.enum(weightUnits),
+  minWeight: z.number(),
+  maxWeight: z.number().nullable(),
+  publicPrice: moneySchema.nullable(),
+  partnerPrice: moneySchema.nullable(),
+});
+
+export type SetZoneWeightRateRequest = z.infer<typeof setZoneWeightRateSchema>;

@@ -1,14 +1,15 @@
 import type { WeightRatePrimitives } from "@contexts/pricing/application/WeightRate";
 import {
-  PRICE_TYPE_LABELS,
+  SERVICE_LEVEL_COLORS,
   SERVICE_LEVEL_LABELS,
   SHIPPING_MODE_LABELS,
+  serviceLevels,
+  type ServiceLevel,
   type ShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { useWeightRates } from "@contexts/pricing/infrastructure/hooks/tariffs/useWeightRates";
-import { WeightRateFormDialog } from "@contexts/pricing/ui/components/tariff/WeightRateFormDialog";
+import { WeightRateCellDialog } from "@contexts/pricing/ui/components/tariff/WeightRateCellDialog";
 import {
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -16,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
-import { Pencil, Plus, Scale, Trash2 } from "lucide-react";
+import { Handshake, Plus, Users } from "lucide-react";
 import { useState } from "react";
 
 interface WeightRatesCardProps {
@@ -29,11 +30,32 @@ interface WeightRatesCardProps {
   canEdit: boolean;
 }
 
+/** Lo que gana el socio si revende al precio público. Igual que en la matriz. */
+function marginPercent(
+  publicRate: WeightRatePrimitives | undefined,
+  partnerRate: WeightRatePrimitives | undefined,
+): number | null {
+  if (!publicRate || !partnerRate) return null;
+  if (publicRate.pricePerUnit.currency !== partnerRate.pricePerUnit.currency) {
+    return null;
+  }
+  if (publicRate.pricePerUnit.amount === 0) return null;
+
+  return (
+    ((publicRate.pricePerUnit.amount - partnerRate.pricePerUnit.amount) /
+      publicRate.pricePerUnit.amount) *
+    100
+  );
+}
+
 /**
- * Las tarifas que cobran por peso, para la zona y el destino elegidos arriba.
+ * La tabla de tarifas por peso, con la misma forma que la matriz de cajas:
+ * una fila por servicio, público y socio en la misma celda, y todos los
+ * servicios a la vista para que se note cuál falta.
  *
- * Van en su propia tabla y no en la matriz de cajas porque no tienen caja: la
- * matriz es caja × servicio, y estas filas no entran en ninguna celda.
+ * El eje de filas es el servicio y no la caja porque acá no hay caja — es la
+ * única diferencia de fondo. Las columnas extra (mínimo, máximo, unidad) son
+ * las condiciones que solo existen cuando se cobra por peso.
  */
 export function WeightRatesCard({
   zoneId,
@@ -42,180 +64,177 @@ export function WeightRatesCard({
   shippingMode,
   canEdit,
 }: WeightRatesCardProps) {
-  const {
-    weightRates,
-    isLoading,
-    createWeightRate,
-    updateWeightRate,
-    removeWeightRate,
-    isSaving,
-  } = useWeightRates(zoneId);
+  const { weightRates, isLoading, setWeightRate, isSaving } =
+    useWeightRates(zoneId);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<WeightRatePrimitives | null>(null);
-  /** Borrar es destructivo y no hay deshacer, así que pide un segundo clic.
-   * Un diálogo aparte sería más ceremonia de la que amerita una fila. */
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<ServiceLevel | null>(null);
 
   // El hook trae la zona entera; destino y modo se filtran acá para que la
-  // tabla coincida con lo elegido arriba, igual que la matriz. Sin filtrar por
-  // modo, una fila de otro transporte aparecería bajo un encabezado que no le
-  // corresponde.
-  const rows = weightRates.filter(
+  // tabla coincida con lo elegido arriba, igual que la matriz.
+  const visible = weightRates.filter(
     (rate) =>
       rate.destinationCountry === destinationCountry &&
       rate.shippingMode === shippingMode,
   );
 
-  const openNew = () => {
-    setEditing(null);
-    setDialogOpen(true);
-  };
+  const rateFor = (serviceLevel: ServiceLevel, priceType: "PUBLIC" | "PARTNER") =>
+    visible.find(
+      (rate) =>
+        rate.serviceLevel === serviceLevel && rate.priceType === priceType,
+    );
 
-  const openEdit = (rate: WeightRatePrimitives) => {
-    setEditing(rate);
-    setDialogOpen(true);
-  };
+  const money = (rate: WeightRatePrimitives | undefined) =>
+    rate
+      ? `$${rate.pricePerUnit.amount.toFixed(2)} ${rate.pricePerUnit.currency}/${rate.unit}`
+      : "—";
+
+  const editingPublic = editing ? rateFor(editing, "PUBLIC") : undefined;
+  const editingPartner = editing ? rateFor(editing, "PARTNER") : undefined;
+  const editingAny = editingPublic ?? editingPartner;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Scale className="size-4 text-muted-foreground" />
-          <div>
-            <h2 className="text-sm font-semibold">Tarifas por peso</h2>
-            <p className="text-xs text-muted-foreground">
-              Sin caja: se cobra el mayor entre el peso real y el volumétrico,
-              con piso en el mínimo. El divisor volumétrico se configura en
-              Ajustes.
-            </p>
-          </div>
-        </div>
-
-        {canEdit && (
-          <Button type="button" size="sm" variant="outline" onClick={openNew}>
-            <Plus className="size-4 mr-2" />
-            Agregar
-          </Button>
-        )}
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
+      <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+        <p className="truncate text-xs text-muted-foreground">
+          {zoneName ? `${zoneName} → ${destinationCountry} · ` : ""}
+          {SHIPPING_MODE_LABELS[shippingMode]} · se cobra por peso
+        </p>
+        <p className="shrink-0 text-xs text-muted-foreground">
+          El mayor entre real y volumétrico · divisor en Ajustes
+        </p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              {/* Sin columna de modo: la tabla ya está filtrada por el que se
-                  eligió arriba, así que repetiría el mismo valor en cada fila. */}
-              <TableHead>Servicio</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead className="text-right">Precio por unidad</TableHead>
+              <TableHead className="min-w-40">Servicio</TableHead>
+              <TableHead className="min-w-56">Precio por unidad</TableHead>
               <TableHead className="text-right">Mínimo</TableHead>
               <TableHead className="text-right">Máximo</TableHead>
-              {canEdit && <TableHead className="w-20" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={canEdit ? 6 : 5}
+                  colSpan={4}
                   className="text-center text-sm text-muted-foreground"
                 >
                   Cargando...
                 </TableCell>
               </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={canEdit ? 6 : 5}
-                  className="text-center text-sm text-muted-foreground"
-                >
-                  Esta zona no tiene tarifas por peso hacia {destinationCountry}
-                  {" "}
-                  por {SHIPPING_MODE_LABELS[shippingMode].toLowerCase()}.
-                </TableCell>
-              </TableRow>
             ) : (
-              rows.map((rate) => (
-                <TableRow key={rate.id}>
-                  <TableCell>{SERVICE_LEVEL_LABELS[rate.serviceLevel]}</TableCell>
-                  <TableCell>{PRICE_TYPE_LABELS[rate.priceType]}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    ${rate.pricePerUnit.amount.toFixed(2)}{" "}
-                    {rate.pricePerUnit.currency} / {rate.unit}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {rate.minWeight} {rate.unit}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {rate.maxWeight === null ? (
-                      <span className="text-muted-foreground">sin techo</span>
-                    ) : (
-                      `${rate.maxWeight} ${rate.unit}`
+              // Los cuatro servicios siempre, como la matriz: así se ve de una
+              // qué combinaciones faltan en vez de una tabla que parece vacía.
+              serviceLevels.map((service) => {
+                const publicRate = rateFor(service, "PUBLIC");
+                const partnerRate = rateFor(service, "PARTNER");
+                const margin = marginPercent(publicRate, partnerRate);
+                const anyRate = publicRate ?? partnerRate;
+                const isEmpty = !publicRate && !partnerRate;
+
+                const cell = isEmpty ? (
+                  <span className="flex items-center gap-1 py-1 text-xs text-muted-foreground">
+                    {canEdit && <Plus className="size-3" />}
+                    Sin precio
+                  </span>
+                ) : (
+                  <span className="flex flex-col gap-0.5">
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Users className="size-3 shrink-0" />
+                        Público
+                      </span>
+                      <span className="font-mono tabular-nums">
+                        {money(publicRate)}
+                      </span>
+                    </span>
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Handshake className="size-3 shrink-0" />
+                        Socio
+                      </span>
+                      <span className="font-mono tabular-nums">
+                        {money(partnerRate)}
+                      </span>
+                    </span>
+                    {margin !== null && (
+                      <span
+                        className={`text-right text-[11px] ${
+                          margin < 0
+                            ? "text-amber-600 dark:text-amber-500"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        margen {margin.toFixed(0)}%
+                      </span>
                     )}
-                  </TableCell>
-                  {canEdit && (
+                  </span>
+                );
+
+                return (
+                  <TableRow key={service}>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(rate)}
-                          title="Editar"
-                        >
-                          <Pencil className="size-3.5" />
-                        </Button>
-                        {confirmingId === rate.id ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            disabled={isSaving}
-                            onClick={async () => {
-                              await removeWeightRate(rate.id);
-                              setConfirmingId(null);
-                            }}
-                          >
-                            Confirmar
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            disabled={isSaving}
-                            onClick={() => setConfirmingId(rate.id)}
-                            title="Eliminar"
-                          >
-                            <Trash2 className="size-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
+                      <span
+                        className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${SERVICE_LEVEL_COLORS[service]}`}
+                      >
+                        {SERVICE_LEVEL_LABELS[service]}
+                      </span>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    <TableCell>
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditing(service)}
+                          className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {cell}
+                        </button>
+                      ) : (
+                        <div className="px-1 py-1.5">{cell}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {anyRate ? `${anyRate.minWeight} ${anyRate.unit}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {!anyRate ? (
+                        "—"
+                      ) : anyRate.maxWeight === null ? (
+                        <span className="text-xs text-muted-foreground">
+                          sin techo
+                        </span>
+                      ) : (
+                        `${anyRate.maxWeight} ${anyRate.unit}`
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
 
-      <WeightRateFormDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSave={(request) =>
-          editing
-            ? updateWeightRate({ id: editing.id, request })
-            : createWeightRate(request)
-        }
-        zoneId={zoneId}
-        zoneName={zoneName}
-        destinationCountry={destinationCountry}
-        shippingMode={shippingMode}
-        editing={editing}
-        isSaving={isSaving}
-      />
+      {editing && (
+        <WeightRateCellDialog
+          open
+          onClose={() => setEditing(null)}
+          onSave={setWeightRate}
+          zoneId={zoneId}
+          zoneName={zoneName}
+          destinationCountry={destinationCountry}
+          shippingMode={shippingMode}
+          serviceLevel={editing}
+          publicPrice={editingPublic?.pricePerUnit ?? null}
+          partnerPrice={editingPartner?.pricePerUnit ?? null}
+          unit={editingAny?.unit ?? "lb"}
+          minWeight={editingAny?.minWeight ?? null}
+          maxWeight={editingAny?.maxWeight ?? null}
+          isLoading={isSaving}
+        />
+      )}
     </div>
   );
 }

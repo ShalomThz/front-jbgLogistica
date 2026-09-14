@@ -1,5 +1,6 @@
 import type {
   CreateWeightRateRequest,
+  SetZoneWeightRateRequest,
   UpdateWeightRateRequest,
   WeightRatePrimitives,
 } from "@contexts/pricing/application/WeightRate";
@@ -26,6 +27,14 @@ export const useWeightRates = (zoneId: string | undefined) => {
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: tariffKeys.all });
+
+  /** Escribe la celda entera. Es el camino que usa la pantalla: precios
+   * sueltos terminan con el público actualizado y el de socio viejo. */
+  const setRateMutation = useMutation({
+    mutationFn: (request: SetZoneWeightRateRequest) =>
+      weightRateRepository.setZoneWeightRate(request),
+    onSuccess: invalidate,
+  });
 
   const createMutation = useMutation({
     mutationFn: (request: CreateWeightRateRequest) =>
@@ -54,10 +63,12 @@ export const useWeightRates = (zoneId: string | undefined) => {
     isLoading,
     error: error?.message ?? null,
     refetch,
+    setWeightRate: setRateMutation.mutateAsync,
     createWeightRate: createMutation.mutateAsync,
     updateWeightRate: updateMutation.mutateAsync,
     removeWeightRate: removeMutation.mutateAsync,
     isSaving:
+      setRateMutation.isPending ||
       createMutation.isPending ||
       updateMutation.isPending ||
       removeMutation.isPending,

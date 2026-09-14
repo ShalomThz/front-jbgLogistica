@@ -2,6 +2,7 @@ import {
   weightRateSchema,
   weightRatesResponseSchema,
   type CreateWeightRateRequest,
+  type SetZoneWeightRateRequest,
   type UpdateWeightRateRequest,
   type WeightRatePrimitives,
 } from "@contexts/pricing/application/WeightRate";
@@ -40,5 +41,17 @@ export const weightRateRepository = {
 
   remove: async (id: string): Promise<void> => {
     await httpClient<unknown>(`/weight-rate/${id}`, { method: "DELETE" });
+  },
+
+  /** Escribe la celda entera: público y socio en un solo comando. */
+  setZoneWeightRate: async (
+    request: SetZoneWeightRateRequest,
+  ): Promise<WeightRatePrimitives[]> => {
+    const data = await httpClient<unknown>("/weight-rate/matrix", {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+
+    return weightRatesResponseSchema.parse(data);
   },
 };
