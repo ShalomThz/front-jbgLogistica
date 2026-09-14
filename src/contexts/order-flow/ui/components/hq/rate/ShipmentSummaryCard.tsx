@@ -4,10 +4,19 @@ import {
   CardContent,
   Separator,
 } from "@contexts/shared/shadcn";
-import { ChevronDown, Edit, MapPin, Package, Truck, User } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  Edit,
+  MapPin,
+  Package,
+  Truck,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import { useWatch } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
+import type { WeightBreakdown } from "@contexts/pricing/application/QuotePrice";
 import {
   calculateBillableWeight,
   calculateMassWeight,
@@ -16,9 +25,16 @@ import {
 
 interface ShipmentSummaryCardProps {
   onEdit: () => void;
+  /** El desglose que devolvió la cotización, cuando el servicio cobra por peso.
+   * Manda sobre el cálculo local: se hizo con el divisor de Ajustes y con el
+   * piso de la tarifa aplicado. */
+  weightBreakdown?: WeightBreakdown | null;
 }
 
-export function ShipmentSummaryCard({ onEdit }: ShipmentSummaryCardProps) {
+export function ShipmentSummaryCard({
+  onEdit,
+  weightBreakdown = null,
+}: ShipmentSummaryCardProps) {
   const [open, setOpen] = useState(true);
 
   const sender = useWatch<HQOrderFormValues, "sender">({ name: "sender" });
@@ -101,16 +117,53 @@ export function ShipmentSummaryCard({ onEdit }: ShipmentSummaryCardProps) {
             </div>
             <div className="text-xs text-muted-foreground space-y-0.5">
               <div>{pkg.length} x {pkg.width} x {pkg.height} {pkg.dimensionUnit}</div>
-              {isAir && (
+              {/* Con cotización manda su desglose: se calculó con el divisor de
+                  Ajustes y con el piso de la tarifa. El cálculo local es la
+                  vista previa de mientras. */}
+              {weightBreakdown ? (
                 <>
-                  <div>Peso masa: {massWeight.toFixed(2)} kg</div>
-                  <div>Peso volumétrico: {volumetricWeight.toFixed(2)} kg</div>
+                  <div>
+                    Peso real: {weightBreakdown.realWeight.value.toFixed(2)}{" "}
+                    {weightBreakdown.realWeight.unit}
+                  </div>
+                  <div>
+                    Peso volumétrico:{" "}
+                    {weightBreakdown.volumetricWeight.value.toFixed(2)}{" "}
+                    {weightBreakdown.volumetricWeight.unit}
+                  </div>
+                  <div className="font-semibold text-primary">
+                    Peso facturado:{" "}
+                    {weightBreakdown.billableWeight.value.toFixed(2)}{" "}
+                    {weightBreakdown.billableWeight.unit}
+                    {" × "}
+                    {weightBreakdown.pricePerUnit.amount}{" "}
+                    {weightBreakdown.pricePerUnit.currency}
+                  </div>
+                  {weightBreakdown.exceedsMaximum && (
+                    // Aviso, no bloqueo: el precio ya está calculado sin topar.
+                    <div className="flex items-start gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+                      <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                      <span>
+                        Supera el peso máximo de esta tarifa. Se puede continuar;
+                        confirmá con la paquetería antes de cerrar.
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {isAir && (
+                    <>
+                      <div>Peso masa: {massWeight.toFixed(2)} kg</div>
+                      <div>Peso volumétrico: {volumetricWeight.toFixed(2)} kg</div>
+                    </>
+                  )}
+                  <div className={isAir ? "font-semibold text-primary motion-safe:animate-pulse" : undefined}>
+                    Peso a cotizar: {billableWeight.toFixed(2)} kg
+                    {isAir && <> (el mayor: {volumetricWeight > massWeight ? "volumétrico" : "masa"})</>}
+                  </div>
                 </>
               )}
-              <div className={isAir ? "font-semibold text-primary motion-safe:animate-pulse" : undefined}>
-                Peso a cotizar: {billableWeight.toFixed(2)} kg
-                {isAir && <> (el mayor: {volumetricWeight > massWeight ? "volumétrico" : "masa"})</>}
-              </div>
             </div>
           </div>
 

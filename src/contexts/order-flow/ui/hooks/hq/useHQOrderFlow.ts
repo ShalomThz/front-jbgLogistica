@@ -161,6 +161,7 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     tariffPriceType: submission.tariffPriceType,
     setPriceType: submission.setPriceType,
     suggestedTariff: submission.suggestedTariff,
+    weightBreakdown: submission.weightBreakdown,
     onTariffChange: submission.onTariffChange,
     tariffBoxId: submission.tariffBoxId,
     canSelectStore,

@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { tariffRepository } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type {
+  Dimensions,
   PickupPoint,
   QuotePriceResponse,
+  Weight,
 } from "@contexts/pricing/application/QuotePrice";
 import type { PriceType } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { tariffKeys } from "./tariffKeys";
@@ -13,6 +15,10 @@ interface UseQuotePriceOptionsArgs {
   destinationCountry: string | undefined;
   boxId: string | undefined;
   priceType: PriceType;
+  /** El bulto. Sin esto el menú no incluye los servicios que cobran por peso;
+   * es el caso del alta de orden de socio, donde nadie pesó la caja. */
+  weight?: Weight;
+  dimensions?: Dimensions;
   enabled?: boolean;
 }
 
@@ -29,6 +35,8 @@ export const useQuotePriceOptions = ({
   destinationCountry,
   boxId,
   priceType,
+  weight,
+  dimensions,
   enabled = true,
 }: UseQuotePriceOptionsArgs) => {
   const ready = !!pickup && !!destinationCountry && !!boxId;
@@ -39,6 +47,8 @@ export const useQuotePriceOptions = ({
       destinationCountry: destinationCountry ?? "",
       boxId: boxId ?? "",
       priceType,
+      weight,
+      dimensions,
     }),
     queryFn: () =>
       tariffRepository.quoteOptions({
@@ -46,6 +56,8 @@ export const useQuotePriceOptions = ({
         destinationCountry: destinationCountry!,
         boxId: boxId!,
         priceType,
+        weight,
+        dimensions,
       }),
     enabled: enabled && ready,
     retry: false,

@@ -155,6 +155,7 @@ const NewHQOrderPageInner = ({
             isLoadingTariff={flow.isLoadingTariff}
             tariffError={flow.tariffError}
             suggestedTariff={flow.suggestedTariff}
+            weightBreakdown={flow.weightBreakdown}
             onTariffChange={flow.onTariffChange}
             isPartnerOrder={flow.isPartnerOrder}
             partnerPricing={flow.partnerPricing}

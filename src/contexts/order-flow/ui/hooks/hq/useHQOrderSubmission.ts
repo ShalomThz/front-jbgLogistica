@@ -195,6 +195,36 @@ export const useHQOrderSubmission = ({
       ? PickupPoints.atCounter(activeStoreId)
       : undefined;
 
+  // El bulto, para que el servidor pueda cotizar los servicios que cobran por
+  // peso. Solo HQ los ve, y no por una regla escrita en ningún lado: es el
+  // único flujo donde hay dónde cargar el peso.
+  const quotedPackage = useWatch<HQOrderFormValues, "package">({
+    control: form.control,
+    name: "package",
+  });
+
+  const parsedWeight = parseFloat(quotedPackage?.weight ?? "");
+  const parsedLength = parseFloat(quotedPackage?.length ?? "");
+  const parsedWidth = parseFloat(quotedPackage?.width ?? "");
+  const parsedHeight = parseFloat(quotedPackage?.height ?? "");
+
+  // Se mandan solo si están completos: media medida daría un peso volumétrico
+  // equivocado, y el resultado seguiría pareciendo un precio válido.
+  const quoteWeight =
+    parsedWeight > 0
+      ? { value: parsedWeight, unit: quotedPackage.weightUnit }
+      : undefined;
+
+  const quoteDimensions =
+    parsedLength > 0 && parsedWidth > 0 && parsedHeight > 0
+      ? {
+          length: parsedLength,
+          width: parsedWidth,
+          height: parsedHeight,
+          unit: quotedPackage.dimensionUnit,
+        }
+      : undefined;
+
   const {
     quote,
     tariffPrice,
@@ -211,6 +241,8 @@ export const useHQOrderSubmission = ({
     // recotizar en SelectShipmentProviderUseCase.
     shippingMode,
     priceType,
+    weight: quoteWeight,
+    dimensions: quoteDimensions,
     // Se cotiza en el paso de cobro: ahí viven los selectores y ahí se ve el
     // efecto de cambiarlos sobre lo que se va a cobrar.
     enabled: step === "cobro" && !!pickup && !!boxId,
@@ -548,6 +580,9 @@ export const useHQOrderSubmission = ({
     setPriceType,
     /** Lo que sugirió la tabla, para contrastarlo con lo que se va a cobrar. */
     suggestedTariff: tariffPrice,
+    /** Cómo se llegó al monto cuando el servicio cobra por peso. `null` en las
+     * tarifas planas, que son la mayoría. */
+    weightBreakdown: quote?.weightBreakdown ?? null,
     onTariffChange: setTariffOverride,
     pendingPayments,
     addPendingPayment,

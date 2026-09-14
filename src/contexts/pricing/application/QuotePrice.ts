@@ -24,6 +24,21 @@ export const PickupPoints = {
   atCustomerAddress: (zoneId: string): PickupPoint => ({ kind: "PUBLIC_ADDRESS", zoneId }),
 };
 
+export const weightSchema = z.object({
+  value: z.number(),
+  unit: z.enum(["kg", "lb"]),
+});
+
+export const dimensionsSchema = z.object({
+  length: z.number().positive(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  unit: z.enum(["cm", "in"]),
+});
+
+export type Weight = z.infer<typeof weightSchema>;
+export type Dimensions = z.infer<typeof dimensionsSchema>;
+
 export const quotePriceRequestSchema = z.object({
   pickup: pickupPointSchema,
   destinationCountry: z.string(),
@@ -31,9 +46,34 @@ export const quotePriceRequestSchema = z.object({
   serviceLevel: z.enum(serviceLevels),
   shippingMode: z.enum(shippingModes),
   priceType: z.enum(priceTypes),
+  /** El bulto, para los servicios que cobran por peso. Opcionales: el alta de
+   * orden de socio no pesa la caja, así que no los manda y no recibe filas por
+   * peso. La ausencia del dato es el filtro, no un `if` por tipo de orden. */
+  weight: weightSchema.optional(),
+  dimensions: dimensionsSchema.optional(),
 });
 
 export type QuotePriceRequest = z.infer<typeof quotePriceRequestSchema>;
+
+/**
+ * Cómo se llegó al monto cuando se cobró por peso. `null` en las planas.
+ *
+ * Viene calculado del servidor y no se rehace acá: la cuenta depende del
+ * divisor configurado en ajustes, y dos implementaciones de la misma fórmula se
+ * desincronizan — `packageCalculations` ya tenía una con el divisor escrito a
+ * mano, y no era el que usa el cobro.
+ */
+export const weightBreakdownSchema = z.object({
+  realWeight: weightSchema,
+  volumetricWeight: weightSchema,
+  /** El mayor de los dos, con el piso de la fila ya aplicado. */
+  billableWeight: weightSchema,
+  pricePerUnit: moneySchema,
+  /** Pasó el techo de la fila. Es un aviso, no un bloqueo. */
+  exceedsMaximum: z.boolean(),
+});
+
+export type WeightBreakdown = z.infer<typeof weightBreakdownSchema>;
 
 // La cotización viaja explicada: con qué zona y qué renglón de la tabla se
 // resolvió, y por qué esa zona.
@@ -46,6 +86,11 @@ export const quotePriceResponseSchema = z.object({
   shippingMode: z.enum(shippingModes),
   priceType: z.enum(priceTypes),
   resolvedFrom: z.enum(["PARTNER_STORE", "COUNTER_DROPOFF", "PUBLIC_ADDRESS"]),
+  /** `FLAT` es el total de una caja; `PER_WEIGHT`, peso facturable por el
+   * precio unitario. Con default, para que una respuesta anterior al campo se
+   * lea como lo que era. */
+  source: z.enum(["FLAT", "PER_WEIGHT"]).default("FLAT"),
+  weightBreakdown: weightBreakdownSchema.nullish().default(null),
 });
 
 export type QuotePriceResponse = z.infer<typeof quotePriceResponseSchema>;

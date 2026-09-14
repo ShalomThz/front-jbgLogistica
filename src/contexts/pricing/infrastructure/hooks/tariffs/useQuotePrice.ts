@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { tariffRepository } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type {
+  Dimensions,
   PickupPoint,
   QuotePriceResponse,
+  Weight,
 } from "@contexts/pricing/application/QuotePrice";
 import type {
   PriceType,
@@ -19,6 +21,10 @@ interface UseQuotePriceOptions {
   serviceLevel: ServiceLevel | undefined;
   shippingMode: ShippingMode | undefined;
   priceType: PriceType;
+  /** El bulto. Sin esto no se cotizan los servicios que cobran por peso — y no
+   * es un error: simplemente no aparecen. */
+  weight?: Weight;
+  dimensions?: Dimensions;
   enabled?: boolean;
 }
 
@@ -37,6 +43,8 @@ export const useQuotePrice = ({
   serviceLevel,
   shippingMode,
   priceType,
+  weight,
+  dimensions,
   enabled = true,
 }: UseQuotePriceOptions) => {
   const ready =
@@ -50,6 +58,8 @@ export const useQuotePrice = ({
       serviceLevel: serviceLevel!,
       shippingMode: shippingMode!,
       priceType,
+      weight,
+      dimensions,
     }),
     queryFn: () =>
       tariffRepository.quote({
@@ -59,6 +69,8 @@ export const useQuotePrice = ({
         serviceLevel: serviceLevel!,
         shippingMode: shippingMode!,
         priceType,
+        weight,
+        dimensions,
       }),
     enabled: enabled && ready,
     retry: false,

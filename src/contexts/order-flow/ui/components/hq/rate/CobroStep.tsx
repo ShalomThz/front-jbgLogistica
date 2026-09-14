@@ -47,6 +47,7 @@ import {
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { SignatureCard } from "../../shared/SignatureCard";
 import { AdditionalCostsCard } from "./AdditionalCostsCard";
+import type { WeightBreakdown } from "@contexts/pricing/application/QuotePrice";
 import { OrderTotalCard } from "./OrderTotalCard";
 
 interface CobroStepProps {
@@ -54,6 +55,9 @@ interface CobroStepProps {
   isSubmitting: boolean;
   tariff: MoneyPrimitives | null;
   orderId?: string;
+  /** Cómo se llegó a la sugerencia cuando el servicio cobra por peso. `null`
+   * en las tarifas planas, que son la mayoría. */
+  weightBreakdown?: WeightBreakdown | null;
 
   /** Insumos de la tarifa: cambiarlos recotiza en el momento. */
   zoneId: string;
@@ -104,6 +108,7 @@ export function CobroStep({
   isSubmitting,
   tariff,
   orderId,
+  weightBreakdown = null,
   zoneId,
   onZoneChange,
   destinationCountry,
@@ -377,6 +382,43 @@ export function CobroStep({
                       {currency}
                     </span>
                   </div>
+                </div>
+              )}
+
+              {/* Solo aparece cuando el servicio cobra por peso. Explica de
+                  dónde salió la sugerencia: sin esto el operador ve un monto
+                  que no puede contrastar con nada. */}
+              {weightBreakdown && (
+                <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+                  <div className="font-semibold text-foreground">
+                    Cobrado por peso
+                  </div>
+                  <div>
+                    Real {weightBreakdown.realWeight.value.toFixed(2)}{" "}
+                    {weightBreakdown.realWeight.unit} · volumétrico{" "}
+                    {weightBreakdown.volumetricWeight.value.toFixed(2)}{" "}
+                    {weightBreakdown.volumetricWeight.unit}
+                  </div>
+                  <div className="text-foreground">
+                    Se factura{" "}
+                    <span className="font-semibold">
+                      {weightBreakdown.billableWeight.value.toFixed(2)}{" "}
+                      {weightBreakdown.billableWeight.unit}
+                    </span>{" "}
+                    × {weightBreakdown.pricePerUnit.amount}{" "}
+                    {weightBreakdown.pricePerUnit.currency}
+                  </div>
+                  {weightBreakdown.exceedsMaximum && (
+                    // Aviso, no bloqueo: el precio ya viene calculado sin topar
+                    // y el botón de cobrar sigue habilitado.
+                    <div className="flex items-start gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+                      <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                      <span>
+                        Supera el peso máximo de esta tarifa. Podés continuar;
+                        confirmá con la paquetería antes de cerrar.
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
