@@ -46,6 +46,7 @@ import {
   type ShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { SignatureCard } from "../../shared/SignatureCard";
+import { InvoiceNotesCard } from "../../shared/InvoiceNotesCard";
 import { AdditionalCostsCard } from "./AdditionalCostsCard";
 import type { WeightBreakdown } from "@contexts/pricing/application/QuotePrice";
 import { OrderTotalCard } from "./OrderTotalCard";
@@ -426,6 +427,7 @@ export function CobroStep({
         </Card>
 
         <AdditionalCostsCard />
+        <InvoiceNotesCard />
         <SignatureCard />
       </div>
 

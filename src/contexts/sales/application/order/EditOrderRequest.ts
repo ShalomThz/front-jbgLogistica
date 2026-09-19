@@ -23,6 +23,8 @@ export const editOrderRequestSchema = z.object({
   emptyBoxDelivery: z.boolean().optional(),
   homePickup: z.boolean().optional(),
   customerSignature: z.string().nullish(),
+  /** La nota de la factura. `null` la borra. */
+  notes: z.string().nullish(),
   markAsPaid: z.boolean().nullish(),
   /** El backend lo exige cuando markAsPaid es true. */
   paymentMethod: z.enum(PAYMENT_METHODS).nullish(),

@@ -24,6 +24,7 @@ import { PARTNER_SALE_PAYMENT_METHODS } from "@contexts/shared/domain/schemas/Pa
 import { PartnerOrderSummaryCard } from "./PartnerOrderSummaryCard";
 import { PartnerSaleCostsCard } from "./PartnerSaleCostsCard";
 import { SignatureCard } from "../../shared/SignatureCard";
+import { InvoiceNotesCard } from "../../shared/InvoiceNotesCard";
 
 const COST_FIELDS = [
   "insurance",
@@ -101,6 +102,7 @@ export function PartnerPricingStep({
             `PartnerAdditionalCostsCard` captura y `PartnerTotalCard` resume. */}
         <PartnerSaleCostsCard storeName={storeName} />
 
+        <InvoiceNotesCard />
         <SignatureCard collapsible={false} />
       </div>
 

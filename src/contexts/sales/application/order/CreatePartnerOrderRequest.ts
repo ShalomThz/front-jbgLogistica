@@ -81,6 +81,9 @@ export const createPartnerOrderSchema = z.object({
     )
     .default([]),
   customerSignature: z.string().nullable(),
+  /** La nota de la factura. Espejo del back: si faltara acá, `.parse()` la
+   * borraría en silencio. */
+  notes: z.string().nullish(),
 });
 
 export type CreatePartnerOrderRequest = z.infer<

@@ -119,5 +119,7 @@ export const buildPartnerOrderRequest = (
     homePickup: formValues.homePickup,
     payments,
     customerSignature: formValues.customerSignature ?? null,
+    // Vacío es "sin nota", no una nota en blanco.
+    notes: formValues.notes.trim() || null,
   });
 };

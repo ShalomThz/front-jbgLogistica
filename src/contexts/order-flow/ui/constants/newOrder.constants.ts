@@ -32,6 +32,7 @@ const baseDefaults = {
   emptyBoxDelivery: false,
   homePickup: false,
   customerSignature: null,
+  notes: "",
   shippingService: {
     currency: "USD",
     costBreakdownCurrency: "USD",

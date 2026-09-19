@@ -60,6 +60,12 @@ export const baseOrderFormSchema = z.object({
    * remitente. Excluyente con emptyBoxDelivery. */
   homePickup: z.boolean(),
   customerSignature: z.string().nullable(),
+  /** La nota que se imprime en la factura, bajo "Comentarios e instrucciones
+   * especiales". Sin validación: es texto libre y casi siempre va vacía.
+   *
+   * Vive acá y no en cada formulario porque el papel es el mismo para HQ y para
+   * el socio. */
+  notes: z.string(),
   shippingService: z.object({
     currency: z.string(),
     costBreakdownCurrency: z.string(),

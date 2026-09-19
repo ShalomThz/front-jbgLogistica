@@ -80,6 +80,10 @@ export const orderSchema = z.object({
    * emptyBoxDelivery. */
   homePickup: z.boolean().default(false),
   customerSignature: z.string().nullish(),
+  /** La nota que se imprime en la factura. `nullish` y no `nullable`: las
+   * órdenes anteriores al campo no traen la clave, y `/order/find` parsea la
+   * página entera de una — exigirla dejaría la pantalla en blanco. */
+  notes: z.string().nullish(),
   /** Null en órdenes anteriores al campo, o cuando el precio se puso a mano
    * sin que hubiera tarifa para la combinación.
    *

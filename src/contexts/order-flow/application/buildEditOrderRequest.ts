@@ -29,6 +29,9 @@ export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: s
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     customerSignature: formValues.customerSignature,
+    // `null` y no `undefined` cuando está vacío: acá hay que poder **borrar**
+    // una nota ya guardada, y omitir la clave dejaría la anterior en el papel.
+    notes: formValues.notes.trim() || null,
     discount: buildDiscountPayload(formValues.shippingService.discount),
   });
 };
@@ -83,6 +86,7 @@ export const buildPartnerEditOrderRequest = (
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
     customerSignature: formValues.customerSignature,
+    notes: formValues.notes.trim() || null,
     partnerSaleTotal,
     // Se manda solo si la venta sigue viva: con `partnerSaleTotal: null` el
     // dominio la borra entera, y el desglose se va con ella.

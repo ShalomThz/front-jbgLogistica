@@ -87,6 +87,9 @@ const mapBaseFields = (order: OrderListView) => ({
   emptyBoxDelivery: order.emptyBoxDelivery,
   homePickup: order.homePickup,
   customerSignature: order.customerSignature ?? null,
+  // El formulario trabaja con cadena y la orden guarda `null`. El `??` cubre
+  // además las órdenes anteriores al campo, que no traen la clave.
+  notes: order.notes ?? "",
   shippingService: {
     ...hqOrderDefaultValues.shippingService,
     costBreakdownCurrency: inferCostBreakdownCurrency(order),

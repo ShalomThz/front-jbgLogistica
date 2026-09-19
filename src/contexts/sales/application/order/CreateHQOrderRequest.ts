@@ -17,6 +17,10 @@ export const createHQOrderSchema = z.object({
     address: createAddressSchema,
   }),
   customerSignature: z.string().nullable(),
+  /** La nota de la factura. Declarada acá porque este esquema es un espejo del
+   * del back: si faltara, `.parse()` la borraría en silencio y `tsc` no vería
+   * nada. */
+  notes: z.string().nullish(),
 });
 
 export type CreateHQOrderRequest = z.infer<typeof createHQOrderSchema>;
