@@ -117,7 +117,19 @@ export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues 
       width: String(order.package.dimensions.width),
       height: String(order.package.dimensions.height),
       dimensionUnit: order.package.dimensions.unit,
-      weight: String(order.package.weight.value),
+      // Cero significa "sin pesar", no "pesó cero": es lo que guarda una orden
+      // de socio que nadie puso en la balanza, y HQ la abre por acá con
+      // `?mode=complete`. Mostrar un `0` lo haría pasar por una medición y
+      // alcanzaría con no tocarlo para que quedara como buena. Mismo criterio
+      // que `mapOrderToPartnerFormValues`.
+      weight:
+        order.package.weight.value > 0
+          ? String(order.package.weight.value)
+          : "",
+      // La unidad guardada, no el default del formulario. Sin esto una orden
+      // pesada en kilos se reabría rotulada en libras: el número igual y el
+      // peso real 2.2 veces distinto, que es un error que no se ve.
+      weightUnit: order.package.weight.unit,
       photos: order.package.photos ?? [],
     },
   };
