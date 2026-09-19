@@ -5,7 +5,7 @@ import {
   SHIPPING_MODE_LABELS,
   serviceLevels,
   type ServiceLevel,
-  type ShippingMode,
+  type WeightRateShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { useWeightRates } from "@contexts/pricing/infrastructure/hooks/tariffs/useWeightRates";
 import { WeightRateCellDialog } from "@contexts/pricing/ui/components/tariff/WeightRateCellDialog";
@@ -26,7 +26,9 @@ interface WeightRatesCardProps {
   destinationCountry: string;
   /** Lo decide el selector de la página, no esta tabla: es el mismo eje que
    * elige si se ve la matriz de cajas o esto. */
-  shippingMode: ShippingMode;
+  /** Solo los modos que se cobran por peso: esta card es la tabla de esas
+   * filas, y su diálogo las escribe. */
+  shippingMode: WeightRateShippingMode;
   canEdit: boolean;
 }
 

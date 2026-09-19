@@ -26,6 +26,21 @@ export const tariffShippingModes = ["GROUND", "SEA"] as const;
 
 export type TariffShippingMode = (typeof tariffShippingModes)[number];
 
+/**
+ * Los modos que una fila **por peso** puede tener: solo aéreo. Complemento
+ * exacto de `tariffShippingModes`, y entre las dos cubren `shippingModes`.
+ *
+ * Espeja a `weightRateShippingModes` del back. Igual que aquél, restringe solo
+ * la escritura: `weightRateSchema` acepta los tres al leer.
+ *
+ * Además es la lista que decide si un modo mezcla peso real y volumétrico —ver
+ * `chargesByWeight` en `packageCalculations`—, para que la vista previa y el
+ * cobro no puedan discrepar sobre eso.
+ */
+export const weightRateShippingModes = ["AIR"] as const;
+
+export type WeightRateShippingMode = (typeof weightRateShippingModes)[number];
+
 export type ServiceLevel = (typeof serviceLevels)[number];
 export type PriceType = (typeof priceTypes)[number];
 export type ShippingMode = (typeof shippingModes)[number];

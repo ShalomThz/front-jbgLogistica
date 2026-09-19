@@ -2,6 +2,7 @@ import {
   priceTypes,
   serviceLevels,
   shippingModes,
+  weightRateShippingModes,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
 import { weightUnits } from "@contexts/shared/domain/schemas/Weight";
@@ -53,7 +54,9 @@ export const setZoneWeightRateSchema = z.object({
   zoneId: z.string(),
   destinationCountry: z.string(),
   serviceLevel: z.enum(serviceLevels),
-  shippingMode: z.enum(shippingModes),
+  // Solo aéreo, igual que el back. Acá existe para que lo atrape `tsc` en vez
+  // de un 400: el schema de lectura de arriba sigue aceptando los tres.
+  shippingMode: z.enum(weightRateShippingModes),
   unit: z.enum(weightUnits),
   minWeight: z.number(),
   maxWeight: z.number().nullable(),

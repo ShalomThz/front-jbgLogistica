@@ -3,7 +3,7 @@ import {
   SERVICE_LEVEL_LABELS,
   SHIPPING_MODE_LABELS,
   type ServiceLevel,
-  type ShippingMode,
+  type WeightRateShippingMode,
 } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import {
@@ -38,7 +38,9 @@ interface WeightRateCellDialogProps {
   zoneId: string;
   zoneName?: string;
   destinationCountry: string;
-  shippingMode: ShippingMode;
+  /** Angostado a lo que se puede guardar por peso, no `ShippingMode` entero:
+   * este diálogo escribe, y el modo viaja tal cual al request. */
+  shippingMode: WeightRateShippingMode;
   serviceLevel: ServiceLevel;
   publicPrice: MoneyPrimitives | null;
   partnerPrice: MoneyPrimitives | null;
