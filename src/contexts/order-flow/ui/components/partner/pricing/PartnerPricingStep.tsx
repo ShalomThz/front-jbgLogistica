@@ -71,7 +71,11 @@ export function PartnerPricingStep({
   onClearPartnerSalePayments,
   orderId,
 }: PartnerPricingStepProps) {
-  const { control, register } = useFormContext<PartnerOrderFormValues>();
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext<PartnerOrderFormValues>();
   // Monto y moneda salen del formulario y no de la tarifa: son del cobro al
   // cliente, y esa moneda es la única con la que se aceptan sus abonos.
   const partnerSale = useWatch<PartnerOrderFormValues, "partnerSale">({
@@ -146,7 +150,7 @@ export function PartnerPricingStep({
                 sin poder cambiarla. La moneda manda sobre toda la card —base,
                 extras y abonos—: el dominio no acepta mezcla. */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Servicio</Label>
+              <Label className="text-xs text-muted-foreground">Servicio *</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -157,6 +161,7 @@ export function PartnerPricingStep({
                     step="0.01"
                     min="0"
                     placeholder="0.00"
+                    aria-invalid={!!errors.partnerSale?.amount}
                     className="h-10 pl-6 text-lg font-bold"
                     {...register("partnerSale.amount")}
                   />
@@ -177,6 +182,13 @@ export function PartnerPricingStep({
                   )}
                 />
               </div>
+              {/* Sin esto el paso se bloquea sin decir por qué: el botón del
+                  último paso no distingue "falta algo" de "está guardando". */}
+              {errors.partnerSale?.amount && (
+                <p className="text-sm text-destructive">
+                  {errors.partnerSale.amount.message}
+                </p>
+              )}
             </div>
 
             {/* Los extras solo se leen acá: se cargan en la card de la

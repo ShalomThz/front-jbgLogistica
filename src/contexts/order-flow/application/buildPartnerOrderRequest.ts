@@ -93,24 +93,26 @@ export const buildPartnerOrderRequest = (
     // En la moneda de la tarifa, que es la que muestra el campo. `parseMoney`
     // devuelve null si está vacío o en cero: ahí la orden queda sin factura de
     // socio, que es distinto de tener una en cero.
-    partnerSale: partnerSaleTotal
-      ? {
-          total: partnerSaleTotal,
-          payments: partnerSalePayments.map((payment) => ({
-            amount: payment.amount,
-            method: payment.method,
-            concept: payment.concept ?? null,
-          })),
-          costBreakdown: partnerSaleCostBreakdown,
-          discount: {
-            amount: parseMoney(
-              formValues.partnerSale.discount.amount,
-              partnerSaleCurrency,
-            ),
-            concept: formValues.partnerSale.discount.concept.trim() || null,
-          },
-        }
-      : null,
+    // Siempre viaja, nunca `null`: una orden de socio es una reventa. Si el
+    // monto viniera en cero, `parseMoney` da `null` y el esquema lo rechaza con
+    // el campo señalado — antes se omitía la venta entera y la orden nacía rota
+    // sin que nada lo dijera.
+    partnerSale: {
+      total: partnerSaleTotal,
+      payments: partnerSalePayments.map((payment) => ({
+        amount: payment.amount,
+        method: payment.method,
+        concept: payment.concept ?? null,
+      })),
+      costBreakdown: partnerSaleCostBreakdown,
+      discount: {
+        amount: parseMoney(
+          formValues.partnerSale.discount.amount,
+          partnerSaleCurrency,
+        ),
+        concept: formValues.partnerSale.discount.concept.trim() || null,
+      },
+    },
     ...(serviceLevel && { serviceLevel }),
     ...(shippingMode && { shippingMode }),
     ...(destinationCountry && { destinationCountry }),

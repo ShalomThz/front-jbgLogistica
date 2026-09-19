@@ -29,12 +29,17 @@ export const createPartnerOrderSchema = z.object({
    * a mano. */
   tariff: moneySchema,
   /** Lo que el socio le cobra a su propio cliente, con lo que ese cliente ya le
-   * pagó. Opcional: sin esto la orden se crea igual y solo queda sin factura de
-   * socio. Los ids y las fechas de los abonos los pone el servidor. */
+   * pagó. Los ids y las fechas de los abonos los pone el servidor.
+   *
+   * **Obligatorio y positivo**, igual que en el back: una orden de socio es una
+   * reventa. Era opcional, y una orden sin venta nace sin factura para el
+   * cliente del socio y sin libro donde anotar lo que le pague. */
   partnerSale: z
     .object({
       /** El cargo **base**: el servicio, sin los extras. */
-      total: moneySchema,
+      total: moneySchema.extend({
+        amount: z.number().positive("Escribe cuánto le cobras a tu cliente"),
+      }),
       payments: z
         .array(
           z.object({
@@ -49,8 +54,7 @@ export const createPartnerOrderSchema = z.object({
       costBreakdown: costBreakdownSchema.optional(),
       /** El descuento del socio a su cliente. Mismo cuidado que arriba. */
       discount: discountSchema.optional(),
-    })
-    .nullish(),
+    }),
   /**
    * Los tres insumos del precio que no se derivan. El punto de recolección es
    * la tienda socia y el peldaño es PARTNER por ser orden de socio; éstos los

@@ -53,8 +53,18 @@ export const partnerOrderFormSchema = baseOrderFormSchema.extend({
    */
   partnerSale: z.object({
     /** El cargo **base**: el servicio, sin los extras. Lo que el cliente debe es
-     * base + desglose, y ese total se muestra calculado. */
-    amount: z.string(),
+     * base + desglose, y ese total se muestra calculado.
+     *
+     * Obligatorio y mayor a cero: una orden de socio es una reventa. Sin esto,
+     * vacío y cero colapsaban en lo mismo —`parseMoney` devuelve `null`— y la
+     * orden nacía sin venta: sin factura para el cliente del socio, sin libro
+     * donde anotar lo que le pague, y sin forma de calcular el margen. */
+    amount: z
+      .string()
+      .refine(
+        (v) => parseFloat(v) > 0,
+        "Escribe cuánto le cobras a tu cliente",
+      ),
     currency: z.string(),
     /** Los extras que el socio le suma a su cliente. Comparte forma con el
      * desglose de JBG a propósito: los renglones quedan enfrentados y el socio

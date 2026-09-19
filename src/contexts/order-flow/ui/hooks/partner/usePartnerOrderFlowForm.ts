@@ -34,8 +34,15 @@ export const usePartnerOrderFlowForm = ({ initialValues }: UsePartnerOrderFlowFo
     if (currentStep === "package") {
       return form.trigger(["package.length", "package.width", "package.height"]);
     }
-    // rate y pricing: sin validación de form. El precio se valida por el botón
-    // (no se avanza sin monto) y los abonos al enviar.
+    if (currentStep === "pricing") {
+      // Lo que el socio le cobra a su cliente. Se valida acá y no con el botón
+      // deshabilitado como en Cotización: el campo está a la vista, así que un
+      // mensaje debajo dice qué falta, y un botón muerto en el último paso no
+      // distingue "falta algo" de "está guardando".
+      return form.trigger(["partnerSale.amount"]);
+    }
+    // rate: el precio se valida por el botón (no se avanza sin monto) y los
+    // abonos al enviar.
     return true;
   };
 
