@@ -150,6 +150,14 @@ export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderF
       width: String(order.package.dimensions.width),
       height: String(order.package.dimensions.height),
       dimensionUnit: order.package.dimensions.unit,
+      // Una orden de socio creada sin pesar guarda cero, y acá cero significa
+      // "sin pesar": mostrarlo haría creer que la balanza dio cero y dejaría el
+      // aéreo cotizando contra un peso que nadie midió.
+      weight:
+        order.package.weight.value > 0
+          ? String(order.package.weight.value)
+          : "",
+      weightUnit: order.package.weight.unit,
     },
   };
 }

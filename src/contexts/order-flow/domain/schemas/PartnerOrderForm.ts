@@ -1,3 +1,4 @@
+import { weightUnits } from "@contexts/shared/domain/schemas/Weight";
 import { z } from "zod";
 import {
   baseOrderFormSchema,
@@ -7,11 +8,34 @@ import {
 
 // --- Partner form ---
 
+/**
+ * El paquete del socio: el base más el peso, **opcional**.
+ *
+ * Opcional y no obligatorio como en HQ porque no toda tienda socia tiene
+ * balanza. De esa opcionalidad sale sola una regla que no hay que escribir en
+ * ningún lado: los servicios que cobran por peso —hoy el aéreo— aparecen en la
+ * cotización solo si se pesó. Sin peso, el socio ve lo de siempre.
+ *
+ * Las dimensiones ya salen de la caja elegida, así que el peso es lo único que
+ * falta para poder cotizar por peso.
+ */
+const partnerPackageSchema = basePackageSchema.extend({
+  /** Vacío es "no se pesó". Si se llena tiene que ser mayor a cero: un cero es
+   * un peso declarado, y cobraría distinto que no haber pesado. */
+  weight: z
+    .string()
+    .refine(
+      (v) => v.trim() === "" || parseFloat(v) > 0,
+      "El peso debe ser mayor a 0",
+    ),
+  weightUnit: z.enum(weightUnits),
+});
+
 // El anticipo de caja vacía ya no vive en el form: se captura como abono en el
 // paso de precios y se valida al enviar (usePartnerOrderSubmission).
 export const partnerOrderFormSchema = baseOrderFormSchema.extend({
   orderType: z.literal("PARTNER"),
-  package: basePackageSchema,
+  package: partnerPackageSchema,
   /**
    * Lo que el socio le cobra a su propio cliente.
    *

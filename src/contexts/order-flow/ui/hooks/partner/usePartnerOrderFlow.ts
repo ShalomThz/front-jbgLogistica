@@ -13,7 +13,7 @@ import type { OrderPricingPrimitives } from "@contexts/sales/domain/schemas/orde
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import { useState } from "react";
-import type { FieldValues, UseFormReturn } from "react-hook-form";
+import { useWatch, type FieldValues, type UseFormReturn } from "react-hook-form";
 import { useBoxOperations } from "../shared/useBoxOperations";
 import { useContactSave } from "../shared/useContactSave";
 import { usePartnerOrderFlowForm, type PartnerOrderStep } from "./usePartnerOrderFlowForm";
@@ -115,6 +115,50 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
       ? PickupPoints.atPartnerStore(activeStoreId)
       : undefined;
 
+  // El bulto, para los servicios que cobran por peso. Las medidas ya vienen de
+  // la caja; el peso es opcional, y de eso depende que el aéreo aparezca o no.
+  // Mandarlo a medias daría un peso volumétrico equivocado, así que van los dos
+  // completos o ninguno.
+  const [rawWeight, weightUnit, rawLength, rawWidth, rawHeight, dimensionUnit] =
+    useWatch<PartnerOrderFormValues>({
+      control: form.control,
+      name: [
+        "package.weight",
+        "package.weightUnit",
+        "package.length",
+        "package.width",
+        "package.height",
+        "package.dimensionUnit",
+      ],
+    }) as [
+      string | undefined,
+      "kg" | "lb" | undefined,
+      string | undefined,
+      string | undefined,
+      string | undefined,
+      "cm" | "in" | undefined,
+    ];
+
+  const parsedWeight = parseFloat(rawWeight ?? "");
+  const parsedLength = parseFloat(rawLength ?? "");
+  const parsedWidth = parseFloat(rawWidth ?? "");
+  const parsedHeight = parseFloat(rawHeight ?? "");
+
+  const quoteWeight =
+    parsedWeight > 0 && weightUnit
+      ? { value: parsedWeight, unit: weightUnit }
+      : undefined;
+
+  const quoteDimensions =
+    parsedLength > 0 && parsedWidth > 0 && parsedHeight > 0 && dimensionUnit
+      ? {
+          length: parsedLength,
+          width: parsedWidth,
+          height: parsedHeight,
+          unit: dimensionUnit,
+        }
+      : undefined;
+
   // El menú de servicios tarifados. Reemplaza a la cotización de una sola
   // combinación: el vendedor elige una fila en vez de mover cuatro selectores.
   const { options, isLoadingOptions, optionsError, refetchOptions } =
@@ -123,6 +167,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
       destinationCountry,
       boxId: boxId ?? "",
       priceType: "PARTNER",
+      weight: quoteWeight,
+      dimensions: quoteDimensions,
       enabled: step === "rate" && !!pickup && !!boxId,
     });
 

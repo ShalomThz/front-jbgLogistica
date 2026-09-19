@@ -80,6 +80,12 @@ export const buildPartnerOrderRequest = (
         height: parseFloat(pkg.height) || 0,
         unit: pkg.dimensionUnit,
       },
+      // La clave solo viaja si se pesó. Mandar cero sería declarar un peso, y
+      // el servidor lo tomaría como medido: el aéreo cobraría siempre el
+      // volumétrico sin que nadie haya puesto la caja en la balanza.
+      ...(parseFloat(pkg.weight) > 0 && {
+        weight: { value: parseFloat(pkg.weight), unit: pkg.weightUnit },
+      }),
     },
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },

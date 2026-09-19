@@ -101,5 +101,9 @@ export const partnerOrderDefaultValues: PartnerOrderFormValues = {
     width: "",
     height: "",
     dimensionUnit: "in",
+    // Vacío a propósito: no toda tienda socia tiene balanza. Si se llena, la
+    // cotización suma los servicios que cobran por peso.
+    weight: "",
+    weightUnit: "lb",
   },
 };

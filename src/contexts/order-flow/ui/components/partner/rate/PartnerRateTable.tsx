@@ -163,14 +163,32 @@ export function PartnerRateTable({
                   </Badge>
                 </div>
 
-                <div className="col-span-3 flex items-center text-sm text-muted-foreground">
-                  {SHIPPING_MODE_LABELS[option.shippingMode]}
+                <div className="col-span-3 flex flex-col justify-center text-sm text-muted-foreground">
+                  <span>{SHIPPING_MODE_LABELS[option.shippingMode]}</span>
+                  {/* De dónde sale el precio. En una fila por peso el monto no
+                      es el de una caja: es peso facturable por precio unitario,
+                      y sin decirlo el número parece salido de la nada. */}
+                  {option.weightBreakdown && (
+                    <span className="text-xs">
+                      {option.weightBreakdown.billableWeight.value.toFixed(2)}{" "}
+                      {option.weightBreakdown.billableWeight.unit} ×{" "}
+                      {option.weightBreakdown.pricePerUnit.amount}{" "}
+                      {option.weightBreakdown.pricePerUnit.currency}
+                    </span>
+                  )}
                 </div>
 
-                <div className="col-span-4 flex items-center justify-end">
+                <div className="col-span-4 flex flex-col items-end justify-center">
                   <div className="text-right font-bold">
                     ${option.price.amount.toFixed(2)} {option.price.currency}
                   </div>
+                  {/* Aviso, no bloqueo: la fila se puede elegir igual. */}
+                  {option.weightBreakdown?.exceedsMaximum && (
+                    <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-500">
+                      <AlertTriangle className="size-3 shrink-0" />
+                      Pasa el peso máximo
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

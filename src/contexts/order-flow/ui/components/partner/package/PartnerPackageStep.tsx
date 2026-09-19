@@ -3,6 +3,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Input,
   Label,
   Select,
   SelectContent,
@@ -106,6 +107,62 @@ export function PartnerPackageStep({ onEditContacts }: PartnerPackageStepProps) 
                   <ReadOnlyField label="Alto" value={pkg.height} />
                   <ReadOnlyField label="Unidad" value={pkg.dimensionUnit} />
                 </div>
+              </div>
+
+              {/* El peso es lo único que el socio mide: las medidas ya salen de
+                  la caja. Opcional porque no toda tienda tiene balanza, y de
+                  eso depende ver o no los servicios que cobran por peso. */}
+              <div className="space-y-2">
+                <Label htmlFor="partner-weight">
+                  Peso{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (opcional)
+                  </span>
+                </Label>
+                <div className="flex items-start gap-2">
+                  <Controller
+                    control={control}
+                    name="package.weight"
+                    render={({ field, fieldState }) => (
+                      <div className="flex-1 space-y-1">
+                        <Input
+                          id="partner-weight"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Sin pesar"
+                          aria-invalid={!!fieldState.error}
+                          {...field}
+                        />
+                        {fieldState.error && (
+                          <p className="text-xs text-destructive">
+                            {fieldState.error.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="package.weightUnit"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lb">lb</SelectItem>
+                          <SelectItem value="kg">kg</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <Info className="mt-0.5 size-3.5 shrink-0" />
+                  Con el peso cargado aparecen los servicios que cobran por peso,
+                  como el aéreo. Sin él, solo los de precio por caja.
+                </p>
               </div>
             </div>
 
