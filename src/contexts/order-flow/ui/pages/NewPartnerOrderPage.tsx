@@ -238,9 +238,9 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
           <PartnerPricingStep
             storeName={headerStore ?? "—"}
             partnerSalePayments={flow.partnerSalePayments}
-            onAddPartnerSalePayment={flow.addPartnerSalePayment}
-            onRemovePartnerSalePayment={flow.removePartnerSalePayment}
-            onClearPartnerSalePayments={flow.clearPartnerSalePayments}
+            onAddPartnerSalePayment={flow.addPendingPartnerSalePayment}
+            onRemovePartnerSalePayment={flow.removePendingPartnerSalePayment}
+            onClearPartnerSalePayments={flow.clearPendingPartnerSalePayments}
             orderId={flow.orderId}
           />
         )}

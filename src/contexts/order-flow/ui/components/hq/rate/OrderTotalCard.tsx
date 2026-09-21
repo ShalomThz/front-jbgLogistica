@@ -227,6 +227,7 @@ export function OrderTotalCard({
             grandTotal={billedTotal}
             currency={tariffCurrency}
             currencies={[tariffCurrency]}
+            ledger="jbg"
             orderId={orderId}
             pendingPayments={pendingPayments}
             onAddPayment={onAddPayment}

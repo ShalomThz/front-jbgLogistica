@@ -245,6 +245,8 @@ export function PartnerTotalCard({
                   // Ofrecer otra invitaba a cargar un abono que después no
                   // cerraba el saldo.
                   currencies={[tariffCurrency]}
+                  // Lo que el socio le paga a JBG.
+                  ledger="jbg"
                   orderId={orderId}
                   pendingPayments={pendingPayments}
                   onAddPayment={onAddPayment}

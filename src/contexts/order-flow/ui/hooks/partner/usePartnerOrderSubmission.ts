@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { UseFormReturn } from "react-hook-form";
@@ -57,13 +57,28 @@ export const usePartnerOrderSubmission = ({
   const [partnerSalePayments, setPartnerSalePayments] = useState<
     AddPaymentRequest[]
   >([]);
-  const addPartnerSalePayment = (data: AddPaymentRequest) =>
+  // `Pending` en el nombre, igual que los de JBG: éstos viven en el paso hasta
+  // que se envía. Los que persisten contra la API son `addPayment` y
+  // `addPartnerSalePayment` de `useOrders`, y confundirlos es lo que dejaba el
+  // libro del socio sin subir al editar.
+  const addPendingPartnerSalePayment = (data: AddPaymentRequest) =>
     setPartnerSalePayments((prev) => [...prev, data]);
-  const removePartnerSalePayment = (index: number) =>
+  const removePendingPartnerSalePayment = (index: number) =>
     setPartnerSalePayments((prev) => prev.filter((_, i) => i !== index));
-  const clearPartnerSalePayments = () => setPartnerSalePayments([]);
+  const clearPendingPartnerSalePayments = () => setPartnerSalePayments([]);
+  // Los abonos de una orden que se edita se suben por ruta propia, así que un
+  // segundo envío los duplicaría — a diferencia del alta, donde viajan dentro
+  // del request y un reintento crearía otra orden, no abonos de más. Mismo
+  // resguardo que `useHQOrderSubmission`.
+  const paymentsAppliedRef = useRef(false);
   const { user } = useAuth();
-  const { createPartnerOrder, updateOrder, addPayment, isCreating } = useOrders({
+  const {
+    createPartnerOrder,
+    updateOrder,
+    addPayment,
+    addPartnerSalePayment,
+    isCreating,
+  } = useOrders({
     enabled: false,
   });
 
@@ -76,9 +91,19 @@ export const usePartnerOrderSubmission = ({
       try {
         const request = buildPartnerEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, request);
-        // La orden ya existe: los abonos capturados se registran directo.
-        for (const payment of pendingPayments) {
-          await addPayment(orderId, payment);
+        // La orden ya existe: los abonos capturados se registran directo, cada
+        // libro por su ruta. El del socio con su cliente **no** viaja en el
+        // request —`buildPartnerEditOrderRequest` lo omite a propósito para no
+        // pisar el libro con lo que tenga el formulario abierto—, así que sin
+        // esta subida se quedaba en el estado del paso y se perdía al salir.
+        if (!paymentsAppliedRef.current) {
+          for (const payment of pendingPayments) {
+            await addPayment(orderId, payment);
+          }
+          for (const payment of partnerSalePayments) {
+            await addPartnerSalePayment(orderId, payment);
+          }
+          paymentsAppliedRef.current = true;
         }
         setIsSubmitted(true);
         onSuccess();
@@ -149,8 +174,8 @@ export const usePartnerOrderSubmission = ({
     removePendingPayment,
     clearPendingPayments,
     partnerSalePayments,
-    addPartnerSalePayment,
-    removePartnerSalePayment,
-    clearPartnerSalePayments,
+    addPendingPartnerSalePayment,
+    removePendingPartnerSalePayment,
+    clearPendingPartnerSalePayments,
   };
 };

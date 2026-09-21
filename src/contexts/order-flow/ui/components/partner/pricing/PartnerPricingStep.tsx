@@ -267,6 +267,8 @@ export function PartnerPricingStep({
                     // error aparecía recién al enviar la orden.
                     methods={PARTNER_SALE_PAYMENT_METHODS}
                     currencies={[currency]}
+                    // El libro del socio con su cliente, no el de JBG.
+                    ledger="partnerSale"
                     pendingPayments={partnerSalePayments}
                     onAddPayment={onAddPartnerSalePayment}
                     onRemovePayment={onRemovePartnerSalePayment}

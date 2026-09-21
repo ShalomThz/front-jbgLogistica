@@ -31,6 +31,15 @@ interface Props {
   /** Orden ya existente: muestra sus abonos ya registrados (p. ej. cobrados en
    * partner) y los cuenta hacia el pagado/saldo. */
   orderId?: string;
+  /**
+   * De cuál de los dos libros salen esos abonos ya registrados.
+   *
+   * Sin default a propósito: antes leía siempre `financials.payments`, así que
+   * bajo el título "Abonos de tu cliente" listaba los que el socio le había
+   * pagado a **JBG** —y los sumaba al saldo de la venta—. Que cada llamador lo
+   * diga es lo que impide que vuelva a asumirse.
+   */
+  ledger: "jbg" | "partnerSale";
   /** Métodos a ofrecer al cargar un abono. El libro del socio los recorta a los
    * tres instrumentos. */
   methods?: readonly PaymentMethod[];
@@ -57,18 +66,23 @@ export const PendingPaymentControl = ({
   orderId,
   methods,
   currencies,
+  ledger,
 }: Props) => {
   const [cobroModalOpen, setCobroModalOpen] = useState(false);
   const { data: order } = useOrder(orderId);
 
-  // Abonos ya persistidos en la orden (solo lectura).
-  const existingPayments: RegisteredPayment[] = order
-    ? order.financials.payments.map((p) => ({
-        amount: p.amount,
-        method: p.method,
-        concept: p.concept,
-      }))
-    : [];
+  // Abonos ya persistidos en la orden (solo lectura), del libro que corresponda.
+  // El del socio cuelga de `partnerSale` y es `null` mientras no haya venta.
+  const registered =
+    ledger === "jbg"
+      ? order?.financials.payments
+      : order?.financials.partnerSale?.payments;
+
+  const existingPayments: RegisteredPayment[] = (registered ?? []).map((p) => ({
+    amount: p.amount,
+    method: p.method,
+    concept: p.concept,
+  }));
 
   const allAmounts = [
     ...existingPayments.map((p) => p.amount),
