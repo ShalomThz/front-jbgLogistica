@@ -8,6 +8,16 @@ import { findOrdersResponseSchema, type FindOrdersResponse } from "../../../appl
 import type { FindOrdersRequest } from "../../../application/order/FindOrdersRequest";
 import type { OrderReportResponse } from "../../../application/order/OrderReportResponse";
 import {
+  sendInvoiceEmailResponseSchema,
+  type SendInvoiceEmailResponse,
+} from "../../../application/order/SendInvoiceEmailResponse";
+import {
+  cloverCheckoutSchema,
+  type CloverCheckout,
+  publicCloverCheckoutSchema,
+  type PublicCloverCheckout,
+} from "../../../domain/schemas/CloverCheckout";
+import {
   orderListViewResponseSchema,
   orderResponseSchema,
   type OrderListViewResponse,
@@ -109,10 +119,57 @@ export const orderRepository = {
     });
   },
 
+  /** El libro del socio con su cliente, aparte del de JBG. Solo acepta los tres
+   * instrumentos y la moneda de la venta: lo valida el value object. */
+  addPartnerSalePayment: async (
+    id: string,
+    payment: AddPaymentRequest,
+  ): Promise<void> => {
+    await httpClient<unknown>(`/order/${id}/partner-sale/payment`, {
+      method: "POST",
+      body: JSON.stringify(payment),
+    });
+  },
+
+  removePartnerSalePayment: async (
+    id: string,
+    paymentId: string,
+  ): Promise<void> => {
+    await httpClient<unknown>(
+      `/order/${id}/partner-sale/payment/${paymentId}`,
+      { method: "DELETE" },
+    );
+  },
+
   clearPayments: async (id: string): Promise<void> => {
     await httpClient<unknown>(`/order/${id}/payments`, {
       method: "DELETE",
     });
+  },
+
+  createCloverCheckout: async (
+    id: string,
+    amount: { amount: number; currency: "USD" },
+  ): Promise<CloverCheckout> => {
+    const data = await httpClient<unknown>(`/order/${id}/clover-checkout`, {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    });
+    return cloverCheckoutSchema.parse(data);
+  },
+
+  findCloverCheckout: async (id: string): Promise<CloverCheckout | null> => {
+    const data = await httpClient<unknown>(`/order/${id}/clover-checkout`);
+    return cloverCheckoutSchema.nullable().parse(data);
+  },
+
+  findPublicCloverCheckout: async (
+    publicToken: string,
+  ): Promise<PublicCloverCheckout> => {
+    const data = await httpClient<unknown>(
+      `/clover-checkout/${encodeURIComponent(publicToken)}`,
+    );
+    return publicCloverCheckoutSchema.parse(data);
   },
 
   report: async (
@@ -128,7 +185,21 @@ export const orderRepository = {
     });
   },
 
-  getInvoicePdf: async (orderId: string): Promise<Blob> => {
-    return httpClientBlob(`/invoice/${orderId}/pdf`);
+  /** `variant` elige qué factura arma el backend: la de JBG (por omisión) o la
+   * que el socio le entrega a su propio cliente. */
+  getInvoicePdf: async (
+    orderId: string,
+    variant: "jbg" | "partner" = "jbg",
+  ): Promise<Blob> => {
+    return httpClientBlob(`/invoice/${orderId}/pdf?variant=${variant}`);
+  },
+
+  sendInvoiceEmail: async (
+    orderId: string,
+  ): Promise<SendInvoiceEmailResponse> => {
+    const data = await httpClient<unknown>(`/invoice/${orderId}/email`, {
+      method: "POST",
+    });
+    return sendInvoiceEmailResponseSchema.parse(data);
   },
 };

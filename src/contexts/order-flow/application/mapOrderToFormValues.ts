@@ -13,10 +13,15 @@ function mapContact(
   return {
     id: profile.id,
     customerNumber: profile.customerNumber ?? null,
+    photo: null,
     name: profile.name,
     company: profile.company,
     email: profile.email,
     phone: profile.phone,
+    // La orden guarda un solo teléfono. Si el contacto es un cliente ya dado de
+    // alta, `ContactColumn` trae el extra de su ficha al volver a elegirlo.
+    secondaryPhone: "",
+
     address: {
       address1: addr.address1 ?? "",
       address2: addr.address2 ?? "",
@@ -39,6 +44,20 @@ const mapCostBreakdown = (order: OrderListView) => {
     additionalCost: cb.additionalCost?.amount ? String(cb.additionalCost.amount) : "",
     wrap: cb.wrap?.amount ? String(cb.wrap.amount) : "",
     tape: cb.tape?.amount ? String(cb.tape.amount) : "",
+  };
+};
+
+/** El desglose del socio a su cliente, no el de JBG. Misma forma, otra plata. */
+const mapPartnerSaleCostBreakdown = (order: OrderListView) => {
+  const cb = order.financials.partnerSale?.costBreakdown;
+  return {
+    insurance: cb?.insurance?.amount ? String(cb.insurance.amount) : "",
+    tools: cb?.tools?.amount ? String(cb.tools.amount) : "",
+    additionalCost: cb?.additionalCost?.amount
+      ? String(cb.additionalCost.amount)
+      : "",
+    wrap: cb?.wrap?.amount ? String(cb.wrap.amount) : "",
+    tape: cb?.tape?.amount ? String(cb.tape.amount) : "",
   };
 };
 
@@ -68,6 +87,9 @@ const mapBaseFields = (order: OrderListView) => ({
   emptyBoxDelivery: order.emptyBoxDelivery,
   homePickup: order.homePickup,
   customerSignature: order.customerSignature ?? null,
+  // El formulario trabaja con cadena y la orden guarda `null`. El `??` cubre
+  // además las órdenes anteriores al campo, que no traen la clave.
+  notes: order.notes ?? "",
   shippingService: {
     ...hqOrderDefaultValues.shippingService,
     costBreakdownCurrency: inferCostBreakdownCurrency(order),
@@ -95,7 +117,19 @@ export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues 
       width: String(order.package.dimensions.width),
       height: String(order.package.dimensions.height),
       dimensionUnit: order.package.dimensions.unit,
-      weight: String(order.package.weight.value),
+      // Cero significa "sin pesar", no "pesó cero": es lo que guarda una orden
+      // de socio que nadie puso en la balanza, y HQ la abre por acá con
+      // `?mode=complete`. Mostrar un `0` lo haría pasar por una medición y
+      // alcanzaría con no tocarlo para que quedara como buena. Mismo criterio
+      // que `mapOrderToPartnerFormValues`.
+      weight:
+        order.package.weight.value > 0
+          ? String(order.package.weight.value)
+          : "",
+      // La unidad guardada, no el default del formulario. Sin esto una orden
+      // pesada en kilos se reabría rotulada en libras: el número igual y el
+      // peso real 2.2 veces distinto, que es un error que no se ve.
+      weightUnit: order.package.weight.unit,
       photos: order.package.photos ?? [],
     },
   };
@@ -105,6 +139,24 @@ export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderF
   return {
     ...mapBaseFields(order),
     orderType: "PARTNER",
+    // Vacío cuando la orden no lo tiene: las anteriores al campo y las que se
+    // crearon sin cargarlo.
+    partnerSale: {
+      amount: order.financials.partnerSale
+        ? String(order.financials.partnerSale.total.amount)
+        : "",
+      // La suya si ya la tiene; si no, el default del formulario.
+      currency: order.financials.partnerSale?.total.currency ?? "USD",
+      // El `?? null` en cadena no sobra: las ventas guardadas antes del desglose
+      // no traen la clave, y `OrderListView` se construye sin parsear.
+      costBreakdown: mapPartnerSaleCostBreakdown(order),
+      discount: {
+        amount: order.financials.partnerSale?.discount?.amount?.amount
+          ? String(order.financials.partnerSale.discount.amount.amount)
+          : "",
+        concept: order.financials.partnerSale?.discount?.concept ?? "",
+      },
+    },
     package: {
       boxId: order.package.boxId,
       ownership: order.package.ownership,
@@ -113,6 +165,17 @@ export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderF
       width: String(order.package.dimensions.width),
       height: String(order.package.dimensions.height),
       dimensionUnit: order.package.dimensions.unit,
+      // Una orden de socio creada sin pesar guarda cero, y acá cero significa
+      // "sin pesar": mostrarlo haría creer que la balanza dio cero y dejaría el
+      // aéreo cotizando contra un peso que nadie midió.
+      weight:
+        order.package.weight.value > 0
+          ? String(order.package.weight.value)
+          : "",
+      weightUnit: order.package.weight.unit,
+      // Se rehidratan aunque la pantalla del socio no las muestre: el request de
+      // edición manda el paquete entero, y lo que no vuelva se borra.
+      photos: order.package.photos ?? [],
     },
   };
 }

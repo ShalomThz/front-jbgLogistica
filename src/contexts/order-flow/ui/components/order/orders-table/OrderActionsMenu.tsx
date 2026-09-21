@@ -7,12 +7,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@contexts/shared/shadcn";
-import { canInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
+import {
+  canInvoice,
+  canInvoicePartner,
+  type InvoiceVariant,
+} from "@contexts/sales/ui/invoices/invoiceActions";
 import {
   availableLabelOptions,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
+import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
 
 interface OrderActionsMenuProps {
   order: OrderListView;
@@ -21,8 +25,10 @@ interface OrderActionsMenuProps {
   canDelete: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
+  sendingInvoiceOrderId: string | null;
   onPrintLabel: (order: OrderListView, source: LabelSource) => void;
-  onPrintInvoice: (order: OrderListView) => void;
+  onPrintInvoice: (order: OrderListView, variant?: InvoiceVariant) => void;
+  onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
   onDelete: (order: OrderListView) => void;
@@ -35,14 +41,17 @@ export const OrderActionsMenu = ({
   canDelete,
   downloadingLabel,
   downloadingInvoice,
+  sendingInvoiceOrderId,
   onPrintLabel,
   onPrintInvoice,
+  onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
   onDelete,
 }: OrderActionsMenuProps) => {
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const canPrintInvoice = canInvoice(order);
+  const canPrintPartnerInvoice = canInvoicePartner(order);
 
   return (
     <DropdownMenu>
@@ -70,7 +79,7 @@ export const OrderActionsMenu = ({
             Completar venta
           </DropdownMenuItem>
         )}
-        {(order.shipment || canPrintInvoice) && (
+        {(order.shipment || canPrintInvoice || canPrintPartnerInvoice) && (
           <>
             <DropdownMenuSeparator />
             {order.shipment &&
@@ -85,14 +94,42 @@ export const OrderActionsMenu = ({
                   Imprimir {option.title}
                 </DropdownMenuItem>
               ))}
-            {canPrintInvoice && (
+            {/* La del socio no depende de que JBG haya procesado la orden: es
+                la que él le entrega a su cliente el mismo día. */}
+            {canPrintPartnerInvoice && (
               <DropdownMenuItem
                 disabled={downloadingInvoice === order.id}
-                onClick={() => onPrintInvoice(order)}
+                onClick={() => onPrintInvoice(order, "partner")}
               >
                 <Printer className="size-4" />
-                Imprimir factura
+                Imprimir factura de agente
               </DropdownMenuItem>
+            )}
+            {canPrintInvoice && (
+              <>
+                <DropdownMenuItem
+                  disabled={downloadingInvoice === order.id}
+                  onClick={() => onPrintInvoice(order, "jbg")}
+                >
+                  <Printer className="size-4" />
+                  Imprimir factura
+                </DropdownMenuItem>
+                {canEdit && order.origin.email && (
+                  <DropdownMenuItem
+                    disabled={sendingInvoiceOrderId === order.id}
+                    onClick={() => onSendInvoiceEmail(order)}
+                  >
+                    {sendingInvoiceOrderId === order.id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Mail className="size-4" />
+                    )}
+                    {sendingInvoiceOrderId === order.id
+                      ? "Enviando factura..."
+                      : "Enviar factura por correo"}
+                  </DropdownMenuItem>
+                )}
+              </>
             )}
           </>
         )}

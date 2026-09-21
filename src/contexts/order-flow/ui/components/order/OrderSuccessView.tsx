@@ -42,10 +42,13 @@ import {
 } from "@contexts/shipping/ui/labels/labelOptions";
 import {
   canInvoice,
+  canInvoicePartner,
   downloadInvoice,
   printInvoice,
+  type InvoiceVariant,
 } from "@contexts/sales/ui/invoices/invoiceActions";
 import { FileText } from "lucide-react";
+import cajaSonriendo from "@/assets/cajaFondoTransparenteJBG.png";
 
 const CARRIER_TYPE_LABELS: Record<string, string> = {
   INTERNAL_FLEET: "Flota interna",
@@ -124,21 +127,21 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
     }
   };
 
-  const handleDownloadInvoice = async () => {
+  const handleDownloadInvoice = async (variant: InvoiceVariant = "jbg") => {
     if (!order) return;
     setIsDownloadingInvoice(true);
     try {
-      await downloadInvoice(order);
+      await downloadInvoice(order, variant);
     } finally {
       setIsDownloadingInvoice(false);
     }
   };
 
-  const handlePrintInvoice = async () => {
+  const handlePrintInvoice = async (variant: InvoiceVariant = "jbg") => {
     if (!order) return;
     setIsDownloadingInvoice(true);
     try {
-      await printInvoice(order);
+      await printInvoice(order, variant);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -406,7 +409,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
           <Button
             variant="outline"
             className="gap-2"
-            onClick={handleDownloadInvoice}
+            onClick={() => handleDownloadInvoice("jbg")}
             disabled={isDownloadingInvoice}
           >
             <FileText className="size-4" />
@@ -415,11 +418,35 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
           <Button
             variant="outline"
             className="gap-2"
-            onClick={handlePrintInvoice}
+            onClick={() => handlePrintInvoice("jbg")}
             disabled={isDownloadingInvoice}
           >
             <Printer className="size-4" />
             {isDownloadingInvoice ? "Generando..." : "Imprimir factura"}
+          </Button>
+        </div>
+      )}
+
+      {/* La factura que el agente le entrega a su cliente. Solo aparece si él
+          cargó el cobro: sin eso el backend la rechaza. */}
+      {order && canInvoicePartner(order) && (
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            className="gap-2"
+            onClick={() => handleDownloadInvoice("partner")}
+            disabled={isDownloadingInvoice}
+          >
+            <FileText className="size-4" />
+            {isDownloadingInvoice ? "Descargando..." : "Factura para tu cliente"}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => handlePrintInvoice("partner")}
+            disabled={isDownloadingInvoice}
+          >
+            <Printer className="size-4" />
+            {isDownloadingInvoice ? "Generando..." : "Imprimir"}
           </Button>
         </div>
       )}
@@ -478,7 +505,14 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="border-green-200 bg-green-50 sm:max-w-md dark:border-green-800 dark:bg-green-950/30">
           <DialogHeader className="items-center text-center">
-            <CheckCircle2 className="size-14 text-green-600" />
+            {/* La mascota en vez del tilde: es el único momento del flujo que
+                vale la pena celebrar, y el tilde ya aparece en media app. */}
+            <img
+              src={cajaSonriendo}
+              alt=""
+              aria-hidden="true"
+              className="animate-caja-feliz size-32 object-contain"
+            />
             <DialogTitle className="text-xl text-green-700 dark:text-green-400">
               Creado exitosamente
             </DialogTitle>

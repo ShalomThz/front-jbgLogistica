@@ -15,7 +15,10 @@ export const boxSaleListViewSchema = boxSaleSchema
   .omit({ items: true, storeId: true, soldBy: true })
   .extend({
     items: z.array(boxSaleListViewItemSchema).min(1),
-    store: storeSchema,
+    // Identidad de la tienda, no la tienda entera: es lo único que manda el
+    // backend y lo único que se lee (`store.name` en tabla, detalle y export;
+    // `store.id` para filtrar).
+    store: storeSchema.pick({ id: true, name: true }),
     soldBy: userRefSchema.nullable(),
   });
 

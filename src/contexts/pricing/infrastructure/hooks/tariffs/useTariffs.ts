@@ -2,7 +2,6 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { tariffRepository, type UpdateTariffRequest, type CreateTariffRequest } from "@contexts/pricing/infrastructure/services/tariffs/tariffRepository";
 import type { FindTariffsResponsePrimitives } from "@contexts/pricing/application/FindTariffsResponse";
 import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
-import type { TariffPrimitives } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { tariffKeys } from "./tariffKeys";
 
 interface UseTariffsOptions {
@@ -36,21 +35,6 @@ export const useTariffs = ({
   const pagination = data?.pagination ?? null;
   const totalPages = pagination && limit ? Math.ceil(pagination.total / limit) : 1;
 
-  /**
-   * The backend returns the full tariff in the create/update response, so we
-   * seed `useTariffPrice`'s cache with the known price to avoid an extra
-   * round-trip and the flash of "no tariff" while `invalidateQueries` refetches.
-   */
-  const seedPriceCache = (tariff: TariffPrimitives) =>
-    queryClient.setQueryData(
-      tariffKeys.price({
-        zoneId: tariff.originZoneId,
-        destinationCountry: tariff.destinationCountry,
-        boxId: tariff.boxId,
-      }),
-      tariff.price,
-    );
-
   const invalidateAll = () =>
     queryClient.invalidateQueries({ queryKey: tariffKeys.all });
 
@@ -59,10 +43,7 @@ export const useTariffs = ({
 
   const createMutation = useMutation({
     mutationFn: tariffRepository.create,
-    onSuccess: async (tariff) => {
-      // Backend rejects duplicates (TariffAlreadyExistsError), so the seed can't
-      // collide with a stale price cache — invalidating lists is enough.
-      seedPriceCache(tariff);
+    onSuccess: async () => {
       await invalidateLists();
     },
   });
@@ -70,10 +51,9 @@ export const useTariffs = ({
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTariffRequest }) =>
       tariffRepository.update(id, data),
-    onSuccess: async (tariff) => {
-      // Update may change zone/country/box, leaving the previous price-cache key
-      // stale; safer to invalidate everything under "tariffs".
-      seedPriceCache(tariff);
+    onSuccess: async () => {
+      // Una edición puede mover la tarifa de zona, caja o servicio, así que
+      // deja obsoletas cotizaciones y matrices además de la lista.
       await invalidateAll();
     },
   });

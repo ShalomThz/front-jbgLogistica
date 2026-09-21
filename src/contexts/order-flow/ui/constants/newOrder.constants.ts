@@ -3,10 +3,12 @@ import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas
 
 const emptyContactWithAddress = {
   id: null,
+  photo: null,
   name: "",
   company: "",
   email: null,
   phone: "",
+  secondaryPhone: "",
   address: {
     country: "MX",
     address1: "",
@@ -30,6 +32,7 @@ const baseDefaults = {
   emptyBoxDelivery: false,
   homePickup: false,
   customerSignature: null,
+  notes: "",
   shippingService: {
     currency: "USD",
     costBreakdownCurrency: "USD",
@@ -42,7 +45,7 @@ const baseDefaults = {
     },
     discount: {
       amount: "",
-      currency: "MXN",
+      currency: "USD",
       concept: "",
     },
   },
@@ -79,6 +82,18 @@ export const hqOrderDefaultValues: HQOrderFormValues = {
 export const partnerOrderDefaultValues: PartnerOrderFormValues = {
   ...baseDefaults,
   orderType: "PARTNER",
+  partnerSale: {
+    amount: "",
+    currency: "USD",
+    costBreakdown: {
+      insurance: "",
+      tools: "",
+      additionalCost: "",
+      wrap: "",
+      tape: "",
+    },
+    discount: { amount: "", concept: "" },
+  },
   package: {
     boxId: "",
     ownership: "CUSTOMER",
@@ -87,5 +102,11 @@ export const partnerOrderDefaultValues: PartnerOrderFormValues = {
     width: "",
     height: "",
     dimensionUnit: "in",
+    // Vacío a propósito: no toda tienda socia tiene balanza. Si se llena, la
+    // cotización suma los servicios que cobran por peso.
+    weight: "",
+    weightUnit: "lb",
+    // No se cargan desde acá; están para no perder las de HQ al editar.
+    photos: [],
   },
 };

@@ -46,7 +46,7 @@ import { WarehouseDeleteDialog } from "../components/WarehouseDeleteDialog";
 import { WarehouseDetailDialog } from "../components/WarehouseDetailDialog";
 import { WarehouseFilters } from "../components/WarehouseFilters";
 import { usePackageDialog } from "../hooks/usePackageDialog";
-import { applyWarehouseFilters, useWarehouseFilters } from "../hooks/useWarehouseFilters";
+import { applyWarehouseFilters, CUSTOMER_REQUESTED_FILTER, useWarehouseFilters } from "../hooks/useWarehouseFilters";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { warehousePolicies } from "@contexts/shared/domain/policies/warehouse.policy";
 
@@ -258,6 +258,15 @@ export const WarehousePage = () => {
     {} as Partial<Record<WarehousePackageStatus, number>>,
   );
 
+  // Groups the customer asked to have shipped, still sitting in "Autorizado"
+  // — the ones the admin needs to spot and start processing.
+  const pendingCustomerGroupIds = new Set(
+    packages
+      .filter((p) => p.groupRequestedByCustomer && p.status === "AUTHORIZED" && p.groupId)
+      .map((p) => p.groupId as string),
+  );
+  const customerRequestedCount = packages.filter((p) => p.groupRequestedByCustomer).length;
+
   if (isLoading) {
     return <PageLoader text="Cargando paquetes..." />;
   }
@@ -270,6 +279,14 @@ export const WarehousePage = () => {
           <h1 className="text-2xl font-bold">Bodega</h1>
           <p className="text-sm text-muted-foreground">
             {inWarehouse} paquetes en bodega · {total} total
+            {pendingCustomerGroupIds.size > 0 && (
+              <>
+                {" · "}
+                <span className="font-semibold text-amber-600">
+                  {pendingCustomerGroupIds.size} grupo{pendingCustomerGroupIds.size === 1 ? "" : "s"} por procesar
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -323,6 +340,34 @@ export const WarehousePage = () => {
             {packages.length}
           </span>
         </button>
+
+        {customerRequestedCount > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              setFilter(
+                "statusFilter",
+                filters.statusFilter === CUSTOMER_REQUESTED_FILTER ? "all" : CUSTOMER_REQUESTED_FILTER,
+              )
+            }
+            className={cn(
+              "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200",
+              filters.statusFilter === CUSTOMER_REQUESTED_FILTER
+                ? "bg-linear-to-r from-amber-500 to-amber-400 text-white border-transparent hover:scale-105"
+                : "bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400 hover:bg-amber-100",
+            )}
+          >
+            Solicitados por cliente
+            <span className={cn(
+              "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none",
+              filters.statusFilter === CUSTOMER_REQUESTED_FILTER
+                ? "bg-white/25 backdrop-blur-sm"
+                : "bg-amber-200 text-amber-800"
+            )}>
+              {customerRequestedCount}
+            </span>
+          </button>
+        )}
 
         {warehousePackageStatuses.map((status) => {
           const count = statusCounts[status];
@@ -414,8 +459,8 @@ export const WarehousePage = () => {
                             <Badge variant={isUngrouped ? "secondary" : "outline"} className="font-mono text-xs">
                               {isUngrouped
                                 ? "Sin grupo"
-                                : groupInvoiceMap[groupKey]
-                                  ? groupInvoiceMap[groupKey]
+                                : (samplePkg.groupInvoiceNumber ?? groupInvoiceMap[groupKey])
+                                  ? (samplePkg.groupInvoiceNumber ?? groupInvoiceMap[groupKey])
                                   : `Grupo ${groupKey.slice(0, 5)}`
                               }
                             </Badge>
@@ -431,6 +476,14 @@ export const WarehousePage = () => {
                                 className={cn("text-xs", STATUS_CONFIG[groupStatus].badgeClass)}
                               >
                                 {STATUS_CONFIG[groupStatus].label}
+                              </Badge>
+                            )}
+                            {!isUngrouped && samplePkg.groupRequestedByCustomer && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-amber-100 text-amber-800 border-amber-300"
+                              >
+                                Cliente solicitó envío
                               </Badge>
                             )}
                           </div>

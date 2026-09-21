@@ -16,6 +16,7 @@ import { CustomerPickerCombobox } from "@contexts/sales/ui/components/customer/C
 import type { BaseOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { CustomerListViewPrimitives } from "@contexts/sales/domain/schemas/customer/CustomerListView";
 import { AddressAutocompleteSection } from "@contexts/shared/ui/components/address";
+import { CustomerPhotoInput } from "@contexts/sales/ui/components/customer/CustomerPhotoInput";
 
 type ContactPrefix = "sender" | "recipient";
 
@@ -39,14 +40,18 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
   const [addressFormKey, setAddressFormKey] = useState(0);
 
   const contactId = useWatch({ control, name: `${prefix}.id` as "sender.id" | "recipient.id" });
+  const saveContact = useWatch({ control, name: `${prefix}.save` as "sender.save" | "recipient.save" });
+  const contactName = useWatch({ control, name: `${prefix}.name` as "sender.name" | "recipient.name" });
 
   const handleClear = () => {
     setValue(`${prefix}.id`, null);
     setValue(`${prefix}.customerNumber`, null);
+    setValue(`${prefix}.photo`, null);
     setValue(`${prefix}.name`, "");
     setValue(`${prefix}.company`, "");
     setValue(`${prefix}.email`, "");
     setValue(`${prefix}.phone`, "");
+    setValue(`${prefix}.secondaryPhone`, "");
     setValue(`${prefix}.address.country`, "MX");
     setValue(`${prefix}.address.address1`, "");
     setValue(`${prefix}.address.address2`, "");
@@ -62,10 +67,12 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
   const handleSelectSaved = (c: CustomerListViewPrimitives) => {
     setValue(`${prefix}.id`, c.id);
     setValue(`${prefix}.customerNumber`, c.customerNumber);
+    setValue(`${prefix}.photo`, c.photo);
     setValue(`${prefix}.name`, c.name);
     setValue(`${prefix}.company`, c.company);
     setValue(`${prefix}.email`, c.email);
     setValue(`${prefix}.phone`, c.phone);
+    setValue(`${prefix}.secondaryPhone`, c.secondaryPhone ?? "");
     setValue(`${prefix}.address.country`, c.address.country);
     setValue(`${prefix}.address.address1`, c.address.address1);
     setValue(`${prefix}.address.address2`, c.address.address2);
@@ -168,6 +175,18 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
                 <p className="text-sm text-destructive">{getNestedError(errors, prefix, "phone")}</p>
               )}
             </div>
+            <div>
+              <Label htmlFor={`${title}-secondary-phone`}>Teléfono adicional</Label>
+              <Input
+                id={`${title}-secondary-phone`}
+                aria-invalid={!!getNestedError(errors, prefix, "secondaryPhone")}
+                placeholder="Opcional"
+                {...register(`${prefix}.secondaryPhone`)}
+              />
+              {getNestedError(errors, prefix, "secondaryPhone") && (
+                <p className="text-sm text-destructive">{getNestedError(errors, prefix, "secondaryPhone")}</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -199,6 +218,21 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
             )}
           />
         </div>
+
+        {saveContact && (
+          <Controller
+            control={control}
+            name={`${prefix}.photo`}
+            render={({ field }) => (
+              <CustomerPhotoInput
+                value={field.value ?? ""}
+                name={contactName}
+                onChange={field.onChange}
+                error={getNestedError(errors, prefix, "photo")}
+              />
+            )}
+          />
+        )}
       </CardContent>
     </Card>
   );

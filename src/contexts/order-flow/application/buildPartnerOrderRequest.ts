@@ -1,6 +1,10 @@
 import { createPartnerOrderSchema } from "@contexts/sales/application/order/CreatePartnerOrderRequest";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import type { PartnerOrderFormValues } from "../domain/schemas/NewOrderForm";
 
 const parseMoney = (amount: string, currency: string): MoneyPrimitives | null => {
@@ -14,6 +18,15 @@ export const buildPartnerOrderRequest = (
   tariff: MoneyPrimitives,
   /** Abonos cobrados al crear → se siembran en el libro de la orden. */
   payments: AddPaymentRequest[] = [],
+  /** Insumos de la sugerencia: el servidor cotiza con esto para poder medir el
+   * desvío contra el precio que finalmente se cobra. El renglón de la tarifa es
+   * (zona, país destino, caja, servicio, modo, tipo). */
+  serviceLevel?: ServiceLevel,
+  shippingMode?: ShippingMode,
+  destinationCountry?: string,
+  /** Lo que el cliente del socio ya le pagó a él. Va dentro de `partnerSale`
+   * porque cuelga de ese monto, no de la orden. */
+  partnerSalePayments: AddPaymentRequest[] = [],
 ) => {
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
@@ -32,6 +45,29 @@ export const buildPartnerOrderRequest = (
 
   const hasCosts = Object.values(costBreakdown).some((v) => v !== null);
 
+  // Su propia moneda, no la de la tarifa: el socio puede cobrarle a su cliente
+  // en otra. Los abonos usan la misma —el value object exige una sola—, y la UI
+  // ya solo ofrece ésa.
+  const partnerSaleTotal = parseMoney(
+    formValues.partnerSale.amount,
+    formValues.partnerSale.currency,
+  );
+
+  // En la moneda de la venta y no en la del desglose de JBG: son dos plata
+  // distintas y `PartnerSale` exige una sola en todo el objeto.
+  const partnerSaleCurrency = formValues.partnerSale.currency;
+  const partnerSaleCosts = formValues.partnerSale.costBreakdown;
+  const partnerSaleCostBreakdown = {
+    insurance: parseMoney(partnerSaleCosts.insurance, partnerSaleCurrency),
+    tools: parseMoney(partnerSaleCosts.tools, partnerSaleCurrency),
+    additionalCost: parseMoney(
+      partnerSaleCosts.additionalCost,
+      partnerSaleCurrency,
+    ),
+    wrap: parseMoney(partnerSaleCosts.wrap, partnerSaleCurrency),
+    tape: parseMoney(partnerSaleCosts.tape, partnerSaleCurrency),
+  };
+
   return createPartnerOrderSchema.parse({
     storeId,
     partnerOrderNumber: formValues.orderData.partnerOrderNumber,
@@ -44,14 +80,48 @@ export const buildPartnerOrderRequest = (
         height: parseFloat(pkg.height) || 0,
         unit: pkg.dimensionUnit,
       },
+      // La clave solo viaja si se pesó. Mandar cero sería declarar un peso, y
+      // el servidor lo tomaría como medido: el aéreo cobraría siempre el
+      // volumétrico sin que nadie haya puesto la caja en la balanza.
+      ...(parseFloat(pkg.weight) > 0 && {
+        weight: { value: parseFloat(pkg.weight), unit: pkg.weightUnit },
+      }),
     },
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     tariff,
+    // En la moneda de la tarifa, que es la que muestra el campo. `parseMoney`
+    // devuelve null si está vacío o en cero: ahí la orden queda sin factura de
+    // socio, que es distinto de tener una en cero.
+    // Siempre viaja, nunca `null`: una orden de socio es una reventa. Si el
+    // monto viniera en cero, `parseMoney` da `null` y el esquema lo rechaza con
+    // el campo señalado — antes se omitía la venta entera y la orden nacía rota
+    // sin que nada lo dijera.
+    partnerSale: {
+      total: partnerSaleTotal,
+      payments: partnerSalePayments.map((payment) => ({
+        amount: payment.amount,
+        method: payment.method,
+        concept: payment.concept ?? null,
+      })),
+      costBreakdown: partnerSaleCostBreakdown,
+      discount: {
+        amount: parseMoney(
+          formValues.partnerSale.discount.amount,
+          partnerSaleCurrency,
+        ),
+        concept: formValues.partnerSale.discount.concept.trim() || null,
+      },
+    },
+    ...(serviceLevel && { serviceLevel }),
+    ...(shippingMode && { shippingMode }),
+    ...(destinationCountry && { destinationCountry }),
     ...(hasCosts && { costBreakdown }),
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
     payments,
     customerSignature: formValues.customerSignature ?? null,
+    // Vacío es "sin nota", no una nota en blanco.
+    notes: formValues.notes.trim() || null,
   });
 };

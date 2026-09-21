@@ -66,13 +66,21 @@ export function useWarehouseFilters({ onSearchChange }: UseWarehouseFiltersOptio
   return { filters, setFilter, resetFilters, criteria };
 }
 
+// Sentinel statusFilter value, not a real PackageStatus: filters to packages
+// belonging to a group the customer (not warehouse staff) requested to ship.
+export const CUSTOMER_REQUESTED_FILTER = "CUSTOMER_REQUESTED";
+
 export function applyWarehouseFilters(
   packages: PackageListViewPrimitives[],
   filters: Pick<WarehouseFiltersState, "statusFilter" | "dateSort">,
 ): PackageListViewPrimitives[] {
-  const result = packages.filter((p) =>
-    filters.statusFilter === "all" || p.status === filters.statusFilter,
-  );
+  const result = packages.filter((p) => {
+    if (filters.statusFilter === "all") return true;
+    if (filters.statusFilter === CUSTOMER_REQUESTED_FILTER) {
+      return p.groupRequestedByCustomer;
+    }
+    return p.status === filters.statusFilter;
+  });
 
   if (filters.dateSort === "asc") result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   else if (filters.dateSort === "desc") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

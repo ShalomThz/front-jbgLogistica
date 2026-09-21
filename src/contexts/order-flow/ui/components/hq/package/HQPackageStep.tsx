@@ -15,7 +15,13 @@ import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { Building2, Info, User } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import { calculateMassWeight, calculateVolumetricWeight } from "@contexts/order-flow/domain/services/packageCalculations";
+import {
+  calculateMassWeight,
+  calculateVolumetricWeight,
+  FALLBACK_VOLUMETRIC_DIVISOR,
+} from "@contexts/order-flow/domain/services/packageCalculations";
+import { useVolumetricDivisor } from "@contexts/settings/infrastructure/hooks/useVolumetricDivisor";
+import { VOLUMETRIC_BASIS_LABELS } from "@contexts/settings/application/VolumetricDivisor";
 import { PhotosInput } from "@contexts/shared/ui/components";
 import { BoxSelector } from "../../shared/BoxSelector";
 import { DimensionsForm } from "./DimensionsForm";
@@ -29,6 +35,11 @@ interface HQPackageStepProps {
 export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
   const { control } = useFormContext<HQOrderFormValues>();
   const pkg = useWatch<HQOrderFormValues, "package">({ name: "package" });
+
+  // El mismo divisor con el que el servidor va a cobrar. Mientras carga se usa
+  // el de reserva, que es el que el back asume cuando Ajustes está vacío.
+  const { volumetricDivisor } = useVolumetricDivisor();
+  const divisor = volumetricDivisor ?? FALLBACK_VOLUMETRIC_DIVISOR;
 
   const hasVolume = !!(pkg.length && pkg.width && pkg.height);
 
@@ -113,15 +124,24 @@ export function HQPackageStep({ onEditContacts }: HQPackageStepProps) {
                 <p className="text-sm font-medium">Cálculo de peso</p>
                 {hasVolume ? (
                   <div className="space-y-2 text-sm">
+                    {/* La unidad sale del selector de peso: los dos cálculos se
+                        devuelven en ella, así que rotularlos con otra cosa haría
+                        dudar de cuál se está cotizando. */}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground text-xs">Peso masa</span>
-                      <span className="font-semibold text-xs">{calculateMassWeight(pkg).toFixed(2)} kg</span>
+                      <span className="font-semibold text-xs">{calculateMassWeight(pkg).toFixed(2)} {pkg.weightUnit}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground text-xs">Peso volumétrico</span>
-                      <span className="font-semibold text-xs">{calculateVolumetricWeight(pkg).toFixed(2)} kg</span>
+                      <span className="font-semibold text-xs">{calculateVolumetricWeight(pkg, divisor).toFixed(2)} {pkg.weightUnit}</span>
                     </div>
+                    {/* Con qué divisor salió ese número. Sin decirlo, dos
+                        pantallas con divisores distintos se ven iguales y no hay
+                        forma de saber cuál está mal. */}
                     <p className="text-xs text-muted-foreground pt-1">
+                      Divisor {divisor.value} {VOLUMETRIC_BASIS_LABELS[divisor.basis]}, según Ajustes.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
                       El peso a cotizar se define en el siguiente paso, según el modo de envío.
                     </p>
                   </div>

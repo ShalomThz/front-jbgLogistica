@@ -16,5 +16,8 @@ export const buildHQOrderRequest = (formValues: HQOrderFormValues, storeId: stri
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     customerSignature: formValues.customerSignature ?? null,
+    // Vacío es "sin nota", no una nota en blanco: así la factura no imprime un
+    // encabezado de comentarios con nada debajo.
+    notes: formValues.notes.trim() || null,
   });
 };

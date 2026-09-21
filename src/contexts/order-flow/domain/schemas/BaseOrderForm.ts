@@ -6,16 +6,21 @@ import { optionalEmailSchema } from "@contexts/shared/domain/schemas/Email";
 
 // --- Contact with address (sender/recipient) ---
 
-export const contactWithAddressSchema = z.object({
-  id: z.string().nullable(),
-  customerNumber: z.number().nullable().optional(),
-  name: z.string().min(1, "El nombre es requerido"),
-  company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
-  email: optionalEmailSchema,
-  phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
-  address: createAddressSchema,
-  save: z.boolean(),
-});
+export const contactWithAddressSchema = z
+  .object({
+    id: z.string().nullable(),
+    customerNumber: z.number().nullable().optional(),
+    photo: z.string().nullable(),
+    name: z.string().min(1, "El nombre es requerido"),
+    company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
+    email: optionalEmailSchema,
+    phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
+    // Opcional, y solo llega a la ficha del cliente si se tilda "guardar": la
+    // orden lleva un teléfono nada más, el de `CustomerProfile`.
+    secondaryPhone: z.string().max(20, "Máximo 20 caracteres").nullish(),
+    address: createAddressSchema,
+    save: z.boolean(),
+  });
 
 // --- Base package (shared dimensions) ---
 
@@ -55,6 +60,12 @@ export const baseOrderFormSchema = z.object({
    * remitente. Excluyente con emptyBoxDelivery. */
   homePickup: z.boolean(),
   customerSignature: z.string().nullable(),
+  /** La nota que se imprime en la factura, bajo "Comentarios e instrucciones
+   * especiales". Sin validación: es texto libre y casi siempre va vacía.
+   *
+   * Vive acá y no en cada formulario porque el papel es el mismo para HQ y para
+   * el socio. */
+  notes: z.string(),
   shippingService: z.object({
     currency: z.string(),
     costBreakdownCurrency: z.string(),

@@ -38,7 +38,11 @@ export function CountrySelect({
   const selected = countries.find((c) => c.code === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: dentro de un Dialog, el bloqueo de scroll de éste cancela la
+    // rueda del mouse sobre el popover, que vive en otro portal — la lista de
+    // ~200 países quedaba sin poder scrollearse. Con el popover en modo modal,
+    // Radix lo registra como área con scroll permitido.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"

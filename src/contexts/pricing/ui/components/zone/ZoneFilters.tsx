@@ -1,4 +1,14 @@
-import { ArrowDownAZ, Clock, Download, Filter, RefreshCw, Search } from "lucide-react";
+import {
+  ArrowDownAZ,
+  Clock,
+  Download,
+  Eraser,
+  Filter,
+  Globe,
+  Map,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import {
   Button,
   Input,
@@ -17,8 +27,16 @@ import {
 } from "@contexts/shared/shadcn";
 import type { ZoneFiltersState, NameSort, DateSort } from "../../hooks/useZoneFilters";
 
+export interface ZoneFilterOptions {
+  /** Países presentes en el catálogo, con su nombre para mostrar. */
+  countries: { code: string; name: string }[];
+  /** Estados del país elegido (todos, si no hay país elegido). */
+  states: string[];
+}
+
 interface ZoneFiltersProps {
   filters: ZoneFiltersState;
+  options: ZoneFilterOptions;
   limit: number;
   limitOptions: number[];
   setFilter: <K extends keyof ZoneFiltersState>(key: K, value: ZoneFiltersState[K]) => void;
@@ -28,14 +46,16 @@ interface ZoneFiltersProps {
 }
 
 const countActiveFilters = (filters: ZoneFiltersState): number =>
-  (filters.nameSort !== "none" ? 1 : 0) +
-  (filters.dateSort !== "none" ? 1 : 0);
+  (filters.nameSort !== "none" ? 1 : 0) + (filters.dateSort !== "none" ? 1 : 0);
+
+const ALL = "__all__";
 
 const activeSortClass = (value: string) =>
   value !== "none" ? "ring-2 ring-primary/50" : "";
 
 export const ZoneFilters = ({
   filters,
+  options,
   limit,
   limitOptions,
   setFilter,
@@ -57,6 +77,62 @@ export const ZoneFilters = ({
           className="pl-9"
         />
       </div>
+      <Select
+        value={filters.country || ALL}
+        onValueChange={(v) => setFilter("country", v === ALL ? "" : v)}
+      >
+        <SelectTrigger className="w-full sm:w-[170px]">
+          <span className="flex items-center gap-1.5 truncate">
+            <Globe className="size-3.5 shrink-0" />
+            <SelectValue />
+          </span>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>Todos los países</SelectItem>
+          {options.countries.map((c) => (
+            <SelectItem key={c.code} value={c.code}>
+              {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filters.state || ALL}
+        onValueChange={(v) => setFilter("state", v === ALL ? "" : v)}
+        disabled={options.states.length === 0}
+      >
+        <SelectTrigger className="w-full sm:w-[170px]">
+          <span className="flex items-center gap-1.5 truncate">
+            <Map className="size-3.5 shrink-0" />
+            <SelectValue />
+          </span>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>Todos los estados</SelectItem>
+          {options.states.map((st) => (
+            <SelectItem key={st} value={st}>
+              {st}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {(filters.country || filters.state) && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          title="Limpiar país y estado"
+          onClick={() => {
+            setFilter("country", "");
+            setFilter("state", "");
+          }}
+        >
+          <Eraser className="size-4" />
+        </Button>
+      )}
+
       <Select
         value={String(limit)}
         onValueChange={(v) => onLimitChange(Number(v))}

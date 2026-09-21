@@ -11,6 +11,7 @@ import { Navigate, Route, Routes, useLocation, useRoutes } from "react-router-do
 const LoginPage = lazy(() => import("@contexts/iam/ui/pages/LoginPage").then(m => ({ default: m.LoginPage })));
 const CustomerWarehousePage = lazy(() => import("@/contexts/customer-warehouse/ui/pages/CustomerWarehousePage").then(m => ({ default: m.CustomerWarehousePage })));
 const PublicTrackingPage = lazy(() => import("@contexts/shipping/ui/pages/PublicTrackingPage").then(m => ({ default: m.PublicTrackingPage })));
+const CloverPaymentResultPage = lazy(() => import("@contexts/sales/ui/pages/CloverPaymentResultPage").then(m => ({ default: m.CloverPaymentResultPage })));
 
 function App() {
   const { isLoading, isAuthenticated, isCustomer } = useAuth();
@@ -18,6 +19,7 @@ function App() {
   const location = useLocation();
   const routeElement = useRoutes(routes);
   const isPublicTrackingRoute = location.pathname.startsWith("/tracking/");
+  const isPublicCloverRoute = location.pathname === "/pago/clover";
 
   const { user, logout } = useAuth()
 
@@ -30,11 +32,12 @@ function App() {
   }
 
   if (!isAuthenticated) {
-    if (isPublicTrackingRoute) {
+    if (isPublicTrackingRoute || isPublicCloverRoute) {
       return (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><PageLoader /></div>}>
           <Routes>
             <Route path="/tracking/:trackingNumber" element={<PublicTrackingPage />} />
+            <Route path="/pago/clover" element={<CloverPaymentResultPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>

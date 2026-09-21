@@ -5,6 +5,8 @@
  */
 
 import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import type { QuotePriceOptionsRequest, QuotePriceRequest } from "@contexts/pricing/application/QuotePrice";
+import type { ShippingMode } from "@contexts/pricing/domain/schemas/tariff/Tariff";
 
 interface ListArgs {
   page?: number;
@@ -14,16 +16,28 @@ interface ListArgs {
   order?: { field: string; direction: Direction };
 }
 
-interface PriceArgs {
-  zoneId: string;
-  destinationCountry: string;
-  boxId: string;
-}
-
 export const tariffKeys = {
   all: ["tariffs"] as const,
   lists: () => [...tariffKeys.all, "list"] as const,
   list: (args: ListArgs) => [...tariffKeys.lists(), args] as const,
-  prices: () => [...tariffKeys.all, "price"] as const,
-  price: (args: PriceArgs) => [...tariffKeys.prices(), args] as const,
+  quotes: () => [...tariffKeys.all, "quote"] as const,
+  quote: (args: QuotePriceRequest) => [...tariffKeys.quotes(), args] as const,
+  quoteOptions: (args: QuotePriceOptionsRequest) =>
+    [...tariffKeys.quotes(), "options", args] as const,
+  /** Las tarifas por peso de una zona. Cuelgan de `all` para que escribir una
+   * invalide también las cotizaciones. */
+  weightRates: (zoneId: string) =>
+    [...tariffKeys.all, "weight-rates", zoneId] as const,
+  matrices: () => [...tariffKeys.all, "matrix"] as const,
+  matrix: (
+    zoneId: string,
+    destinationCountry: string,
+    shippingMode: ShippingMode,
+  ) =>
+    [
+      ...tariffKeys.matrices(),
+      zoneId,
+      destinationCountry,
+      shippingMode,
+    ] as const,
 };

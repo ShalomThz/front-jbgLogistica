@@ -29,8 +29,29 @@ export const buildEditOrderRequest = (formValues: HQOrderFormValues, storeId?: s
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     customerSignature: formValues.customerSignature,
+    // `null` y no `undefined` cuando está vacío: acá hay que poder **borrar**
+    // una nota ya guardada, y omitir la clave dejaría la anterior en el papel.
+    notes: formValues.notes.trim() || null,
     discount: buildDiscountPayload(formValues.shippingService.discount),
   });
+};
+
+/** Los extras que el socio le suma a su cliente, en la moneda de la venta.
+ * Vacío o cero es `null`: el renglón no existe, no vale cero. */
+const buildPartnerSaleCostBreakdown = (formValues: PartnerOrderFormValues) => {
+  const { currency, costBreakdown } = formValues.partnerSale;
+  const parse = (raw: string) => {
+    const amount = parseFloat(raw);
+    return Number.isFinite(amount) && amount > 0 ? { amount, currency } : null;
+  };
+
+  return {
+    insurance: parse(costBreakdown.insurance),
+    tools: parse(costBreakdown.tools),
+    additionalCost: parse(costBreakdown.additionalCost),
+    wrap: parse(costBreakdown.wrap),
+    tape: parse(costBreakdown.tape),
+  };
 };
 
 export const buildPartnerEditOrderRequest = (
@@ -40,15 +61,72 @@ export const buildPartnerEditOrderRequest = (
   const { save: _, address: senderAddress, ...senderContact } = formValues.sender;
   const { save: __, address: recipientAddress, ...recipientContact } = formValues.recipient;
 
+  // Solo el total: el libro de abonos del socio se mueve por sus propias rutas,
+  // y mandarlo acá lo pisaría con lo que tenga el formulario abierto. Vacío o
+  // cero borra la venta, que es lo que significa dejar el campo sin nada.
+  const partnerSaleAmount = parseFloat(formValues.partnerSale.amount);
+  const partnerSaleTotal =
+    Number.isFinite(partnerSaleAmount) && partnerSaleAmount > 0
+      ? {
+          amount: partnerSaleAmount,
+          // La suya, no la de visualización del total de JBG: eran dos cosas
+          // distintas y usar aquélla acá dejaba el total en una moneda y los
+          // abonos en otra, que es lo que trababa el guardado.
+          currency: formValues.partnerSale.currency,
+        }
+      : null;
+
+  const pkg = formValues.package;
+
   return editOrderRequestSchema.parse({
     storeId,
     references: {
       partnerOrderNumber: formValues.orderData.partnerOrderNumber || null,
+    },
+    // Faltaba: el paso "Paquete" del flujo de edición validaba y avanzaba, pero
+    // medidas, caja y **peso** no viajaban, así que completar el peso de una
+    // orden que la tienda no pesó no hacía nada.
+    //
+    // A diferencia del alta, acá el peso siempre viaja: `editOrderRequestSchema`
+    // pide el paquete entero, y cero es lo que ya está guardado para una orden
+    // sin pesar — no declara nada nuevo.
+    package: {
+      boxId: pkg.boxId,
+      ownership: pkg.ownership,
+      weight: {
+        value: parseFloat(pkg.weight) || 0,
+        unit: pkg.weightUnit,
+      },
+      dimensions: {
+        length: parseFloat(pkg.length) || 0,
+        width: parseFloat(pkg.width) || 0,
+        height: parseFloat(pkg.height) || 0,
+        unit: pkg.dimensionUnit,
+      },
+      photos: pkg.photos,
     },
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },
     emptyBoxDelivery: formValues.emptyBoxDelivery,
     homePickup: formValues.homePickup,
     customerSignature: formValues.customerSignature,
+    notes: formValues.notes.trim() || null,
+    partnerSaleTotal,
+    // Se manda solo si la venta sigue viva: con `partnerSaleTotal: null` el
+    // dominio la borra entera, y el desglose se va con ella.
+    partnerSaleCostBreakdown: partnerSaleTotal
+      ? buildPartnerSaleCostBreakdown(formValues)
+      : undefined,
+    partnerSaleDiscount: partnerSaleTotal
+      ? {
+          amount: (() => {
+            const amount = parseFloat(formValues.partnerSale.discount.amount);
+            return Number.isFinite(amount) && amount > 0
+              ? { amount, currency: formValues.partnerSale.currency }
+              : null;
+          })(),
+          concept: formValues.partnerSale.discount.concept.trim() || null,
+        }
+      : undefined,
   });
 };

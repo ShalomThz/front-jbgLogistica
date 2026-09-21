@@ -7,6 +7,10 @@ export type DateSort = "none" | "asc" | "desc";
 
 export interface ZoneFiltersState {
   searchQuery: string;
+  /** "" = todas. Códigos ISO, como los guarda la zona. */
+  country: string;
+  /** "" = todos. Depende del país elegido. */
+  state: string;
   nameSort: NameSort;
   dateSort: DateSort;
 }
@@ -19,6 +23,8 @@ export interface ZoneCriteria {
 
 const initialState: ZoneFiltersState = {
   searchQuery: "",
+  country: "",
+  state: "",
   nameSort: "none",
   dateSort: "desc",
 };
@@ -35,6 +41,8 @@ export function useZoneFilters() {
       const next = { ...prev, [key]: value };
       if (key === "nameSort" && value !== "none") next.dateSort = "none";
       if (key === "dateSort" && value !== "none") next.nameSort = "none";
+      // Los estados pertenecen a un país: cambiarlo deja el estado sin sentido.
+      if (key === "country") next.state = "";
       return next;
     });
   };
@@ -64,9 +72,17 @@ function toCriteria(
             ? { field: "createdAt", direction: "DESC" as const }
             : undefined;
 
+  const filters: Filter[] = [];
+  if (state.country) {
+    filters.push({ field: "country", filterOperator: "=", value: state.country });
+  }
+  if (state.state) {
+    filters.push({ field: "state", filterOperator: "=", value: state.state });
+  }
+
   return {
     search: debouncedSearch.trim() || undefined,
-    filters: [],
+    filters,
     order,
   };
 }

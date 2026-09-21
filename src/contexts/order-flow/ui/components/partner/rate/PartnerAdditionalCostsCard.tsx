@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@contexts/shared/shadcn";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
+import jbgLogo from "@/assets/carriers/jbg.png";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 
 const COST_BREAKDOWN_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
@@ -32,10 +33,22 @@ export function PartnerAdditionalCostsCard() {
     <Card className="shadow-none transition-shadow focus-within:shadow-lg focus-within:shadow-primary/30">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
+          {/* Con el logo y el nombre: son cargos que JBG te suma a ti, no lo que
+              tú le cobras a tu cliente. Sin esta marca, "costos adicionales para
+              esta orden" se leía como los del agente, y en el paso de Cobro hay
+              un desglose que sí es suyo. */}
           <div>
-            <CardTitle className="text-base">Costos adicionales</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <img
+                src={jbgLogo}
+                alt="JBG"
+                className="size-5 shrink-0 rounded object-contain"
+              />
+              Costos adicionales de JBG
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Agrega los costos adicionales para esta orden. La tarifa base será calculada automáticamente.
+              Servicios que JBG suma a lo que tú le pagas. Lo que tú le cobras a
+              tu cliente se carga en el paso de Cobro.
             </p>
           </div>
           <Controller

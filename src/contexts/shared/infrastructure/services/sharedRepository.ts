@@ -3,6 +3,7 @@ import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
 import { findCountriesRequestSchema, type FindCountriesRequest } from "@contexts/shared/domain/schemas/address/Country";
 import { autocompleteResponseSchema, type AutocompleteResponse } from "@contexts/shared/domain/schemas/address/AutocompleteResponse";
 import { placeDetailsResponseSchema, type PlaceDetailsResponse } from "@contexts/shared/domain/schemas/address/PlaceDetailsResponse";
+import { searchStatesResponseSchema, type SearchStatesResponse } from "@contexts/shared/application/SearchStates";
 
 const countriesResponseSchema = z.record(z.string(), z.string());
 
@@ -22,6 +23,14 @@ export const sharedRepository = {
       body: JSON.stringify({ input, country }),
     });
     return autocompleteResponseSchema.parse(data);
+  },
+
+  searchStates: async (country: string, query: string): Promise<SearchStatesResponse> => {
+    const data = await httpClient<unknown>("/address/states", {
+      method: "POST",
+      body: JSON.stringify({ country, query }),
+    });
+    return searchStatesResponseSchema.parse(data);
   },
 
   placeDetails: async (placeId: string): Promise<PlaceDetailsResponse> => {

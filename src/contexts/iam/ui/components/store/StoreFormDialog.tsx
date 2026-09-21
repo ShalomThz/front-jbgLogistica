@@ -22,6 +22,10 @@ import {
 } from "@contexts/shared/shadcn";
 import { AddressAutocompleteSection } from "@contexts/shared/ui/components/address";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  STORE_TYPE_LABELS,
+  storeTypes,
+} from "@contexts/iam/domain/schemas/store/Store";
 import { useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 
@@ -36,6 +40,7 @@ interface Props {
 function getDefaults(store?: StoreListViewPrimitives | null): CreateStoreRequestPrimitives {
   return {
     name: store?.name ?? "",
+    type: store?.type ?? "PARTNER",
     zoneId: store?.zone.id ?? "",
     phone: store?.phone ?? "",
     contactEmail: store?.contactEmail ?? "",
@@ -109,6 +114,34 @@ export const StoreFormDialog = ({
               />
               {errors.name && (
                 <p className="text-xs text-destructive">{errors.name.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de tienda</Label>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={!!errors.type}>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {storeTypes.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {STORE_TYPE_LABELS[t]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Decide qué precio se cobra: a las tiendas socias se les cobra el precio
+                socio; las distribuidoras venden al público.
+              </p>
+              {errors.type && (
+                <p className="text-xs text-destructive">{errors.type.message}</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">

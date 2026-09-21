@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
-import { Building2, ChevronLeft, ChevronRight, Plus, RefreshCw, Users } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Handshake, Plus, RefreshCw } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -21,7 +21,11 @@ import {
   printLabel,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { printInvoice } from "@contexts/sales/ui/invoices/invoiceActions";
+import {
+  printInvoice,
+  type InvoiceVariant,
+} from "@contexts/sales/ui/invoices/invoiceActions";
+import { useSendInvoiceEmail } from "@contexts/sales/infrastructure/hooks/orders/useSendInvoiceEmail";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import {
@@ -31,6 +35,7 @@ import {
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
+import { SendInvoiceEmailDialog } from "../components/order/SendInvoiceEmailDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
 import { OrdersTable } from "../components/order/orders-table/OrdersTable";
@@ -62,7 +67,9 @@ export const OrdersPage = () => {
     isDeleting,
   } = useOrders({ page, limit, ...criteria });
 
+  const [orderToEmail, setOrderToEmail] = useState<OrderListView | null>(null);
   const { cancelShipment, isCancelling } = useShipmentActions();
+  const { sendInvoiceEmail, sendingInvoiceOrderId } = useSendInvoiceEmail();
   const { user } = useAuth();
 
   const visibleOrders = useMemo(
@@ -96,13 +103,27 @@ export const OrdersPage = () => {
     }
   };
 
-  const handlePrintInvoice = async (order: OrderListView) => {
+  const handlePrintInvoice = async (
+    order: OrderListView,
+    variant: InvoiceVariant = "jbg",
+  ) => {
     setDownloadingInvoice(order.id);
     try {
-      await printInvoice(order);
+      await printInvoice(order, variant);
     } finally {
       setDownloadingInvoice(null);
     }
+  };
+
+  const handleSendInvoiceEmail = (order: OrderListView) => {
+    setOrderToEmail(order);
+  };
+
+  const handleConfirmInvoiceEmail = () => {
+    if (!orderToEmail) return;
+    sendInvoiceEmail(orderToEmail.id, {
+      onSuccess: () => setOrderToEmail(null),
+    });
   };
 
   const canCreatePartner = user ? orderPolicies.createPartner(user) : false;
@@ -200,9 +221,11 @@ export const OrdersPage = () => {
         canViewFinancials={canViewFinancials}
         downloadingLabel={downloadingLabel}
         downloadingInvoice={downloadingInvoice}
+        sendingInvoiceOrderId={sendingInvoiceOrderId}
         onOpenDetail={handleOpenDialog}
         onPrintLabel={handlePrintLabel}
         onPrintInvoice={handlePrintInvoice}
+        onSendInvoiceEmail={handleSendInvoiceEmail}
         onEdit={(order) => navigate(`/orders/${order.id}/edit`)}
         onCompleteSale={(order) => navigate(`/orders/${order.id}/edit?mode=complete`)}
         onDelete={(order) => setOrderToDelete(order)}
@@ -256,6 +279,8 @@ export const OrdersPage = () => {
         isDeleting={isDeleting}
         onCancelShipment={handleCancelShipment}
         isCancelling={isCancelling}
+        sendingInvoiceOrderId={sendingInvoiceOrderId}
+        onSendInvoiceEmail={handleSendInvoiceEmail}
       />
 
       <OrderDeleteDialog
@@ -264,6 +289,14 @@ export const OrdersPage = () => {
         onClose={() => setOrderToDelete(null)}
         onConfirm={handleDelete}
         isLoading={isDeleting}
+      />
+
+      <SendInvoiceEmailDialog
+        order={orderToEmail}
+        open={!!orderToEmail}
+        isSending={sendingInvoiceOrderId === orderToEmail?.id}
+        onClose={() => setOrderToEmail(null)}
+        onConfirm={handleConfirmInvoiceEmail}
       />
 
       <Dialog open={showNewOrderDialog} onOpenChange={setShowNewOrderDialog}>
@@ -287,7 +320,7 @@ export const OrdersPage = () => {
                 <div className="rounded-lg bg-primary/10 p-2">
                   <Building2 className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Oficina JBG Cargo</span>
+                <span className="font-semibold">Orden oficina JBG</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden completa con cotización de envío, peso, producto y guía.
@@ -303,9 +336,11 @@ export const OrdersPage = () => {
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="rounded-lg bg-primary/10 p-2">
-                  <Users className="size-5 text-primary" />
+                  {/* El mismo apretón de manos que encabeza la página que abre
+                      y que marca el precio de socio en las tarifas. */}
+                  <Handshake className="size-5 text-primary" />
                 </div>
-                <span className="font-semibold">Agentes Autorizados</span>
+                <span className="font-semibold">Orden agente</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Orden simplificada: contactos, dimensiones y creación directa.

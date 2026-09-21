@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { UseFormReturn } from "react-hook-form";
@@ -7,6 +7,10 @@ import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrder
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
+import type {
+  ServiceLevel,
+  ShippingMode,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { buildPartnerOrderRequest } from "@contexts/order-flow/application/buildPartnerOrderRequest";
 import { buildPartnerEditOrderRequest } from "@contexts/order-flow/application/buildEditOrderRequest";
 import { handleOrderError } from "@contexts/order-flow/application/errors/handleOrderError";
@@ -17,6 +21,11 @@ interface UsePartnerOrderSubmissionOptions {
   initialOrderId?: string;
   storeId?: string;
   tariff: MoneyPrimitives | null;
+  /** Viaja al backend para que calcule la sugerencia contra la que se
+   * contrasta el precio cobrado. */
+  serviceLevel: ServiceLevel;
+  shippingMode: ShippingMode;
+  destinationCountry: string;
   onSuccess: () => void;
 }
 
@@ -25,6 +34,9 @@ export const usePartnerOrderSubmission = ({
   initialOrderId,
   storeId,
   tariff,
+  serviceLevel,
+  shippingMode,
+  destinationCountry,
   onSuccess,
 }: UsePartnerOrderSubmissionOptions) => {
   const navigate = useNavigate();
@@ -39,8 +51,34 @@ export const usePartnerOrderSubmission = ({
   const removePendingPayment = (index: number) =>
     setPendingPayments((prev) => prev.filter((_, i) => i !== index));
   const clearPendingPayments = () => setPendingPayments([]);
+
+  // El libro del socio con su cliente, aparte del de JBG. Se captura en el paso
+  // de cobro y viaja dentro de `partnerSale` al crear la orden.
+  const [partnerSalePayments, setPartnerSalePayments] = useState<
+    AddPaymentRequest[]
+  >([]);
+  // `Pending` en el nombre, igual que los de JBG: éstos viven en el paso hasta
+  // que se envía. Los que persisten contra la API son `addPayment` y
+  // `addPartnerSalePayment` de `useOrders`, y confundirlos es lo que dejaba el
+  // libro del socio sin subir al editar.
+  const addPendingPartnerSalePayment = (data: AddPaymentRequest) =>
+    setPartnerSalePayments((prev) => [...prev, data]);
+  const removePendingPartnerSalePayment = (index: number) =>
+    setPartnerSalePayments((prev) => prev.filter((_, i) => i !== index));
+  const clearPendingPartnerSalePayments = () => setPartnerSalePayments([]);
+  // Los abonos de una orden que se edita se suben por ruta propia, así que un
+  // segundo envío los duplicaría — a diferencia del alta, donde viajan dentro
+  // del request y un reintento crearía otra orden, no abonos de más. Mismo
+  // resguardo que `useHQOrderSubmission`.
+  const paymentsAppliedRef = useRef(false);
   const { user } = useAuth();
-  const { createPartnerOrder, updateOrder, addPayment, isCreating } = useOrders({
+  const {
+    createPartnerOrder,
+    updateOrder,
+    addPayment,
+    addPartnerSalePayment,
+    isCreating,
+  } = useOrders({
     enabled: false,
   });
 
@@ -53,9 +91,19 @@ export const usePartnerOrderSubmission = ({
       try {
         const request = buildPartnerEditOrderRequest(form.getValues(), storeId);
         await updateOrder(orderId, request);
-        // La orden ya existe: los abonos capturados se registran directo.
-        for (const payment of pendingPayments) {
-          await addPayment(orderId, payment);
+        // La orden ya existe: los abonos capturados se registran directo, cada
+        // libro por su ruta. El del socio con su cliente **no** viaja en el
+        // request —`buildPartnerEditOrderRequest` lo omite a propósito para no
+        // pisar el libro con lo que tenga el formulario abierto—, así que sin
+        // esta subida se quedaba en el estado del paso y se perdía al salir.
+        if (!paymentsAppliedRef.current) {
+          for (const payment of pendingPayments) {
+            await addPayment(orderId, payment);
+          }
+          for (const payment of partnerSalePayments) {
+            await addPartnerSalePayment(orderId, payment);
+          }
+          paymentsAppliedRef.current = true;
         }
         setIsSubmitted(true);
         onSuccess();
@@ -72,10 +120,24 @@ export const usePartnerOrderSubmission = ({
         toast.error("No se pudo obtener la tarifa. Intenta de nuevo.", { id: "order-flow" });
         return;
       }
-      if (form.getValues("emptyBoxDelivery") && pendingPayments.length === 0) {
-        toast.error("Registra el anticipo para dejar la caja vacía.", {
-          id: "order-flow",
-        });
+      // El anticipo lo paga el cliente del socio: cubre el viaje del chofer que
+      // le lleva la caja vacía. Se exige contra el libro del socio con su
+      // cliente, no contra lo que él le abona a JBG.
+      //
+      // Se mira también el monto, y no solo los abonos: el libro cuelga de
+      // `partnerSale`, así que sin total los abonos no viajan en el request y el
+      // backend rechazaría con un error que no explica nada. Pasa si se carga un
+      // monto, se abona y después se borra el monto.
+      const hasPartnerSale =
+        (parseFloat(form.getValues("partnerSale.amount")) || 0) > 0;
+      if (
+        form.getValues("emptyBoxDelivery") &&
+        (!hasPartnerSale || partnerSalePayments.length === 0)
+      ) {
+        toast.error(
+          "Registra cuánto le cobras a tu cliente y el anticipo que te pagó para dejar la caja vacía.",
+          { id: "order-flow" },
+        );
         return;
       }
       try {
@@ -85,6 +147,10 @@ export const usePartnerOrderSubmission = ({
           storeId ?? user.store.id,
           tariff,
           pendingPayments,
+          serviceLevel,
+          shippingMode,
+          destinationCountry,
+          partnerSalePayments,
         );
         const order = await createPartnerOrder(request);
         setOrderId(order.id);
@@ -107,5 +173,9 @@ export const usePartnerOrderSubmission = ({
     addPendingPayment,
     removePendingPayment,
     clearPendingPayments,
+    partnerSalePayments,
+    addPendingPartnerSalePayment,
+    removePendingPartnerSalePayment,
+    clearPendingPartnerSalePayments,
   };
 };

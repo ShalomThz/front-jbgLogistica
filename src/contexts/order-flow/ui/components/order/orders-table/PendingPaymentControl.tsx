@@ -10,9 +10,12 @@ import { ChevronDown } from "lucide-react";
 import {
   PAYMENT_STATUS_BUTTON_CLASS,
   PAYMENT_STATUS_LABELS,
+  roundMoney,
+  toCents,
   type PaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
+import type { PaymentMethod } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { CobroModal, type RegisteredPayment } from "./CobroModal";
 
@@ -28,6 +31,22 @@ interface Props {
   /** Orden ya existente: muestra sus abonos ya registrados (p. ej. cobrados en
    * partner) y los cuenta hacia el pagado/saldo. */
   orderId?: string;
+  /**
+   * De cuál de los dos libros salen esos abonos ya registrados.
+   *
+   * Sin default a propósito: antes leía siempre `financials.payments`, así que
+   * bajo el título "Abonos de tu cliente" listaba los que el socio le había
+   * pagado a **JBG** —y los sumaba al saldo de la venta—. Que cada llamador lo
+   * diga es lo que impide que vuelva a asumirse.
+   */
+  ledger: "jbg" | "partnerSale";
+  /** Métodos a ofrecer al cargar un abono. El libro del socio los recorta a los
+   * tres instrumentos. */
+  methods?: readonly PaymentMethod[];
+  /** Monedas a ofrecer. Obligatoria en toda la cadena: el saldo se concilia
+   * contra `totalBilled`, que se calcula en la moneda de la tarifa, así que
+   * ofrecer otra deja abonos que nunca cierran el saldo. */
+  currencies: readonly string[];
 }
 
 /**
@@ -45,32 +64,46 @@ export const PendingPaymentControl = ({
   onRemovePayment,
   onClearPayments,
   orderId,
+  methods,
+  currencies,
+  ledger,
 }: Props) => {
   const [cobroModalOpen, setCobroModalOpen] = useState(false);
   const { data: order } = useOrder(orderId);
 
-  // Abonos ya persistidos en la orden (solo lectura).
-  const existingPayments: RegisteredPayment[] = order
-    ? order.financials.payments.map((p) => ({
-        amount: p.amount,
-        method: p.method,
-        concept: p.concept,
-      }))
-    : [];
+  // Abonos ya persistidos en la orden (solo lectura), del libro que corresponda.
+  // El del socio cuelga de `partnerSale` y es `null` mientras no haya venta.
+  const registered =
+    ledger === "jbg"
+      ? order?.financials.payments
+      : order?.financials.partnerSale?.payments;
+
+  const existingPayments: RegisteredPayment[] = (registered ?? []).map((p) => ({
+    amount: p.amount,
+    method: p.method,
+    concept: p.concept,
+  }));
 
   const allAmounts = [
     ...existingPayments.map((p) => p.amount),
     ...pendingPayments.map((p) => p.amount),
   ];
   const hasMixedCurrency = allAmounts.some((a) => a.currency !== currency);
+  // Todo en centavos: el total sale de multiplicar por tipos de cambio y
+  // arrastra residuos, así que `paid >= grandTotal` exacto daba falso al
+  // liquidar el saldo justo y el resumen se quedaba en parcial. Es el mismo
+  // criterio que aplica el backend al derivar el estado.
   const paid = hasMixedCurrency
     ? null
-    : allAmounts.reduce((sum, a) => sum + a.amount, 0);
-  const saldo = paid !== null && grandTotal !== null ? grandTotal - paid : null;
+    : roundMoney(allAmounts.reduce((sum, a) => sum + a.amount, 0));
+  const saldo =
+    paid !== null && grandTotal !== null ? roundMoney(grandTotal - paid) : null;
   const status: PaymentStatus =
     allAmounts.length === 0
       ? "UNPAID"
-      : paid !== null && grandTotal !== null && paid >= grandTotal
+      : paid !== null &&
+          grandTotal !== null &&
+          toCents(paid) >= toCents(grandTotal)
         ? "PAID"
         : "PARTIALLY_PAID";
 
@@ -139,6 +172,8 @@ export const PendingPaymentControl = ({
         payments={pendingPayments}
         onAddPayment={async (data) => onAddPayment(data)}
         onRemovePayment={onRemovePayment}
+        methods={methods}
+        currencies={currencies}
       />
     </div>
   );

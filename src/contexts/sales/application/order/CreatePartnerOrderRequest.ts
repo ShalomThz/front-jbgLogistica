@@ -1,5 +1,10 @@
+import {
+  serviceLevels,
+  shippingModes,
+} from "@contexts/pricing/domain/schemas/tariff/Tariff";
 import { customerProfileSchema } from "@contexts/sales/domain/schemas/value-objects/CustomerProfile";
 import { costBreakdownSchema } from "@contexts/sales/domain/schemas/value-objects/CostBreakdown";
+import { discountSchema } from "@contexts/sales/domain/schemas/value-objects/Discount";
 import { PAYMENT_METHODS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import { packageSchema } from "@contexts/sales/domain/schemas/value-objects/Package";
 import { moneySchema } from "@contexts/shared/domain/schemas/Money";
@@ -20,7 +25,49 @@ export const createPartnerOrderSchema = z.object({
     ...customerProfileSchema.shape,
     address: createAddressSchema,
   }),
+  /** Lo que se le cobra al socio: la sugerencia de la tabla o un monto escrito
+   * a mano. */
   tariff: moneySchema,
+  /** Lo que el socio le cobra a su propio cliente, con lo que ese cliente ya le
+   * pagó. Los ids y las fechas de los abonos los pone el servidor.
+   *
+   * **Obligatorio y positivo**, igual que en el back: una orden de socio es una
+   * reventa. Era opcional, y una orden sin venta nace sin factura para el
+   * cliente del socio y sin libro donde anotar lo que le pague. */
+  partnerSale: z
+    .object({
+      /** El cargo **base**: el servicio, sin los extras. */
+      total: moneySchema.extend({
+        amount: z.number().positive("Escribe cuánto le cobras a tu cliente"),
+      }),
+      payments: z
+        .array(
+          z.object({
+            amount: moneySchema,
+            method: z.enum(PAYMENT_METHODS),
+            concept: z.string().nullish(),
+          }),
+        )
+        .default([]),
+      /** Los extras que el socio le suma a su cliente. Sin la clave declarada
+       * acá, `.parse()` la descartaba en silencio y nunca llegaba a la API. */
+      costBreakdown: costBreakdownSchema.optional(),
+      /** El descuento del socio a su cliente. Mismo cuidado que arriba. */
+      discount: discountSchema.optional(),
+    }),
+  /**
+   * Los tres insumos del precio que no se derivan. El punto de recolección es
+   * la tienda socia y el peldaño es PARTNER por ser orden de socio; éstos los
+   * elige quien cotiza.
+   *
+   * `shippingMode` y `destinationCountry` **faltaban acá**. El builder los
+   * mandaba, este `.parse()` los descartaba en silencio, y el backend —que
+   * exige los tres para cotizar— devolvía `null`: toda orden de socio se creaba
+   * sin sugerencia de precio y nada lo avisaba.
+   */
+  serviceLevel: z.enum(serviceLevels).optional(),
+  shippingMode: z.enum(shippingModes).optional(),
+  destinationCountry: z.string().optional(),
   costBreakdown: costBreakdownSchema.optional(),
   emptyBoxDelivery: z.boolean().optional(),
   /** "Recolección a domicilio": el chofer recoge la caja ya empacada del
@@ -38,6 +85,9 @@ export const createPartnerOrderSchema = z.object({
     )
     .default([]),
   customerSignature: z.string().nullable(),
+  /** La nota de la factura. Espejo del back: si faltara acá, `.parse()` la
+   * borraría en silencio. */
+  notes: z.string().nullish(),
 });
 
 export type CreatePartnerOrderRequest = z.infer<

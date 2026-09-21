@@ -9,13 +9,27 @@ import { orderRepository } from "@contexts/sales/infrastructure/services/orders/
  * call reflects the order's current state.
  */
 
+/**
+ * Qué factura se pide. `jbg` es la de siempre —lo que JBG cobra— y `partner` es
+ * la que el socio le entrega a su propio cliente, por el monto que él le puso.
+ * Cada una la arma un generador distinto en el backend.
+ */
+export type InvoiceVariant = "jbg" | "partner";
+
 /** The slice of the order these actions need. */
 export interface InvoiceOrderContext {
   id: string;
-  references: { orderNumber: string | null };
+  type?: string;
+  references: {
+    orderNumber: string | null;
+    /** El folio del socio. Es lo que su cliente reconoce, y lo único que hay
+     * antes de que JBG procese la orden. */
+    partnerOrderNumber?: string | null;
+  };
   financials: {
     tariff: MoneyPrimitives | null;
     totalBilled: MoneyPrimitives | null;
+    partnerSale?: { total: MoneyPrimitives } | null;
   };
 }
 
@@ -35,13 +49,41 @@ export const canInvoice = (order: InvoiceOrderContext): boolean =>
       order.financials.totalBilled,
   );
 
-const invoiceFilename = (order: InvoiceOrderContext): string =>
-  `factura-${order.references.orderNumber ?? order.id}.pdf`;
+/**
+ * La factura de socio existe solo en órdenes de socio y solo si se cargó el
+ * cobro a su cliente. Es la misma regla que aplica el backend, del lado de acá.
+ *
+ * A diferencia de `canInvoice`, **no exige `orderNumber`**: ése es el número de
+ * JBG y se asigna recién cuando JBG procesa la orden (`isProcessedByHQ`). Esta
+ * factura es la que el socio le entrega a su cliente al momento de crearla, y
+ * exigirlo la dejaba disponible recién días después. El backend numera con el
+ * folio del socio o, si no hay, con el id de la orden.
+ */
+export const canInvoicePartner = (order: InvoiceOrderContext): boolean =>
+  Boolean(order.type === "PARTNER" && order.financials.partnerSale);
+
+const invoiceFilename = (
+  order: InvoiceOrderContext,
+  variant: InvoiceVariant,
+): string => {
+  if (variant === "partner") {
+    // El folio del socio primero: es el que su cliente reconoce, y muchas veces
+    // el único que existe cuando descarga esta factura.
+    const number =
+      order.references.partnerOrderNumber ??
+      order.references.orderNumber ??
+      order.id;
+    return `factura-agente-${number}.pdf`;
+  }
+
+  return `factura-${order.references.orderNumber ?? order.id}.pdf`;
+};
 
 const fetchInvoice = async (
   order: InvoiceOrderContext,
+  variant: InvoiceVariant,
 ): Promise<{ url: string; cleanup: () => void }> => {
-  const blob = await orderRepository.getInvoicePdf(order.id);
+  const blob = await orderRepository.getInvoicePdf(order.id, variant);
   const url = URL.createObjectURL(blob);
   return { url, cleanup: () => URL.revokeObjectURL(url) };
 };
@@ -49,12 +91,13 @@ const fetchInvoice = async (
 /** Downloads the invoice as `factura-<número de orden>.pdf`. */
 export const downloadInvoice = async (
   order: InvoiceOrderContext,
+  variant: InvoiceVariant = "jbg",
 ): Promise<void> => {
   try {
-    const { url, cleanup } = await fetchInvoice(order);
+    const { url, cleanup } = await fetchInvoice(order, variant);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = invoiceFilename(order);
+    anchor.download = invoiceFilename(order, variant);
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -73,6 +116,7 @@ export const downloadInvoice = async (
  */
 export const printInvoice = async (
   order: InvoiceOrderContext,
+  variant: InvoiceVariant = "jbg",
 ): Promise<void> => {
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
@@ -84,7 +128,7 @@ export const printInvoice = async (
   }
 
   try {
-    const { url, cleanup } = await fetchInvoice(order);
+    const { url, cleanup } = await fetchInvoice(order, variant);
     printWindow.addEventListener("load", () => printWindow.print());
     printWindow.location.replace(url);
     window.setTimeout(cleanup, REVOKE_DELAY_MS);
