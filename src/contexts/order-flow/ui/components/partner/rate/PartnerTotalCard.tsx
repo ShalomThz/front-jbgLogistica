@@ -128,40 +128,54 @@ export function PartnerTotalCard({
           {/* Editable en la propia línea del desglose, y no en una card aparte:
               el monto se corrige donde se lee, y el efecto en el total queda dos
               renglones más abajo. El badge dice de dónde salió, porque un precio
-              de la tabla y uno escrito a mano se veían idénticos. */}
+              de la tabla y uno escrito a mano se veían idénticos.
+
+              Sin `CAN_VIEW_ORDER_FINANCIALS` el monto se **lee**, no se escribe:
+              es lo que JBG le cobra al socio, y el agente elige el servicio pero
+              no le pone precio. El badge también sobra ahí — sin poder escribir
+              a mano, siempre sale de la tabla. */}
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="flex items-center gap-2">
               Tarifa JBG
-              <Badge
-                variant={isManualTariff ? "outline" : "secondary"}
-                className="px-1.5 py-0 text-[10px] font-normal"
-              >
-                {isManualTariff ? "A mano" : "De la tabla"}
-              </Badge>
+              {canViewFinancials && (
+                <Badge
+                  variant={isManualTariff ? "outline" : "secondary"}
+                  className="px-1.5 py-0 text-[10px] font-normal"
+                >
+                  {isManualTariff ? "A mano" : "De la tabla"}
+                </Badge>
+              )}
             </span>
-            <div className="relative w-32 shrink-0">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                $
+            {canViewFinancials ? (
+              <div className="relative w-32 shrink-0">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={tariffAmount || ""}
+                  onChange={(e) => {
+                    const parsed = parseFloat(e.target.value);
+                    onTariffChange({
+                      amount:
+                        Number.isFinite(parsed) && parsed >= 0 ? parsed : 0,
+                      currency: tariffCurrency,
+                    });
+                  }}
+                  className="h-8 pl-5 pr-12 text-right text-sm font-semibold"
+                  placeholder="0.00"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                  {tariffCurrency}
+                </span>
+              </div>
+            ) : (
+              <span className="shrink-0 font-semibold tabular-nums">
+                ${tariffAmount.toFixed(2)} {tariffCurrency}
               </span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={tariffAmount || ""}
-                onChange={(e) => {
-                  const parsed = parseFloat(e.target.value);
-                  onTariffChange({
-                    amount: Number.isFinite(parsed) && parsed >= 0 ? parsed : 0,
-                    currency: tariffCurrency,
-                  });
-                }}
-                className="h-8 pl-5 pr-12 text-right text-sm font-semibold"
-                placeholder="0.00"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                {tariffCurrency}
-              </span>
-            </div>
+            )}
           </div>
 
           {COST_BREAKDOWN_FIELDS.map((field) => {
