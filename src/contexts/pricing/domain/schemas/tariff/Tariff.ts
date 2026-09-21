@@ -81,9 +81,12 @@ export const SHIPPING_MODE_LABELS: Record<ShippingMode, string> = {
   SEA: "Marítimo",
 };
 
+// El valor guardado sigue siendo `PARTNER`: sólo cambia cómo se lee. Renombrar
+// el enum obligaría a migrar cada tarifa, cada fila por peso y la foto de precio
+// de cada orden, para no ganar nada.
 export const PRICE_TYPE_LABELS: Record<PriceType, string> = {
   PUBLIC: "Público",
-  PARTNER: "Socio",
+  PARTNER: "Agente",
 };
 
 // Una fila por precio: el peldaño es dato y no esquema, así que un tercero

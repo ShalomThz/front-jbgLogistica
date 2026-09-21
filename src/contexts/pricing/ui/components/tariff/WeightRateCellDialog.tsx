@@ -178,7 +178,7 @@ export function WeightRateCellDialog({
                 className="flex items-center gap-1.5"
               >
                 <Handshake className="size-3.5" />
-                Socio, por {unitLabel.slice(0, -1)}
+                Agente, por {unitLabel.slice(0, -1)}
               </Label>
               <Input
                 id="weight-partner"

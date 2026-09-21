@@ -216,7 +216,7 @@ export function ZonePriceCellDialog({
             <div className="space-y-2">
               <Label htmlFor="partnerPrice" className="flex items-center gap-1.5">
                 <Handshake className="size-3.5" />
-                Precio socio
+                Precio agente
               </Label>
               <Input
                 id="partnerPrice"

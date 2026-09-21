@@ -155,7 +155,7 @@ export function WeightRatesCard({
                     <span className="flex items-baseline justify-between gap-3">
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Handshake className="size-3 shrink-0" />
-                        Socio
+                        Agente
                       </span>
                       <span className="font-mono tabular-nums">
                         {money(partnerRate)}
