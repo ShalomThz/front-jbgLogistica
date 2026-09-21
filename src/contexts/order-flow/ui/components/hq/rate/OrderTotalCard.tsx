@@ -20,6 +20,7 @@ import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPay
 import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
+import { useBilledTotal } from "@contexts/order-flow/ui/hooks/shared/useBilledTotal";
 
 const COST_BREAKDOWN_FIELDS = ["insurance", "tools", "additionalCost", "wrap", "tape"] as const;
 type CostField = (typeof COST_BREAKDOWN_FIELDS)[number];
@@ -88,6 +89,27 @@ export function OrderTotalCard({
   const costsConversionRate = needsCostsConversion ? costsExchange?.rate ?? null : 1;
   const discountConversionRate = needsDiscountConversion ? discountExchange?.rate ?? null : 1;
 
+  // Arriba del early return porque de acá cuelga un hook, y porque son lecturas
+  // del formulario sin efecto.
+  const tariffAmount = shippingService.tariff?.amount ?? 0;
+  const costsTotal = COST_BREAKDOWN_FIELDS.reduce((sum, field) => {
+    const val = parseFloat(shippingService.costBreakdown[field]);
+    return sum + (val > 0 ? val : 0);
+  }, 0);
+  const discountAmount = parseFloat(shippingService.discount?.amount ?? "") || 0;
+
+  // El total contra el que se cobra, en la moneda de la TARIFA. Es otro número
+  // que el de abajo: aquél convierte todo a la moneda de visualización, que es
+  // un selector de pantalla y no viaja al servidor. Pasarle aquél al control de
+  // pago hacía pedir 109 cuando el backend facturaba 1982.
+  const billedTotal = useBilledTotal({
+    tariff: shippingService.tariff,
+    costs: costsTotal,
+    costsCurrency: costsCurrency,
+    discount: discountAmount,
+    discountCurrency: discountCurrency,
+  });
+
   if (!shippingService.selectedRate) {
     return (
       <Card>
@@ -100,12 +122,6 @@ export function OrderTotalCard({
     );
   }
 
-  const tariffAmount = shippingService.tariff?.amount ?? 0;
-  const costsTotal = COST_BREAKDOWN_FIELDS.reduce((sum, field) => {
-    const val = parseFloat(shippingService.costBreakdown[field]);
-    return sum + (val > 0 ? val : 0);
-  }, 0);
-  const discountAmount = parseFloat(shippingService.discount?.amount ?? "") || 0;
   const convertedDiscount = discountConversionRate !== null ? discountAmount * discountConversionRate : null;
   const convertedTariff = tariffConversionRate !== null ? tariffAmount * tariffConversionRate : null;
   const convertedCosts = costsConversionRate !== null ? costsTotal * costsConversionRate : null;
@@ -203,10 +219,12 @@ export function OrderTotalCard({
           <div className="my-2 border-t-2 border-dashed border-muted-foreground/40" />
 
           <PendingPaymentControl
-            grandTotal={grandTotal}
-            // La de la tarifa, no la de visualización: el saldo se concilia
-            // contra `totalBilled`, que el backend calcula en la de la tarifa.
-            // Es la misma corrección que ya lleva `PartnerTotalCard`.
+            // `billedTotal`, no `grandTotal`: el saldo se concilia contra
+            // `totalBilled`, que el backend calcula en la moneda de la tarifa.
+            // Antes acá viajaba el total convertido a la moneda de
+            // visualización con la etiqueta de la otra, y liquidar dejaba la
+            // orden en parcial para siempre.
+            grandTotal={billedTotal}
             currency={tariffCurrency}
             currencies={[tariffCurrency]}
             orderId={orderId}

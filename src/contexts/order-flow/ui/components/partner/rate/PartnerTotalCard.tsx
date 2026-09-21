@@ -15,6 +15,7 @@ import {
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import jbgLogo from "@/assets/carriers/jbg.png";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
+import { useBilledTotal } from "@contexts/order-flow/ui/hooks/shared/useBilledTotal";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
@@ -98,17 +99,15 @@ export function PartnerTotalCard({
   //
   // El número grande sigue mostrándose en la moneda elegida; lo que cambia es
   // contra qué se cobra.
-  const needsCostsToTariff = costsCurrency !== tariffCurrency;
-  const { exchangeRate: costsToTariffExchange } = useExchangeRate({
-    from: costsCurrency,
-    to: tariffCurrency,
-    enabled: needsCostsToTariff,
+  //
+  // Sin descuento a propósito: el de JBG no viaja en la orden de socio —ni
+  // `buildPartnerOrderRequest` ni `buildPartnerEditOrderRequest` lo mandan—, así
+  // que restarlo acá cobraría de menos contra un total calculado sin él.
+  const billedTotal = useBilledTotal({
+    tariff: tariffPrice,
+    costs: costsTotal,
+    costsCurrency,
   });
-  const costsToTariffRate = needsCostsToTariff
-    ? (costsToTariffExchange?.rate ?? null)
-    : 1;
-  const billedTotal =
-    costsToTariffRate !== null ? tariffAmount + costsTotal * costsToTariffRate : null;
 
   return (
     <Card>
