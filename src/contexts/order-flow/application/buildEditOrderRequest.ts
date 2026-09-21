@@ -76,10 +76,34 @@ export const buildPartnerEditOrderRequest = (
         }
       : null;
 
+  const pkg = formValues.package;
+
   return editOrderRequestSchema.parse({
     storeId,
     references: {
       partnerOrderNumber: formValues.orderData.partnerOrderNumber || null,
+    },
+    // Faltaba: el paso "Paquete" del flujo de edición validaba y avanzaba, pero
+    // medidas, caja y **peso** no viajaban, así que completar el peso de una
+    // orden que la tienda no pesó no hacía nada.
+    //
+    // A diferencia del alta, acá el peso siempre viaja: `editOrderRequestSchema`
+    // pide el paquete entero, y cero es lo que ya está guardado para una orden
+    // sin pesar — no declara nada nuevo.
+    package: {
+      boxId: pkg.boxId,
+      ownership: pkg.ownership,
+      weight: {
+        value: parseFloat(pkg.weight) || 0,
+        unit: pkg.weightUnit,
+      },
+      dimensions: {
+        length: parseFloat(pkg.length) || 0,
+        width: parseFloat(pkg.width) || 0,
+        height: parseFloat(pkg.height) || 0,
+        unit: pkg.dimensionUnit,
+      },
+      photos: pkg.photos,
     },
     origin: { ...senderContact, address: senderAddress },
     destination: { ...recipientContact, address: recipientAddress },

@@ -173,6 +173,9 @@ export function mapOrderToPartnerFormValues(order: OrderListView): PartnerOrderF
           ? String(order.package.weight.value)
           : "",
       weightUnit: order.package.weight.unit,
+      // Se rehidratan aunque la pantalla del socio no las muestre: el request de
+      // edición manda el paquete entero, y lo que no vuelva se borra.
+      photos: order.package.photos ?? [],
     },
   };
 }

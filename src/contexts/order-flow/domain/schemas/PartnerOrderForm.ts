@@ -29,6 +29,15 @@ const partnerPackageSchema = basePackageSchema.extend({
       "El peso debe ser mayor a 0",
     ),
   weightUnit: z.enum(weightUnits),
+  /**
+   * Las fotos del bulto. El socio no las carga —no hay campo en su pantalla—,
+   * pero viajan igual para poder **devolverlas** al editar.
+   *
+   * Sin esto, guardar una edición borraba las que HQ hubiera tomado al procesar
+   * la orden: `photos` defaultea a `[]` en el backend y `updateDetails`
+   * reemplaza el paquete entero, así que omitirlas es lo mismo que vaciarlas.
+   */
+  photos: z.array(z.string()),
 });
 
 // El anticipo de caja vacía ya no vive en el form: se captura como abono en el

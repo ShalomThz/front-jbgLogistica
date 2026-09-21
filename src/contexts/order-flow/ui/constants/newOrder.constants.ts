@@ -106,5 +106,7 @@ export const partnerOrderDefaultValues: PartnerOrderFormValues = {
     // cotización suma los servicios que cobran por peso.
     weight: "",
     weightUnit: "lb",
+    // No se cargan desde acá; están para no perder las de HQ al editar.
+    photos: [],
   },
 };
