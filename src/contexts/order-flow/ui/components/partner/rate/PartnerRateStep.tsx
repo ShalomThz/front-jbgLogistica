@@ -150,7 +150,10 @@ export function PartnerRateStep({
           onClearSelection={onClearSelection}
         />
 
-        <PartnerAdditionalCostsCard />
+        {/* Los extras que JBG le suma al socio: los carga quien cobra, no quien
+            revende. El agente los sigue **viendo** —`PartnerTotalCard` los lista
+            como texto en el desglose—, solo que no los escribe. */}
+        {canViewFinancials && <PartnerAdditionalCostsCard />}
       </div>
 
       <div className="space-y-4">
