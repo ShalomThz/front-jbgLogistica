@@ -32,6 +32,10 @@ interface PartnerRateStepProps {
   /** Hay algo fuera del default. Sin esto el botón estaría siempre visible sin
    * nada que hacer. */
   isQuoteCustomized: boolean;
+  /** Para nombrar la combinación cuando no hay tarifa. El flujo los resuelve de
+   * datos que ya tiene cargados. */
+  boxName?: string;
+  zoneName?: string;
 
   /** El precio que se va a cobrar: el de la fila elegida o el escrito a mano. */
   effectiveTariff: MoneyPrimitives | null;
@@ -89,6 +93,8 @@ export function PartnerRateStep({
   canViewFinancials,
   onResetQuote,
   isQuoteCustomized,
+  boxName,
+  zoneName,
 }: PartnerRateStepProps) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -148,6 +154,12 @@ export function PartnerRateStep({
           onSelect={onSelectOption}
           onRefetch={refetchOptions}
           onClearSelection={onClearSelection}
+          // Sin permiso financiero no hay input de tarifa, así que "escribe el
+          // precio a mano" sería mandarlo a un campo que no existe.
+          canEditTariff={canViewFinancials}
+          boxName={boxName}
+          zoneName={zoneName}
+          destinationCountry={destinationCountry}
         />
 
         {/* Los extras que JBG le suma al socio: los carga quien cobra, no quien
