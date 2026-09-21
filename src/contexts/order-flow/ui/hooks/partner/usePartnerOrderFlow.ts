@@ -224,6 +224,27 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
     setTariffOverride(null);
   };
 
+  // Los tres insumos de la cotización vuelven a su default de una: la zona a la
+  // de la tienda, el país al del destinatario, y sin fila elegida.
+  //
+  // Hace falta como acción propia porque los reseteos parciales ya existentes no
+  // se cubren entre sí: cambiar zona o país deselecciona solo (vía
+  // `tariffLookupKey`), pero volver los dos a su default **sin haber cambiado
+  // nada** deja la llave igual y la fila elegida en pie.
+  const resetQuote = () => {
+    setZoneOverrideId(undefined);
+    setDestinationCountry(recipientCountry);
+    clearSelection();
+  };
+
+  // Sin esto el botón viviría en pantalla sin nada que hacer. El servicio y el
+  // modo no entran en la cuenta: no se eligen sueltos, los fija la fila.
+  const isQuoteCustomized =
+    zoneOverrideId !== undefined ||
+    destinationCountry !== recipientCountry ||
+    selectedOption !== null ||
+    tariffOverride !== null;
+
   const tariffPrice = selectedOption?.price ?? null;
   const effectiveTariff = tariffOverride ?? tariffPrice;
   const isLoadingPrice = isLoadingOptions;
@@ -308,6 +329,8 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
     isManualTariff: tariffOverride !== null,
     onSelectOption: selectOption,
     onClearSelection: clearSelection,
+    resetQuote,
+    isQuoteCustomized,
     isLoadingPrice,
     tariffError: priceError,
     refetchPrice: refetchOptions,

@@ -1,10 +1,12 @@
 import {
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@contexts/shared/shadcn";
+import { RotateCcw } from "lucide-react";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { QuotePriceResponse } from "@contexts/pricing/application/QuotePrice";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
@@ -25,6 +27,11 @@ interface PartnerRateStepProps {
   selectedTariffId: string | null;
   onSelectOption: (option: QuotePriceResponse) => void;
   onClearSelection: () => void;
+  /** Devuelve zona, país destino y selección a su default de una sola vez. */
+  onResetQuote: () => void;
+  /** Hay algo fuera del default. Sin esto el botón estaría siempre visible sin
+   * nada que hacer. */
+  isQuoteCustomized: boolean;
 
   /** El precio que se va a cobrar: el de la fila elegida o el escrito a mano. */
   effectiveTariff: MoneyPrimitives | null;
@@ -80,6 +87,8 @@ export function PartnerRateStep({
   onDestinationCountryChange,
   recipientCountry,
   canViewFinancials,
+  onResetQuote,
+  isQuoteCustomized,
 }: PartnerRateStepProps) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -92,7 +101,24 @@ export function PartnerRateStep({
             filas de la tabla. */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recolección y destino</CardTitle>
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className="text-base">Recolección y destino</CardTitle>
+              {/* Solo cuando hay algo que deshacer, y acá arriba porque lo que
+                  borra son los dos campos de esta card más la fila elegida
+                  abajo. */}
+              {isQuoteCustomized && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 shrink-0 gap-1 px-2 text-xs"
+                  onClick={onResetQuote}
+                >
+                  <RotateCcw className="size-3" />
+                  Volver al default
+                </Button>
+              )}
+            </div>
             <CardDescription>
               La zona es dónde JBG recoge el paquete, y es lo que determina el
               precio. El país es a dónde se envía después.
