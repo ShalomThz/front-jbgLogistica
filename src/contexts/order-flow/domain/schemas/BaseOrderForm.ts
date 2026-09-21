@@ -14,10 +14,21 @@ export const contactWithAddressSchema = z
     name: z.string().min(1, "El nombre es requerido"),
     company: z.string().min(3, "La empresa debe tener al menos 3 caracteres"),
     email: optionalEmailSchema,
-    phone: z.string().min(1, "El teléfono es requerido").max(20, "Máximo 20 caracteres"),
+    // Diez dígitos pelados: sin lada, sin paréntesis ni guiones. El input filtra
+    // mientras se escribe, así que esta regla casi nunca se ve — salta al editar
+    // una orden vieja, que sí pudo guardarse con formato.
+    phone: z
+      .string()
+      .min(1, "El teléfono es requerido")
+      .max(10, "Máximo 10 dígitos")
+      .regex(/^\d*$/, "Solo números, sin espacios ni símbolos"),
     // Opcional, y solo llega a la ficha del cliente si se tilda "guardar": la
     // orden lleva un teléfono nada más, el de `CustomerProfile`.
-    secondaryPhone: z.string().max(20, "Máximo 20 caracteres").nullish(),
+    secondaryPhone: z
+      .string()
+      .max(10, "Máximo 10 dígitos")
+      .regex(/^\d*$/, "Solo números, sin espacios ni símbolos")
+      .nullish(),
     address: createAddressSchema,
     save: z.boolean(),
   });
