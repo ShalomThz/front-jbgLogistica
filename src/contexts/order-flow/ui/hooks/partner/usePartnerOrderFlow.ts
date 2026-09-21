@@ -60,7 +60,7 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
   const { form, validateStep } = usePartnerOrderFlowForm({ initialValues });
   const formAsFieldValues = form as unknown as UseFormReturn<FieldValues, any, any>;
   const { saveContacts, isSaving } = useContactSave({ form: formAsFieldValues });
-  const { processBox, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
+  const { processBox, boxes, isProcessing: isProcessingBox } = useBoxOperations({ form: formAsFieldValues, initialValues, enabled: step !== "contact" });
 
   const activeStoreId = selectedStoreId ?? user?.store.id;
 
@@ -342,6 +342,15 @@ export const usePartnerOrderFlow = ({ initialValues, orderId, storeId, initialPr
     canViewFinancials,
     setZoneOverride: setZoneOverrideId,
     originZoneId: effectiveZoneId,
+    // Los nombres de los dos ejes que no son el país, para poder nombrar una
+    // combinación sin tarifa. Salen de datos ya cargados —`StoreListView`
+    // embebe la zona entera y `useBoxOperations` ya trae las cajas—, así que no
+    // cuestan una consulta más.
+    //
+    // La zona es la de la tienda: quien puede cambiarla (`CAN_CHANGE_ORDER_ZONE`)
+    // es justamente quien ve el otro aviso, el de escribir el precio a mano.
+    originZoneName: store?.zone?.name,
+    boxName: boxes.find((b) => b.id === boxId)?.name,
     serviceLevel,
     setServiceLevel,
     pendingPayments: submission.pendingPayments,

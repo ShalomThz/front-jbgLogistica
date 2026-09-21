@@ -10,6 +10,7 @@ import {
 import { AlertTriangle, Eraser, RefreshCw } from "lucide-react";
 import jbgLogo from "@/assets/carriers/jbg.png";
 import type { QuotePriceResponse } from "@contexts/pricing/application/QuotePrice";
+import { COUNTRIES } from "@contexts/shared/domain/schemas/address/Country";
 import {
   SERVICE_LEVEL_COLORS,
   SERVICE_LEVEL_LABELS,
@@ -25,6 +26,21 @@ interface PartnerRateTableProps {
   onSelect: (option: QuotePriceResponse) => void;
   onRefetch: () => void;
   onClearSelection?: () => void;
+  /**
+   * Quién está mirando, para saber qué decirle cuando no hay tarifas.
+   *
+   * Con permiso financiero hay salida: escribir el precio a mano. Sin él no la
+   * hay —el input no se renderiza y el paso queda bloqueado—, así que el aviso
+   * tiene que decir a quién reclamarle y con qué datos, en vez de ofrecer algo
+   * que la pantalla no permite.
+   */
+  canEditTariff: boolean;
+  /** Los tres ejes de la combinación sin tarifar, para nombrarlos en el aviso.
+   * Ya resueltos: la caja y la zona salen de datos que el flujo tiene cargados,
+   * así que acá no se consulta nada. */
+  boxName?: string;
+  zoneName?: string;
+  destinationCountry: string;
 }
 
 /**
@@ -47,7 +63,17 @@ export function PartnerRateTable({
   onSelect,
   onRefetch,
   onClearSelection,
+  canEditTariff,
+  boxName,
+  zoneName,
+  destinationCountry,
 }: PartnerRateTableProps) {
+  const isEmpty = !isLoading && !error && options.length === 0;
+
+  const countryName =
+    COUNTRIES.find((c) => c.code === destinationCountry)?.name ??
+    destinationCountry;
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -122,15 +148,36 @@ export function PartnerRateTable({
           </div>
         )}
 
-        {/* Lista vacía no es un error: esa combinación no está tarifada y el
-            precio se escribe a mano abajo. */}
-        {!isLoading && !error && options.length === 0 && (
+        {/* Lista vacía no es un error: esa combinación no está tarifada. Qué
+            hacer al respecto depende de quién mire. */}
+        {isEmpty && (
           <div className="flex items-start gap-2 py-8 text-sm text-muted-foreground">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <p>
-              No hay tarifas cargadas para esta caja y este destino. Escribe el
-              precio a mano más abajo.
-            </p>
+            {canEditTariff ? (
+              <p>
+                No hay tarifas cargadas para esta caja y este destino. Escribe
+                el precio a mano más abajo.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p>
+                  Esta combinación todavía no tiene tarifa. Contacta a JBG para
+                  que la cargue:
+                </p>
+                <ul className="space-y-0.5 text-foreground">
+                  <li>
+                    Caja: <span className="font-medium">{boxName ?? "—"}</span>
+                  </li>
+                  <li>
+                    Zona: <span className="font-medium">{zoneName ?? "—"}</span>
+                  </li>
+                  <li>
+                    Destino: <span className="font-medium">{countryName}</span>
+                  </li>
+                </ul>
+                <p>Mientras tanto no se puede continuar con esta orden.</p>
+              </div>
+            )}
           </div>
         )}
 
