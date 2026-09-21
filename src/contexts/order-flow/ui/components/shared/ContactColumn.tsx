@@ -20,6 +20,10 @@ import { CustomerPhotoInput } from "@contexts/sales/ui/components/customer/Custo
 
 type ContactPrefix = "sender" | "recipient";
 
+/** Diez dígitos, nada más. Recorta desde el principio a propósito: acá el valor
+ * viene de alguien tipeando, así que el corte cae en lo que sobra al final. */
+const toPhoneDigits = (value: string) => value.replace(/\D/g, "").slice(0, 10);
+
 interface ContactColumnProps {
   fieldPrefix: ContactPrefix;
   title: string;
@@ -63,6 +67,12 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
     setValue(`${prefix}.save`, false);
     setAddressFormKey((k) => k + 1);
   };
+
+  // Registrados una sola vez porque el `onChange` de abajo los envuelve: filtra
+  // el valor y recién después se lo pasa a RHF, así el estado del formulario
+  // nunca ve un carácter que el schema vaya a rechazar.
+  const phoneField = register(`${prefix}.phone`);
+  const secondaryPhoneField = register(`${prefix}.secondaryPhone`);
 
   const handleSelectSaved = (c: CustomerListViewPrimitives) => {
     setValue(`${prefix}.id`, c.id);
@@ -169,7 +179,13 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
                 id={`${title}-phone`}
                 aria-invalid={!!getNestedError(errors, prefix, "phone")}
                 placeholder="10 dígitos"
-                {...register(`${prefix}.phone`)}
+                inputMode="numeric"
+                maxLength={10}
+                {...phoneField}
+                onChange={(e) => {
+                  e.target.value = toPhoneDigits(e.target.value);
+                  void phoneField.onChange(e);
+                }}
               />
               {getNestedError(errors, prefix, "phone") && (
                 <p className="text-sm text-destructive">{getNestedError(errors, prefix, "phone")}</p>
@@ -180,8 +196,14 @@ export function ContactColumn({ fieldPrefix: prefix, title }: ContactColumnProps
               <Input
                 id={`${title}-secondary-phone`}
                 aria-invalid={!!getNestedError(errors, prefix, "secondaryPhone")}
-                placeholder="Opcional"
-                {...register(`${prefix}.secondaryPhone`)}
+                placeholder="Opcional, 10 dígitos"
+                inputMode="numeric"
+                maxLength={10}
+                {...secondaryPhoneField}
+                onChange={(e) => {
+                  e.target.value = toPhoneDigits(e.target.value);
+                  void secondaryPhoneField.onChange(e);
+                }}
               />
               {getNestedError(errors, prefix, "secondaryPhone") && (
                 <p className="text-sm text-destructive">{getNestedError(errors, prefix, "secondaryPhone")}</p>
