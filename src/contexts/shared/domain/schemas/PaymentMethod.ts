@@ -28,6 +28,19 @@ export const PARTNER_SALE_PAYMENT_METHODS = [
   "TRANSFER",
 ] as const satisfies readonly PaymentMethod[];
 
+/**
+ * Los que se pueden elegir al registrar un abono a mano en el libro de JBG.
+ *
+ * Sin "Clover": ese método solo significa algo como confirmación del webhook
+ * del gateway (ver `CloverCheckoutPanel`); elegirlo a mano sería el staff
+ * afirmando que la tarjeta pasó sin que Clover lo haya confirmado. El backend
+ * rechaza igual un abono con `method: "CLOVER"` sin esa referencia — esto es
+ * solo para no ofrecer la opción.
+ */
+export const MANUAL_PAYMENT_METHODS = PAYMENT_METHODS.filter(
+  (m) => m !== "CLOVER",
+) as readonly PaymentMethod[];
+
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Efectivo",
   CARD: "Tarjeta",

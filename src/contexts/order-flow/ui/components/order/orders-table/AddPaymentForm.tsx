@@ -11,8 +11,8 @@ import {
 } from "@contexts/shared/shadcn";
 import { Plus, Wallet } from "lucide-react";
 import {
+  MANUAL_PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
-  PAYMENT_METHODS,
   type PaymentMethod,
 } from "@contexts/shared/domain/schemas/PaymentMethod";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
@@ -44,7 +44,7 @@ export const AddPaymentForm = ({
   onAdd,
   isSaving,
   settlePending,
-  methods = PAYMENT_METHODS,
+  methods = MANUAL_PAYMENT_METHODS,
   currencies,
 }: Props) => {
   const [amount, setAmount] = useState("");
