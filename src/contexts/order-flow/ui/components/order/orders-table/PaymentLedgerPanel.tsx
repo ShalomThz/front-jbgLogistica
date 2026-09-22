@@ -132,7 +132,9 @@ export const PaymentLedgerPanel = ({
             outstanding={balance.pending}
             checkout={clover.checkout}
             onCreate={clover.createCheckout}
+            onSendEmail={clover.sendCheckoutEmail}
             isLoading={clover.isLoading}
+            isSendingEmail={clover.isSendingCheckoutEmail}
             error={clover.error}
           />
         )}
