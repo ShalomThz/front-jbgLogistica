@@ -52,7 +52,11 @@ export function CustomerFilterCombobox({
     search: debouncedSearch.trim() || undefined,
     limit: 10,
     enabled: enabled && open,
-    order: { field: "name", direction: "ASC" },
+    // Sin orden, a propósito: el repositorio, cuando recibe uno, reordena por
+    // ese campo los candidatos que devolvió la búsqueda y pierde el ranking de
+    // relevancia, así que de todo lo que matchea entrega los diez primeros de
+    // la A en vez de los diez que más se parecen a lo tipeado. Es lo mismo que
+    // hace `CustomerPickerCombobox`, que es el que encuentra bien.
   });
 
   const selectedFilters = useMemo(
