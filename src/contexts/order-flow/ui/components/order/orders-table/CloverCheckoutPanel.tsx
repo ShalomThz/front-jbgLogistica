@@ -1,6 +1,7 @@
 import type { CloverCheckout } from "@contexts/sales/domain/schemas/CloverCheckout";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { Badge, Button, Input, Label } from "@contexts/shared/shadcn";
-import { CheckCircle2, Copy, ExternalLink, Link2 } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, Link2, Mail } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -8,7 +9,9 @@ interface Props {
   outstanding: number;
   checkout: CloverCheckout | null;
   onCreate: (amount: { amount: number; currency: "USD" }) => Promise<unknown>;
+  onSendEmail: () => Promise<{ recipientEmail: string }>;
   isLoading: boolean;
+  isSendingEmail: boolean;
   error?: string | null;
 }
 
@@ -18,7 +21,9 @@ export const CloverCheckoutPanel = ({
   outstanding,
   checkout,
   onCreate,
+  onSendEmail,
   isLoading,
+  isSendingEmail,
   error,
 }: Props) => {
   const [amount, setAmount] = useState(outstanding.toFixed(2));
@@ -46,6 +51,15 @@ export const CloverCheckoutPanel = ({
     toast.success("Enlace de Clover copiado");
   };
 
+  const sendEmail = async () => {
+    try {
+      const { recipientEmail } = await onSendEmail();
+      toast.success(`Enlace enviado a ${recipientEmail}`);
+    } catch (err) {
+      toast.error(parseApiError(err));
+    }
+  };
+
   return (
     <section className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/[0.06]">
       <div className="flex items-center justify-between gap-2">
@@ -71,9 +85,18 @@ export const CloverCheckoutPanel = ({
               Vence {new Date(checkout.expiresAt).toLocaleTimeString()}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={copyLink}>
               <Copy className="size-4" /> Copiar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={sendEmail}
+              disabled={isSendingEmail}
+            >
+              <Mail className="size-4" />
+              {isSendingEmail ? "Enviando…" : "Enviar por correo"}
             </Button>
             <Button asChild>
               <a href={checkout.href} target="_blank" rel="noreferrer">

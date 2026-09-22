@@ -21,10 +21,15 @@ export const useCloverCheckout = (orderId: string, enabled = true) => {
       queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
     },
   });
+  const sendEmailMutation = useMutation({
+    mutationFn: () => orderRepository.sendCloverCheckoutEmail(orderId),
+  });
 
   return {
     checkout: query.data ?? null,
     createCheckout: mutation.mutateAsync,
+    sendCheckoutEmail: sendEmailMutation.mutateAsync,
+    isSendingCheckoutEmail: sendEmailMutation.isPending,
     isLoading: query.isLoading || mutation.isPending,
     error: query.error?.message ?? mutation.error?.message ?? null,
   };

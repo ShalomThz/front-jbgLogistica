@@ -12,6 +12,10 @@ import {
   type SendInvoiceEmailResponse,
 } from "../../../application/order/SendInvoiceEmailResponse";
 import {
+  sendCloverCheckoutEmailResponseSchema,
+  type SendCloverCheckoutEmailResponse,
+} from "../../../application/order/SendCloverCheckoutEmailResponse";
+import {
   cloverCheckoutSchema,
   type CloverCheckout,
   publicCloverCheckoutSchema,
@@ -170,6 +174,16 @@ export const orderRepository = {
       `/clover-checkout/${encodeURIComponent(publicToken)}`,
     );
     return publicCloverCheckoutSchema.parse(data);
+  },
+
+  sendCloverCheckoutEmail: async (
+    orderId: string,
+  ): Promise<SendCloverCheckoutEmailResponse> => {
+    const data = await httpClient<unknown>(
+      `/order/${orderId}/clover-checkout/email`,
+      { method: "POST" },
+    );
+    return sendCloverCheckoutEmailResponseSchema.parse(data);
   },
 
   report: async (

@@ -11,7 +11,9 @@ describe("CloverCheckoutPanel", () => {
         outstanding={80}
         checkout={null}
         onCreate={onCreate}
+        onSendEmail={vi.fn()}
         isLoading={false}
+        isSendingEmail={false}
       />,
     );
 
@@ -27,26 +29,30 @@ describe("CloverCheckoutPanel", () => {
     });
   });
 
+  const activeCheckout = {
+    id: "checkout-1",
+    orderId: "order-1",
+    checkoutSessionId: "session-1",
+    publicToken: "public-1",
+    href: "https://checkout.clover.test/session-1",
+    amount: { amount: 35.5, currency: "USD" as const },
+    status: "PENDING" as const,
+    cloverPaymentId: null,
+    createdBy: "user-1",
+    expiresAt: "2099-08-19T18:15:00.000Z",
+    createdAt: "2099-08-19T18:00:00.000Z",
+    updatedAt: "2099-08-19T18:00:00.000Z",
+  };
+
   it("shows an active link returned by Clover", () => {
     render(
       <CloverCheckoutPanel
         outstanding={80}
-        checkout={{
-          id: "checkout-1",
-          orderId: "order-1",
-          checkoutSessionId: "session-1",
-          publicToken: "public-1",
-          href: "https://checkout.clover.test/session-1",
-          amount: { amount: 35.5, currency: "USD" },
-          status: "PENDING",
-          cloverPaymentId: null,
-          createdBy: "user-1",
-          expiresAt: "2099-08-19T18:15:00.000Z",
-          createdAt: "2099-08-19T18:00:00.000Z",
-          updatedAt: "2099-08-19T18:00:00.000Z",
-        }}
+        checkout={activeCheckout}
         onCreate={vi.fn()}
+        onSendEmail={vi.fn()}
         isLoading={false}
+        isSendingEmail={false}
       />,
     );
 
@@ -55,5 +61,27 @@ describe("CloverCheckoutPanel", () => {
       "https://checkout.clover.test/session-1",
     );
     expect(screen.getByText("$35.50 USD")).toBeInTheDocument();
+  });
+
+  it("lets the employee email the active link to the order origin", async () => {
+    const onSendEmail = vi
+      .fn()
+      .mockResolvedValue({ recipientEmail: "cliente@example.com" });
+    render(
+      <CloverCheckoutPanel
+        outstanding={80}
+        checkout={activeCheckout}
+        onCreate={vi.fn()}
+        onSendEmail={onSendEmail}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Enviar por correo" }),
+    );
+
+    expect(onSendEmail).toHaveBeenCalledOnce();
   });
 });
