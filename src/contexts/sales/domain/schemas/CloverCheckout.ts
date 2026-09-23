@@ -25,3 +25,10 @@ export const publicCloverCheckoutSchema = cloverCheckoutSchema.pick({
 });
 
 export type PublicCloverCheckout = z.infer<typeof publicCloverCheckoutSchema>;
+
+/** A quién se le manda el enlace: el remitente (`origin`) o el destinatario
+ * (`destination`) de la orden — cada orden guarda ambos correos y no siempre
+ * quien paga es el mismo que aparece primero en el envío. */
+export const cloverCheckoutEmailRecipients = ["origin", "destination"] as const;
+export type CloverCheckoutEmailRecipient =
+  (typeof cloverCheckoutEmailRecipients)[number];

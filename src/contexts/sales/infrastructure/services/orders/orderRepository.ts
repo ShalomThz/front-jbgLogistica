@@ -18,6 +18,7 @@ import {
 import {
   cloverCheckoutSchema,
   type CloverCheckout,
+  type CloverCheckoutEmailRecipient,
   publicCloverCheckoutSchema,
   type PublicCloverCheckout,
 } from "../../../domain/schemas/CloverCheckout";
@@ -178,10 +179,11 @@ export const orderRepository = {
 
   sendCloverCheckoutEmail: async (
     orderId: string,
+    recipient: CloverCheckoutEmailRecipient,
   ): Promise<SendCloverCheckoutEmailResponse> => {
     const data = await httpClient<unknown>(
       `/order/${orderId}/clover-checkout/email`,
-      { method: "POST" },
+      { method: "POST", body: JSON.stringify({ recipient }) },
     );
     return sendCloverCheckoutEmailResponseSchema.parse(data);
   },
