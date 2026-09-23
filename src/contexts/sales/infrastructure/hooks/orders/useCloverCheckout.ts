@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import type { CloverCheckoutEmailRecipient } from "@contexts/sales/domain/schemas/CloverCheckout";
 
 const ORDERS_QUERY_KEY = ["orders"];
 
@@ -22,7 +23,8 @@ export const useCloverCheckout = (orderId: string, enabled = true) => {
     },
   });
   const sendEmailMutation = useMutation({
-    mutationFn: () => orderRepository.sendCloverCheckoutEmail(orderId),
+    mutationFn: (recipient: CloverCheckoutEmailRecipient) =>
+      orderRepository.sendCloverCheckoutEmail(orderId, recipient),
   });
 
   return {

@@ -1,15 +1,43 @@
-import type { CloverCheckout } from "@contexts/sales/domain/schemas/CloverCheckout";
+import type {
+  CloverCheckout,
+  CloverCheckoutEmailRecipient,
+} from "@contexts/sales/domain/schemas/CloverCheckout";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
-import { Badge, Button, Input, Label } from "@contexts/shared/shadcn";
-import { CheckCircle2, Copy, ExternalLink, Link2, Mail } from "lucide-react";
+import {
+  Badge,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Input,
+  Label,
+} from "@contexts/shared/shadcn";
+import {
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  Link2,
+  Mail,
+} from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
+
+interface EmailParty {
+  name: string;
+  email: string | null;
+}
 
 interface Props {
   outstanding: number;
   checkout: CloverCheckout | null;
   onCreate: (amount: { amount: number; currency: "USD" }) => Promise<unknown>;
-  onSendEmail: () => Promise<{ recipientEmail: string }>;
+  origin: EmailParty;
+  destination: EmailParty;
+  onSendEmail: (
+    recipient: CloverCheckoutEmailRecipient,
+  ) => Promise<{ recipientEmail: string }>;
   isLoading: boolean;
   isSendingEmail: boolean;
   error?: string | null;
@@ -21,6 +49,8 @@ export const CloverCheckoutPanel = ({
   outstanding,
   checkout,
   onCreate,
+  origin,
+  destination,
   onSendEmail,
   isLoading,
   isSendingEmail,
@@ -51,9 +81,9 @@ export const CloverCheckoutPanel = ({
     toast.success("Enlace de Clover copiado");
   };
 
-  const sendEmail = async () => {
+  const sendEmail = async (recipient: CloverCheckoutEmailRecipient) => {
     try {
-      const { recipientEmail } = await onSendEmail();
+      const { recipientEmail } = await onSendEmail(recipient);
       toast.success(`Enlace enviado a ${recipientEmail}`);
     } catch (err) {
       toast.error(parseApiError(err));
@@ -89,15 +119,35 @@ export const CloverCheckoutPanel = ({
             <Button type="button" variant="outline" onClick={copyLink}>
               <Copy className="size-4" /> Copiar
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={sendEmail}
-              disabled={isSendingEmail}
-            >
-              <Mail className="size-4" />
-              {isSendingEmail ? "Enviando…" : "Enviar por correo"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" disabled={isSendingEmail}>
+                  <Mail className="size-4" />
+                  {isSendingEmail ? "Enviando…" : "Enviar por correo"}
+                  <ChevronDown className="size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  disabled={!origin.email}
+                  onClick={() => sendEmail("origin")}
+                >
+                  Al remitente
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {origin.email ?? "sin correo"}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!destination.email}
+                  onClick={() => sendEmail("destination")}
+                >
+                  Al destinatario
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {destination.email ?? "sin correo"}
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button asChild>
               <a href={checkout.href} target="_blank" rel="noreferrer">
                 <ExternalLink className="size-4" /> Abrir enlace

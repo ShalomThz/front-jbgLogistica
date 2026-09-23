@@ -3,6 +3,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+const origin = { name: "Carlos Cliente", email: "cliente@example.com" };
+const destination = { name: "María Destinataria", email: "destino@example.com" };
+
 describe("CloverCheckoutPanel", () => {
   it("lets the employee create a flexible partial USD payment link", async () => {
     const onCreate = vi.fn().mockResolvedValue(undefined);
@@ -11,6 +14,8 @@ describe("CloverCheckoutPanel", () => {
         outstanding={80}
         checkout={null}
         onCreate={onCreate}
+        origin={origin}
+        destination={destination}
         onSendEmail={vi.fn()}
         isLoading={false}
         isSendingEmail={false}
@@ -50,6 +55,8 @@ describe("CloverCheckoutPanel", () => {
         outstanding={80}
         checkout={activeCheckout}
         onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
         onSendEmail={vi.fn()}
         isLoading={false}
         isSendingEmail={false}
@@ -63,7 +70,7 @@ describe("CloverCheckoutPanel", () => {
     expect(screen.getByText("$35.50 USD")).toBeInTheDocument();
   });
 
-  it("lets the employee email the active link to the order origin", async () => {
+  it("lets the employee choose to email the origin", async () => {
     const onSendEmail = vi
       .fn()
       .mockResolvedValue({ recipientEmail: "cliente@example.com" });
@@ -72,6 +79,8 @@ describe("CloverCheckoutPanel", () => {
         outstanding={80}
         checkout={activeCheckout}
         onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
         onSendEmail={onSendEmail}
         isLoading={false}
         isSendingEmail={false}
@@ -79,9 +88,35 @@ describe("CloverCheckoutPanel", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Enviar por correo" }),
+      screen.getByRole("button", { name: /Enviar por correo/ }),
+    );
+    await userEvent.click(screen.getByText("Al remitente"));
+
+    expect(onSendEmail).toHaveBeenCalledWith("origin");
+  });
+
+  it("lets the employee choose to email the destination", async () => {
+    const onSendEmail = vi
+      .fn()
+      .mockResolvedValue({ recipientEmail: "destino@example.com" });
+    render(
+      <CloverCheckoutPanel
+        outstanding={80}
+        checkout={activeCheckout}
+        onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
+        onSendEmail={onSendEmail}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
     );
 
-    expect(onSendEmail).toHaveBeenCalledOnce();
+    await userEvent.click(
+      screen.getByRole("button", { name: /Enviar por correo/ }),
+    );
+    await userEvent.click(screen.getByText("Al destinatario"));
+
+    expect(onSendEmail).toHaveBeenCalledWith("destination");
   });
 });
