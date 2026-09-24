@@ -51,11 +51,14 @@ export const CustomerDetailDialog = ({ customer, open, onClose, onEdit, onDelete
         {/* `min-h-0` es lo que habilita el scroll: sin él un hijo flex no se
             encoge por debajo de su contenido y el overflow nunca aparece. */}
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          <CustomerIdPhoto
-            photo={customer.photo}
-            name={customer.name}
-            className="mx-auto max-w-xs"
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <CustomerIdPhoto photo={customer.photo} name={customer.name} />
+            <CustomerIdPhoto
+              photo={customer.photoBack}
+              name={customer.name}
+              side="back"
+            />
+          </div>
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Datos personales</h4>
             <div className="rounded-md border p-3 space-y-1">

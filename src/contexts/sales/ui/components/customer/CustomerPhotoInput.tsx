@@ -21,6 +21,9 @@ interface Props {
   onChange: (photo: string) => void;
   error?: string;
   disabled?: boolean;
+  /** Distingue las dos caras de la misma identificación. Por default es el
+   * anverso, la única cara que existió durante mucho tiempo. */
+  side?: "front" | "back";
 }
 
 function readFile(file: File): Promise<string> {
@@ -79,7 +82,17 @@ export const CustomerPhotoInput = ({
   onChange,
   error,
   disabled,
+  side = "front",
 }: Props) => {
+  const inputId = `customer-photo-${side}`;
+  const label =
+    side === "back" ? "Identificación del cliente (reverso)" : "Identificación del cliente";
+  const helpText =
+    side === "back"
+      ? "Foto del reverso de la credencial o identificación oficial."
+      : "Foto de la credencial o identificación oficial. Revisa que los datos se lean.";
+  const dialogTitle =
+    side === "back" ? "Fotografiar reverso de identificación" : "Fotografiar identificación";
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -177,19 +190,17 @@ export const CustomerPhotoInput = ({
 
   return (
     <div className="space-y-2">
-      <Label>Identificación del cliente</Label>
+      <Label htmlFor={inputId}>{label}</Label>
       {/* Apilado y no en fila: la credencial es apaisada y necesita el ancho,
           y este mismo bloque entra en la columna angosta del paso de contactos. */}
       <div className="space-y-3 rounded-md border p-3">
         <CustomerIdPhoto
           photo={value || null}
           name={name}
+          side={side}
           className="max-w-xs"
         />
-        <p className="text-sm text-muted-foreground">
-          Foto de la credencial o identificación oficial. Revisa que los datos se
-          lean.
-        </p>
+        <p className="text-sm text-muted-foreground">{helpText}</p>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -216,7 +227,7 @@ export const CustomerPhotoInput = ({
         </div>
         <input
           ref={inputRef}
-          id="customer-photo"
+          id={inputId}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="hidden"
@@ -230,7 +241,7 @@ export const CustomerPhotoInput = ({
       <Dialog open={cameraOpen} onOpenChange={(v) => !v && setCameraOpen(false)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Fotografiar identificación</DialogTitle>
+            <DialogTitle>{dialogTitle}</DialogTitle>
           </DialogHeader>
 
           {cameraError ? (

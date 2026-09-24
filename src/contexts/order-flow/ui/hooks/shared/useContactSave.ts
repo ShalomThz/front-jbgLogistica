@@ -28,7 +28,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
         // El teléfono extra se manda tal como quedó en el campo: al elegir un
         // cliente guardado, `ContactColumn` lo trae de su ficha, así que vaciarlo
         // es la forma de borrarlo y dejarlo como está es no tocarlo.
-        createCustomer({ userId: null, photo: sender.photo ?? undefined, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, secondaryPhone: sender.secondaryPhone?.trim() || null, address: sender.address, registeredByStoreId: user.store.id })
+        createCustomer({ userId: null, photo: sender.photo ?? undefined, photoBack: undefined, name: sender.name, company: sender.company, email: sender.email, phone: sender.phone, secondaryPhone: sender.secondaryPhone?.trim() || null, address: sender.address, registeredByStoreId: user.store.id })
           .then((created) => {
             toast.success(`Remitente "${sender.name}" guardado`);
             form.setValue("sender.id", created.id);
@@ -58,7 +58,7 @@ export const useContactSave = ({ form }: UseContactSaveOptions) => {
 
     if (recipient.save && !recipient.id) {
       updates.push(
-        createCustomer({ userId: null, photo: recipient.photo ?? undefined, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, secondaryPhone: recipient.secondaryPhone?.trim() || null, address: recipient.address, registeredByStoreId: user.store.id })
+        createCustomer({ userId: null, photo: recipient.photo ?? undefined, photoBack: undefined, name: recipient.name, company: recipient.company, email: recipient.email, phone: recipient.phone, secondaryPhone: recipient.secondaryPhone?.trim() || null, address: recipient.address, registeredByStoreId: user.store.id })
           .then((created) => {
             toast.success(`Destinatario "${recipient.name}" guardado`);
             form.setValue("recipient.id", created.id);
