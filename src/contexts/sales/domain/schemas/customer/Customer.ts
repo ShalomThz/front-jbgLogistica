@@ -7,6 +7,7 @@ export const customerSchema = z.object({
   id: z.string(),
   customerNumber: z.number().int().positive(),
   photo: z.string().min(1).nullable().default(null),
+  photoBack: z.string().min(1).nullable().default(null),
   name: z.string().min(1, "Customer name is required"),
   company: z.string().min(3, "Company must be at least 3 characters"),
   email: optionalEmailSchema,
@@ -30,11 +31,16 @@ export const createCustomerSchema = customerSchema.omit({
   id: true,
   customerNumber: true,
   photo: true,
+  photoBack: true,
   createdAt: true,
   updatedAt: true,
   address: true,
 }).extend({
   photo: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  photoBack: z
     .string()
     .optional()
     .transform((value) => value || undefined),

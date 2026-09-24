@@ -42,6 +42,7 @@ function getDefaults(
   return {
     userId: customer?.user?.id ?? null,
     photo: customer?.photo ?? "",
+    photoBack: customer?.photoBack ?? "",
     name: customer?.name ?? "",
     company: customer?.company ?? "",
     email: customer?.email ?? "",
@@ -125,6 +126,20 @@ export const CustomerFormDialog = ({
                     name={customerName}
                     onChange={field.onChange}
                     error={errors.photo?.message}
+                    disabled={isLoading}
+                  />
+                )}
+              />
+              <Controller
+                name="photoBack"
+                control={control}
+                render={({ field }) => (
+                  <CustomerPhotoInput
+                    value={field.value ?? ""}
+                    name={customerName}
+                    side="back"
+                    onChange={field.onChange}
+                    error={errors.photoBack?.message}
                     disabled={isLoading}
                   />
                 )}

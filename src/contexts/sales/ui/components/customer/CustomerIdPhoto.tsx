@@ -6,7 +6,16 @@ interface Props {
   photo: string | null | undefined;
   name: string;
   className?: string;
+  /** Distingue las dos caras de la misma identificación. Por default es la
+   * única que existió durante mucho tiempo, así que los llamadores que no
+   * cargan ambas caras no tienen que decir nada. */
+  side?: "front" | "back";
 }
+
+const SIDE_LABEL: Record<NonNullable<Props["side"]>, string> = {
+  front: "anverso",
+  back: "reverso",
+};
 
 /**
  * La identificación del cliente, no un retrato.
@@ -16,10 +25,11 @@ interface Props {
  * para llenar la caja —lo que hacía el avatar redondo con `object-cover`— se
  * come justo los datos por los que se guarda la foto.
  */
-export const CustomerIdPhoto = ({ photo, name, className }: Props) => {
+export const CustomerIdPhoto = ({ photo, name, className, side = "front" }: Props) => {
   const isDataUrl = photo?.startsWith("data:") ?? false;
   const { data } = useMedia(photo && !isDataUrl ? photo : null);
   const src = isDataUrl ? photo : data?.url;
+  const sideLabel = SIDE_LABEL[side];
 
   return (
     <div
@@ -31,13 +41,15 @@ export const CustomerIdPhoto = ({ photo, name, className }: Props) => {
       {src ? (
         <img
           src={src}
-          alt={`Identificación de ${name || "cliente"}`}
+          alt={`Identificación (${sideLabel}) de ${name || "cliente"}`}
           className="size-full object-contain"
         />
       ) : (
         <div className="flex flex-col items-center gap-1 text-muted-foreground">
           <IdCard className="size-8" />
-          <span className="text-xs">Sin identificación</span>
+          <span className="text-xs">
+            {side === "back" ? "Sin reverso" : "Sin identificación"}
+          </span>
         </div>
       )}
     </div>

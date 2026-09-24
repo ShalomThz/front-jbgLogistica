@@ -7,6 +7,7 @@ export const createCustomerRequestSchema = customerSchema
     id: true,
     customerNumber: true,
     photo: true,
+    photoBack: true,
     createdAt: true,
     updatedAt: true,
     address: true,
@@ -16,6 +17,11 @@ export const createCustomerRequestSchema = customerSchema
     // viajar vacía: al editar, omitirla es como el back dice "dejá la que está",
     // y mandar "" daría 400 porque su unión pide `min(1)` en las dos ramas.
     photo: z
+      .string()
+      .max(10 * 1024 * 1024, "La fotografía del cliente es demasiado grande")
+      .optional()
+      .transform((value) => value || undefined),
+    photoBack: z
       .string()
       .max(10 * 1024 * 1024, "La fotografía del cliente es demasiado grande")
       .optional()
