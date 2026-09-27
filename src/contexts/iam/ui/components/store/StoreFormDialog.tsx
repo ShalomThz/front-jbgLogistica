@@ -3,6 +3,7 @@ import {
   type CreateStoreRequestPrimitives,
 } from "@contexts/iam/application/store/CreateStoreRequest";
 import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
+import type { z } from "zod";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
 import {
   Button,
@@ -28,6 +29,15 @@ import {
 } from "@contexts/iam/domain/schemas/store/Store";
 import { useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
+import { StoreLabelColorInput } from "./StoreLabelColorInput";
+import { StoreLogoInput } from "./StoreLogoInput";
+
+// Los mismos colores por default que usa la plantilla del label en el
+// backend — si la tienda no configura nada, así se ve.
+const DEFAULT_BANNER_COLOR = "#2B5C8F";
+const DEFAULT_CP_BOX_COLOR = "#333333";
+
+type FormInput = z.input<typeof createStoreRequestSchema>;
 
 interface Props {
   open: boolean;
@@ -37,13 +47,18 @@ interface Props {
   isLoading?: boolean;
 }
 
-function getDefaults(store?: StoreListViewPrimitives | null): CreateStoreRequestPrimitives {
+function getDefaults(store?: StoreListViewPrimitives | null): FormInput {
   return {
     name: store?.name ?? "",
     type: store?.type ?? "PARTNER",
     zoneId: store?.zone.id ?? "",
     phone: store?.phone ?? "",
     contactEmail: store?.contactEmail ?? "",
+    agentLabelBranding: {
+      logo: store?.agentLabelBranding.logo ?? "",
+      primaryColor: store?.agentLabelBranding.primaryColor ?? "",
+      secondaryColor: store?.agentLabelBranding.secondaryColor ?? "",
+    },
     address: {
       address1: store?.address.address1 ?? "",
       address2: store?.address.address2 ?? "",
@@ -70,7 +85,7 @@ export const StoreFormDialog = ({
 }: Props) => {
   const { zones, isLoading: isLoadingZones } = useZones();
 
-  const form = useForm<CreateStoreRequestPrimitives>({
+  const form = useForm<FormInput, unknown, CreateStoreRequestPrimitives>({
     resolver: zodResolver(createStoreRequestSchema),
     defaultValues: getDefaults(store),
   });
@@ -87,7 +102,7 @@ export const StoreFormDialog = ({
     if (open) reset(getDefaults(store));
   }, [open, store, reset]);
 
-  const onSubmit = handleSubmit((values) => onSave(values as CreateStoreRequestPrimitives));
+  const onSubmit = handleSubmit((values) => onSave(values));
 
   const isEdit = !!store;
 
@@ -200,6 +215,57 @@ export const StoreFormDialog = ({
               {errors.contactEmail && (
                 <p className="text-xs text-destructive">{errors.contactEmail.message}</p>
               )}
+            </div>
+            <div className="space-y-3 border-t pt-4">
+              <div>
+                <Label className="text-sm font-semibold">Etiqueta de agente</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cómo se ve la guía "Agente"/"Agente Cliente" de esta tienda. La
+                  etiqueta JBG no cambia.
+                </p>
+              </div>
+              <Controller
+                name="agentLabelBranding.logo"
+                control={control}
+                render={({ field }) => (
+                  <StoreLogoInput
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    error={errors.agentLabelBranding?.logo?.message}
+                    disabled={isLoading}
+                  />
+                )}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Controller
+                  name="agentLabelBranding.primaryColor"
+                  control={control}
+                  render={({ field }) => (
+                    <StoreLabelColorInput
+                      label="Color del banner de tracking"
+                      value={field.value}
+                      defaultColor={DEFAULT_BANNER_COLOR}
+                      onChange={field.onChange}
+                      error={errors.agentLabelBranding?.primaryColor?.message}
+                      disabled={isLoading}
+                    />
+                  )}
+                />
+                <Controller
+                  name="agentLabelBranding.secondaryColor"
+                  control={control}
+                  render={({ field }) => (
+                    <StoreLabelColorInput
+                      label="Color del bloque de C.P."
+                      value={field.value}
+                      defaultColor={DEFAULT_CP_BOX_COLOR}
+                      onChange={field.onChange}
+                      error={errors.agentLabelBranding?.secondaryColor?.message}
+                      disabled={isLoading}
+                    />
+                  )}
+                />
+              </div>
             </div>
             <div className="border-t pt-4">
               <AddressAutocompleteSection fieldPrefix="address" labelPrefix="Tienda" />
