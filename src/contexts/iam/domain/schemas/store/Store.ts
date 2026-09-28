@@ -14,22 +14,6 @@ export const STORE_TYPE_LABELS: Record<StoreType, string> = {
   JBG: "Distribuidora JBG",
 };
 
-const hexColorSchema = z
-  .string()
-  .regex(/^#[0-9A-Fa-f]{6}$/, "Debe ser un color hex de 6 dígitos (#RRGGBB)");
-
-// Cómo se ve la etiqueta "Agente" de esta tienda (logo y colores del banner de
-// tracking / bloque de C.P.). La etiqueta "cargo" de JBG no lee este campo.
-export const agentLabelBrandingSchema = z.object({
-  logo: z.string().min(1).nullable().default(null),
-  primaryColor: hexColorSchema.nullable().default(null),
-  secondaryColor: hexColorSchema.nullable().default(null),
-});
-
-export type AgentLabelBrandingPrimitives = z.infer<
-  typeof agentLabelBrandingSchema
->;
-
 export const storeSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Store name is required"),
@@ -44,11 +28,6 @@ export const storeSchema = z.object({
   address: addressSchema,
   phone: z.string().min(1, "Phone number is required"),
   contactEmail: emailSchema,
-  agentLabelBranding: agentLabelBrandingSchema.default({
-    logo: null,
-    primaryColor: null,
-    secondaryColor: null,
-  }),
   ...aggregateRootSchema.shape,
 });
 
