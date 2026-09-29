@@ -132,6 +132,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_SELECT_SHIPMENT_PROVIDER: "Seleccionar proveedor de envío",
   CAN_VIEW_SHIPMENT_LABEL: "Ver etiqueta de envío",
   CAN_CANCEL_SHIPMENTS: "Cancelar envíos",
+  CAN_RECORD_SHIPMENT_EVENTS: "Registrar eventos del rastreo",
 
   // Routes
   CAN_LIST_ROUTES: "Listar rutas",
@@ -253,6 +254,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_SELECT_SHIPMENT_PROVIDER: "Elegir el proveedor de envío para una orden.",
   CAN_VIEW_SHIPMENT_LABEL: "Ver y descargar la etiqueta/guía de envío.",
   CAN_CANCEL_SHIPMENTS: "Cancelar un envío activo.",
+  CAN_RECORD_SHIPMENT_EVENTS:
+    "Registrar eventos de la línea de tiempo (recibido en bodega, cargado, en aduana, entregado...) y abrir o resolver incidencias. Queda asentado quién, cuándo y con qué evidencia.",
 
   // Routes
   CAN_LIST_ROUTES: "Ver el tablero de rutas y sus paradas.",
@@ -387,6 +390,7 @@ export const PERMISSION_GROUPS: {
         "CAN_SELECT_SHIPMENT_PROVIDER",
         "CAN_VIEW_SHIPMENT_LABEL",
         "CAN_CANCEL_SHIPMENTS",
+        "CAN_RECORD_SHIPMENT_EVENTS",
       ],
     },
     {

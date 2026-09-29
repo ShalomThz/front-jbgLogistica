@@ -16,6 +16,10 @@ import {
   availableLabelOptions,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
+import {
+  AWAITING_ARRIVAL_REASON,
+  isAwaitingArrival,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
 
 interface OrderActionsMenuProps {
@@ -52,6 +56,8 @@ export const OrderActionsMenu = ({
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const canPrintInvoice = canInvoice(order);
   const canPrintPartnerInvoice = canInvoicePartner(order);
+  // Sin el paquete en bodega no hay qué pesar: el back lo rechazaría.
+  const awaitingArrival = isAwaitingArrival(order.shipment?.status);
 
   return (
     <DropdownMenu>
@@ -73,10 +79,12 @@ export const OrderActionsMenu = ({
         {order.type === "PARTNER" && canEditHQ && isOpen && (
           <DropdownMenuItem
             className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
+            disabled={awaitingArrival}
+            title={awaitingArrival ? AWAITING_ARRIVAL_REASON : undefined}
             onClick={() => onCompleteSale(order)}
           >
             <Package className="size-4" />
-            Completar venta
+            {awaitingArrival ? "Procesar (falta que llegue)" : "Procesar orden"}
           </DropdownMenuItem>
         )}
         {(order.shipment || canPrintInvoice || canPrintPartnerInvoice) && (

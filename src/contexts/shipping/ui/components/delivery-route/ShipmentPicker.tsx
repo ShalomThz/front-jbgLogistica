@@ -14,7 +14,12 @@ export const ShipmentPicker = ({ selectedIds, onChange }: Props) => {
   const { shipments, isLoading } = useShipments({
     page: 1,
     limit: 100,
-    filters: [{ field: "status", filterOperator: "=", value: "FULFILLED" }],
+    // Solo flota JBG: una paquetería lleva su propia logística y el back
+    // rechaza meter esos envíos en una ruta.
+    filters: [
+      { field: "status", filterOperator: "=", value: "FULFILLED" },
+      { field: "provider.type", filterOperator: "=", value: "INTERNAL_FLEET" },
+    ],
   });
 
   const filtered = search.trim()
@@ -66,7 +71,7 @@ export const ShipmentPicker = ({ selectedIds, onChange }: Props) => {
           <Package className="size-8 opacity-30" />
           <p className="text-sm">
             {shipments.length === 0
-              ? "No hay envíos con estado FULFILLED"
+              ? "No hay envíos de JBG Logistics listos para despachar"
               : "Sin resultados para esa búsqueda"}
           </p>
         </div>

@@ -70,6 +70,10 @@ export const PERMISSIONS = [
   "CAN_SELECT_SHIPMENT_PROVIDER",
   "CAN_VIEW_SHIPMENT_LABEL",
   "CAN_CANCEL_SHIPMENTS",
+  // Registrar eventos del recorrido e incidencias, incluidos los que el
+  // conductor no pudo marcar. Aparte de CAN_EDIT_ROUTES: planear una ruta es
+  // rutina, escribir lo que le pasó a un paquete no.
+  "CAN_RECORD_SHIPMENT_EVENTS",
 
   // Routes
   "CAN_LIST_ROUTES",
@@ -120,13 +124,29 @@ export const PERMISSIONS = [
   "CAN_VIEW_ZONE_REPORTS",
 ] as const;
 
+const permissionSchema = z.enum(PERMISSIONS);
+
+export type Permission = z.infer<typeof permissionSchema>;
+
+const isPermission = (value: string): value is Permission =>
+  permissionSchema.safeParse(value).success;
+
+/**
+ * El rol tal como llega del back. Un permiso que ya no existe se descarta en
+ * vez de invalidar al usuario entero: renombrar uno hacía fallar
+ * `/user/current` y dejaba a la persona sin poder entrar.
+ */
 export const userRoleSchema = z.object({
   name: z.string(),
-  permissions: z.array(z.enum(PERMISSIONS)),
+  permissions: z
+    .array(z.string())
+    .transform((permissions) => permissions.filter(isPermission)),
 });
 
-export type Permission = z.infer<
-  typeof userRoleSchema.shape.permissions.element
->;
+/** El rol que se manda a guardar: estricto, igual que en el back. */
+export const userRoleInputSchema = z.object({
+  name: z.string(),
+  permissions: z.array(permissionSchema),
+});
 
 export type UserRolePrimitives = z.infer<typeof userRoleSchema>;

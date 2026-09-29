@@ -164,7 +164,8 @@ export const PartnerSaleSection = ({
           </div>
           <div className="rounded-xl border p-4">
             <p className="text-xs text-muted-foreground">Pagado</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+            {/* Neutro, igual que en el financiero de JBG: ver OrderFinancialSection. */}
+            <p className="mt-1 text-2xl font-bold tabular-nums">
               {money(paid)}
             </p>
           </div>

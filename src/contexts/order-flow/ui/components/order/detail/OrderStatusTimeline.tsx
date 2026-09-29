@@ -1,230 +1,174 @@
+import {
+  orderProgress,
+  orderTimelineStages,
+} from "@contexts/order-flow/domain/services/orderProgress";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
+import { TONE_CALLOUT } from "@contexts/shared/domain/schemas/StatusTone";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import {
-  Ban,
-  Box,
-  Check,
-  ClipboardCheck,
-  FilePlus2,
-  PackageCheck,
-  Tag,
-  Truck,
-  Undo2,
-  Warehouse,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+  INCIDENT_LABELS,
+  STAGE_LABELS,
+  type ShipmentStage,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
+import {
+  useShipmentTracking,
+  useStageLocks,
+} from "@contexts/shipping/infrastructure/hooks/shipments/useShipment";
+import { ShipmentEventList } from "@contexts/shipping/ui/components/shipment/ShipmentEventList";
+import {
+  ShipmentStageTimeline,
+  type StageCaption,
+} from "@contexts/shipping/ui/components/shipment/ShipmentStageTimeline";
+import { Ban, Check, TriangleAlert, Undo2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
-/** Orden de avance del shipment para saber qué hitos ya se alcanzaron. */
-const SHIPMENT_PROGRESS = [
-  "DRAFT",
-  "EMPTY_BOX_PENDING",
-  "AWAITING_PICKUP",
-  "AT_WAREHOUSE",
-  "PROVIDER_SELECTED",
-  "FULFILLED",
-  "IN_ROUTE",
-  "DELIVERED",
-] as const;
-
-interface TimelineStep {
-  label: string;
-  /** Qué está pasando cuando este es el paso en curso. */
-  pendingHint: string;
-  icon: LucideIcon;
-  done: boolean;
-}
-
-function shipmentRank(status: string | undefined): number {
-  if (!status) return 0;
-  // Un intento fallido sigue siendo "en ruta" para el cliente
-  if (status === "FAILED_ATTEMPT") {
-    return SHIPMENT_PROGRESS.indexOf("IN_ROUTE");
-  }
-  const rank = SHIPMENT_PROGRESS.indexOf(
-    status as (typeof SHIPMENT_PROGRESS)[number],
-  );
-  return rank === -1 ? 0 : rank;
-}
-
-function buildSteps(order: OrderListView): TimelineStep[] {
-  const rank = shipmentRank(order.shipment?.status);
-  const at = (status: (typeof SHIPMENT_PROGRESS)[number]) =>
-    rank >= SHIPMENT_PROGRESS.indexOf(status);
-
-  const boxCycleSteps: TimelineStep[] = order.emptyBoxDelivery
-    ? [
-        {
-          label: "Caja vacía entregada",
-          pendingHint: "El chofer llevará la caja vacía al domicilio",
-          icon: Box,
-          done: at("AWAITING_PICKUP"),
-        },
-        {
-          label: "Recolectada, en bodega",
-          pendingHint: "La caja está con el cliente; falta recolectarla",
-          icon: Warehouse,
-          done: at("AT_WAREHOUSE"),
-        },
-      ]
-    : [];
-
-  // Recolección directa: sin caja vacía previa, un solo hito de recolección.
-  const homePickupSteps: TimelineStep[] = order.homePickup
-    ? [
-        {
-          label: "Recolectado, en bodega",
-          pendingHint: "El chofer recogerá el paquete en el domicilio",
-          icon: Warehouse,
-          done: at("AT_WAREHOUSE"),
-        },
-      ]
-    : [];
-
-  return [
-    {
-      label: "Orden creada",
-      pendingHint: "",
-      icon: FilePlus2,
-      done: true,
-    },
-    ...boxCycleSteps,
-    ...homePickupSteps,
-    {
-      label: "Orden procesada",
-      pendingHint: "JBG debe pesar y tarifar la orden",
-      icon: ClipboardCheck,
-      done: order.status === "COMPLETED",
-    },
-    {
-      label: "Guía generada",
-      pendingHint: "Falta elegir paquetería y generar la guía",
-      icon: Tag,
-      done: at("FULFILLED"),
-    },
-    {
-      label: "En ruta",
-      pendingHint: "El paquete espera salir a reparto",
-      icon: Truck,
-      done: at("IN_ROUTE"),
-    },
-    {
-      label: "Entregado",
-      pendingHint: "El paquete va en camino al destinatario",
-      icon: PackageCheck,
-      done: at("DELIVERED"),
-    },
-  ];
-}
+/** Forma del aviso al pie; el color lo pone TONE_CALLOUT. */
+const CALLOUT_CLASS =
+  "flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-xs font-medium";
 
 interface OrderStatusTimelineProps {
   order: OrderListView;
+  /** Las acciones sobre la línea (registrar evento, incidencia). */
+  actions?: ReactNode;
 }
 
 /**
- * Línea de tiempo del recorrido de la orden: hitos completados, paso en curso
- * (con qué falta para avanzar) y pasos futuros. Cancelaciones y devoluciones
- * cortan la línea con su propio marcador.
+ * El rastreo de la orden: la línea de etapas de la guía del cliente, qué falta,
+ * y al tocar una etapa, todo lo que pasó en ella.
+ *
+ * La etiqueta, el tono y el "qué falta" salen de `orderProgress`, el mismo
+ * cálculo de la fila de la tabla y del encabezado, así que la orden dice lo
+ * mismo en las tres. Cancelaciones y devoluciones no ocupan un paso: cortan el
+ * recorrido, así que se avisan al pie.
  */
-export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
-  const cancelled =
-    order.status === "CANCELLED" || order.shipment?.status === "CANCELLED";
-  const returned = order.shipment?.status === "RETURNED";
-  const failedAttempt = order.shipment?.status === "FAILED_ATTEMPT";
+export function OrderStatusTimeline({
+  order,
+  actions,
+}: OrderStatusTimelineProps) {
+  const { user } = useAuth();
+  const shipment = order.shipment;
+  const progress = orderProgress(order);
+  const stages = orderTimelineStages(order);
 
-  const steps = buildSteps(order);
-  const currentIndex = steps.findIndex((step) => !step.done);
-  const current = currentIndex === -1 ? null : steps[currentIndex];
+  const canViewTracking = !!user && shippingPolicies.viewTracking(user);
+  const { data: events = [], isLoading } = useShipmentTracking(
+    shipment?.id,
+    canViewTracking,
+  );
+  // Los candados y la palomita, como en el diálogo de registrar evento. Solo
+  // para quien registra eventos: el back no da las etapas abiertas a nadie
+  // más, y a quien solo mira no le sirve saber qué falta registrar.
+  const canRecordEvents = !!user && shippingPolicies.recordEvents(user);
+  const { requirements, nextStage } = useStageLocks(
+    shipment?.id,
+    stages,
+    progress.stage,
+    canRecordEvents,
+  );
+
+  // La etapa que se está mirando: la siguiente si la actual ya está cumplida, y
+  // si no la actual. La que se toca a mano vale mientras la línea no se mueva;
+  // cuando avanza (se registró el evento que abre la siguiente, cambió la
+  // etapa), el enfoque la sigue. Por eso la elección guarda dónde estaba la
+  // línea cuando se hizo.
+  const anchor = nextStage ?? progress.stage;
+  const [picked, setPicked] = useState<{
+    stage: ShipmentStage;
+    anchor: ShipmentStage | null;
+  } | null>(null);
+  const focusedStage =
+    picked && picked.anchor === anchor ? picked.stage : anchor;
+  const setFocused = (stage: ShipmentStage) => setPicked({ stage, anchor });
+
+  // Lo último que pasó en cada etapa, para la segunda línea de cada paso. Las
+  // incidencias no cuentan: no son un paso del recorrido.
+  const captions: Partial<Record<ShipmentStage, StageCaption>> = {};
+  for (const event of events) {
+    if (!event.stage || event.incident) continue;
+    const previous = captions[event.stage];
+    if (!previous || event.occurredAt > previous.occurredAt) {
+      captions[event.stage] = {
+        label: event.description,
+        occurredAt: event.occurredAt,
+      };
+    }
+  }
+
+  const focusedEvents = events.filter((e) => e.stage === focusedStage);
+  const cancelled =
+    order.status === "CANCELLED" || shipment?.status === "CANCELLED";
 
   return (
-    <div className="rounded-md border p-3 sm:p-4">
-      <div className="flex items-start overflow-x-auto pb-1">
-        {steps.map((step, index) => {
-          const isCurrent = index === currentIndex && !cancelled && !returned;
-          const isDone = step.done && !cancelled;
-          const Icon = step.icon;
+    <div className="space-y-3 rounded-md border p-3 sm:p-4">
+      <ShipmentStageTimeline
+        stages={stages}
+        current={progress.stage}
+        tone={progress.tone}
+        hasIncident={!!progress.incident}
+        captions={captions}
+        focused={canViewTracking ? focusedStage : null}
+        onFocus={canViewTracking ? setFocused : undefined}
+        requirements={requirements}
+        currentCompleted={!!nextStage}
+      />
 
-          return (
-            <div key={step.label} className="flex min-w-0 flex-1 flex-col items-center">
-              {/* Fila de círculo + conectores */}
-              <div className="flex w-full items-center">
-                <div
-                  className={cn(
-                    "h-0.5 flex-1",
-                    index === 0
-                      ? "bg-transparent"
-                      : isDone || isCurrent
-                        ? "bg-green-400 dark:bg-green-600"
-                        : "bg-muted",
-                  )}
-                />
-                <div
-                  className={cn(
-                    "relative flex size-8 shrink-0 items-center justify-center rounded-full border-2",
-                    isDone
-                      ? "border-green-500 bg-green-500 text-white"
-                      : isCurrent
-                        ? "border-amber-500 bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-                        : "border-muted-foreground/25 bg-background text-muted-foreground/50",
-                  )}
-                >
-                  {isDone ? <Check className="size-4" /> : <Icon className="size-4" />}
-                  {isCurrent && (
-                    <span className="absolute inline-flex size-full animate-ping rounded-full border-2 border-amber-400 opacity-60" />
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    "h-0.5 flex-1",
-                    index === steps.length - 1
-                      ? "bg-transparent"
-                      : isDone
-                        ? "bg-green-400 dark:bg-green-600"
-                        : "bg-muted",
-                  )}
-                />
-              </div>
-              <p
-                className={cn(
-                  "mt-1.5 px-1 text-center text-[11px] leading-tight",
-                  isDone
-                    ? "font-medium text-foreground"
-                    : isCurrent
-                      ? "font-semibold text-amber-700 dark:text-amber-400"
-                      : "text-muted-foreground/60",
-                )}
-              >
-                {step.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Qué sigue / estado excepcional */}
       {cancelled ? (
-        <p className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-red-50 py-1.5 text-xs font-medium text-red-700 dark:bg-red-950/30 dark:text-red-400">
+        <p className={cn(CALLOUT_CLASS, TONE_CALLOUT.stopped)}>
           <Ban className="size-3.5" />
           Orden cancelada
         </p>
-      ) : returned ? (
-        <p className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-red-50 py-1.5 text-xs font-medium text-red-700 dark:bg-red-950/30 dark:text-red-400">
+      ) : shipment?.status === "RETURNED" ? (
+        <p className={cn(CALLOUT_CLASS, TONE_CALLOUT.stopped)}>
           <Undo2 className="size-3.5" />
-          Devuelto al remitente — se agotaron los intentos de entrega
+          Devuelta al remitente — {progress.hint.toLowerCase()}
         </p>
-      ) : failedAttempt ? (
-        <p className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-amber-50 py-1.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
-          <Truck className="size-3.5" />
-          Intento de entrega fallido — se volverá a intentar
+      ) : progress.incident ? (
+        <p className={cn(CALLOUT_CLASS, TONE_CALLOUT.stopped)}>
+          <TriangleAlert className="size-3.5 shrink-0" />
+          {INCIDENT_LABELS[progress.incident.type]} — {progress.incident.reason}
         </p>
-      ) : current ? (
-        <p className="mt-2 text-center text-xs text-muted-foreground">
-          {current.pendingHint}
-        </p>
-      ) : (
-        <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+      ) : shipment?.status === "DELIVERED" ? (
+        <p className={cn(CALLOUT_CLASS, TONE_CALLOUT.done)}>
           <Check className="size-3.5" />
           Entregado al destinatario
         </p>
+      ) : (
+        progress.hint && (
+          <p className="text-center text-xs text-muted-foreground">
+            {progress.detail && (
+              <span className="font-medium text-foreground">
+                {progress.detail} ·{" "}
+              </span>
+            )}
+            {progress.hint}
+          </p>
+        )
+      )}
+
+      {actions && (
+        <div className="flex flex-wrap justify-end gap-2">{actions}</div>
+      )}
+
+      {canViewTracking && focusedStage && (
+        <div className="space-y-2 border-t pt-3">
+          <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {STAGE_LABELS[focusedStage]}
+          </h5>
+          {isLoading ? (
+            <p className="py-3 text-center text-xs text-muted-foreground">
+              Cargando historial...
+            </p>
+          ) : (
+            <ShipmentEventList
+              events={focusedEvents}
+              emptyText="Todavía no hay eventos registrados en esta etapa."
+              tone={progress.tone}
+              isCurrentStage={focusedStage === progress.stage}
+            />
+          )}
+        </div>
       )}
     </div>
   );

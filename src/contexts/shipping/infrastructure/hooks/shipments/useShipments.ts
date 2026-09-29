@@ -1,8 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { FindShipmentsResponse } from "../../../application/shipment/FindShipmentsResponse";
 import type { SelectShipmentProviderRequest } from "../../../application/shipment/GetshipmentProviderRequest";
+import type {
+  OpenShipmentIncidentRequest,
+  RecordShipmentEventRequest,
+  ResolveShipmentIncidentRequest,
+} from "../../../application/shipment/RecordShipmentEventRequest";
 import type { RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
 import { shipmentRepository } from "../../services/shipments/shipmentRepository";
+import { SHIPMENT_TRACKING_QUERY_KEY } from "./useShipment";
 
 const SHIPMENTS_QUERY_KEY = ["shipments"];
 
@@ -108,6 +114,37 @@ export const useShipmentActions = () => {
     },
   });
 
+  /** Todo lo que cambia cuando se escribe en la línea de tiempo: el envío, la
+   * orden que lo embebe, su historial y lo que se puede registrar después. */
+  const invalidateTimeline = () => {
+    queryClient.invalidateQueries({ queryKey: SHIPMENTS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: SHIPMENT_TRACKING_QUERY_KEY });
+  };
+
+  const recordEventMutation = useMutation({
+    mutationFn: (request: RecordShipmentEventRequest) =>
+      shipmentRepository.recordEvent(request),
+    onSuccess: () => {
+      invalidateTimeline();
+      // El back cierra también la parada cuando el envío va en una ruta en
+      // curso, así que la ruta y su avance quedaron viejos.
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
+    },
+  });
+
+  const openIncidentMutation = useMutation({
+    mutationFn: (request: OpenShipmentIncidentRequest) =>
+      shipmentRepository.openIncident(request),
+    onSuccess: invalidateTimeline,
+  });
+
+  const resolveIncidentMutation = useMutation({
+    mutationFn: (request: ResolveShipmentIncidentRequest) =>
+      shipmentRepository.resolveIncident(request),
+    onSuccess: invalidateTimeline,
+  });
+
   return {
     findByOrderId: shipmentRepository.findByOrderId,
 
@@ -129,6 +166,14 @@ export const useShipmentActions = () => {
     abortShipmentCreation: async (shipmentId: string) =>
       await abortCreationMutation.mutateAsync(shipmentId),
     isAbortingCreation: abortCreationMutation.isPending,
+
+    recordShipmentEvent: recordEventMutation.mutateAsync,
+    isRecordingEvent: recordEventMutation.isPending,
+
+    openShipmentIncident: openIncidentMutation.mutateAsync,
+    resolveShipmentIncident: resolveIncidentMutation.mutateAsync,
+    isSavingIncident:
+      openIncidentMutation.isPending || resolveIncidentMutation.isPending,
   };
 };
 
