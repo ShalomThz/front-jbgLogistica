@@ -1,11 +1,9 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
-import {
-  ORDER_STATUS_LABELS,
-  ORDER_STATUS_VARIANT,
-} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
-import { Badge } from "@contexts/shared/shadcn";
+import { orderProgress } from "@contexts/order-flow/domain/services/orderProgress";
+import { TONE_ROW } from "@contexts/shared/domain/schemas/StatusTone";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { LabelSource } from "@contexts/shipping/ui/labels/labelOptions";
+import { OrderProgressBar } from "../OrderProgressBar";
 import { CurrencyAmount } from "./CurrencyAmount";
 import { OrderActionsMenu } from "./OrderActionsMenu";
 import { OrderPaymentControl } from "./OrderPaymentControl";
@@ -49,18 +47,16 @@ export const OrderCard = ({
   onCompleteSale,
   onDelete,
 }: OrderCardProps) => {
-  const statusClass =
-    order.status === "CANCELLED"
-      ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-      : order.status === "PENDING_HQ_PROCESS"
-        ? "bg-yellow-50 dark:bg-yellow-500/15"
-        : order.status === "COMPLETED"
-          ? "bg-blue-50 dark:bg-blue-500/15"
-          : "";
-
   return (
     <div
-      className={`cursor-pointer space-y-3 rounded-lg border p-3 ${isHighlighted ? "animate-flash-order " : ""}${statusClass}`}
+      className={cn(
+        "cursor-pointer space-y-3 rounded-lg border p-3",
+        isHighlighted && "animate-flash-order",
+        // Misma regla que las filas de la tabla: el tinte sale del tono, no del
+        // estatus de la orden. Ver ROW_CLASS en OrdersTable.
+        TONE_ROW[orderProgress(order).tone],
+        order.status === "CANCELLED" && "opacity-60",
+      )}
       onClick={() => onOpenDetail(order)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -79,19 +75,7 @@ export const OrderCard = ({
             })}
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Badge variant={ORDER_STATUS_VARIANT[order.status]}>
-            {ORDER_STATUS_LABELS[order.status]}
-          </Badge>
-          {order.shipment && BOX_CYCLE_STATUS_LABELS[order.shipment.status] && (
-            <Badge
-              variant="outline"
-              className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
-            >
-              {BOX_CYCLE_STATUS_LABELS[order.shipment.status]}
-            </Badge>
-          )}
-        </div>
+        <OrderProgressBar order={order} className="shrink-0 items-end" />
       </div>
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">

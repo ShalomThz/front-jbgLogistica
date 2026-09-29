@@ -39,6 +39,12 @@ import { SendInvoiceEmailDialog } from "../components/order/SendInvoiceEmailDial
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
 import { OrdersTable } from "../components/order/orders-table/OrdersTable";
+import { OrderColumnsMenu } from "../components/order/orders-table/OrderColumnsMenu";
+import {
+  ORDER_COLUMNS,
+  allowedOrderColumns,
+} from "../components/order/orders-table/orderTableColumns";
+import { useColumnVisibility } from "@contexts/shared/infrastructure/hooks/useColumnVisibility";
 
 const LIMIT_OPTIONS = [10, 20, 50];
 
@@ -52,6 +58,10 @@ export const OrdersPage = () => {
   const [limit, setLimit] = useState(50);
 
   const { state: filters, setFilter, reset: resetFilters, criteria } = useOrderTableFilters();
+
+  // El estado de columnas vive acá, junto al resto del estado de la vista: lo
+  // lee la tabla y lo cambia el menú, que está en la barra de herramientas.
+  const columns = useColumnVisibility("orders");
 
   useEffect(() => {
     setPage(1);
@@ -204,6 +214,15 @@ export const OrdersPage = () => {
         limit={limit}
         limitOptions={LIMIT_OPTIONS}
         showStoreFilter={canListAllOrders}
+        columnsMenu={
+          <OrderColumnsMenu
+            columns={allowedOrderColumns(ORDER_COLUMNS, canViewFinancials)}
+            isHidden={columns.isHidden}
+            hiddenCount={columns.hiddenCount}
+            onToggle={columns.toggle}
+            onShowAll={columns.showAll}
+          />
+        }
         setFilter={setFilter}
         onLimitChange={(v) => {
           setLimit(v);
@@ -219,6 +238,7 @@ export const OrdersPage = () => {
         canEditHQ={canEditHQ}
         canDelete={canDelete}
         canViewFinancials={canViewFinancials}
+        isHidden={columns.isHidden}
         downloadingLabel={downloadingLabel}
         downloadingInvoice={downloadingInvoice}
         sendingInvoiceOrderId={sendingInvoiceOrderId}

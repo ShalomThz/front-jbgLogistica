@@ -8,6 +8,19 @@ import {
   type FindShipmentsResponse,
 } from "../../../application/shipment/FindShipmentsResponse";
 import type { GetShipmentRatesRequest } from "../../../application/shipment/GetshipmentRatesRequest";
+import {
+  availableShipmentEventsResponseSchema,
+  type AvailableShipmentEventsResponse,
+} from "../../../application/shipment/AvailableShipmentEventsResponse";
+import type {
+  OpenShipmentIncidentRequest,
+  RecordShipmentEventRequest,
+  ResolveShipmentIncidentRequest,
+} from "../../../application/shipment/RecordShipmentEventRequest";
+import {
+  shipmentTrackingEventSchema,
+  type ShipmentTrackingEventPrimitives,
+} from "../../../domain/schemas/tracking/ShipmentTrackingEvent";
 import type { UpdateShipmentGeolocationRequest } from "../../../application/shipment/UpdateShipmentGeolocationRequest";
 import type { SelectShipmentProviderRequest } from "../../../application/shipment/GetshipmentProviderRequest";
 import { rateSchema, type RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
@@ -38,6 +51,20 @@ export const shipmentRepository = {
       body: JSON.stringify({ filters: [], ...request }),
     });
     return findShipmentsResponseSchema.parse(data);
+  },
+
+  findById: async (
+    shipmentId: string,
+  ): Promise<ShipmentResponsePrimitives | null> => {
+    const data = await httpClient<unknown>("/shipment/find", {
+      method: "POST",
+      body: JSON.stringify({
+        filters: [{ field: "id", filterOperator: "=", value: shipmentId }],
+        limit: 1,
+      }),
+    });
+    const response = findShipmentsResponseSchema.parse(data);
+    return response.data[0] ?? null;
   },
 
   findByOrderId: async (orderId: string): Promise<ShipmentResponsePrimitives | null> => {
@@ -113,5 +140,89 @@ export const shipmentRepository = {
     await httpClient<unknown>(`/shipment/${shipmentId}/cancel`, {
       method: "DELETE",
     });
+  },
+
+  /** Los eventos que se pueden registrar sobre el envío tal como está. */
+  availableEvents: async (
+    shipmentId: string,
+  ): Promise<AvailableShipmentEventsResponse> => {
+    const data = await httpClient<unknown>(
+      `/shipment/${shipmentId}/events/available`,
+    );
+    return availableShipmentEventsResponseSchema.parse(data);
+  },
+
+  /** El historial completo, con responsables, observaciones y evidencia. */
+  tracking: async (
+    shipmentId: string,
+  ): Promise<ShipmentTrackingEventPrimitives[]> => {
+    const data = await httpClient<unknown>(`/shipment/${shipmentId}/tracking`);
+    return z.array(shipmentTrackingEventSchema).parse(data);
+  },
+
+  /**
+   * Registra un evento de la línea de tiempo. Cierra también la parada si el
+   * envío va en una ruta en curso y el evento lo entrega o lo devuelve.
+   *
+   * Va como `multipart/form-data` porque puede llevar foto y firma, y una
+   * imagen en base64 dentro de un JSON obliga al server a un `JSON.parse`
+   * sincrónico de varios MB — el mismo motivo por el que el endpoint del
+   * conductor es multipart.
+   */
+  recordEvent: async ({
+    shipmentId,
+    photos = [],
+    signature,
+    location,
+    ...fields
+  }: RecordShipmentEventRequest): Promise<ShipmentResponsePrimitives> => {
+    const formData = new FormData();
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) formData.append(key, value);
+    }
+    // El multipart solo lleva texto y archivos: la bodega va como JSON.
+    if (location) formData.append("location", JSON.stringify(location));
+    // Mismo nombre de campo repetido: multer los junta en una lista.
+    photos.forEach((photo, index) =>
+      formData.append("photos", photo, `evidencia-${index + 1}.jpg`),
+    );
+    if (signature) formData.append("signature", signature, "firma.png");
+
+    const data = await httpClient<unknown>(`/shipment/${shipmentId}/events`, {
+      method: "POST",
+      body: formData,
+    });
+    return shipmentResponseSchema.parse(data);
+  },
+
+  openIncident: async ({
+    shipmentId,
+    type,
+    reason,
+    photos = [],
+  }: OpenShipmentIncidentRequest): Promise<ShipmentResponsePrimitives> => {
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("reason", reason);
+    photos.forEach((photo, index) =>
+      formData.append("photos", photo, `evidencia-${index + 1}.jpg`),
+    );
+
+    const data = await httpClient<unknown>(`/shipment/${shipmentId}/incident`, {
+      method: "POST",
+      body: formData,
+    });
+    return shipmentResponseSchema.parse(data);
+  },
+
+  resolveIncident: async ({
+    shipmentId,
+    resolution,
+  }: ResolveShipmentIncidentRequest): Promise<ShipmentResponsePrimitives> => {
+    const data = await httpClient<unknown>(
+      `/shipment/${shipmentId}/incident/resolve`,
+      { method: "POST", body: JSON.stringify({ resolution }) },
+    );
+    return shipmentResponseSchema.parse(data);
   },
 };

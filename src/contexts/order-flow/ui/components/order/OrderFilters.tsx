@@ -1,18 +1,7 @@
-import {
-  ArrowDownAZ,
-  Box,
-  CalendarDays,
-  Clock,
-  CreditCard,
-  Filter,
-  Hash,
-  MapPin,
-  RefreshCw,
-  Search,
-  Store,
-  UserRound,
-} from "lucide-react";
-import { useState } from "react";
+import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
+import { BoxFilterCombobox } from "@contexts/inventory/ui/components/box/BoxFilterCombobox";
+import { ORDER_STATUS_OPTIONS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { CustomerFilterCombobox } from "@contexts/sales/ui/components/customer/CustomerFilterCombobox";
 import {
   Button,
   Calendar,
@@ -33,15 +22,26 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@contexts/shared/shadcn";
+import {
+  ArrowDownAZ,
+  Box,
+  CalendarDays,
+  Clock,
+  CreditCard,
+  Filter,
+  MapPin,
+  RefreshCw,
+  Search,
+  Store,
+  UserRound,
+} from "lucide-react";
+import { useState, type ReactNode } from "react";
 import type {
-  OrderTableFilterState,
   DatePreset,
-  NameSort,
   DateSort,
+  NameSort,
+  OrderTableFilterState,
 } from "../../hooks/orders/useOrderTableFilters";
-import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
-import { BoxFilterCombobox } from "@contexts/inventory/ui/components/box/BoxFilterCombobox";
-import { CustomerFilterCombobox } from "@contexts/sales/ui/components/customer/CustomerFilterCombobox";
 
 interface OrderFiltersProps {
   filters: OrderTableFilterState;
@@ -50,6 +50,9 @@ interface OrderFiltersProps {
   /** El filtro de tienda solo tiene sentido con CAN_LIST_ALL_ORDERS: sin ese
    * permiso la consulta ya viene acotada a la tienda del usuario. */
   showStoreFilter: boolean;
+  /** El menú de columnas de la tabla, para que los tres controles de la vista
+   * queden juntos. Lo arma la página, que es la que tiene ese estado. */
+  columnsMenu?: ReactNode;
   setFilter: <K extends keyof OrderTableFilterState>(
     key: K,
     value: OrderTableFilterState[K],
@@ -84,12 +87,14 @@ function DatePickerField({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">
+        {label}
+      </Label>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="h-11 w-full justify-start rounded-xl bg-background text-left font-normal shadow-xs"
+            className="w-full justify-start rounded-lg bg-background text-left font-normal"
           >
             <CalendarDays className="mr-2 size-4 text-muted-foreground" />
             {selected ? (
@@ -115,11 +120,35 @@ function DatePickerField({
   );
 }
 
-const countAdvancedFilters = (
+/** Etiqueta de un campo dentro del panel. */
+function SheetFieldLabel({
+  icon: Icon,
+  children,
+}: {
+  icon: typeof Search;
+  children: ReactNode;
+}) {
+  return (
+    <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Icon className="size-3.5" />
+      {children}
+    </Label>
+  );
+}
+
+/**
+ * Cuántos filtros hay puestos dentro del panel, que ahora es *todos* menos el
+ * buscador. Es el número del badge: sin él, con el panel cerrado alguien ve la
+ * tabla acotada y no encuentra por qué.
+ */
+const countSheetFilters = (
   filters: OrderTableFilterState,
   showStoreFilter: boolean,
 ): number =>
   [
+    filters.originCustomerFilter,
+    filters.destinationCustomerFilter,
+    filters.dateFilter,
     filters.statusFilter,
     showStoreFilter ? filters.storeFilter : "all",
     filters.paymentFilter,
@@ -127,319 +156,278 @@ const countAdvancedFilters = (
   ].filter((value) => value !== "all").length +
   (filters.nameSort !== "none" || filters.dateSort !== "desc" ? 1 : 0);
 
-const hasActiveFilters = (
-  filters: OrderTableFilterState,
-  showStoreFilter: boolean,
-) =>
-  filters.searchQuery.trim().length > 0 ||
-  filters.originCustomerFilter !== "all" ||
-  filters.destinationCustomerFilter !== "all" ||
-  filters.dateFilter !== "all" ||
-  countAdvancedFilters(filters, showStoreFilter) > 0;
-
 const activeSelectClass = (value: string, defaultValue = "all") =>
   value !== defaultValue ? "border-primary/40 bg-primary/5" : "";
 
 const activeSortClass = (value: string, defaultValue: string) =>
   value !== defaultValue ? "ring-2 ring-primary/50" : "";
 
-function FilterFieldLabel({
-  icon: Icon,
-  children,
-}: {
-  icon: typeof Search;
-  children: React.ReactNode;
-}) {
-  return (
-    <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground/75">
-      <Icon className="size-3.5 text-primary" />
-      {children}
-    </Label>
-  );
-}
-
+/**
+ * Barra de herramientas de la tabla de órdenes.
+ *
+ * Solo el buscador por número queda a la vista; todo lo demás vive en el panel
+ * lateral. Antes había una card con cuatro campos siempre desplegados arriba de
+ * la tabla, que ocupaba la franja más valiosa de la pantalla para filtros que
+ * casi nunca se cambian dos veces seguidas.
+ */
 export const OrderFilters = ({
   filters,
   limit,
   limitOptions,
   showStoreFilter,
+  columnsMenu,
   setFilter,
   onLimitChange,
   onResetAndRefetch,
 }: OrderFiltersProps) => {
-  const advancedCount = countAdvancedFilters(filters, showStoreFilter);
-  const filtersAreActive = hasActiveFilters(filters, showStoreFilter);
+  const sheetCount = countSheetFilters(filters, showStoreFilter);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
-    <section
-      aria-label="Búsqueda y filtros de órdenes"
-      className="rounded-2xl border bg-card/80 p-3 shadow-sm sm:p-4"
-    >
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.35fr)_minmax(210px,1fr)_minmax(210px,1fr)_minmax(180px,0.8fr)]">
-        <div className="space-y-1.5 md:col-span-2 xl:col-span-1">
-          <FilterFieldLabel icon={Hash}>Orden o número de guía</FilterFieldLabel>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              aria-label="Buscar por número de orden o número de guía"
-              placeholder="Ej. JBG-1024 o 1Z999AA..."
-              value={filters.searchQuery}
-              onChange={(event) => setFilter("searchQuery", event.target.value)}
-              className="h-11 rounded-xl bg-background pl-9 shadow-xs"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <FilterFieldLabel icon={UserRound}>Remitente</FilterFieldLabel>
-          <CustomerFilterCombobox
-            value={filters.originCustomerFilter}
-            onChange={(value) => setFilter("originCustomerFilter", value)}
-            allLabel="Todos los remitentes"
-            searchPlaceholder="Buscar remitente..."
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <FilterFieldLabel icon={MapPin}>Destinatario</FilterFieldLabel>
-          <CustomerFilterCombobox
-            value={filters.destinationCustomerFilter}
-            onChange={(value) => setFilter("destinationCustomerFilter", value)}
-            allLabel="Todos los destinatarios"
-            searchPlaceholder="Buscar destinatario..."
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <FilterFieldLabel icon={CalendarDays}>Fecha de creación</FilterFieldLabel>
-          <Select
-            value={filters.dateFilter}
-            onValueChange={(value) => setFilter("dateFilter", value as DatePreset)}
-          >
-            <SelectTrigger
-              className={`h-11 w-full rounded-xl bg-background shadow-xs ${activeSelectClass(filters.dateFilter)}`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Cualquier fecha</SelectItem>
-              <SelectItem value="today">Hoy</SelectItem>
-              <SelectItem value="week">Últimos 7 días</SelectItem>
-              <SelectItem value="month">Últimos 30 días</SelectItem>
-              <SelectItem value="3months">Últimos 3 meses</SelectItem>
-              <SelectItem value="custom">Rango personalizado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative min-w-[220px] flex-1">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          aria-label="Buscar por número de orden o número de guía"
+          placeholder="Buscar orden o número de guía..."
+          value={filters.searchQuery}
+          onChange={(event) => setFilter("searchQuery", event.target.value)}
+          className="pl-9"
+        />
       </div>
 
-      {filters.dateFilter === "custom" && (
-        <div className="mt-3 grid gap-3 rounded-xl border border-dashed bg-muted/30 p-3 sm:grid-cols-2 xl:ml-auto xl:max-w-[520px]">
-          <DatePickerField
-            label="Desde"
-            value={filters.dateFrom}
-            onChange={(value) => setFilter("dateFrom", value)}
-          />
-          <DatePickerField
-            label="Hasta"
-            value={filters.dateTo}
-            onChange={(value) => setFilter("dateTo", value)}
-          />
-        </div>
-      )}
+      <Select
+        value={String(limit)}
+        onValueChange={(value) => onLimitChange(Number(value))}
+      >
+        <SelectTrigger
+          aria-label="Resultados por página"
+          className="h-9 w-[142px]"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {limitOptions.map((option) => (
+            <SelectItem key={option} value={String(option)}>
+              {option} por página
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          {filtersAreActive
-            ? "La lista se actualiza automáticamente con tus filtros."
-            : "Busca una orden o combina clientes y fecha para acotar resultados."}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {filtersAreActive && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-muted-foreground"
-              onClick={onResetAndRefetch}
-            >
-              <RefreshCw className="size-3.5" />
-              Limpiar
-            </Button>
-          )}
-
-          <Select
-            value={String(limit)}
-            onValueChange={(value) => onLimitChange(Number(value))}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant={sheetCount > 0 ? "secondary" : "outline"}
+            size="sm"
+            className="h-9 gap-1.5"
           >
-            <SelectTrigger
-              aria-label="Resultados por página"
-              className="h-9 w-[142px] rounded-lg"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {limitOptions.map((option) => (
-                <SelectItem key={option} value={String(option)}>
-                  {option} por página
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Filter className="size-4" />
+            Más filtros
+            {sheetCount > 0 && (
+              <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {sheetCount}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="right" className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Más filtros</SheetTitle>
+            <SheetDescription>
+              Acota la lista por cliente, fecha, estado, pago, tienda o caja, y
+              elige cómo ordenarla.
+            </SheetDescription>
+          </SheetHeader>
 
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant={advancedCount > 0 ? "secondary" : "outline"}
-                size="sm"
-                className="gap-1.5 rounded-lg"
+          <div className="space-y-5 px-4 pb-4">
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={UserRound}>Remitente</SheetFieldLabel>
+              <CustomerFilterCombobox
+                value={filters.originCustomerFilter}
+                onChange={(value) => setFilter("originCustomerFilter", value)}
+                allLabel="Todos los remitentes"
+                searchPlaceholder="Buscar remitente..."
+                enabled={sheetOpen}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={MapPin}>Destinatario</SheetFieldLabel>
+              <CustomerFilterCombobox
+                value={filters.destinationCustomerFilter}
+                onChange={(value) =>
+                  setFilter("destinationCustomerFilter", value)
+                }
+                allLabel="Todos los destinatarios"
+                searchPlaceholder="Buscar destinatario..."
+                enabled={sheetOpen}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={CalendarDays}>
+                Fecha de creación
+              </SheetFieldLabel>
+              <Select
+                value={filters.dateFilter}
+                onValueChange={(value) =>
+                  setFilter("dateFilter", value as DatePreset)
+                }
               >
-                <Filter className="size-4" />
-                Más filtros
-                {advancedCount > 0 && (
-                  <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-                    {advancedCount}
-                  </span>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Más filtros</SheetTitle>
-                <SheetDescription>
-                  Ajusta el estado, pago, tienda, caja y orden de la lista.
-                </SheetDescription>
-              </SheetHeader>
+                <SelectTrigger className={activeSelectClass(filters.dateFilter)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Cualquier fecha</SelectItem>
+                  <SelectItem value="today">Hoy</SelectItem>
+                  <SelectItem value="week">Últimos 7 días</SelectItem>
+                  <SelectItem value="month">Últimos 30 días</SelectItem>
+                  <SelectItem value="3months">Últimos 3 meses</SelectItem>
+                  <SelectItem value="custom">Rango personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-5 px-4">
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Clock className="size-3.5" />
-                    Ordenar por fecha
-                  </Label>
-                  <Select
-                    value={filters.dateSort}
-                    onValueChange={(value) => setFilter("dateSort", value as DateSort)}
-                  >
-                    <SelectTrigger className={activeSortClass(filters.dateSort, "desc")}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="desc">Más reciente</SelectItem>
-                      <SelectItem value="asc">Más antiguo</SelectItem>
-                      <SelectItem value="none">Sin orden</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <ArrowDownAZ className="size-3.5" />
-                    Ordenar por destinatario
-                  </Label>
-                  <Select
-                    value={filters.nameSort}
-                    onValueChange={(value) => setFilter("nameSort", value as NameSort)}
-                  >
-                    <SelectTrigger className={activeSortClass(filters.nameSort, "none")}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin orden</SelectItem>
-                      <SelectItem value="asc">A-Z</SelectItem>
-                      <SelectItem value="desc">Z-A</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <hr />
-
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Filter className="size-3.5" />
-                    Estado
-                  </Label>
-                  <Select
-                    value={filters.statusFilter}
-                    onValueChange={(value) => setFilter("statusFilter", value)}
-                  >
-                    <SelectTrigger className={activeSelectClass(filters.statusFilter)}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="DRAFT">Borrador</SelectItem>
-                      <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
-                      <SelectItem value="COMPLETED">Completada</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {showStoreFilter && (
-                  <div className="space-y-1.5">
-                    <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Store className="size-3.5" />
-                      Tienda
-                    </Label>
-                    <StoreFilterCombobox
-                      value={filters.storeFilter}
-                      onChange={(value) => setFilter("storeFilter", value)}
-                      enabled={sheetOpen}
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <CreditCard className="size-3.5" />
-                    Pago
-                  </Label>
-                  <Select
-                    value={filters.paymentFilter}
-                    onValueChange={(value) => setFilter("paymentFilter", value)}
-                  >
-                    <SelectTrigger className={activeSelectClass(filters.paymentFilter)}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los pagos</SelectItem>
-                      <SelectItem value="paid">Pagado</SelectItem>
-                      <SelectItem value="unpaid">No pagado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Box className="size-3.5" />
-                    Caja
-                  </Label>
-                  <BoxFilterCombobox
-                    value={filters.boxFilter}
-                    onChange={(value) => setFilter("boxFilter", value)}
-                    enabled={sheetOpen}
-                  />
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => {
-                    onResetAndRefetch();
-                    setSheetOpen(false);
-                  }}
-                >
-                  <RefreshCw className="size-4" />
-                  Limpiar filtros y actualizar
-                </Button>
+            {filters.dateFilter === "custom" && (
+              <div className="grid gap-3 rounded-lg border border-dashed bg-muted/30 p-3">
+                <DatePickerField
+                  label="Desde"
+                  value={filters.dateFrom}
+                  onChange={(value) => setFilter("dateFrom", value)}
+                />
+                <DatePickerField
+                  label="Hasta"
+                  value={filters.dateTo}
+                  onChange={(value) => setFilter("dateTo", value)}
+                />
               </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </div>
-    </section>
+            )}
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={Filter}>Estado</SheetFieldLabel>
+              <Select
+                value={filters.statusFilter}
+                onValueChange={(value) => setFilter("statusFilter", value)}
+              >
+                <SelectTrigger
+                  className={activeSelectClass(filters.statusFilter)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  {ORDER_STATUS_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={CreditCard}>Pago</SheetFieldLabel>
+              <Select
+                value={filters.paymentFilter}
+                onValueChange={(value) => setFilter("paymentFilter", value)}
+              >
+                <SelectTrigger
+                  className={activeSelectClass(filters.paymentFilter)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los pagos</SelectItem>
+                  <SelectItem value="paid">Pagado</SelectItem>
+                  <SelectItem value="unpaid">No pagado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {showStoreFilter && (
+              <div className="space-y-1.5">
+                <SheetFieldLabel icon={Store}>Tienda</SheetFieldLabel>
+                <StoreFilterCombobox
+                  value={filters.storeFilter}
+                  onChange={(value) => setFilter("storeFilter", value)}
+                  enabled={sheetOpen}
+                />
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={Box}>Caja</SheetFieldLabel>
+              <BoxFilterCombobox
+                value={filters.boxFilter}
+                onChange={(value) => setFilter("boxFilter", value)}
+                enabled={sheetOpen}
+              />
+            </div>
+
+            <hr />
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={Clock}>Ordenar por fecha</SheetFieldLabel>
+              <Select
+                value={filters.dateSort}
+                onValueChange={(value) =>
+                  setFilter("dateSort", value as DateSort)
+                }
+              >
+                <SelectTrigger
+                  className={activeSortClass(filters.dateSort, "desc")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Más reciente</SelectItem>
+                  <SelectItem value="asc">Más antiguo</SelectItem>
+                  <SelectItem value="none">Sin orden</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <SheetFieldLabel icon={ArrowDownAZ}>
+                Ordenar por destinatario
+              </SheetFieldLabel>
+              <Select
+                value={filters.nameSort}
+                onValueChange={(value) =>
+                  setFilter("nameSort", value as NameSort)
+                }
+              >
+                <SelectTrigger
+                  className={activeSortClass(filters.nameSort, "none")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin orden</SelectItem>
+                  <SelectItem value="asc">A-Z</SelectItem>
+                  <SelectItem value="desc">Z-A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                onResetAndRefetch();
+                setSheetOpen(false);
+              }}
+            >
+              <RefreshCw className="size-4" />
+              Limpiar filtros y actualizar
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {columnsMenu}
+    </div>
   );
 };

@@ -4,6 +4,7 @@ import { exportOrderReport } from "@contexts/order-flow/domain/services/exportOr
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import {
   ORDER_STATUS_LABELS,
+  ORDER_STATUS_OPTIONS,
   ORDER_STATUS_VARIANT,
 } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { useOrderReport } from "@contexts/sales/infrastructure/hooks/orders/useOrderReport";
@@ -320,10 +321,11 @@ export const OrderReport = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="DRAFT">Borrador</SelectItem>
-                  <SelectItem value="PENDING_HQ_PROCESS">Pendiente</SelectItem>
-                  <SelectItem value="COMPLETED">Completada</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelada</SelectItem>
+                  {ORDER_STATUS_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -470,7 +472,7 @@ export const OrderReport = () => {
               {isLoading ? "—" : fmt(report?.totalRevenue ?? 0)}
             </div>
             <p className="mt-1 font-mono text-xs text-muted-foreground">
-              {isLoading ? "" : `Prom. ${fmt(report?.avgOrderValue ?? 0)} · solo completadas`}
+              {isLoading ? "" : `Prom. ${fmt(report?.avgOrderValue ?? 0)} · solo procesadas`}
             </p>
           </CardContent>
         </Card>
@@ -495,7 +497,7 @@ export const OrderReport = () => {
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completadas
+              Procesadas
             </CardTitle>
             <div className="rounded-md bg-green-500/10 p-1.5">
               <FileText className="size-4 text-green-600 dark:text-green-400" />

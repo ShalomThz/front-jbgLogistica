@@ -10,18 +10,29 @@ interface DomainEvent {
   [key: string]: unknown;
 }
 
-const EVENT_QUERY_MAP: Record<string, string[]> = {
-  zone: ["zones"],
-  order: ["orders"],
-  package: ["packages"],
-  shipment: ["shipments"],
-  route: ["routes"],
-  driver: ["drivers"],
-  store: ["stores"],
-  user: ["users"],
-  box: ["boxes"],
-  tariff: ["tariffs"],
-  customer: ["customers"],
+/**
+ * Qué consultas refrescar cuando llega un evento de cada entidad. Una entidad
+ * puede afectar a varias: la orden **embebe** su envío en la vista de lista —de
+ * ahí leen la tabla, el encabezado del detalle y la línea de tiempo—, y el back
+ * la reproyecta con los eventos del envío. Refrescando solo `shipments`, un
+ * envío que avanzaba (venta completada, webhook, entrega del chofer, evento
+ * registrado) no se veía hasta recargar la página.
+ */
+const EVENT_QUERY_MAP: Record<string, readonly string[][]> = {
+  zone: [["zones"]],
+  order: [["orders"]],
+  package: [["packages"]],
+  shipment: [["shipments"], ["orders"], ["shipment-tracking"]],
+  route: [["routes"]],
+  driver: [["drivers"]],
+  store: [["stores"]],
+  // También el usuario en sesión (`useAuth`): si le cambiaron el rol, el menú y
+  // los botones tienen que reflejarlo sin recargar. El back ya lo aplica en la
+  // siguiente petición.
+  user: [["users"], ["auth", "user"]],
+  box: [["boxes"]],
+  tariff: [["tariffs"]],
+  customer: [["customers"]],
 };
 
 const NOTIFICATION_EVENT_NAMES = new Set([
@@ -53,9 +64,7 @@ function handleDomainEvent(event: DomainEvent) {
     queryClient.invalidateQueries({ queryKey: ["notifications"] });
   }
 
-  const queryKey = EVENT_QUERY_MAP[entity];
-
-  if (queryKey) {
+  for (const queryKey of EVENT_QUERY_MAP[entity] ?? []) {
     queryClient.invalidateQueries({ queryKey });
   }
 }

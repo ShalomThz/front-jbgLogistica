@@ -42,6 +42,18 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-status-attention: var(--status-attention);
+  --color-status-attention-fg: var(--status-attention-fg);
+  --color-status-attention-soft: var(--status-attention-soft);
+  --color-status-done: var(--status-done);
+  --color-status-done-fg: var(--status-done-fg);
+  --color-status-done-soft: var(--status-done-soft);
+  --color-status-transit: var(--status-transit);
+  --color-status-transit-fg: var(--status-transit-fg);
+  --color-status-transit-soft: var(--status-transit-soft);
+  --color-status-problem: var(--status-problem);
+  --color-status-problem-fg: var(--status-problem-fg);
+  --color-status-problem-soft: var(--status-problem-soft);
   --animate-first: moveVertical 30s ease infinite;
   --animate-second: moveInCircle 20s reverse infinite;
   --animate-third: moveInCircle 40s linear infinite;
@@ -83,6 +95,38 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ── Estado ────────────────────────────────────────────────────────────────
+   * El azul de la marca (--primary, hue 264, chroma 0.25) es el color de la
+   * *interfaz*: botón primario, foco, nav activa. Nunca significa un estado.
+   * Estos son los colores del *dato*, y siguen tres reglas:
+   *
+   * 1. Hue lejos de 264, para que no se lean como variantes de la marca.
+   * 2. Chroma por debajo de 0.25, para que la marca conserve la jerarquía.
+   *    Los `*-500` de Tailwind andan en 0.19–0.22 y le competían de igual a igual.
+   * 3. Tres tonos por estado, porque no sirve el mismo para todo: `soft` es
+   *    fondo, el base es relleno y borde, y `fg` es el único con contraste AA
+   *    como texto. Usar el relleno como texto es el error que tenía el badge
+   *    del envío (mismo amber-700 para las dos cosas).
+   *
+   * El color recorre la línea de avance: ámbar mientras algo espera acción,
+   * azul una vez que el paquete se mueve solo, verde al llegar. */
+  --status-attention: oklch(0.75 0.13 85);
+  --status-attention-fg: oklch(0.48 0.11 75);
+  --status-attention-soft: oklch(0.96 0.03 85);
+  /* El azul de "en movimiento": un azul pleno, ni celeste ni el índigo de la
+   * marca. Lo que lo separa de `--primary` (L 0.37, C 0.25, hue 264) no es el
+   * hue —están a 12 grados— sino que es bastante más claro y menos saturado, y
+   * que aparece en formas distintas: barra y badge contra botón relleno. */
+  --status-transit: oklch(0.54 0.17 252);
+  --status-transit-fg: oklch(0.45 0.16 252);
+  --status-transit-soft: oklch(0.96 0.03 252);
+  --status-done: oklch(0.65 0.13 150);
+  --status-done-fg: oklch(0.45 0.1 155);
+  --status-done-soft: oklch(0.96 0.03 150);
+  --status-problem: oklch(0.6 0.18 27);
+  --status-problem-fg: oklch(0.48 0.17 27);
+  --status-problem-soft: oklch(0.96 0.02 27);
 }
 
 .dark {
@@ -117,6 +161,21 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* En oscuro se invierte el par: el texto sube de luminosidad y el fondo baja.
+   * El relleno casi no se mueve — funciona sobre los dos fondos. */
+  --status-attention: oklch(0.72 0.13 85);
+  --status-attention-fg: oklch(0.8 0.12 85);
+  --status-attention-soft: oklch(0.28 0.05 85);
+  --status-transit: oklch(0.62 0.17 252);
+  --status-transit-fg: oklch(0.76 0.15 252);
+  --status-transit-soft: oklch(0.27 0.06 252);
+  --status-done: oklch(0.65 0.13 150);
+  --status-done-fg: oklch(0.78 0.11 150);
+  --status-done-soft: oklch(0.26 0.05 150);
+  --status-problem: oklch(0.62 0.18 27);
+  --status-problem-fg: oklch(0.75 0.15 27);
+  --status-problem-soft: oklch(0.27 0.06 27);
 }
 
 @layer base {

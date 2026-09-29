@@ -139,7 +139,9 @@ export const OrderFinancialSection = ({
         </div>
         <div className="rounded-xl border p-4">
           <p className="text-xs text-muted-foreground">Pagado</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+          {/* Neutro: es un hecho, no una alarma. La señal la lleva la card de
+              Saldo que está al lado, y el verde se reserva para el recorrido. */}
+          <p className="mt-1 text-2xl font-bold tabular-nums">
             {balance && totalBilled
               ? formatMoney({
                   amount: balance.paid,

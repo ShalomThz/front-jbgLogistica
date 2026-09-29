@@ -35,6 +35,13 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
   const { orders: fulfilledRaw, isLoading } = useOrders({
     filters: [
       { field: "shipment.status", filterOperator: "=", value: "FULFILLED" },
+      // Solo flota JBG: una paquetería lleva su propia logística y el back
+      // rechaza meter esos envíos en una ruta.
+      {
+        field: "shipment.provider.type",
+        filterOperator: "=",
+        value: "INTERNAL_FLEET",
+      },
       ...storeScopeFilters,
     ],
     limit: 100,
@@ -113,9 +120,9 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
             <Package className="size-9 opacity-25" />
             <p className="text-sm font-medium">
               {fulfilledRaw.length === 0
-                ? "No hay órdenes con envío FULFILLED"
+                ? "No hay órdenes de JBG Logistics listas para despachar"
                 : fulfilled.length === 0
-                ? "Todas las órdenes FULFILLED ya están en otra ruta"
+                ? "Todas las órdenes listas para despachar ya están en otra ruta"
                 : "Sin resultados para esa búsqueda"}
             </p>
           </div>

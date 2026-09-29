@@ -7,12 +7,15 @@ const SKYDROPX_ADDRESSES_QUERY_KEY = ["settings", "skydropx-addresses"];
 
 const EMPTY_ADDRESSES: never[] = [];
 
-export const useHQSettings = () => {
+/** `enabled` para pedir la lista solo cuando se va a usar: el diálogo de
+ * registrar evento se monta en cada orden, abierto o no. */
+export const useHQSettings = ({ enabled = true }: { enabled?: boolean } = {}) => {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: SKYDROPX_ADDRESSES_QUERY_KEY,
     queryFn: () => skydropxSettingsRepository.getAddresses(),
+    enabled,
   });
 
   const saveMutation = useMutation({

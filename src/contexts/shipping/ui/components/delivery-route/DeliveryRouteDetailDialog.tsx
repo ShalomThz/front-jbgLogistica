@@ -19,6 +19,7 @@ import { parseApiError } from "@contexts/shared/infrastructure/http";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
+import { ShipmentEventDialog } from "../shipment/ShipmentEventDialog";
 import type { RoutePrimitives, RouteStatus } from "../../../domain/schemas/route/Route";
 import type { RouteStopPrimitives } from "../../../domain/schemas/route/RouteStop";
 import { ROUTE_TYPE_COPY } from "../../../domain/schemas/route/routeTypeCopy";
@@ -343,6 +344,18 @@ export const DeliveryRouteDetailDialog = ({
                                 )}
                               </Button>
                             )}
+                            {/* Cerrar la parada desde la oficina cuando el
+                                conductor no la registró. Solo tiene sentido
+                                mientras quede algo por hacer en ella. */}
+                            {route.status === "ACTIVE" &&
+                              stop.status !== "DELIVERED" &&
+                              stop.status !== "RETURNED" && (
+                                <ShipmentEventDialog
+                                  shipmentId={stop.shipmentId}
+                                  reference={stop.orderReference}
+                                  compact
+                                />
+                              )}
                           </div>
                         </div>
                       );

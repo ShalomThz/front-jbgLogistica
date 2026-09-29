@@ -8,21 +8,46 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   PAID: "Pagado",
 };
 
-/** Estilo para badges (outline) — tabla, detalle, resumen. */
+/**
+ * Estilo para badges (outline) — tabla, detalle, resumen.
+ *
+ * ## La regla de color del sistema
+ *
+ * Un color, un significado, en toda la pantalla:
+ *
+ * - **ámbar** falta una acción. Significa lo mismo acá que en la barra de
+ *   avance: algo espera que alguien se ocupe.
+ * - **verde** cerrado bien. Lo usa el recorrido al entregar y el pago al
+ *   saldarse. Cuando los dos están en verde, la orden está cerrada de las dos
+ *   puntas — es redundancia que confirma, no dos señales peleando.
+ * - **rojo** solo para lo que se cortó: devuelta, cancelada.
+ * - **gris** nada que reportar.
+ * - **azul** es de la marca (`--primary`) y del tránsito; nunca del dinero.
+ *
+ * De ahí la decisión que sorprende: **"No pagado" es ámbar, no rojo.** Casi toda
+ * orden nace sin pagar; pintarlas rojas es fatiga de alarma y le saca al rojo el
+ * único significado que lo hace útil. Falta plata es una acción pendiente, no
+ * una rotura. "Parcial" y "No pagado" comparten el ámbar porque significan lo
+ * mismo —falta plata— y los distingue la palabra, no el color.
+ *
+ * Los tonos salen de los tokens `--status-*` y no de literales de Tailwind: los
+ * `*-500` andan en chroma 0.19–0.22 y le competían de igual a igual al azul de
+ * la marca (0.25). Los tokens están por debajo a propósito, y separan el tono de
+ * relleno del de texto, que necesitan luminosidades distintas.
+ */
 export const PAYMENT_STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
-  PAID: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+  PAID: "bg-status-done-soft text-status-done-fg border-status-done/40",
   PARTIALLY_PAID:
-    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900",
+    "bg-status-attention-soft text-status-attention-fg border-status-attention/40",
   UNPAID:
-    "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900",
+    "bg-status-attention-soft text-status-attention-fg border-status-attention/40",
 };
 
 /**
  * Estilo para superficies grandes: encabezados de card y paneles de abono.
  *
- * Mismo semáforo que los badges. Vive acá y no suelto en cada componente para
- * que un cambio de paleta no deje al badge diciendo verde y a la card de la
- * misma orden diciendo otra cosa.
+ * Misma regla que los badges —ver arriba— para que un cambio de paleta no deje
+ * al badge diciendo una cosa y a la card de la misma orden diciendo otra.
  *
  * Ojo: cuando el color pasa a significar **estado**, deja de poder significar
  * **de quién es la plata**. Esa distinción la cargan el ícono y el título
@@ -33,19 +58,19 @@ export const PAYMENT_STATUS_SURFACE: Record<
   { card: string; accent: string; iconBg: string }
 > = {
   PAID: {
-    card: "border-green-200 bg-gradient-to-br from-green-50 to-transparent dark:border-green-900/50 dark:from-green-950/30",
-    accent: "text-green-800 dark:text-green-300",
-    iconBg: "bg-green-100 dark:bg-green-900/50",
+    card: "border-status-done/30 bg-gradient-to-br from-status-done-soft to-transparent",
+    accent: "text-status-done-fg",
+    iconBg: "bg-status-done-soft",
   },
   PARTIALLY_PAID: {
-    card: "border-amber-200 bg-gradient-to-br from-amber-50 to-transparent dark:border-amber-900/50 dark:from-amber-950/30",
-    accent: "text-amber-800 dark:text-amber-300",
-    iconBg: "bg-amber-100 dark:bg-amber-900/50",
+    card: "border-status-attention/30 bg-gradient-to-br from-status-attention-soft to-transparent",
+    accent: "text-status-attention-fg",
+    iconBg: "bg-status-attention-soft",
   },
   UNPAID: {
-    card: "border-red-200 bg-gradient-to-br from-red-50 to-transparent dark:border-red-900/50 dark:from-red-950/30",
-    accent: "text-red-800 dark:text-red-300",
-    iconBg: "bg-red-100 dark:bg-red-900/50",
+    card: "border-status-attention/30 bg-gradient-to-br from-status-attention-soft to-transparent",
+    accent: "text-status-attention-fg",
+    iconBg: "bg-status-attention-soft",
   },
 };
 
@@ -62,11 +87,11 @@ export const resolveLedgerStatus = (
 
 /** Estilo para botones interactivos (con hover) — controles de pago. */
 export const PAYMENT_STATUS_BUTTON_CLASS: Record<PaymentStatus, string> = {
-  PAID: "bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900 dark:hover:bg-green-950/50 dark:hover:text-green-300",
+  PAID: "bg-status-done-soft text-status-done-fg border-status-done/40 hover:bg-status-done/20",
   PARTIALLY_PAID:
-    "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900 dark:hover:bg-amber-950/50 dark:hover:text-amber-300",
+    "bg-status-attention-soft text-status-attention-fg border-status-attention/40 hover:bg-status-attention/20",
   UNPAID:
-    "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-950/50 dark:hover:text-red-300",
+    "bg-status-attention-soft text-status-attention-fg border-status-attention/40 hover:bg-status-attention/20",
 };
 
 /** Origen mínimo del estado (financials de la orden). Estructural para no

@@ -1,4 +1,4 @@
-import { hasAll } from "./Policy";
+import { hasAll, hasAny } from "./Policy";
 
 export const shippingPolicies = {
   manage: hasAll("CAN_LIST_SHIPMENTS"),
@@ -8,6 +8,8 @@ export const shippingPolicies = {
   selectProvider: hasAll("CAN_SELECT_SHIPMENT_PROVIDER"),
   viewLabel: hasAll("CAN_VIEW_SHIPMENT_LABEL"),
   cancel: hasAll("CAN_CANCEL_SHIPMENTS"),
+  recordEvents: hasAll("CAN_RECORD_SHIPMENT_EVENTS"),
+  viewTracking: hasAny("CAN_LIST_SHIPMENTS", "CAN_RECORD_SHIPMENT_EVENTS"),
 
   // Routes
   listRoutes: hasAll("CAN_LIST_ROUTES"),

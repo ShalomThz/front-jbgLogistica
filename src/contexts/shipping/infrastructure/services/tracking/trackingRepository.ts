@@ -1,5 +1,5 @@
 import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
-import { trackingTimelineResponseSchema } from "../../../domain/schemas/tracking/ShipmentTrackingEvent";
+import { trackingTimelineResponseSchema } from "../../../application/tracking/TrackingTimelineResponse";
 
 export const trackingRepository = {
   getTimeline: async (trackingNumber: string) => {

@@ -1,15 +1,24 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import {
-  ORDER_STATUS_LABELS,
-} from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
-import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import {
   PAYMENT_STATUS_LABELS,
   resolveBilledBalance,
   resolvePaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
-import { BOX_CYCLE_STATUS_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
+import {
+  orderProgress,
+  orderTimelineStages,
+} from "@contexts/order-flow/domain/services/orderProgress";
+import {
+  TONE_FILL,
+  TONE_OUTLINE,
+  TONE_TEXT,
+} from "@contexts/shared/domain/schemas/StatusTone";
+import { INCIDENT_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
+import {
+  AWAITING_ARRIVAL_REASON,
+  isAwaitingArrival,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import {
   canInvoice,
   canInvoicePartner,
@@ -25,7 +34,6 @@ import {
 } from "@contexts/shipping/ui/labels/labelOptions";
 import { CancelShipmentDialog } from "../CancelShipmentDialog";
 import {
-  Badge,
   Button,
   Dialog,
   DialogContent,
@@ -48,7 +56,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, Trash2, Users } from "lucide-react";
+import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, Trash2, TriangleAlert, Users } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -67,26 +75,11 @@ import {
   resolveLedgerStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import { PartnerSaleSection } from "./PartnerSaleSection";
+import { ShipmentEventDialog } from "@contexts/shipping/ui/components/shipment/ShipmentEventDialog";
+import { ShipmentIncidentDialog } from "@contexts/shipping/ui/components/shipment/ShipmentIncidentDialog";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
-
-const STATUS_DOT_STYLES: Record<OrderStatus, string> = {
-  DRAFT: "bg-muted-foreground",
-  PENDING_HQ_PROCESS: "bg-yellow-500",
-  COMPLETED: "bg-blue-500",
-  CANCELLED: "bg-red-500",
-};
-
-/** Explica en qué paso del ciclo de caja vacía va la orden. */
-const BOX_CYCLE_TOOLTIPS: Partial<Record<string, string>> = {
-  EMPTY_BOX_PENDING:
-    "El chofer debe entregar la caja vacía en el domicilio del remitente",
-  AWAITING_PICKUP:
-    "La caja está con el cliente; falta que el chofer la recolecte",
-  AT_WAREHOUSE:
-    "La caja regresó a bodega; JBG debe procesar y tarifar la orden",
-};
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -160,9 +153,20 @@ export const OrderDetailDialog = ({
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const isCompleted = order.status === "COMPLETED";
-  const boxCycleLabel = shipment
-    ? BOX_CYCLE_STATUS_LABELS[shipment.status]
-    : undefined;
+  // Los números con los que la gente nombra la orden. Vacío cuando no tiene
+  // ninguno todavía, y ahí el título cae al uuid.
+  const referenceLabel = [
+    references.orderNumber,
+    references.partnerOrderNumber,
+  ]
+    .filter(Boolean)
+    .map((n) => `#${n}`)
+    .join(" · ");
+
+  // La misma fuente que la barra de la tabla, para que el encabezado no cuente
+  // otra historia: de acá salen la etiqueta, el tono y el "qué falta".
+  const progress = orderProgress(order);
+  const progressHint = progress.hint;
 
   // Origin actually sent to the carrier, mirroring the backend's resolveOrigin:
   // packages always ship from the JBG warehouse stamped on the shipment
@@ -248,10 +252,16 @@ export const OrderDetailDialog = ({
           <div className="min-w-0 flex-1">
           <DialogTitle className="break-words">
             Orden{" "}
-            {[references.orderNumber, references.partnerOrderNumber]
-              .filter(Boolean)
-              .map((n) => `#${n}`)
-              .join(" · ") || order.id}
+            {referenceLabel ? (
+              referenceLabel
+            ) : (
+              // Sin número de referencia queda el uuid, y con el peso del título
+              // grita un dato que nadie lee de memoria. Atenuado: está para
+              // copiarlo, no para identificar la orden de un vistazo.
+              <span className="text-sm font-normal text-muted-foreground">
+                {order.id}
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription className="text-sm flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span>
@@ -268,30 +278,43 @@ export const OrderDetailDialog = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="inline-flex items-center gap-1.5 font-medium text-foreground cursor-default">
-                    <span className={cn("relative flex size-2.5 rounded-full", STATUS_DOT_STYLES[order.status])}>
-                      <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-75", STATUS_DOT_STYLES[order.status])} />
-                    </span>
-                    {ORDER_STATUS_LABELS[order.status]}
-                    {boxCycleLabel && (
-                      <Badge
-                        variant="outline"
-                        className="ml-1 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+                  {/* Dice lo mismo que la fila de la tabla, palabra por
+                      palabra: sale del mismo `orderProgress`. La etapa es
+                      dónde está; el detalle, qué falta. */}
+                  <span
+                    className={cn(
+                      "inline-flex flex-wrap items-center gap-1.5 font-medium cursor-default",
+                      TONE_TEXT[progress.tone],
+                    )}
+                  >
+                    {/* Sin `animate-ping`: latía sobre un estado estable y era
+                        el único elemento animado compitiendo con todo. */}
+                    <span
+                      className={cn(
+                        "flex size-2.5 rounded-full",
+                        TONE_FILL[progress.tone],
+                      )}
+                    />
+                    {progress.label}
+                    {progress.detail && (
+                      <span className="font-normal text-muted-foreground">
+                        · {progress.detail}
+                      </span>
+                    )}
+                    {progress.incident && (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]",
+                          TONE_OUTLINE.stopped,
+                        )}
                       >
-                        {boxCycleLabel}
-                      </Badge>
+                        <TriangleAlert className="size-3" />
+                        {INCIDENT_LABELS[progress.incident.type]}
+                      </span>
                     )}
                   </span>
                 </TooltipTrigger>
-                {boxCycleLabel ? (
-                  <TooltipContent>{BOX_CYCLE_TOOLTIPS[shipment!.status]}</TooltipContent>
-                ) : (
-                  order.status === "PENDING_HQ_PROCESS" && (
-                    <TooltipContent>
-                      La tienda completó su orden, JBG Logistics necesita completar la venta
-                    </TooltipContent>
-                  )
-                )}
+                {progressHint && <TooltipContent>{progressHint}</TooltipContent>}
               </Tooltip>
             </TooltipProvider>
           </DialogDescription>
@@ -303,6 +326,7 @@ export const OrderDetailDialog = ({
             className="mt-4 w-full justify-start overflow-x-auto"
           >
             <TabsTrigger value="resumen" className="flex-none">Resumen</TabsTrigger>
+            <TabsTrigger value="historial" className="flex-none">Historial</TabsTrigger>
             <TabsTrigger value="clientes" className="flex-none">Clientes</TabsTrigger>
             <TabsTrigger value="ruta" className="flex-none">Ruta</TabsTrigger>
             <TabsTrigger value="paquete" className="flex-none">Paquete</TabsTrigger>
@@ -331,9 +355,38 @@ export const OrderDetailDialog = ({
 
         {/* Content box - scrolls vertically and horizontally */}
         <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
+          {/* Historial: la línea de tiempo del rastreo, sus eventos y las
+              acciones para escribir en ella. Tiene su propia pestaña porque es
+              lo más alto del detalle y empujaba el resumen fuera de la vista. */}
+          <TabsContent value="historial" className="space-y-4">
+            <OrderStatusTimeline
+              order={order}
+              actions={
+                shipment && (
+                  <>
+                    <ShipmentIncidentDialog
+                      shipmentId={shipment.id}
+                      incident={shipment.incident}
+                    />
+                    <ShipmentEventDialog
+                      shipmentId={shipment.id}
+                      reference={
+                        references.orderNumber ?? references.partnerOrderNumber
+                      }
+                      timeline={{
+                        stages: orderTimelineStages(order),
+                        current: progress.stage,
+                        tone: progress.tone,
+                      }}
+                    />
+                  </>
+                )
+              }
+            />
+          </TabsContent>
+
           {/* Resumen */}
           <TabsContent value="resumen" className="space-y-4">
-            <OrderStatusTimeline order={order} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Ruta */}
               <div
@@ -346,10 +399,13 @@ export const OrderDetailDialog = ({
                     setActiveTab("ruta");
                   }
                 }}
-                className="rounded-md border border-blue-200 bg-blue-50/60 p-3 space-y-1 cursor-pointer transition-colors hover:bg-blue-100/70 dark:border-blue-900/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/40"
+                className="rounded-md border bg-muted/30 p-3 space-y-1 cursor-pointer transition-colors hover:bg-muted/60"
               >
-                <h4 className="flex items-center gap-1.5 text-sm font-semibold mb-2 text-blue-900 dark:text-blue-200">
-                  <Route className="size-4" />
+                {/* Neutra a propósito: el color no decía nada acá —era solo
+                    "es otra card"— y gastaba el azul de la marca. La identidad
+                    de la sección la da el ícono. */}
+                <h4 className="flex items-center gap-1.5 text-sm font-semibold mb-2">
+                  <Route className="size-4 text-muted-foreground" />
                   Ruta
                 </h4>
                 <DetailRow label="Remitente" value={`${origin.name} — ${origin.address.city}, ${origin.address.province}`} />
@@ -383,9 +439,9 @@ export const OrderDetailDialog = ({
                     setActiveTab("paquete");
                   }
                 }}
-                className="rounded-md border border-amber-200 bg-amber-50/60 p-3 space-y-1 cursor-pointer transition-colors hover:bg-amber-100/70 dark:border-amber-900/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+                className="rounded-md border bg-muted/30 p-3 space-y-1 cursor-pointer transition-colors hover:bg-muted/60"
               >
-                <h4 className="text-sm font-semibold mb-2 text-amber-900 dark:text-amber-200">Paquete</h4>
+                <h4 className="text-sm font-semibold mb-2">Paquete</h4>
                 <img src={boxIsometricSvg} alt="Caja" className="w-12 h-auto mb-2" />
                 <DetailRow
                   label="Dimensiones"
@@ -683,9 +739,12 @@ export const OrderDetailDialog = ({
                 <Route className="size-4 text-muted-foreground" />
                 Ruta
               </h3>
-              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50/60 p-3 text-sm dark:border-blue-900/50 dark:bg-blue-950/20">
-                <Info className="size-4 shrink-0 mt-0.5 text-blue-700 dark:text-blue-300" />
-                <p className="text-blue-900 dark:text-blue-200">
+              {/* El único azul que queda en la pantalla, y usa el token de la
+                  marca en vez de un Tailwind suelto: es información
+                  institucional de JBG, no un estado. */}
+              <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+                <Info className="size-4 shrink-0 mt-0.5 text-primary" />
+                <p>
                   El paquete sale del almacén JBG, no de la dirección del cliente.
                 </p>
               </div>
@@ -942,7 +1001,7 @@ export const OrderDetailDialog = ({
               variant="outline"
               onClick={() => setCancelShipmentOpen(true)}
               disabled={isCancelling}
-              className="w-full sm:w-auto border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-400 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
+              className="w-full sm:w-auto"
             >
               <Ban className="size-4" />
               {isCancelling ? "Cancelando..." : "Cancelar envío"}
@@ -994,13 +1053,23 @@ export const OrderDetailDialog = ({
                   )}
                   {canEditHQ && (
                     <DropdownMenuItem
+                      // Sin el paquete en bodega no hay qué pesar: el back lo
+                      // rechazaría.
+                      disabled={isAwaitingArrival(shipment?.status)}
+                      title={
+                        isAwaitingArrival(shipment?.status)
+                          ? AWAITING_ARRIVAL_REASON
+                          : undefined
+                      }
                       onClick={() => {
                         setPendingRoute(`/orders/${order.id}/edit?mode=complete`);
                         onClose();
                       }}
                     >
                       <Package className="size-4" />
-                      Completar venta
+                      {isAwaitingArrival(shipment?.status)
+                        ? "Completar venta (falta que llegue)"
+                        : "Completar venta"}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
