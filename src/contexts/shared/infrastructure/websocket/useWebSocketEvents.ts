@@ -26,7 +26,10 @@ const EVENT_QUERY_MAP: Record<string, readonly string[][]> = {
   route: [["routes"]],
   driver: [["drivers"]],
   store: [["stores"]],
-  user: [["users"]],
+  // También el usuario en sesión (`useAuth`): si le cambiaron el rol, el menú y
+  // los botones tienen que reflejarlo sin recargar. El back ya lo aplica en la
+  // siguiente petición.
+  user: [["users"], ["auth", "user"]],
   box: [["boxes"]],
   tariff: [["tariffs"]],
   customer: [["customers"]],
