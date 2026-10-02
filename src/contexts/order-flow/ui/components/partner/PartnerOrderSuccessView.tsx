@@ -46,7 +46,7 @@ interface PartnerOrderSuccessViewProps {
   onCreateBlank: () => void;
   onCreateSameClient: () => void;
   onFinish: () => void;
-  /** La etiqueta de anticipo, solo en caja vacía o recolección a domicilio. */
+  /** La etiqueta del agente. */
   children?: React.ReactNode;
 }
 

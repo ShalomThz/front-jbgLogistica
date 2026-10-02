@@ -1,3 +1,5 @@
+import type { StoreType } from "@contexts/iam/domain/schemas/store/Store";
+import type { OrderType } from "@contexts/sales/domain/schemas/order/Order";
 import type { LabelVariant } from "@contexts/shipping/domain/schemas/value-objects/LabelVariant";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import { shipmentRepository } from "@contexts/shipping/infrastructure/services/shipments/shipmentRepository";
@@ -21,6 +23,7 @@ export type LabelGroup = "cargo" | "agente" | "carrier" | "anticipo";
 
 /** The slice of the order a label option needs to decide availability. */
 export interface LabelOrderContext {
+  type: OrderType;
   emptyBoxDelivery: boolean;
   homePickup: boolean;
 }
@@ -45,16 +48,14 @@ const hasCarrierDocument = (shipment: ShipmentPrimitives): boolean =>
 const hasInternalLabel = (shipment: ShipmentPrimitives): boolean =>
   shipment.label !== null;
 
-/** The anticipo label lives in the home-visit cycle, before any guía exists —
- * both the empty-box delivery and the direct home-pickup (recolección) modes. */
-const isInHomeVisitCycle = (
-  shipment: ShipmentPrimitives,
+/** The agent's label (variant `anticipo`): every partner order —empty box,
+ * home pickup or agency— plus HQ home-visit orders. Printable at any status:
+ * it doesn't need a guía. */
+const hasAgentLabel = (
+  _shipment: ShipmentPrimitives,
   order: LabelOrderContext,
 ): boolean =>
-  (order.emptyBoxDelivery || order.homePickup) &&
-  (shipment.status === "EMPTY_BOX_PENDING" ||
-    shipment.status === "AWAITING_PICKUP" ||
-    shipment.status === "AT_WAREHOUSE");
+  order.type === "PARTNER" || order.emptyBoxDelivery || order.homePickup;
 
 /**
  * Single source of truth for every downloadable/printable label. To expose a
@@ -92,12 +93,12 @@ export const LABEL_OPTIONS: LabelOption[] = [
   },
   {
     id: "anticipo",
-    title: "Etiqueta con anticipo",
+    title: "Etiqueta del agente",
     source: { kind: "render", variant: "anticipo" },
     group: "anticipo",
     className:
       "bg-amber-50 text-amber-700 focus:bg-amber-100 focus:text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 dark:focus:bg-amber-950/50",
-    isAvailable: isInHomeVisitCycle,
+    isAvailable: hasAgentLabel,
   },
   {
     id: "carrier",
@@ -110,19 +111,30 @@ export const LABEL_OPTIONS: LabelOption[] = [
   },
 ];
 
+/** El agente (usuario de una tienda PARTNER) solo ve su etiqueta; JBG, todas.
+ * Es solo del front: el back todavía no lo valida. */
+const isVisibleTo = (option: LabelOption, storeType: StoreType): boolean =>
+  storeType !== "PARTNER" || option.group === "anticipo";
+
+/** `storeType`: el tipo de tienda del usuario que mira, no el de la orden. */
 export const availableLabelOptions = (
   shipment: ShipmentPrimitives,
   order: LabelOrderContext,
+  storeType: StoreType,
 ): LabelOption[] =>
-  LABEL_OPTIONS.filter((option) => option.isAvailable(shipment, order));
+  LABEL_OPTIONS.filter(
+    (option) =>
+      option.isAvailable(shipment, order) && isVisibleTo(option, storeType),
+  );
 
 /** Available options for a single family (e.g. every agente variant). */
 export const availableLabelOptionsByGroup = (
   shipment: ShipmentPrimitives,
   order: LabelOrderContext,
   group: LabelGroup,
+  storeType: StoreType,
 ): LabelOption[] =>
-  availableLabelOptions(shipment, order).filter(
+  availableLabelOptions(shipment, order, storeType).filter(
     (option) => option.group === group,
   );
 

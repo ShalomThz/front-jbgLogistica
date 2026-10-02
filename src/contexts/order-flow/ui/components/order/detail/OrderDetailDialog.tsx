@@ -183,6 +183,11 @@ export const OrderDetailDialog = ({
     ? order.type === "PARTNER" ? orderPolicies.deletePartner(user) : orderPolicies.deleteHQ(user)
     : false;
   const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
+  // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
+  const labelOptions =
+    user && shippingPolicies.viewLabel(user) && shipment
+      ? availableLabelOptions(shipment, order, user.store.type)
+      : [];
 
   const downloadInvoice = async (variant: InvoiceVariant = "jbg") => {
     setIsDownloadingInvoice(true);
@@ -890,7 +895,7 @@ export const OrderDetailDialog = ({
         </div>
 
         <DialogFooter className="shrink-0 border-t p-4 sm:p-6">
-          {shipment && availableLabelOptions(shipment, order).length > 0 && (
+          {labelOptions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -905,7 +910,7 @@ export const OrderDetailDialog = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {availableLabelOptions(shipment, order).map((option, index) => (
+                {labelOptions.map((option, index) => (
                   <Fragment key={option.id}>
                     {index > 0 && <DropdownMenuSeparator />}
                     <DropdownMenuLabel className="text-xs text-muted-foreground">

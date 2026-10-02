@@ -1,4 +1,6 @@
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import {
   Button,
   DropdownMenu,
@@ -31,7 +33,19 @@ export const LabelPrintMenu = ({
   downloadingLabel,
   onPrintLabel,
 }: Props) => {
+  const { user } = useAuth();
+  // Sin el permiso el back rechaza la descarga: el botón solo confundiría.
+  if (!user || !shippingPolicies.viewLabel(user)) return null;
   if (!order.shipment?.label) return null;
+
+  const options = availableLabelOptionsByGroup(
+    order.shipment,
+    order,
+    group,
+    user.store.type,
+  );
+  // El agente no ve las de JBG: sin opciones, ni la impresora.
+  if (options.length === 0) return null;
 
   const isDownloading = downloadingLabel === order.id;
 
@@ -50,19 +64,17 @@ export const LabelPrintMenu = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-        {availableLabelOptionsByGroup(order.shipment, order, group).map(
-          (option) => (
-            <DropdownMenuItem
-              key={option.id}
-              className={option.className}
-              disabled={isDownloading}
-              onClick={() => onPrintLabel(order, option.source)}
-            >
-              <Printer className="size-4" />
-              Imprimir {option.title}
-            </DropdownMenuItem>
-          ),
-        )}
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.id}
+            className={option.className}
+            disabled={isDownloading}
+            onClick={() => onPrintLabel(order, option.source)}
+          >
+            <Printer className="size-4" />
+            Imprimir {option.title}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -11,6 +11,9 @@ import {
 } from "@contexts/shipping/ui/labels/labelOptions";
 import { usePartnerOrderFlow } from "../hooks/partner/usePartnerOrderFlow";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import type { StoreType } from "@contexts/iam/domain/schemas/store/Store";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { PartnerContactStep } from "../components/partner/contact/PartnerContactStep";
 import { PartnerPackageStep } from "../components/partner/package/PartnerPackageStep";
 import { PartnerPricingStep } from "../components/partner/pricing/PartnerPricingStep";
@@ -31,11 +34,17 @@ interface NewPartnerOrderPageProps {
 }
 
 /**
- * La orden pidió una visita a domicilio (caja vacía o recolección): ofrece
- * imprimir su etiqueta con anticipo apenas termina el flujo. El shipment se
- * proyecta por evento, así que se reintenta la consulta hasta que aparezca.
+ * Ofrece imprimir la etiqueta del agente apenas termina el flujo, sea caja
+ * vacía, recolección a domicilio o agencia. El shipment se proyecta por
+ * evento, así que se reintenta la consulta hasta que aparezca.
  */
-function AnticipoLabelCard({ orderId }: { orderId: string }) {
+function AgentLabelCard({
+  orderId,
+  storeType,
+}: {
+  orderId: string;
+  storeType: StoreType;
+}) {
   const [isPrinting, setIsPrinting] = useState(false);
   const { data: order } = useQuery({
     queryKey: ["orders", orderId],
@@ -46,14 +55,23 @@ function AnticipoLabelCard({ orderId }: { orderId: string }) {
   const shipment = order?.shipment ?? null;
   const option =
     order && shipment
-      ? availableLabelOptionsByGroup(shipment, order, "anticipo")[0]
+      ? availableLabelOptionsByGroup(shipment, order, "anticipo", storeType)[0]
       : undefined;
 
-  const isHomePickup = order?.homePickup ?? false;
-  const title = isHomePickup ? "Recolección a domicilio" : "Caja vacía a domicilio";
-  const hint = isHomePickup
-    ? "Imprime la etiqueta y pégala en la caja que se recolectará"
-    : "Imprime la etiqueta y pégala en la caja que se dejará al cliente";
+  const { title, hint } = order?.emptyBoxDelivery
+    ? {
+        title: "Caja vacía a domicilio",
+        hint: "Imprime la etiqueta y pégala en la caja que se dejará al cliente",
+      }
+    : order?.homePickup
+      ? {
+          title: "Recolección a domicilio",
+          hint: "Imprime la etiqueta y pégala en la caja que se recolectará",
+        }
+      : {
+          title: "Recolección en agencia",
+          hint: "Imprime la etiqueta y pégala en la caja que te dejó el cliente",
+        };
 
   const handlePrint = async () => {
     if (!shipment || !option) return;
@@ -86,7 +104,7 @@ function AnticipoLabelCard({ orderId }: { orderId: string }) {
           ? "Preparando etiqueta..."
           : isPrinting
             ? "Imprimiendo..."
-            : "Imprimir etiqueta con anticipo"}
+            : "Imprimir etiqueta del agente"}
       </Button>
     </div>
   );
@@ -107,6 +125,9 @@ export const NewPartnerOrderPage = (props: NewPartnerOrderPageProps = {}) => {
 const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, initialPricing }: NewPartnerOrderPageProps) => {
   const navigate = useNavigate();
   const flow = usePartnerOrderFlow({ initialValues, orderId, storeId, initialPricing });
+  const { user } = useAuth();
+  // Sin el permiso el back rechaza la descarga: la tarjeta solo confundiría.
+  const canViewLabel = !!user && shippingPolicies.viewLabel(user);
 
   const selectedStoreFilters = useMemo(
     () =>
@@ -255,9 +276,12 @@ const NewPartnerOrderPageInner = ({ initialValues, orderId, storeName, storeId, 
             onCreateSameClient={handleCreateSameClient}
             onFinish={flow.goToOrders}
           >
-            {(flow.form.getValues("emptyBoxDelivery") ||
-              flow.form.getValues("homePickup")) &&
-              flow.orderId && <AnticipoLabelCard orderId={flow.orderId} />}
+            {flow.orderId && user && canViewLabel && (
+              <AgentLabelCard
+                orderId={flow.orderId}
+                storeType={user.store.type}
+              />
+            )}
           </PartnerOrderSuccessView>
         )}
         </FormProvider>

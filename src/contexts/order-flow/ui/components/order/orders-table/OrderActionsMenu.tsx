@@ -1,4 +1,6 @@
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import {
   Button,
   DropdownMenu,
@@ -58,6 +60,12 @@ export const OrderActionsMenu = ({
   const canPrintPartnerInvoice = canInvoicePartner(order);
   // Sin el paquete en bodega no hay qué pesar: el back lo rechazaría.
   const awaitingArrival = isAwaitingArrival(order.shipment?.status);
+  const { user } = useAuth();
+  // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
+  const labelOptions =
+    user && shippingPolicies.viewLabel(user) && order.shipment
+      ? availableLabelOptions(order.shipment, order, user.store.type)
+      : [];
 
   return (
     <DropdownMenu>
@@ -87,21 +95,20 @@ export const OrderActionsMenu = ({
             {awaitingArrival ? "Procesar (falta que llegue)" : "Procesar orden"}
           </DropdownMenuItem>
         )}
-        {(order.shipment || canPrintInvoice || canPrintPartnerInvoice) && (
+        {(labelOptions.length > 0 || canPrintInvoice || canPrintPartnerInvoice) && (
           <>
             <DropdownMenuSeparator />
-            {order.shipment &&
-              availableLabelOptions(order.shipment, order).map((option) => (
-                <DropdownMenuItem
-                  key={option.id}
-                  className={option.className}
-                  disabled={downloadingLabel === order.id}
-                  onClick={() => onPrintLabel(order, option.source)}
-                >
-                  <Printer className="size-4" />
-                  Imprimir {option.title}
-                </DropdownMenuItem>
-              ))}
+            {labelOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.id}
+                className={option.className}
+                disabled={downloadingLabel === order.id}
+                onClick={() => onPrintLabel(order, option.source)}
+              >
+                <Printer className="size-4" />
+                Imprimir {option.title}
+              </DropdownMenuItem>
+            ))}
             {/* La del socio no depende de que JBG haya procesado la orden: es
                 la que él le entrega a su cliente el mismo día. */}
             {canPrintPartnerInvoice && (

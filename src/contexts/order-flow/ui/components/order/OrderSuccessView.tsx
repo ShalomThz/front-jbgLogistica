@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { toast } from "sonner";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
@@ -84,6 +85,11 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
 
   const { data: order } = useOrder(orderId ?? undefined);
   const { user } = useAuth();
+  // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
+  const labelOptions =
+    user && shippingPolicies.viewLabel(user) && order
+      ? availableLabelOptions(shipment, order, user.store.type)
+      : [];
   const effectiveTotalBilled = totalBilled ?? order?.financials.totalBilled ?? null;
   const totalShipping = order?.financials.totalPrice ?? null;
   const photos = order?.package.photos ?? [];
@@ -348,7 +354,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       )}
 
       {/* Label Actions */}
-      {order && availableLabelOptions(shipment, order).length > 0 && (
+      {labelOptions.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -363,7 +369,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {availableLabelOptions(shipment, order).map((option) => (
+              {labelOptions.map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}
@@ -388,7 +394,7 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {availableLabelOptions(shipment, order).map((option) => (
+              {labelOptions.map((option) => (
                 <DropdownMenuItem
                   key={option.id}
                   className={option.className}

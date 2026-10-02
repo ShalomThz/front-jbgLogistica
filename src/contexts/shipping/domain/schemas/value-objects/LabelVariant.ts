@@ -11,5 +11,5 @@ export const LABEL_VARIANT_LABELS: Record<LabelVariant, string> = {
   cargo: "JBG Cargo",
   agente: "JBG Agente",
   "agente-cliente": "JBG Agente Cliente",
-  anticipo: "Etiqueta con anticipo",
+  anticipo: "Etiqueta del agente",
 };
