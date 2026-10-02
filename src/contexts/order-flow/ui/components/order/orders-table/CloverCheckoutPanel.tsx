@@ -13,6 +13,7 @@ import {
   Input,
   Label,
 } from "@contexts/shared/shadcn";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import {
   CheckCircle2,
   ChevronDown,
@@ -57,6 +58,12 @@ export const CloverCheckoutPanel = ({
   error,
 }: Props) => {
   const [amount, setAmount] = useState(outstanding.toFixed(2));
+  // Solo para decidir y confirmar a quién va dirigido antes de generar el
+  // enlace — el envío real del correo sigue siendo una acción aparte, ya
+  // creado el checkout (ver el dropdown "Enviar por correo" más abajo).
+  const [previewRecipient, setPreviewRecipient] =
+    useState<CloverCheckoutEmailRecipient>("origin");
+  const previewParty = previewRecipient === "origin" ? origin : destination;
 
   const numericAmount = Number(amount);
   const isValid =
@@ -174,6 +181,45 @@ export const CloverCheckoutPanel = ({
             </p>
           )}
           <form className="space-y-3" onSubmit={submit}>
+          <div className="space-y-1.5">
+            <Label>¿A quién se le va a enviar?</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={previewRecipient === "origin" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setPreviewRecipient("origin")}
+              >
+                Remitente
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={previewRecipient === "destination" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setPreviewRecipient("destination")}
+              >
+                Destinatario
+              </Button>
+            </div>
+            <div className="rounded-md border bg-background/60 px-3 py-2">
+              <p className="text-sm font-medium">{previewParty.name}</p>
+              <p
+                className={cn(
+                  "text-xs",
+                  previewParty.email ? "text-muted-foreground" : "text-destructive",
+                )}
+              >
+                {previewParty.email ??
+                  "Sin correo registrado — agrega uno para poder enviarle el enlace"}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Es solo para confirmar a quién va dirigido; el envío se hace
+              después de generar el enlace.
+            </p>
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="clover-checkout-amount">
               Monto a cobrar con Clover

@@ -34,6 +34,29 @@ describe("CloverCheckoutPanel", () => {
     });
   });
 
+  it("previews the sender by default and switches to the recipient on request", async () => {
+    render(
+      <CloverCheckoutPanel
+        outstanding={80}
+        checkout={null}
+        onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
+        onSendEmail={vi.fn()}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
+    );
+
+    expect(screen.getByText(origin.name)).toBeInTheDocument();
+    expect(screen.getByText(origin.email)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Destinatario" }));
+
+    expect(screen.getByText(destination.name)).toBeInTheDocument();
+    expect(screen.getByText(destination.email)).toBeInTheDocument();
+  });
+
   const activeCheckout = {
     id: "checkout-1",
     orderId: "order-1",
