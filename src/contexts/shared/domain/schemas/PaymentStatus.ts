@@ -140,19 +140,21 @@ export const roundMoney = (amount: number): number => toCents(amount) / 100;
 
 export const resolveBilledBalance = (
   financials: BilledBalanceSource,
+  rates?: Record<string, number>,
 ): BilledBalance | null => {
   const total = financials.totalBilled;
   if (!total) return null;
 
-  const paymentsOk = financials.payments.every(
-    (p) => p.amount.currency === total.currency,
-  );
-  if (!paymentsOk) return null;
-
-  const paid = financials.payments.reduce(
-    (sum, p) => sum + p.amount.amount,
-    0,
-  );
+  let paid = 0;
+  for (const p of financials.payments) {
+    if (p.amount.currency === total.currency) {
+      paid += p.amount.amount;
+    } else if (rates && rates[p.amount.currency] !== undefined) {
+      paid += p.amount.amount * rates[p.amount.currency];
+    } else {
+      return null;
+    }
+  }
 
   return {
     total: roundMoney(total.amount),

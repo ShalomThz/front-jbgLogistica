@@ -12,6 +12,7 @@ import {
 } from "@contexts/shared/domain/schemas/PaymentStatus";
 import { CloverCheckoutPanel } from "./CloverCheckoutPanel";
 import { useCloverCheckout } from "@contexts/sales/infrastructure/hooks/orders/useCloverCheckout";
+import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 
 const formatMoney = (amount: number, currency: string) =>
   `$${amount.toFixed(2)} ${currency}`;
@@ -40,6 +41,7 @@ export const PaymentLedgerPanel = ({
 }: Props) => {
   const { financials } = order;
   const billedCurrency = financials.totalBilled?.currency ?? "USD";
+  const isUSD = billedCurrency === "USD";
 
   const [confirmingRemoveId, setConfirmingRemoveId] = useState<string | null>(
     null,
@@ -47,12 +49,49 @@ export const PaymentLedgerPanel = ({
 
   const status = resolvePaymentStatus(order.financials);
 
-  const balance = resolveBilledBalance(financials);
+  const {
+    exchangeRate: rateData,
+    isLoadingRate,
+    isRateError,
+    rateError,
+  } = useExchangeRate({
+    from: billedCurrency,
+    to: "USD",
+    enabled: !isUSD && Boolean(financials.totalBilled),
+  });
+
+  const rateToUsd = isUSD ? 1 : (rateData?.rate ?? null);
+  const ratesForBilled =
+    !isUSD && rateToUsd ? { USD: 1 / rateToUsd } : undefined;
+
+  const balance = resolveBilledBalance(financials, ratesForBilled);
+
+  // Equivalente de saldo pendiente en USD calculado de forma simétrica al backend
+  const outstandingInUsd = (() => {
+    if (!financials.totalBilled) return 0;
+    if (isUSD) return Math.max(0, balance?.pending ?? 0);
+    if (!rateToUsd) return 0;
+
+    const totalInUsd = financials.totalBilled.amount * rateToUsd;
+    const totalInCents = Math.ceil(totalInUsd * 100);
+    const paidInUsd = financials.payments.reduce((sum, p) => {
+      if (p.amount.currency === "USD") return sum + p.amount.amount;
+      return sum + p.amount.amount * rateToUsd;
+    }, 0);
+    const paidInCents = Math.round(paidInUsd * 100);
+    return Math.max(0, totalInCents - paidInCents) / 100;
+  })();
+
   const canUseClover =
-    financials.totalBilled?.currency === "USD" &&
-    balance !== null &&
-    balance.pending > 0;
+    financials.totalBilled !== null &&
+    (status !== "PAID" || Boolean(order.id));
   const clover = useCloverCheckout(order.id, canUseClover);
+
+  const showCloverPanel =
+    canUseClover &&
+    (clover.checkout?.status === "PENDING" ||
+      (status !== "PAID" &&
+        (isUSD ? (balance ? balance.pending > 0 : true) : true)));
 
   const surface = PAYMENT_STATUS_SURFACE[status];
 
@@ -126,10 +165,19 @@ export const PaymentLedgerPanel = ({
           </div>
         </div>
 
-        {canUseClover && balance && (
+        {showCloverPanel && (
           <CloverCheckoutPanel
-            key={`${order.id}-${balance.pending}`}
-            outstanding={balance.pending}
+            key={`${order.id}-${outstandingInUsd.toFixed(2)}-${billedCurrency}`}
+            outstanding={outstandingInUsd}
+            billedCurrency={billedCurrency}
+            billedPending={balance?.pending ?? financials.totalBilled?.amount ?? 0}
+            exchangeRate={rateToUsd}
+            isLoadingRate={!isUSD && isLoadingRate}
+            rateError={
+              !isUSD && isRateError
+                ? (rateError ?? "No se pudo obtener el tipo de cambio")
+                : null
+            }
             checkout={clover.checkout}
             onCreate={clover.createCheckout}
             origin={order.origin}
