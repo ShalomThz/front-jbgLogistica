@@ -29,19 +29,6 @@ import {
 } from "@contexts/iam/domain/schemas/store/Store";
 import { useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { StoreInvoiceColorInput } from "./StoreInvoiceColorInput";
-import { StoreInvoiceLogoInput } from "./StoreInvoiceLogoInput";
-import { StoreLabelColorInput } from "./StoreLabelColorInput";
-import { StoreLabelLogoInput } from "./StoreLabelLogoInput";
-
-// Colores por default de la etiqueta de agente (banner de rastreo y caja C.P.)
-const DEFAULT_BANNER_COLOR = "#2B5C8F";
-const DEFAULT_CP_BOX_COLOR = "#333333";
-
-// Los mismos colores por default que usa la plantilla de la factura en el
-// backend — si la tienda no configura nada, así se ve.
-const DEFAULT_PRIMARY_COLOR = "#15295C";
-const DEFAULT_ACCENT_COLOR = "#C62433";
 
 type FormInput = z.input<typeof createStoreRequestSchema>;
 
@@ -226,108 +213,6 @@ export const StoreFormDialog = ({
               {errors.contactEmail && (
                 <p className="text-xs text-destructive">{errors.contactEmail.message}</p>
               )}
-            </div>
-            <div className="space-y-3 border-t pt-4">
-              <div>
-                <Label className="text-sm font-semibold">Etiqueta de agente</Label>
-                <p className="text-xs text-muted-foreground">
-                  Cómo se ve la guía &quot;Agente&quot;/&quot;Agente Cliente&quot; de esta tienda. La
-                  etiqueta JBG institucional no cambia.
-                </p>
-              </div>
-              <Controller
-                name="agentLabelBranding.logo"
-                control={control}
-                render={({ field }) => (
-                  <StoreLabelLogoInput
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    error={errors.agentLabelBranding?.logo?.message}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Controller
-                  name="agentLabelBranding.primaryColor"
-                  control={control}
-                  render={({ field }) => (
-                    <StoreLabelColorInput
-                      label="Color del banner de tracking"
-                      value={field.value}
-                      defaultColor={DEFAULT_BANNER_COLOR}
-                      onChange={field.onChange}
-                      error={errors.agentLabelBranding?.primaryColor?.message}
-                      disabled={isLoading}
-                    />
-                  )}
-                />
-                <Controller
-                  name="agentLabelBranding.secondaryColor"
-                  control={control}
-                  render={({ field }) => (
-                    <StoreLabelColorInput
-                      label="Color del bloque de C.P."
-                      value={field.value}
-                      defaultColor={DEFAULT_CP_BOX_COLOR}
-                      onChange={field.onChange}
-                      error={errors.agentLabelBranding?.secondaryColor?.message}
-                      disabled={isLoading}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <div className="space-y-3 border-t pt-4">
-              <div>
-                <Label className="text-sm font-semibold">Factura del socio</Label>
-                <p className="text-xs text-muted-foreground">
-                  Cómo se ve la factura que esta tienda le entrega a su propio
-                  cliente. La factura JBG no cambia.
-                </p>
-              </div>
-              <Controller
-                name="invoiceBranding.logo"
-                control={control}
-                render={({ field }) => (
-                  <StoreInvoiceLogoInput
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    error={errors.invoiceBranding?.logo?.message}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Controller
-                  name="invoiceBranding.primaryColor"
-                  control={control}
-                  render={({ field }) => (
-                    <StoreInvoiceColorInput
-                      label="Color principal"
-                      value={field.value}
-                      defaultColor={DEFAULT_PRIMARY_COLOR}
-                      onChange={field.onChange}
-                      error={errors.invoiceBranding?.primaryColor?.message}
-                      disabled={isLoading}
-                    />
-                  )}
-                />
-                <Controller
-                  name="invoiceBranding.accentColor"
-                  control={control}
-                  render={({ field }) => (
-                    <StoreInvoiceColorInput
-                      label="Color de acento"
-                      value={field.value}
-                      defaultColor={DEFAULT_ACCENT_COLOR}
-                      onChange={field.onChange}
-                      error={errors.invoiceBranding?.accentColor?.message}
-                      disabled={isLoading}
-                    />
-                  )}
-                />
-              </div>
             </div>
             <div className="border-t pt-4">
               <AddressAutocompleteSection fieldPrefix="address" labelPrefix="Tienda" />
