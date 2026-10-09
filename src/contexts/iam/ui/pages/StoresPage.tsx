@@ -1,23 +1,8 @@
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Tag,
-  Trash2,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import {
   Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   Table,
   TableHeader,
   TableBody,
@@ -27,19 +12,13 @@ import {
 } from "@contexts/shared/shadcn";
 import { StoreDetailDialog } from "../components/store/StoreDetailDialog";
 import { StoreFormDialog } from "../components/store/StoreFormDialog";
-import { StoreInvoiceDialog } from "../components/store/StoreInvoiceDialog";
-import { StoreLabelDialog } from "../components/store/StoreLabelDialog";
 import { StoreDeleteDialog } from "../components/store/StoreDeleteDialog";
 import { StoreFilters } from "../components/store/StoreFilters";
 import { exportStores } from "@contexts/iam/domain/services/exportStores";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
 import { useStoreFilters } from "../hooks/useStoreFilters";
 import type { StoreListViewPrimitives } from "@contexts/iam/domain/schemas/store/StoreListView";
-import type {
-  CreateStoreRequestPrimitives,
-  EditStoreInvoiceBrandingPrimitives,
-  EditStoreAgentLabelBrandingPrimitives,
-} from "@contexts/iam/application/store/CreateStoreRequest";
+import type { CreateStoreRequestPrimitives } from "@contexts/iam/application/store/CreateStoreRequest";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
 
@@ -76,8 +55,6 @@ export const StoresPage = () => {
   const [selected, setSelected] = useState<StoreListViewPrimitives | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editStore, setEditStore] = useState<StoreListViewPrimitives | null>(null);
-  const [invoiceStore, setInvoiceStore] = useState<StoreListViewPrimitives | null>(null);
-  const [labelStore, setLabelStore] = useState<StoreListViewPrimitives | null>(null);
   const [deleteStoreDialog, setDeleteStoreDialog] = useState<StoreListViewPrimitives | null>(null);
 
   const handleCreate = async (data: CreateStoreRequestPrimitives) => {
@@ -90,18 +67,6 @@ export const StoresPage = () => {
     if (!editStore) return;
     await updateStore(editStore.id, data);
     setEditStore(null);
-  };
-
-  const handleUpdateInvoice = async (data: EditStoreInvoiceBrandingPrimitives) => {
-    if (!invoiceStore) return;
-    await updateStore(invoiceStore.id, data);
-    setInvoiceStore(null);
-  };
-
-  const handleUpdateLabel = async (data: EditStoreAgentLabelBrandingPrimitives) => {
-    if (!labelStore) return;
-    await updateStore(labelStore.id, data);
-    setLabelStore(null);
   };
 
   const handleDelete = async () => {
@@ -162,14 +127,13 @@ export const StoresPage = () => {
               <TableHead className="hidden lg:table-cell">Teléfono</TableHead>
               <TableHead className="hidden lg:table-cell">Email</TableHead>
               <TableHead className="hidden xl:table-cell">Creación</TableHead>
-              <TableHead className="w-12 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {stores.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No se encontraron tiendas.
@@ -197,37 +161,6 @@ export const StoresPage = () => {
                   </TableCell>
                   <TableCell className="hidden xl:table-cell text-xs text-muted-foreground">
                     {new Date(s.createdAt).toLocaleDateString("es-MX")}
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8">
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditStore(s)}>
-                          <Pencil className="mr-2 size-4" />
-                          Editar datos
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setInvoiceStore(s)}>
-                          <FileText className="mr-2 size-4" />
-                          Editar factura
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setLabelStore(s)}>
-                          <Tag className="mr-2 size-4" />
-                          Editar etiqueta
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setDeleteStoreDialog(s)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 size-4" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -270,14 +203,6 @@ export const StoresPage = () => {
         open={!!selected}
         onClose={() => setSelected(null)}
         onEdit={handleEditFromDetail}
-        onEditInvoice={(s) => {
-          setSelected(null);
-          setInvoiceStore(s);
-        }}
-        onEditLabel={(s) => {
-          setSelected(null);
-          setLabelStore(s);
-        }}
         onDelete={handleDeleteFromDetail}
       />
       <StoreFormDialog
@@ -291,20 +216,6 @@ export const StoresPage = () => {
         onClose={() => setEditStore(null)}
         onSave={handleUpdate}
         store={editStore}
-        isLoading={isUpdating}
-      />
-      <StoreInvoiceDialog
-        open={!!invoiceStore}
-        onClose={() => setInvoiceStore(null)}
-        onSave={handleUpdateInvoice}
-        store={invoiceStore}
-        isLoading={isUpdating}
-      />
-      <StoreLabelDialog
-        open={!!labelStore}
-        onClose={() => setLabelStore(null)}
-        onSave={handleUpdateLabel}
-        store={labelStore}
         isLoading={isUpdating}
       />
       <StoreDeleteDialog
