@@ -26,7 +26,9 @@ function evaluate(
   shipment: ShipmentPrimitives | null | undefined,
 ): FulfillmentOutcome | null {
   if (!shipment) return null;
-  if (shipment.status === "FULFILLED") return "fulfilled";
+  // Con la guía ya emitida: la de la flota JBG sale directo en tránsito, así
+  // que el estatus no alcanza para saberlo.
+  if (shipment.label) return "fulfilled";
   if (shipment.status === "PROVIDER_SELECTED" && !shipment.providerShipmentId) {
     return "failed";
   }

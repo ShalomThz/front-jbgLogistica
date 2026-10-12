@@ -16,10 +16,6 @@ import {
 } from "@contexts/shared/domain/schemas/StatusTone";
 import { INCIDENT_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
 import {
-  AWAITING_ARRIVAL_REASON,
-  isAwaitingArrival,
-} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
-import {
   canInvoice,
   canInvoicePartner,
   downloadInvoice as downloadInvoicePdf,
@@ -1058,23 +1054,13 @@ export const OrderDetailDialog = ({
                   )}
                   {canEditHQ && (
                     <DropdownMenuItem
-                      // Sin el paquete en bodega no hay qué pesar: el back lo
-                      // rechazaría.
-                      disabled={isAwaitingArrival(shipment?.status)}
-                      title={
-                        isAwaitingArrival(shipment?.status)
-                          ? AWAITING_ARRIVAL_REASON
-                          : undefined
-                      }
                       onClick={() => {
                         setPendingRoute(`/orders/${order.id}/edit?mode=complete`);
                         onClose();
                       }}
                     >
                       <Package className="size-4" />
-                      {isAwaitingArrival(shipment?.status)
-                        ? "Completar venta (falta que llegue)"
-                        : "Completar venta"}
+                      Completar venta
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

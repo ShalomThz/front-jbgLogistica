@@ -1,5 +1,4 @@
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import type { ShipmentIncidentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import {
@@ -50,9 +49,14 @@ const HINT_BY_SHIPMENT_STATUS: Record<ShipmentStatus, string> = {
   AWAITING_PICKUP: "La caja está con el cliente; el chofer debe recolectarla",
   AWAITING_AGENCY_PICKUP:
     "El paquete está en la agencia; el chofer debe pasar a buscarlo",
+  COLLECTED: "El chofer la lleva a la bodega de origen; falta recibirla",
   AT_WAREHOUSE: "JBG debe pesarla y tarifarla",
   PROVIDER_SELECTED: "La paquetería está emitiendo la guía",
   FULFILLED: "Lista para salir de la bodega de origen",
+  DISPATCHED: "Salió de la bodega de origen",
+  IN_TRANSIT: "En camino a la bodega de destino",
+  AT_DESTINATION: "En la bodega de destino",
+  IN_DISTRIBUTION: "Falta asignarla a una ruta de reparto",
   IN_ROUTE: "El paquete va camino al destinatario",
   FAILED_ATTEMPT: "Se volverá a intentar la entrega",
   DELIVERED: "",
@@ -60,31 +64,35 @@ const HINT_BY_SHIPMENT_STATUS: Record<ShipmentStatus, string> = {
   CANCELLED: "",
 };
 
-/**
- * Con guía y ya fuera de la bodega de origen, el estatus sigue en `FULFILLED`
- * durante todo el tramo internacional: lo que falta lo dice la etapa.
- */
-const HINT_BY_STAGE_IN_TRANSIT: Partial<Record<ShipmentStage, string>> = {
-  DISPATCHED: "Salió de la bodega de origen",
-  IN_TRANSIT: "En camino a la bodega de destino",
-  DESTINATION_WAREHOUSE: "En la bodega de destino",
-  DISTRIBUTION: "Falta asignarla a una ruta de reparto",
+/** Una paquetería, con guía: el estatus no dice más que "la tiene ella"; lo
+ * que reportó va como detalle. */
+const CARRIER_HINT: Partial<Record<ShipmentStatus, string>> = {
+  FULFILLED: "Espera que la paquetería la recolecte",
+  IN_TRANSIT: "La lleva la paquetería",
 };
 
 /**
- * El estatus operativo como segunda línea, solo cuando agrega algo. "En ruta"
- * bajo "En ruta" o "Entregada" bajo "Entregado" repiten; y "Por despachar"
- * deja de ser cierto en cuanto el paquete salió de origen, aunque el estatus
- * siga en `FULFILLED`.
+ * El estatus como segunda línea, solo cuando agrega algo a la etapa. Del
+ * despacho en adelante el nombre del estatus es la etapa misma y repetiría; en
+ * una paquetería, lo que agrega es lo último que reportó.
  */
 function operationalDetail(
-  status: ShipmentStatus,
-  stage: ShipmentStage,
+  shipment: NonNullable<OrderListView["shipment"]>,
 ): string {
-  if (status === "IN_ROUTE" || status === "DELIVERED") return "";
-  if (status === "FULFILLED" && stage !== "ORIGIN_WAREHOUSE") return "";
+  const { status, carrierStatus } = shipment;
+  if (carrierStatus && status === "IN_TRANSIT") return carrierStatus.label;
+  if (STAGE_NAMED.has(status)) return "";
   return SHIPMENT_STATUS_LABELS[status];
 }
+
+const STAGE_NAMED: ReadonlySet<ShipmentStatus> = new Set([
+  "DISPATCHED",
+  "IN_TRANSIT",
+  "AT_DESTINATION",
+  "IN_DISTRIBUTION",
+  "IN_ROUTE",
+  "DELIVERED",
+]);
 
 /** Las banderas de la línea de tiempo, a partir de la orden. */
 export function timelineFlagsOf(order: OrderListView): TimelineFlags {
@@ -134,35 +142,34 @@ export function orderProgress(order: OrderListView): OrderProgress {
     };
   }
 
-  // Todavía no arrancó: el estatus de la orden dice si la está capturando el
-  // mostrador o si el agente ya la terminó y espera a JBG.
+  // Todavía no arrancó: un borrador que se puede retomar, salvo una orden de
+  // socio que el agente ya terminó y que todavía no tiene envío a la vista —el
+  // agente sin permiso de envíos—: esa espera a JBG. Se dice con el nombre del
+  // estatus del envío, que es el único que ve el usuario.
   if (!shipment || !stage) {
     const waitingForJbg = order.status === "PENDING_HQ_PROCESS";
+    const status = waitingForJbg ? "AT_WAREHOUSE" : "DRAFT";
     return {
       reached: 0,
       stage: null,
-      label: waitingForJbg
-        ? ORDER_STATUS_LABELS.PENDING_HQ_PROCESS
-        : SHIPMENT_STATUS_LABELS.DRAFT,
+      label: SHIPMENT_STATUS_LABELS[status],
       detail: "",
-      hint: waitingForJbg
-        ? HINT_BY_SHIPMENT_STATUS.AT_WAREHOUSE
-        : HINT_BY_SHIPMENT_STATUS.DRAFT,
+      hint: HINT_BY_SHIPMENT_STATUS[status],
       tone: waitingForJbg ? "waiting" : "draft",
       incident: null,
     };
   }
 
   const { status, incident } = shipment;
+  const viaCarrier = shipment.provider?.type === "THIRD_PARTY";
   const hint =
-    (status === "FULFILLED" && HINT_BY_STAGE_IN_TRANSIT[stage]) ||
-    HINT_BY_SHIPMENT_STATUS[status];
+    (viaCarrier && CARRIER_HINT[status]) || HINT_BY_SHIPMENT_STATUS[status];
 
   return {
     reached,
     stage,
     label: STAGE_LABELS[stage],
-    detail: operationalDetail(status, stage),
+    detail: operationalDetail(shipment),
     hint: incident
       ? `${INCIDENT_LABELS[incident.type]}: ${incident.reason}`
       : hint,

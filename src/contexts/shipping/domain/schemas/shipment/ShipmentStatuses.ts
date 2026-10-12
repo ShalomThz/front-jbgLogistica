@@ -1,21 +1,27 @@
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 
 /**
- * El estatus **operativo** del envío: qué falta hacer y quién lo debe. Lo que
- * ve el cliente es la etapa (`ShipmentStages`); este es el que usan las rutas,
- * la guía y la oficina.
+ * El estatus del envío: lo único que ve el usuario. La etapa (`ShipmentStages`)
+ * no se guarda aparte: el back la deduce del estatus.
  */
 export const shipmentStatuses = [
   "DRAFT",
-  // Ciclo de caja vacía ("dejar caja vacía a domicilio"), antes de fulfil
+  // Ciclo de caja vacía ("dejar caja vacía a domicilio"), antes de la venta
   "EMPTY_BOX_PENDING",
   "AWAITING_PICKUP",
   // Paquete en la oficina del agente, esperando que JBG pase a buscarlo. Es el
   // default de una orden de socio: el cliente se lo lleva al agente.
   "AWAITING_AGENCY_PICKUP",
-  "AT_WAREHOUSE",
+  "COLLECTED", // el chofer lo recolectó; va en camino a la bodega de origen
+  "AT_WAREHOUSE", // la bodega de origen lo recibió
   "PROVIDER_SELECTED",
-  "FULFILLED",
+  "FULFILLED", // con guía, en la bodega de origen
+  // Flota JBG: cada etapa es un estatus. Una paquetería pasa de FULFILLED a
+  // IN_TRANSIT, y lo que reporta va en `carrierStatus`.
+  "DISPATCHED",
+  "IN_TRANSIT",
+  "AT_DESTINATION",
+  "IN_DISTRIBUTION",
   "IN_ROUTE",
   "DELIVERED",
   "FAILED_ATTEMPT",
@@ -25,22 +31,15 @@ export const shipmentStatuses = [
 
 export type ShipmentStatus = (typeof shipmentStatuses)[number];
 
-/**
- * El paquete todavía no llegó a la bodega: no se puede procesar (tarifar y
- * elegir paquetería). Espeja la guarda de `Shipment.selectProvider` del back,
- * que es la autoridad; esta copia es para no dejar entrar al paso de cotizar.
- */
-const AWAITING_ARRIVAL: readonly ShipmentStatus[] = [
-  "EMPTY_BOX_PENDING",
-  "AWAITING_PICKUP",
-  "AWAITING_AGENCY_PICKUP",
+/** Desde dónde puede entrar un envío de la flota JBG a una ruta de entrega.
+ * Espeja `DELIVERY_ROUTE_READY` del back. */
+export const DELIVERY_ROUTE_READY: readonly ShipmentStatus[] = [
+  "FULFILLED",
+  "DISPATCHED",
+  "IN_TRANSIT",
+  "AT_DESTINATION",
+  "IN_DISTRIBUTION",
 ];
-
-export const isAwaitingArrival = (status: ShipmentStatus | undefined): boolean =>
-  !!status && AWAITING_ARRIVAL.includes(status);
-
-export const AWAITING_ARRIVAL_REASON =
-  "El paquete todavía no llegó a la bodega. Recolétalo o registra \"Recibido en bodega origen\" antes de procesarla.";
 
 /**
  * El tono de cada estatus: **de quién es la pelota.** Ver `StatusTone`.
@@ -59,11 +58,16 @@ export const SHIPMENT_STATUS_TONE: Record<ShipmentStatus, StatusTone> = {
   EMPTY_BOX_PENDING: "waiting",
   AWAITING_PICKUP: "waiting",
   AWAITING_AGENCY_PICKUP: "waiting",
+  COLLECTED: "transit",
   AT_WAREHOUSE: "waiting",
   // Esperando el webhook de la paquetería. Ámbar y no tránsito porque es donde
   // se atora una creación, y conviene que se vea.
   PROVIDER_SELECTED: "waiting",
   FULFILLED: "transit",
+  DISPATCHED: "transit",
+  IN_TRANSIT: "transit",
+  AT_DESTINATION: "transit",
+  IN_DISTRIBUTION: "transit",
   IN_ROUTE: "transit",
   FAILED_ATTEMPT: "waiting",
   DELIVERED: "done",
@@ -87,9 +91,8 @@ export const SHIPMENT_STATUS_TONE: Record<ShipmentStatus, StatusTone> = {
  *    guía se emite en el mismo movimiento en que la orden queda procesada, así
  *    que repetía el otro estatus— sino qué falta: despacharla.
  *
- * `AT_WAREHOUSE` comparte nombre con el estatus de orden `PENDING_HQ_PROCESS`
- * ("Por procesar") a propósito: son el mismo trabajo pendiente de JBG —pesar y
- * tarifar— y tener dos nombres los ponía en dos colas distintas.
+ * Del despacho en adelante el paquete está en camino y no hay "qué falta" que
+ * decir: el nombre es la etapa misma.
  */
 export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
   DRAFT: "Borrador",
@@ -98,9 +101,14 @@ export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
   // chofer — al domicilio del remitente o al mostrador del agente.
   AWAITING_PICKUP: "Por recolectar a domicilio",
   AWAITING_AGENCY_PICKUP: "Por recolectar en agencia",
+  COLLECTED: "Por recibir en bodega",
   AT_WAREHOUSE: "Por procesar",
   PROVIDER_SELECTED: "Generando guía",
   FULFILLED: "Por despachar",
+  DISPATCHED: "Despachada",
+  IN_TRANSIT: "En tránsito",
+  AT_DESTINATION: "En bodega destino",
+  IN_DISTRIBUTION: "En distribución",
   IN_ROUTE: "En ruta",
   DELIVERED: "Entregada",
   FAILED_ATTEMPT: "Intento fallido",

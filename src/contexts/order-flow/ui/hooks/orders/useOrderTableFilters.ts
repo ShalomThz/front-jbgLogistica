@@ -81,8 +81,13 @@ function toCriteria(
 ): OrderCriteria {
   const filters: Filter[] = [];
 
+  // El estatus que ve el usuario es el del envío, no el de la orden.
   if (state.statusFilter !== "all") {
-    filters.push({ field: "status", filterOperator: "=", value: state.statusFilter });
+    filters.push({
+      field: "shipment.status",
+      filterOperator: "=",
+      value: state.statusFilter,
+    });
   }
   if (state.originCustomerFilter !== "all") {
     filters.push({

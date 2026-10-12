@@ -161,8 +161,9 @@ export const shipmentRepository = {
   },
 
   /**
-   * Registra un evento de la línea de tiempo. Cierra también la parada si el
-   * envío va en una ruta en curso y el evento lo entrega o lo devuelve.
+   * Registra un evento de la línea de tiempo; con `advance`, además lleva al
+   * envío al paso que sigue y cierra la parada si esperaba al chofer en una
+   * ruta.
    *
    * Va como `multipart/form-data` porque puede llevar foto y firma, y una
    * imagen en base64 dentro de un JSON obliga al server a un `JSON.parse`
@@ -178,7 +179,7 @@ export const shipmentRepository = {
   }: RecordShipmentEventRequest): Promise<ShipmentResponsePrimitives> => {
     const formData = new FormData();
     for (const [key, value] of Object.entries(fields)) {
-      if (value !== undefined) formData.append(key, value);
+      if (value !== undefined) formData.append(key, String(value));
     }
     // El multipart solo lleva texto y archivos: la bodega va como JSON.
     if (location) formData.append("location", JSON.stringify(location));

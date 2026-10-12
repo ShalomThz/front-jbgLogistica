@@ -418,13 +418,17 @@ export const useHQOrderSubmission = ({
 
     const creationFailed = (s: ShipmentPrimitives) =>
       s.status === "PROVIDER_SELECTED" && !s.providerShipmentId;
+    // La guía salió. No se mira el estatus: la de la flota JBG sale directo en
+    // tránsito, y una paquetería queda en FULFILLED hasta que la recolecta.
+    const isFulfilled = (s: ShipmentPrimitives) => !!s.label;
 
     try {
       // Resume guard: if a prior attempt already fulfilled THIS shipment (a later
       // step failed and the user retried), do NOT re-fulfill — that would cancel
       // the valid label and mint a new tracking number. Skip to the post steps.
       let result: ShipmentPrimitives | null =
-        fulfilledShipment?.status === "FULFILLED" &&
+        fulfilledShipment &&
+        isFulfilled(fulfilledShipment) &&
         fulfilledShipment.id === shipmentId
           ? fulfilledShipment
           : null;
@@ -447,7 +451,7 @@ export const useHQOrderSubmission = ({
         setShipmentPhase("fulfilling");
         let current = await fulfillShipment(shipmentId);
 
-        if (current.status !== "FULFILLED") {
+        if (!isFulfilled(current)) {
           armCancelOffer();
           const outcome = await waitForShipmentFulfillment(shipmentId, {
             timeoutMs: FULFILL_TIMEOUT_MS,
@@ -477,7 +481,7 @@ export const useHQOrderSubmission = ({
           return;
         }
 
-        if (current.status !== "FULFILLED") {
+        if (!isFulfilled(current)) {
           setShipmentError(
             "La guía está tardando más de lo normal. Vuelve a intentarlo en unos minutos.",
           );

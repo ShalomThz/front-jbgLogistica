@@ -1,5 +1,4 @@
 import { shipmentStages } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
-import { shipmentStatuses } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { z } from "zod";
 
 const evidenceRequirements = ["required", "optional", "none"] as const;
@@ -7,9 +6,9 @@ const evidenceRequirements = ["required", "optional", "none"] as const;
 export type EvidenceRequirement = (typeof evidenceRequirements)[number];
 
 /**
- * Un evento que se puede registrar sobre el envío tal como está. Lo calcula el
- * back con la misma regla con la que valida, así que el front no guarda una
- * copia del catálogo: muestra lo que viene.
+ * Un evento del catálogo. Los eventos no tienen reglas: son atajos de texto
+ * para el historial, y al avanzar se ofrecen los de la etapa a la que llega.
+ * El back manda el catálogo, así que el front no guarda una copia.
  */
 export const availableShipmentEventSchema = z.object({
   code: z.string(),
@@ -19,68 +18,55 @@ export const availableShipmentEventSchema = z.object({
   signature: z.enum(evidenceRequirements),
   requiresLocation: z.boolean(),
   requiresRecipient: z.boolean(),
-  /** El estatus operativo al que lleva, o null si no lo mueve. Si lo mueve,
-   * las observaciones son obligatorias. */
-  movesTo: z.enum(shipmentStatuses).nullable(),
   /** Ya se registró sobre este envío. */
   recorded: z.boolean(),
-  /** Es el que sigue en su etapa según el orden de la guía: el diálogo lo
-   * preselecciona, pero se puede elegir cualquier otro. */
+  /** Es el que sigue en su etapa según el orden de la guía. */
   suggested: z.boolean(),
-  /** Por qué no se puede registrar ahora, o null si se puede. Llega igual para
-   * mostrarlo deshabilitado con el motivo en vez de esconderlo. */
-  blocked: z.enum(["SALE_PENDING", "SALE_COMPLETED"]).nullable(),
 });
-
-/** El aviso de un evento bloqueado por la venta. */
-export const BLOCKED_REASON: Record<
-  NonNullable<z.infer<typeof availableShipmentEventSchema>["blocked"]>,
-  string
-> = {
-  SALE_PENDING: "Primero se debe completar la venta",
-  SALE_COMPLETED: "Se registra antes de completar la venta",
-};
 
 export type AvailableShipmentEvent = z.infer<
   typeof availableShipmentEventSchema
 >;
 
-const stageLockReasons = [
-  "ARRIVAL_PENDING",
-  "SALE_PENDING",
-  "LABEL_PENDING",
-  "ROUTE_PENDING",
-  // Falta un evento de la etapa anterior: viene en `eventLabel`.
-  "EVENT_PENDING",
-] as const;
-
-const stageLockSchema = z.object({
-  reason: z.enum(stageLockReasons),
-  eventLabel: z.string().nullable(),
+/** Lo que hace avanzar el envío: el paso que sigue desde donde está. */
+export const nextShipmentStepSchema = z.object({
+  /** La etapa a la que llega: sus eventos son los atajos para contarlo. */
+  stage: z.enum(shipmentStages),
+  /** Cómo queda en el historial si no se elige un atajo. */
+  label: z.string(),
+  eventCode: z.string().nullable(),
+  /** Es un paso de la paquetería que Skydropx todavía no avisó: marcarlo
+   * pide confirmación. */
+  requiresCarrierConfirmation: z.boolean(),
 });
 
-export type StageLock = z.infer<typeof stageLockSchema>;
+export type NextShipmentStep = z.infer<typeof nextShipmentStepSchema>;
 
-/** Lo que falta para poder registrar algo en una etapa, dicho como acción. */
-export function stageLockLabel({ reason, eventLabel }: StageLock): string {
-  switch (reason) {
-    case "ARRIVAL_PENDING":
-      return "Primero debe llegar a bodega";
-    case "SALE_PENDING":
-      return "Primero se debe completar la venta";
-    case "LABEL_PENDING":
-      return "Primero se debe generar la guía";
-    case "ROUTE_PENDING":
-      return "Primero debe salir a ruta";
-    case "EVENT_PENDING":
-      return `Primero registra "${eventLabel}"`;
-  }
-}
+const advanceBlocks = [
+  "SALE_PENDING",
+  "LABEL_PENDING",
+  "FINISHED",
+  "CANCELLED",
+] as const;
+
+export type AdvanceBlock = (typeof advanceBlocks)[number];
+
+/** Por qué no se puede avanzar a mano, dicho al usuario. */
+export const ADVANCE_BLOCK_MESSAGES: Record<AdvanceBlock, string> = {
+  SALE_PENDING:
+    "Para avanzar hay que completar la venta: pesar, tarifar y elegir paquetería.",
+  LABEL_PENDING: "Se está generando la guía. Avanzará cuando salga.",
+  FINISHED: "El envío ya terminó su recorrido.",
+  CANCELLED: "El envío está cancelado.",
+};
 
 export const availableShipmentEventsResponseSchema = z.object({
   events: z.array(availableShipmentEventSchema),
-  /** Las etapas cerradas, con lo que falta para abrirlas. */
-  stageRequirements: z.partialRecord(z.enum(shipmentStages), stageLockSchema),
+  /** Null si no hay nada que avanzar a mano: espera la venta o la guía, o ya
+   * terminó. */
+  next: nextShipmentStepSchema.nullable(),
+  /** Con `next` en null, por qué. */
+  blocked: z.enum(advanceBlocks).nullable(),
 });
 
 export type AvailableShipmentEventsResponse = z.infer<

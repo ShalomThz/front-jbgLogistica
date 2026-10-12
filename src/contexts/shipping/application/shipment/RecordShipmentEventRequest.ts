@@ -12,7 +12,13 @@ export const MAX_EVIDENCE_PHOTOS = 10;
  */
 export const recordShipmentEventRequestSchema = z.object({
   shipmentId: z.string().min(1),
-  eventCode: z.string().min(1),
+  /** Al avanzar es opcional —un atajo para contar el paso con otro texto—; sin
+   * avanzar es lo que se registra. */
+  eventCode: z.string().min(1).optional(),
+  /** Además de registrar, lleva al envío al paso que sigue. */
+  advance: z.boolean().optional(),
+  /** En una paquetería: se marca aunque Skydropx todavía no lo avisó. */
+  confirmWithoutCarrier: z.boolean().optional(),
   notes: z.string().trim().min(1).optional(),
   /** La bodega donde ocurrió: la copia de una dirección de Configuración, como
    * la manda la cotización de HQ. */
