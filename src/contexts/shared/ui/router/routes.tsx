@@ -1,4 +1,5 @@
 import { boxPolicies } from "@contexts/shared/domain/policies/box.policy";
+import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { customerPolicies } from "@contexts/shared/domain/policies/customer.policy";
 import { iamPolicies } from "@contexts/shared/domain/policies/iam.policy";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
@@ -35,6 +36,10 @@ const BoxSalesHistoryPage = lazy(() => import("@contexts/inventory/ui/pages/BoxS
 const RoutesPage = lazy(() => import("@contexts/shipping/ui/pages/RoutesPage").then(m => ({ default: m.RoutesPage })));
 const DriversPage = lazy(() => import("@contexts/shipping/ui/pages/DriversPage").then(m => ({ default: m.DriversPage })));
 const PublicTrackingPage = lazy(() => import("@contexts/shipping/ui/pages/PublicTrackingPage").then(m => ({ default: m.PublicTrackingPage })));
+const ConsolidationsPage = lazy(() => import("@contexts/consolidation/ui/pages/ConsolidationsPage").then(m => ({ default: m.ConsolidationsPage })));
+const NewConsolidationPage = lazy(() => import("@contexts/consolidation/ui/pages/NewConsolidationPage").then(m => ({ default: m.NewConsolidationPage })));
+const ConsolidationDetailPage = lazy(() => import("@contexts/consolidation/ui/pages/ConsolidationDetailPage").then(m => ({ default: m.ConsolidationDetailPage })));
+const TrailersPage = lazy(() => import("@contexts/consolidation/ui/pages/TrailersPage").then(m => ({ default: m.TrailersPage })));
 
 // Pricing
 const TariffsPage = lazy(() => import("@contexts/pricing/ui/pages/TariffsPage").then(m => ({ default: m.TariffsPage })));
@@ -203,6 +208,46 @@ export const routes: RouteObject[] = [
       <ProtectedRoute policy={shippingPolicies.listDrivers}>
         <Suspense fallback={<PageLoader />}>
           <DriversPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/trailers",
+    element: (
+      <ProtectedRoute policy={consolidationPolicies.listTrailers}>
+        <Suspense fallback={<PageLoader />}>
+          <TrailersPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/consolidations",
+    element: (
+      <ProtectedRoute policy={consolidationPolicies.list}>
+        <Suspense fallback={<PageLoader />}>
+          <ConsolidationsPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/consolidations/new",
+    element: (
+      <ProtectedRoute policy={consolidationPolicies.create}>
+        <Suspense fallback={<PageLoader />}>
+          <NewConsolidationPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/consolidations/:id",
+    element: (
+      <ProtectedRoute policy={consolidationPolicies.view}>
+        <Suspense fallback={<PageLoader />}>
+          <ConsolidationDetailPage />
         </Suspense>
       </ProtectedRoute>
     ),

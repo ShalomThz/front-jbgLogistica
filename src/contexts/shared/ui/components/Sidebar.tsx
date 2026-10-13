@@ -22,6 +22,7 @@ import { warehousePolicies } from '@contexts/shared/domain/policies/warehouse.po
 import { boxPolicies } from '@contexts/shared/domain/policies/box.policy';
 import { pricingPolicies } from '@contexts/shared/domain/policies/pricing.policy';
 import { iamPolicies } from '@contexts/shared/domain/policies/iam.policy';
+import { consolidationPolicies } from '@contexts/shared/domain/policies/consolidation.policy';
 import type { LucideIcon } from 'lucide-react';
 import {
   Users,
@@ -40,6 +41,7 @@ import {
   Truck,
   PackageOpen,
   Box,
+  Container,
 } from 'lucide-react';
 import { shippingPolicies } from '../../domain/policies/shipping.policy';
 import logo from '@/assets/JBG_CARGO_CORP_logo.png';
@@ -97,6 +99,8 @@ const navigation: NavSection[] = [
         ],
       },
       { label: 'Conductores', href: '/drivers', icon: IdCard, policy: shippingPolicies.listDrivers },
+      { label: 'Tráilers', href: '/trailers', icon: Truck, policy: consolidationPolicies.listTrailers },
+      { label: 'Consolidados', href: '/consolidations', icon: Container, policy: consolidationPolicies.list },
       { label: 'Tarifas', href: '/tariffs', icon: DollarSign, policy: pricingPolicies.manageTariffs },
       { label: 'Zonas', href: '/zones', icon: MapPin, policy: pricingPolicies.manageZones },
     ],
