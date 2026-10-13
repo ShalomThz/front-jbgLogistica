@@ -9,6 +9,7 @@ import {
   Truck,
   Route,
   IdCard,
+  Container,
   Store,
   UserCog,
   Settings,
@@ -148,6 +149,20 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_CREATE_DRIVERS: "Crear conductores",
   CAN_EDIT_DRIVERS: "Editar conductores",
 
+  // Tráilers
+  CAN_LIST_TRAILERS: "Listar tráilers",
+  CAN_CREATE_TRAILERS: "Crear tráilers",
+  CAN_EDIT_TRAILERS: "Editar tráilers",
+
+  // Consolidados
+  CAN_LIST_CONSOLIDATIONS: "Listar consolidados",
+  CAN_VIEW_CONSOLIDATIONS: "Ver el detalle de un consolidado",
+  CAN_CREATE_CONSOLIDATIONS: "Crear consolidados",
+  CAN_EDIT_CONSOLIDATIONS: "Editar consolidados",
+  CAN_DELETE_CONSOLIDATIONS: "Eliminar consolidados",
+  CAN_MANAGE_CONSOLIDATION_PACKAGES: "Agregar o quitar órdenes de un consolidado",
+  CAN_ADVANCE_CONSOLIDATION_STAGE: "Avanzar la etapa de un consolidado",
+
   // Tariffs
   CAN_LIST_TARIFFS: "Listar tarifas",
   CAN_VIEW_TARIFFS: "Ver tarifas",
@@ -274,6 +289,23 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_LIST_DRIVERS: "Ver la lista de conductores.",
   CAN_CREATE_DRIVERS: "Registrar nuevos conductores.",
   CAN_EDIT_DRIVERS: "Modificar los datos y la disponibilidad de un conductor.",
+
+  // Tráilers
+  CAN_LIST_TRAILERS: "Ver el catálogo de tráilers (unidades reales de flota).",
+  CAN_CREATE_TRAILERS: "Dar de alta un tráiler nuevo en el catálogo.",
+  CAN_EDIT_TRAILERS: "Modificar los datos de un tráiler o desactivarlo.",
+
+  // Consolidados
+  CAN_LIST_CONSOLIDATIONS: "Ver el tablero de consolidados (embarques de tráiler).",
+  CAN_VIEW_CONSOLIDATIONS: "Ver el detalle de un consolidado (órdenes, clientes, historial).",
+  CAN_CREATE_CONSOLIDATIONS: "Crear un nuevo consolidado y agregarle órdenes.",
+  CAN_EDIT_CONSOLIDATIONS:
+    "Modificar los datos de un consolidado y adjuntar evidencia.",
+  CAN_DELETE_CONSOLIDATIONS: "Eliminar permanentemente un consolidado.",
+  CAN_MANAGE_CONSOLIDATION_PACKAGES:
+    "Agregar o quitar órdenes de un consolidado.",
+  CAN_ADVANCE_CONSOLIDATION_STAGE:
+    "Avanzar la etapa de un consolidado (preparación → ... → conciliado).",
 
   // Tariffs
   CAN_LIST_TARIFFS: "Ver la lista de tarifas configuradas.",
@@ -413,6 +445,24 @@ export const PERMISSION_GROUPS: {
         "CAN_LIST_DRIVERS",
         "CAN_CREATE_DRIVERS",
         "CAN_EDIT_DRIVERS",
+      ],
+    },
+    {
+      label: "Tráilers",
+      icon: Truck,
+      permissions: ["CAN_LIST_TRAILERS", "CAN_CREATE_TRAILERS", "CAN_EDIT_TRAILERS"],
+    },
+    {
+      label: "Consolidados",
+      icon: Container,
+      permissions: [
+        "CAN_LIST_CONSOLIDATIONS",
+        "CAN_VIEW_CONSOLIDATIONS",
+        "CAN_CREATE_CONSOLIDATIONS",
+        "CAN_EDIT_CONSOLIDATIONS",
+        "CAN_DELETE_CONSOLIDATIONS",
+        "CAN_MANAGE_CONSOLIDATION_PACKAGES",
+        "CAN_ADVANCE_CONSOLIDATION_STAGE",
       ],
     },
     {
