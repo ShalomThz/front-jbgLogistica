@@ -97,6 +97,8 @@ export const orderSchema = z.object({
     .nullish()
     .transform((v) => v ?? null)
     .catch(null),
+  // Id del consolidado (tráiler) que ya se llevó esta orden, si aplica.
+  consolidationId: z.string().nullable().default(null),
   ...aggregateRootSchema.shape,
 });
 
