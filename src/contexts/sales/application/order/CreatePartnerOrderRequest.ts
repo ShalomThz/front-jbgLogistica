@@ -14,6 +14,8 @@ import z from "zod";
 const partnerCreatePackageSchema = packageSchema.partial({ weight: true });
 
 export const createPartnerOrderSchema = z.object({
+  /** Lo genera el flujo al abrirse: un reintento no crea otra orden. */
+  id: z.uuid().optional(),
   storeId: z.string(),
   partnerOrderNumber: z.string().optional().default(""),
   package: partnerCreatePackageSchema,

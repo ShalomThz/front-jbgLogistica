@@ -42,6 +42,62 @@ export const DELIVERY_ROUTE_READY: readonly ShipmentStatus[] = [
 ];
 
 /**
+ * Cómo va la guía de un envío con la venta registrada y sin guía todavía
+ * (`PROVIDER_SELECTED`): la paquetería la está creando —hay un id suyo, y su
+ * webhook la completa— o no salió —rechazada, cancelada, o nunca se pidió—.
+ * Null si el envío ya tiene guía o no está en ese punto.
+ */
+export type LabelCreation = "pending" | "failed";
+
+export const labelCreationOf = (shipment: {
+  status: ShipmentStatus;
+  label: unknown;
+  providerShipmentId: string | null;
+}): LabelCreation | null => {
+  if (shipment.status !== "PROVIDER_SELECTED" || shipment.label) return null;
+  return shipment.providerShipmentId ? "pending" : "failed";
+};
+
+/** Antes de que HQ elija la paquetería: hasta acá el agente corrige su orden
+ * desde su formulario. Después, los cambios van por "Completar venta". */
+const BEFORE_SALE_STATUSES: readonly ShipmentStatus[] = [
+  "DRAFT",
+  "EMPTY_BOX_PENDING",
+  "AWAITING_PICKUP",
+  "AWAITING_AGENCY_PICKUP",
+  "COLLECTED",
+  "AT_WAREHOUSE",
+];
+
+export const isBeforeSale = (status: ShipmentStatus): boolean =>
+  BEFORE_SALE_STATUSES.includes(status);
+
+/** Donde el recorrido terminó. Espeja `FINISHED_STATUSES` del back: ya no se
+ * cancela. */
+export const FINISHED_SHIPMENT_STATUSES: readonly ShipmentStatus[] = [
+  "DELIVERED",
+  "RETURNED",
+  "CANCELLED",
+];
+
+/** El `carrierStatus.code` con que el back guarda un rechazo de la guía
+ * (`Shipment.rejectLabel`). */
+const LABEL_REJECTED_CODE = "error";
+
+/**
+ * La guía no salió porque la paquetería la rechazó, no porque no contestara.
+ * Pedirla otra vez con la misma tarifa daría lo mismo.
+ */
+export const isLabelRejected = (shipment: {
+  status: ShipmentStatus;
+  label: unknown;
+  providerShipmentId: string | null;
+  carrierStatus: { code: string } | null;
+}): boolean =>
+  labelCreationOf(shipment) === "failed" &&
+  shipment.carrierStatus?.code === LABEL_REJECTED_CODE;
+
+/**
  * El tono de cada estatus: **de quién es la pelota.** Ver `StatusTone`.
  *
  * Es la única fuente del color de estado, y de acá lo toman la barra de la
@@ -103,7 +159,8 @@ export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
   AWAITING_AGENCY_PICKUP: "Por recolectar en agencia",
   COLLECTED: "Por recibir en bodega",
   AT_WAREHOUSE: "Por procesar",
-  PROVIDER_SELECTED: "Generando guía",
+  // La venta ya está registrada; falta la guía (ver `labelCreationOf`).
+  PROVIDER_SELECTED: "Esperando guía de la paquetería",
   FULFILLED: "Por despachar",
   DISPATCHED: "Despachada",
   IN_TRANSIT: "En tránsito",

@@ -27,8 +27,8 @@ export const CancelShipmentDialog = ({
         <DialogHeader>
           <DialogTitle>Cancelar envío</DialogTitle>
           <DialogDescription>
-            ¿Seguro que deseas cancelar el envío? Si ya tiene guía generada, se
-            cancelará con la paquetería. Esta acción no se puede deshacer.
+            Se cancela el envío y también la orden. Si lo lleva una paquetería
+            y ya tiene guía, se cancela con ella. No se puede deshacer.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

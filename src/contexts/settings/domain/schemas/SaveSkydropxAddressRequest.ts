@@ -3,6 +3,14 @@ import { verifiedAddressSchema } from "../../../shared/domain/schemas/address/Ad
 import { hqSkydropxBaseSchema } from "./HQSkydropxAddressBase";
 
 export const saveSkydropxAddressItemSchema = hqSkydropxBaseSchema.extend({
+  // El nombre de la bodega viaja como remitente en la guía de Skydropx, que
+  // rechaza más de 30 caracteres. Solo al guardar: la respuesta usa el esquema
+  // base, y una bodega ya guardada con un nombre largo se tiene que poder leer
+  // para corregirla.
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(30, "Máximo 30 caracteres (límite de la paquetería)"),
   address: verifiedAddressSchema,
   isSelected: z.boolean(),
 });

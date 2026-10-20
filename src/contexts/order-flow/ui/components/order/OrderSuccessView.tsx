@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DropdownMenu,
@@ -16,12 +17,15 @@ import {
   Separator,
 } from "@contexts/shared/shadcn";
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ClipboardCopy,
+  DollarSign,
   Download,
   ExternalLink,
   FilePlus2,
+  Loader2,
   MapPin,
   Printer,
   Share2,
@@ -30,10 +34,25 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
+import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { requoteActionOf } from "@contexts/order-flow/domain/services/orderProgress";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
+import {
+  PAYMENT_STATUS_LABELS,
+  PAYMENT_STATUS_SURFACE,
+  acceptsPayments,
+  resolveBilledBalance,
+  resolvePaymentStatus,
+} from "@contexts/shared/domain/schemas/PaymentStatus";
+import { PaymentLedgerDialog } from "./orders-table/PaymentLedgerDialog";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { toast } from "sonner";
 import type { ShipmentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
+import {
+  isLabelRejected,
+  labelCreationOf,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import {
   availableLabelOptions,
@@ -77,19 +96,56 @@ interface OrderSuccessViewProps {
   onCreateSameClient?: () => void;
 }
 
-export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
+export function OrderSuccessView({ shipment: requestedShipment, orderId, totalBilled, onFinish, onCreateBlank, onCreateSameClient }: OrderSuccessViewProps) {
+  const { data: order } = useOrder(orderId ?? undefined);
+  // El envío de la orden se actualiza en vivo por el socket: con una
+  // paquetería, la guía llega por su webhook después de abrir esta pantalla.
+  // Gana el más nuevo: la orden recién leída puede venir de la vista del back
+  // todavía sin reproyectar, sin el id de la guía pedida, y se vería "fallida".
+  const live = order?.shipment;
+  const shipment =
+    live && live.updatedAt >= requestedShipment.updatedAt
+      ? live
+      : requestedShipment;
   const { provider, rate, label, costBreakdown } = shipment;
+  // Pedida a la paquetería y todavía sin respuesta, o rechazada por su webhook.
+  const labelCreation = labelCreationOf(shipment);
+  const labelPending = labelCreation === "pending";
+  const labelFailed = labelCreation === "failed";
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(true);
 
-  const { data: order } = useOrder(orderId ?? undefined);
   const { user } = useAuth();
   // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
   const labelOptions =
     user && shippingPolicies.viewLabel(user) && order
       ? availableLabelOptions(shipment, order, user.store.type)
       : [];
+  // El cobro de la venta, leído del servidor: cada abono se sube al
+  // registrarlo, así que no hay pendientes que se pierdan o se repitan.
+  const { addPayment, removePayment, clearPayments, isSavingPayment } =
+    useOrders({ enabled: false });
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  // A dónde iba quien quiso salir sin cobrar, mientras confirma.
+  const [exitAction, setExitAction] = useState<(() => void) | null>(null);
+  const canRegisterPayment =
+    !!user &&
+    !!order &&
+    acceptsPayments(order) &&
+    (order.type === "PARTNER"
+      ? orderPolicies.editPartner(user) || orderPolicies.editHQ(user)
+      : orderPolicies.editHQ(user));
+  const paymentStatus = order ? resolvePaymentStatus(order.financials) : null;
+  const balance = order ? resolveBilledBalance(order.financials) : null;
+  /** Sale, o primero avisa si la venta quedó sin pagar del todo. */
+  const leave = (action: () => void) => {
+    if (canRegisterPayment && paymentStatus !== "PAID") {
+      setExitAction(() => action);
+      return;
+    }
+    action();
+  };
   const effectiveTotalBilled = totalBilled ?? order?.financials.totalBilled ?? null;
   const totalShipping = order?.financials.totalPrice ?? null;
   const photos = order?.package.photos ?? [];
@@ -163,7 +219,11 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Resumen de la venta</h1>
           <p className="text-sm text-muted-foreground">
-            La guía fue generada y el envío está listo
+            {labelPending
+              ? "La venta quedó registrada. La guía llega en cuanto la paquetería responda."
+              : labelFailed
+                ? "La venta quedó registrada, pero la guía no salió."
+                : "La guía fue generada y el envío está listo"}
           </p>
         </div>
       </div>
@@ -353,6 +413,113 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
         </Card>
       )}
 
+      {labelPending && (
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-6">
+            <Loader2 className="size-5 shrink-0 animate-spin text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium">La guía se está generando</p>
+              <p className="text-xs text-muted-foreground">
+                La venta ya quedó registrada. El número de guía aparece aquí y
+                en la orden cuando la paquetería responda; puedes salir de
+                esta pantalla.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {labelFailed && (
+        <Card className="border-destructive/40">
+          <CardContent className="flex items-center gap-3 pt-6">
+            <AlertTriangle className="size-5 shrink-0 text-destructive" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium">
+                {isLabelRejected(shipment)
+                  ? "La paquetería rechazó la guía"
+                  : "La guía no salió"}
+              </p>
+              {isLabelRejected(shipment) && shipment.carrierStatus && (
+                <p className="break-words text-xs text-destructive">
+                  {shipment.carrierStatus.label}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                La venta quedó registrada. Para elegir otra paquetería, abre la
+                orden con "{requoteActionOf(order?.type ?? "HQ")}".
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cobro: los abonos se registran aquí, con la venta ya guardada y la
+          respuesta de la paquetería. Es una sugerencia: se puede cobrar
+          después desde la tabla de órdenes. */}
+      {order && canRegisterPayment && paymentStatus && (
+        <Card className={PAYMENT_STATUS_SURFACE[paymentStatus].card}>
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <p
+                className={`flex items-center gap-1.5 text-sm font-semibold ${PAYMENT_STATUS_SURFACE[paymentStatus].accent}`}
+              >
+                <DollarSign className="size-4" />
+                Cobro
+              </p>
+              <Badge variant="outline">
+                {PAYMENT_STATUS_LABELS[paymentStatus]}
+              </Badge>
+            </div>
+            {order.financials.totalBilled && (
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="tabular-nums">
+                    {formatMoney(order.financials.totalBilled)}
+                  </span>
+                </div>
+                {balance && balance.paid > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Pagado</span>
+                    <span className="tabular-nums">
+                      {formatMoney({
+                        amount: balance.paid,
+                        currency: order.financials.totalBilled.currency,
+                      })}
+                    </span>
+                  </div>
+                )}
+                {balance && balance.pending > 0 && (
+                  <div className="flex justify-between font-medium">
+                    <span>Saldo</span>
+                    <span className="tabular-nums">
+                      {formatMoney({
+                        amount: balance.pending,
+                        currency: order.financials.totalBilled.currency,
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            {paymentStatus !== "PAID" && (
+              <p className="text-xs text-muted-foreground">
+                ¿El cliente ya pagó? Registra el abono para que la orden quede
+                al día.
+              </p>
+            )}
+            <Button
+              variant={paymentStatus === "PAID" ? "outline" : "default"}
+              className="w-full gap-2"
+              onClick={() => setLedgerOpen(true)}
+            >
+              <DollarSign className="size-4" />
+              {paymentStatus === "PAID" ? "Ver abonos" : "Registrar abono"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Label Actions */}
       {labelOptions.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
@@ -490,22 +657,80 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <div className="flex flex-wrap gap-2">
           {onCreateBlank && (
-            <Button variant="outline" className="gap-2" onClick={onCreateBlank}>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => leave(onCreateBlank)}
+            >
               <FilePlus2 className="size-4" />
               Nueva orden en blanco
             </Button>
           )}
           {onCreateSameClient && (
-            <Button variant="outline" className="gap-2" onClick={onCreateSameClient}>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => leave(onCreateSameClient)}
+            >
               <UserPlus className="size-4" />
               Nueva orden del mismo cliente
             </Button>
           )}
         </div>
-        <Button className="ml-auto" onClick={onFinish}>
+        <Button className="ml-auto" onClick={() => leave(onFinish)}>
           Ir a órdenes
         </Button>
       </div>
+
+      {order && (
+        <PaymentLedgerDialog
+          open={ledgerOpen}
+          onClose={() => setLedgerOpen(false)}
+          order={order}
+          onAddPayment={(data) => addPayment(order.id, data)}
+          onRemovePayment={(paymentId) => removePayment(order.id, paymentId)}
+          onClearPayments={() => clearPayments(order.id)}
+          isSaving={isSavingPayment}
+        />
+      )}
+
+      {/* Salir sin cobrar se puede: la orden queda sin pagar y se cobra
+          después desde la tabla. Solo se avisa. */}
+      <Dialog
+        open={exitAction !== null}
+        onOpenChange={(v) => !v && setExitAction(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Salir sin registrar el pago?</DialogTitle>
+            <DialogDescription>
+              La orden queda como "
+              {paymentStatus ? PAYMENT_STATUS_LABELS[paymentStatus] : ""}". Puedes
+              registrar el cobro después desde la tabla de órdenes.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const action = exitAction;
+                setExitAction(null);
+                action?.();
+              }}
+            >
+              Salir de todos modos
+            </Button>
+            <Button
+              onClick={() => {
+                setExitAction(null);
+                setLedgerOpen(true);
+              }}
+            >
+              Registrar abono
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
@@ -520,10 +745,14 @@ export function OrderSuccessView({ shipment, orderId, totalBilled, onFinish, onC
               className="animate-caja-feliz size-32 object-contain"
             />
             <DialogTitle className="text-xl text-green-700 dark:text-green-400">
-              Creado exitosamente
+              {label ? "Creado exitosamente" : "Venta registrada"}
             </DialogTitle>
             <DialogDescription className="text-green-600/80 dark:text-green-400/70">
-              La guía ha sido generada y el envío está listo.
+              {labelPending
+                ? "Estamos esperando la guía de la paquetería; aparecerá en la orden."
+                : labelFailed
+                  ? "La guía no salió: revisa el aviso en el resumen."
+                  : "La guía ha sido generada y el envío está listo."}
             </DialogDescription>
           </DialogHeader>
           <Button

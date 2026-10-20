@@ -138,10 +138,8 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     isFulfilling: submission.isFulfilling,
     isProcessingShipment: submission.isProcessingShipment,
     shipmentPhase: submission.shipmentPhase,
-    canCancelCreation: submission.canCancelCreation,
-    cancelCreation: submission.cancelCreation,
-    creationCancelled: submission.creationCancelled,
     shipmentError: submission.shipmentError,
+    labelRejected: submission.labelRejected,
     clearShipmentError: submission.clearShipmentError,
     fulfilledShipment: submission.fulfilledShipment,
     totalBilled: submission.totalBilled,
@@ -173,9 +171,5 @@ export const useHQOrderFlow = ({ initialValues, orderId, storeId }: UseHQOrderFl
     selectedWarehouseAddress: effectiveWarehouseAddress,
     setSelectedWarehouseAddress,
     isLoadingAddresses,
-    pendingPayments: submission.pendingPayments,
-    addPendingPayment: submission.addPendingPayment,
-    removePendingPayment: submission.removePendingPayment,
-    clearPendingPayments: submission.clearPendingPayments,
   };
 };

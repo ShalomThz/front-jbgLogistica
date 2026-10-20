@@ -16,6 +16,8 @@ interface ShipmentShape {
   incident?: ShipmentIncidentPrimitives | null;
   carrier?: "INTERNAL_FLEET" | "THIRD_PARTY";
   carrierStatus?: { code: string; label: string } | null;
+  /** El id con que la paquetería está creando la guía. */
+  providerShipmentId?: string | null;
 }
 
 /** Solo los campos que `orderProgress` mira; el resto de la vista no le
@@ -37,6 +39,8 @@ function makeOrder(
           stage: shipment.stage,
           incident: shipment.incident ?? null,
           carrierStatus: shipment.carrierStatus ?? null,
+          label: null,
+          providerShipmentId: shipment.providerShipmentId ?? null,
           provider: shipment.carrier
             ? { type: shipment.carrier, providerName: "x" }
             : null,
@@ -137,6 +141,56 @@ describe("orderProgress", () => {
       const progress = orderProgress(makeOrder("PENDING_HQ_PROCESS"));
       expect(progress.label).toBe("Por procesar");
       expect(progress.tone).toBe("waiting");
+    });
+  });
+
+  describe("la guía después de registrar la venta", () => {
+    it("la paquetería la está creando: espera, en ámbar", () => {
+      const progress = orderProgress(
+        makeOrder("PENDING_HQ_PROCESS", {
+          status: "PROVIDER_SELECTED",
+          stage: "ORIGIN_WAREHOUSE",
+          carrier: "THIRD_PARTY",
+          providerShipmentId: "sky-1",
+        }),
+      );
+      expect(progress.detail).toBe("Esperando guía de la paquetería");
+      expect(progress.tone).toBe("waiting");
+    });
+
+    it("no salió: error, en rojo, y qué hacer", () => {
+      const progress = orderProgress(
+        makeOrder("PENDING_HQ_PROCESS", {
+          status: "PROVIDER_SELECTED",
+          stage: "ORIGIN_WAREHOUSE",
+          carrier: "THIRD_PARTY",
+        }),
+      );
+      expect(progress.detail).toBe("Guía sin generar");
+      expect(progress.tone).toBe("stopped");
+      expect(progress.hint).toContain("Elige otra paquetería");
+    });
+
+    it("no salió: dice el botón que corresponde a cada orden", () => {
+      const failed = { status: "PROVIDER_SELECTED", stage: "ORIGIN_WAREHOUSE" } as const;
+      expect(
+        orderProgress(makeOrder("PENDING_HQ_PROCESS", failed, { type: "PARTNER" })).hint,
+      ).toContain('"Completar venta"');
+      expect(
+        orderProgress(makeOrder("PENDING_HQ_PROCESS", failed, { type: "HQ" })).hint,
+      ).toContain('"Editar"');
+    });
+
+    it("con guía de paquetería, la espera es que la recolecte, no que JBG despache", () => {
+      expect(
+        orderProgress(
+          makeOrder("COMPLETED", {
+            status: "FULFILLED",
+            stage: "ORIGIN_WAREHOUSE",
+            carrier: "THIRD_PARTY",
+          }),
+        ).detail,
+      ).toBe("Por recolectar (paquetería)");
     });
   });
 

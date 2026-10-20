@@ -9,6 +9,7 @@ import {
   type ShipmentStage,
 } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
 import {
+  labelCreationOf,
   SHIPMENT_STATUS_LABELS,
   SHIPMENT_STATUS_TONE,
   type ShipmentStatus,
@@ -32,8 +33,8 @@ export interface OrderProgress {
   stage: ShipmentStage | null;
   /** Dónde está: la etapa, o el corte si el recorrido se cortó. */
   label: string;
-  /** Qué falta, en el vocabulario operativo ("Por procesar", "Generando
-   * guía"). Vacío cuando no agrega nada a la etiqueta. */
+  /** Qué falta, en el vocabulario operativo ("Por procesar", "Esperando guía
+   * de la paquetería"). Vacío cuando no agrega nada a la etiqueta. */
   detail: string;
   /** Qué falta para avanzar, en una frase. Vacío cuando no falta nada. */
   hint: string;
@@ -51,7 +52,8 @@ const HINT_BY_SHIPMENT_STATUS: Record<ShipmentStatus, string> = {
     "El paquete está en la agencia; el chofer debe pasar a buscarlo",
   COLLECTED: "El chofer la lleva a la bodega de origen; falta recibirla",
   AT_WAREHOUSE: "JBG debe pesarla y tarifarla",
-  PROVIDER_SELECTED: "La paquetería está emitiendo la guía",
+  PROVIDER_SELECTED:
+    'Venta registrada; la guía llega sola cuando responda la paquetería. Si tarda, usa "Actualizar envío"',
   FULFILLED: "Lista para salir de la bodega de origen",
   DISPATCHED: "Salió de la bodega de origen",
   IN_TRANSIT: "En camino a la bodega de destino",
@@ -81,9 +83,28 @@ function operationalDetail(
 ): string {
   const { status, carrierStatus } = shipment;
   if (carrierStatus && status === "IN_TRANSIT") return carrierStatus.label;
+  // Una paquetería no la despacha JBG: pasa a recogerla.
+  if (status === "FULFILLED" && shipment.provider?.type === "THIRD_PARTY") {
+    return "Por recolectar (paquetería)";
+  }
   if (STAGE_NAMED.has(status)) return "";
   return SHIPMENT_STATUS_LABELS[status];
 }
+
+/**
+ * La acción con que se vuelve a cotizar una orden cuya guía no salió: la de
+ * socio la procesa JBG con "Completar venta"; la de mostrador, con "Editar".
+ */
+export const requoteActionOf = (type: OrderListView["type"]): string =>
+  type === "PARTNER" ? "Completar venta" : "Editar";
+
+/** La guía no salió (`labelCreationOf`): la paquetería la rechazó, no
+ * contestó, o nunca se pidió. No es una espera: alguien tiene que elegir otra
+ * paquetería. */
+const LABEL_FAILED_DETAIL = "Guía sin generar";
+
+const labelFailedHint = (type: OrderListView["type"]): string =>
+  `Elige otra paquetería con "${requoteActionOf(type)}"`;
 
 const STAGE_NAMED: ReadonlySet<ShipmentStatus> = new Set([
   "DISPATCHED",
@@ -162,18 +183,20 @@ export function orderProgress(order: OrderListView): OrderProgress {
 
   const { status, incident } = shipment;
   const viaCarrier = shipment.provider?.type === "THIRD_PARTY";
-  const hint =
-    (viaCarrier && CARRIER_HINT[status]) || HINT_BY_SHIPMENT_STATUS[status];
+  const labelFailed = labelCreationOf(shipment) === "failed";
+  const hint = labelFailed
+    ? labelFailedHint(order.type)
+    : (viaCarrier && CARRIER_HINT[status]) || HINT_BY_SHIPMENT_STATUS[status];
 
   return {
     reached,
     stage,
     label: STAGE_LABELS[stage],
-    detail: operationalDetail(shipment),
+    detail: labelFailed ? LABEL_FAILED_DETAIL : operationalDetail(shipment),
     hint: incident
       ? `${INCIDENT_LABELS[incident.type]}: ${incident.reason}`
       : hint,
-    tone: incident ? "stopped" : SHIPMENT_STATUS_TONE[status],
+    tone: incident || labelFailed ? "stopped" : SHIPMENT_STATUS_TONE[status],
     incident,
   };
 }

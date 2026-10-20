@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { UseFormReturn } from "react-hook-form";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrders";
+import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
@@ -42,6 +43,10 @@ export const usePartnerOrderSubmission = ({
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | undefined>(initialOrderId);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  // El id de la orden que se va a crear, fijo mientras esta pantalla viva: si la
+  // respuesta del alta se pierde y se reintenta, el back devuelve la misma
+  // orden —con sus abonos— en vez de crear otra.
+  const draftOrderIdRef = useRef(crypto.randomUUID());
   // Abonos capturados en el paso de precios; se suben al crear la orden.
   const [pendingPayments, setPendingPayments] = useState<AddPaymentRequest[]>(
     [],
@@ -66,12 +71,9 @@ export const usePartnerOrderSubmission = ({
   const removePendingPartnerSalePayment = (index: number) =>
     setPartnerSalePayments((prev) => prev.filter((_, i) => i !== index));
   const clearPendingPartnerSalePayments = () => setPartnerSalePayments([]);
-  // Los abonos de una orden que se edita se suben por ruta propia, así que un
-  // segundo envío los duplicaría — a diferencia del alta, donde viajan dentro
-  // del request y un reintento crearía otra orden, no abonos de más. Mismo
-  // resguardo que `useHQOrderSubmission`.
-  const paymentsAppliedRef = useRef(false);
   const { user } = useAuth();
+  // La orden como está guardada, al editar: su modo y los abonos que ya tiene.
+  const { data: existingOrder } = useOrder(initialOrderId);
   const {
     createPartnerOrder,
     updateOrder,
@@ -88,22 +90,57 @@ export const usePartnerOrderSubmission = ({
 
   const submitPartnerOrder = async () => {
     if (orderId) {
+      // Pasar a caja vacía al editar pide el anticipo, igual que en el alta (el
+      // back también lo exige). Cuentan los abonos ya guardados y los
+      // capturados en esta edición.
+      const turnsOnEmptyBox =
+        form.getValues("emptyBoxDelivery") && !existingOrder?.emptyBoxDelivery;
+      if (turnsOnEmptyBox) {
+        const hasPartnerSale =
+          (parseFloat(form.getValues("partnerSale.amount")) || 0) > 0;
+        const recorded =
+          existingOrder?.financials.partnerSale?.payments.length ?? 0;
+        if (!hasPartnerSale || recorded + partnerSalePayments.length === 0) {
+          toast.error(
+            "Registra cuánto le cobras a tu cliente y el anticipo que te pagó para dejar la caja vacía.",
+            { id: "order-flow" },
+          );
+          return;
+        }
+      }
       try {
         const request = buildPartnerEditOrderRequest(form.getValues(), storeId);
-        await updateOrder(orderId, request);
+        // Los abonos se suben después de guardar la orden, y el back pide el
+        // anticipo ya registrado para pasar a caja vacía: el cambio de modo va
+        // al final, en su propio request.
+        await updateOrder(
+          orderId,
+          turnsOnEmptyBox
+            ? { ...request, emptyBoxDelivery: undefined, homePickup: undefined }
+            : request,
+        );
         // La orden ya existe: los abonos capturados se registran directo, cada
         // libro por su ruta. El del socio con su cliente **no** viaja en el
         // request —`buildPartnerEditOrderRequest` lo omite a propósito para no
         // pisar el libro con lo que tenga el formulario abierto—, así que sin
         // esta subida se quedaba en el estado del paso y se perdía al salir.
-        if (!paymentsAppliedRef.current) {
-          for (const payment of pendingPayments) {
-            await addPayment(orderId, payment);
-          }
-          for (const payment of partnerSalePayments) {
-            await addPartnerSalePayment(orderId, payment);
-          }
-          paymentsAppliedRef.current = true;
+        //
+        // Cada abono sale de pendientes en cuanto el back lo registra: si falla
+        // uno a la mitad, el reintento sube solo los que faltan, y la pantalla
+        // no lo cuenta dos veces —ya lo lee de la orden—.
+        for (const payment of pendingPayments) {
+          await addPayment(orderId, payment);
+          setPendingPayments((prev) => prev.filter((p) => p !== payment));
+        }
+        for (const payment of partnerSalePayments) {
+          await addPartnerSalePayment(orderId, payment);
+          setPartnerSalePayments((prev) => prev.filter((p) => p !== payment));
+        }
+        if (turnsOnEmptyBox) {
+          await updateOrder(orderId, {
+            emptyBoxDelivery: request.emptyBoxDelivery,
+            homePickup: request.homePickup,
+          });
         }
         setIsSubmitted(true);
         onSuccess();
@@ -152,7 +189,10 @@ export const usePartnerOrderSubmission = ({
           destinationCountry,
           partnerSalePayments,
         );
-        const order = await createPartnerOrder(request);
+        const order = await createPartnerOrder({
+          ...request,
+          id: draftOrderIdRef.current,
+        });
         setOrderId(order.id);
         setIsSubmitted(true);
         onSuccess();

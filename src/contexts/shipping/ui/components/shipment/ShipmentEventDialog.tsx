@@ -4,7 +4,6 @@ import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -49,7 +48,6 @@ import {
   ChevronRight,
   Info,
   ListPlus,
-  TriangleAlert,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -68,6 +66,9 @@ interface Props {
   };
   /** Solo el icono, para una fila apretada como la lista de paradas. */
   compact?: boolean;
+  /** Lo lleva una paquetería: el botón dice que es para anotar, porque su
+   * estatus no se mueve a mano. Las rutas son de la flota JBG y no lo pasan. */
+  viaCarrier?: boolean;
 }
 
 /** Avanzar al paso que sigue, o solo dejar una línea en el historial. */
@@ -94,11 +95,11 @@ const suggestedFirst = (events: AvailableShipmentEvent[]) =>
 /**
  * Mueve el envío por su recorrido y deja constancia en el historial.
  *
- * **Avanzar** es la acción principal: lleva al envío al paso que sigue —solo
- * ese, no se salta etapas— y lo dice antes, sobre la línea de tiempo. El texto
- * que queda en el historial es el del paso; el selector permite contarlo con
- * otro evento de la misma etapa. En una paquetería, avanzar es marcar lo que
- * Skydropx todavía no avisó, y por eso pide confirmarlo.
+ * **Avanzar** es la acción principal: lleva al envío al paso que sigue y lo
+ * dice antes, sobre la línea de tiempo. El texto que queda en el historial es
+ * el del paso; el selector permite contarlo con otro evento de la misma etapa.
+ * Una paquetería no se avanza a mano después de la venta: su estatus lo trae
+ * Skydropx ("Actualizar envío"), y el diálogo abre en anotar.
  *
  * **Solo anotar** deja una línea en el historial sin mover nada: se elige la
  * etapa y el evento.
@@ -114,6 +115,7 @@ export const ShipmentEventDialog = ({
   reference,
   timeline,
   compact = false,
+  viaCarrier = false,
 }: Props) => {
   const { user } = useAuth();
   const { recordShipmentEvent, isRecordingEvent } = useShipmentActions();
@@ -122,7 +124,6 @@ export const ShipmentEventDialog = ({
   const [chosenMode, setChosenMode] = useState<Mode | null>(null);
   const [stage, setStage] = useState<ShipmentStage | null>(null);
   const [code, setCode] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [notes, setNotes] = useState("");
   // La posición en la lista de Configuración, como la cotización de HQ: lo que
@@ -162,8 +163,10 @@ export const ShipmentEventDialog = ({
   if (!user || !shippingPolicies.recordEvents(user)) return null;
 
   // Avanzar es lo normal. Sin paso que seguir la pestaña sigue ahí, diciendo
-  // por qué; anotar en el historial se puede siempre.
-  const mode: Mode = chosenMode ?? "advance";
+  // por qué; anotar en el historial se puede siempre. Una paquetería abre en
+  // anotar: su estatus no se mueve a mano.
+  const mode: Mode =
+    blocked === "CARRIER" ? "note" : (chosenMode ?? "advance");
   const activeStage =
     mode === "advance" ? (next?.stage ?? null) : (stage ?? current);
 
@@ -206,7 +209,6 @@ export const ShipmentEventDialog = ({
 
   const resetFields = () => {
     setCode("");
-    setConfirmed(false);
     setDetailsOpen(false);
     setNotes("");
     setWarehouseIndex("");
@@ -229,6 +231,12 @@ export const ShipmentEventDialog = ({
     resetFields();
   };
 
+  const openDialog = () => setOpen(true);
+  // Una paquetería solo se anota: el estatus lo trae Skydropx. Se sabe antes de
+  // abrir por la prop, y al abrir lo confirma el back.
+  const carrierLed = blocked === "CARRIER";
+  const triggerLabel = viaCarrier ? "Anotar en historial" : "Avanzar / registrar";
+
   const closeAndReset = () => {
     setOpen(false);
     setChosenMode(null);
@@ -242,10 +250,6 @@ export const ShipmentEventDialog = ({
     needs.warehouse && !warehouse && "la bodega",
     needs.recipient && !recipientName.trim() && "quién recibe",
     mode === "note" && !chosen && "el evento",
-    mode === "advance" &&
-      next?.requiresCarrierConfirmation &&
-      !confirmed &&
-      "confirmar que Skydropx no lo ha avisado",
   ].filter((m): m is string => !!m);
   // Avanzar sin paso que seguir no hace nada: el motivo ya está a la vista.
   const advanceBlocked = mode === "advance" && !next;
@@ -261,9 +265,6 @@ export const ShipmentEventDialog = ({
       await recordShipmentEvent({
         shipmentId,
         advance: mode === "advance" || undefined,
-        confirmWithoutCarrier:
-          (mode === "advance" && next?.requiresCarrierConfirmation) ||
-          undefined,
         eventCode: chosen?.code,
         notes: orUndefined(notes),
         location: warehouse
@@ -349,8 +350,8 @@ export const ShipmentEventDialog = ({
           variant="ghost"
           size="icon"
           className="size-6"
-          title="Avanzar o registrar evento"
-          onClick={() => setOpen(true)}
+          title={triggerLabel}
+          onClick={openDialog}
         >
           <ListPlus className="size-3.5" />
         </Button>
@@ -360,10 +361,10 @@ export const ShipmentEventDialog = ({
           variant="outline"
           size="sm"
           className="gap-1.5 text-xs"
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
         >
           <ListPlus className="size-3.5" />
-          Avanzar / registrar
+          {triggerLabel}
         </Button>
       )}
 
@@ -390,6 +391,14 @@ export const ShipmentEventDialog = ({
               </p>
             ) : (
               <>
+                {/* Una paquetería no se avanza a mano: no se ofrece la pestaña,
+                    solo se dice por qué. */}
+                {carrierLed ? (
+                  <div className="flex items-start gap-2 rounded-md bg-muted p-3 text-sm">
+                    <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <p>{ADVANCE_BLOCK_MESSAGES.CARRIER}</p>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm">
                   {(["advance", "note"] as const).map((value) => (
                     <button
@@ -410,6 +419,7 @@ export const ShipmentEventDialog = ({
                     </button>
                   ))}
                 </div>
+                )}
 
                 {advanceBlocked ? (
                   <div className="space-y-3 rounded-md border p-3">
@@ -424,12 +434,16 @@ export const ShipmentEventDialog = ({
                         <p className="font-medium">
                           {blocked
                             ? ADVANCE_BLOCK_MESSAGES[blocked]
-                            : "Desde aquí no hay un paso que avanzar a mano."}
+                            : "No hay un paso que avanzar desde aquí."}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Mientras tanto puedes dejar una nota en "Solo anotar
-                          en el historial".
-                        </p>
+                        {/* En un cancelado tampoco se anota: el back lo rechaza. */}
+                        {blocked !== "CANCELLED" && (
+                          <p className="text-xs text-muted-foreground">
+                            {blocked === "FINISHED"
+                              ? 'Puedes dejar una nota en "Solo anotar en el historial".'
+                              : 'Mientras tanto puedes dejar una nota en "Solo anotar en el historial".'}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -645,24 +659,6 @@ export const ShipmentEventDialog = ({
                       )}
                     </div>
 
-                    {mode === "advance" && next?.requiresCarrierConfirmation && (
-                      <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                        <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <p>
-                            Skydropx todavía no ha reportado "{next.label}".
-                            ¿Confirmas que ya pasó?
-                          </p>
-                          <label className="flex items-center gap-2 font-medium">
-                            <Checkbox
-                              checked={confirmed}
-                              onCheckedChange={(v) => setConfirmed(v === true)}
-                            />
-                            Marcarlo sin el aviso de Skydropx
-                          </label>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
               </>

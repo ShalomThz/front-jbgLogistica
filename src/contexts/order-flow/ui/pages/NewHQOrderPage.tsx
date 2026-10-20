@@ -160,10 +160,6 @@ const NewHQOrderPageInner = ({
             isPartnerOrder={flow.isPartnerOrder}
             partnerPricing={flow.partnerPricing}
             partnerTariff={flow.partnerTariff}
-            pendingPayments={flow.pendingPayments}
-            onAddPayment={flow.addPendingPayment}
-            onRemovePayment={flow.removePendingPayment}
-            onClearPayments={flow.clearPendingPayments}
           />
         )}
 
@@ -183,9 +179,7 @@ const NewHQOrderPageInner = ({
         open={flow.isProcessingShipment || !!flow.shipmentError}
         phase={flow.shipmentPhase}
         error={flow.shipmentError}
-        canCancel={flow.canCancelCreation}
-        onCancel={flow.cancelCreation}
-        cancelled={flow.creationCancelled}
+        rejected={flow.labelRejected}
         onRetry={flow.selectAndFulfill}
         onChangeCarrier={flow.clearShipmentError}
       />

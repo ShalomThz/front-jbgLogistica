@@ -37,6 +37,9 @@ export const shipmentSchema = z.object({
     .object({ code: z.string(), label: z.string() })
     .nullable()
     .default(null),
+  // El problema que la paquetería sigue reportando, o null. A diferencia de
+  // `carrierStatus`, la oficina no lo marca a mano.
+  carrierIncidentCode: z.string().nullable().default(null),
   // La incidencia abierta, si hay una.
   incident: shipmentIncidentSchema.nullable().default(null),
   // Carrier shipment id, stamped while the label is generated asynchronously.

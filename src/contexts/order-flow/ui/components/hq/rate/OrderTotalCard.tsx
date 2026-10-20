@@ -16,8 +16,8 @@ import {
 import { Info, Tag } from "lucide-react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
 import type { HQOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
-import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
-import { PendingPaymentControl } from "@contexts/order-flow/ui/components/order/orders-table/PendingPaymentControl";
+import { useOrder } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
+import { roundMoney } from "@contexts/shared/domain/schemas/PaymentStatus";
 import { CurrencyConversion } from "@contexts/shared/ui/components/CurrencyConversion";
 import { useExchangeRate } from "@contexts/shared/infrastructure/hooks/useExchangeRate";
 import { useBilledTotal } from "@contexts/order-flow/ui/hooks/shared/useBilledTotal";
@@ -37,13 +37,9 @@ interface OrderTotalCardProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   disabled?: boolean;
-  /** Orden ya creada: muestra sus abonos ya registrados en el control de pago. */
+  /** Orden ya creada: muestra lo que ya tiene pagado. Los abonos nuevos se
+   * registran en la pantalla de éxito. */
   orderId?: string;
-  /** Abonos capturados en el paso (locales; se suben al finalizar la orden). */
-  pendingPayments: AddPaymentRequest[];
-  onAddPayment: (data: AddPaymentRequest) => void;
-  onRemovePayment: (index: number) => void;
-  onClearPayments: () => void;
 }
 
 export function OrderTotalCard({
@@ -51,10 +47,6 @@ export function OrderTotalCard({
   isSubmitting,
   disabled = false,
   orderId,
-  pendingPayments,
-  onAddPayment,
-  onRemovePayment,
-  onClearPayments,
 }: OrderTotalCardProps) {
   const { control } = useFormContext<HQOrderFormValues>();
   const shippingService = useWatch<HQOrderFormValues, "shippingService">({ name: "shippingService" });
@@ -109,6 +101,14 @@ export function OrderTotalCard({
     discount: discountAmount,
     discountCurrency: discountCurrency,
   });
+
+  // Los abonos que la orden ya tenía. Solo si todos van en la moneda de la
+  // tarifa: el front no convierte, el backend lo hace con tipo de cambio.
+  const { data: order } = useOrder(orderId);
+  const registered = order?.financials.payments ?? [];
+  const paidAlready = registered.every((p) => p.amount.currency === tariffCurrency)
+    ? roundMoney(registered.reduce((sum, p) => sum + p.amount.amount, 0))
+    : null;
 
   if (!shippingService.selectedRate) {
     return (
@@ -218,22 +218,30 @@ export function OrderTotalCard({
 
           <div className="my-2 border-t-2 border-dashed border-muted-foreground/40" />
 
-          <PendingPaymentControl
-            // `billedTotal`, no `grandTotal`: el saldo se concilia contra
-            // `totalBilled`, que el backend calcula en la moneda de la tarifa.
-            // Antes acá viajaba el total convertido a la moneda de
-            // visualización con la etiqueta de la otra, y liquidar dejaba la
-            // orden en parcial para siempre.
-            grandTotal={billedTotal}
-            currency={tariffCurrency}
-            currencies={[tariffCurrency]}
-            ledger="jbg"
-            orderId={orderId}
-            pendingPayments={pendingPayments}
-            onAddPayment={onAddPayment}
-            onRemovePayment={onRemovePayment}
-            onClearPayments={onClearPayments}
-          />
+          {/* Lo que la orden ya tiene pagado (p. ej. lo que el socio le abonó a
+              JBG), contra `billedTotal`: el total en la moneda de la tarifa,
+              que es como lo concilia el backend. */}
+          {paidAlready !== null && paidAlready > 0 && billedTotal !== null && (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ya pagado</span>
+                <span className="tabular-nums">
+                  ${paidAlready.toFixed(2)} {tariffCurrency}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Saldo</span>
+                <span className="tabular-nums">
+                  ${roundMoney(billedTotal - paidAlready).toFixed(2)}{" "}
+                  {tariffCurrency}
+                </span>
+              </div>
+            </>
+          )}
+          <p className="text-xs text-muted-foreground">
+            El cobro se registra al terminar la venta, cuando ya salió la
+            respuesta de la paquetería.
+          </p>
         </CardContent>
       </Card>
 
