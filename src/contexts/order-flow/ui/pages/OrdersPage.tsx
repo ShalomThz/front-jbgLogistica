@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { toast } from "sonner";
 import { Building2, ChevronLeft, ChevronRight, Handshake, Plus, RefreshCw } from "lucide-react";
 import {
   Button,
@@ -34,7 +36,6 @@ import {
 } from "../hooks/orders/useOrderTableFilters";
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
-import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { SendInvoiceEmailDialog } from "../components/order/SendInvoiceEmailDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
@@ -73,8 +74,6 @@ export const OrdersPage = () => {
     totalPages,
     isLoading,
     refetch,
-    deleteOrder,
-    isDeleting,
   } = useOrders({ page, limit, ...criteria });
 
   const [orderToEmail, setOrderToEmail] = useState<OrderListView | null>(null);
@@ -94,7 +93,6 @@ export const OrdersPage = () => {
     handleCloseDialog,
   } = useOrderDialog(visibleOrders);
 
-  const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
   const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
@@ -140,16 +138,12 @@ export const OrdersPage = () => {
   const canCreateHQ = user ? orderPolicies.createHQ(user) : false;
   const canEditPartner = user ? orderPolicies.editPartner(user) : false;
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
-  const canDeletePartner = user ? orderPolicies.deletePartner(user) : false;
-  const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
   const canViewReports = user ? orderPolicies.viewReports(user) : false;
   const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
   const canListAllOrders = user ? orderPolicies.listAll(user) : false;
 
   const canEdit = (order: OrderListView) =>
     order.type === "PARTNER" ? canEditPartner : canEditHQ;
-  const canDelete = (order: OrderListView) =>
-    order.type === "PARTNER" ? canDeletePartner : canDeleteHQ;
 
   const handleCreateOrder = () => {
     if (canCreatePartner && canCreateHQ) {
@@ -163,16 +157,15 @@ export const OrdersPage = () => {
     startTransition(() => navigate("/orders/new/partner"));
   };
 
-  const handleDelete = async () => {
-    if (!orderToDelete) return;
-    await deleteOrder(orderToDelete.id);
-    setOrderToDelete(null);
-    handleCloseDialog();
-  };
-
+  // El back puede rechazarla, por ejemplo con la guía en creación y la tabla
+  // todavía sin enterarse: se avisa en vez de cerrar como si nada.
   const handleCancelShipment = async (shipmentId: string) => {
-    await cancelShipment(shipmentId);
-    handleCloseDialog();
+    try {
+      await cancelShipment(shipmentId);
+      handleCloseDialog();
+    } catch (error) {
+      toast.error(parseApiError(error));
+    }
   };
 
   const from = pagination ? pagination.offset + 1 : 0;
@@ -236,7 +229,6 @@ export const OrdersPage = () => {
         highlightOrderId={highlightOrderId}
         canEdit={canEdit}
         canEditHQ={canEditHQ}
-        canDelete={canDelete}
         canViewFinancials={canViewFinancials}
         isHidden={columns.isHidden}
         downloadingLabel={downloadingLabel}
@@ -248,7 +240,6 @@ export const OrdersPage = () => {
         onSendInvoiceEmail={handleSendInvoiceEmail}
         onEdit={(order) => navigate(`/orders/${order.id}/edit`)}
         onCompleteSale={(order) => navigate(`/orders/${order.id}/edit?mode=complete`)}
-        onDelete={(order) => setOrderToDelete(order)}
       />
 
       {pagination && total > 0 && (
@@ -295,20 +286,10 @@ export const OrdersPage = () => {
         order={selectedOrder}
         open={!!selectedOrderId}
         onClose={handleCloseDialog}
-        onDelete={(order) => setOrderToDelete(order)}
-        isDeleting={isDeleting}
         onCancelShipment={handleCancelShipment}
         isCancelling={isCancelling}
         sendingInvoiceOrderId={sendingInvoiceOrderId}
         onSendInvoiceEmail={handleSendInvoiceEmail}
-      />
-
-      <OrderDeleteDialog
-        order={orderToDelete}
-        open={!!orderToDelete}
-        onClose={() => setOrderToDelete(null)}
-        onConfirm={handleDelete}
-        isLoading={isDeleting}
       />
 
       <SendInvoiceEmailDialog

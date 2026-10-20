@@ -4,7 +4,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Checkbox,
   Command,
   CommandEmpty,
   CommandGroup,
@@ -19,7 +18,7 @@ import {
 } from "@contexts/shared/shadcn";
 import { Check, ChevronsUpDown, PackageOpen, Store, Truck } from "lucide-react";
 import { useMemo, useState, type UIEvent } from "react";
-import { Controller, useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { useInfiniteStores } from "@contexts/iam/infrastructure/hooks/stores/useInfiniteStores";
 import { useStores } from "@contexts/iam/infrastructure/hooks/stores/useStores";
@@ -29,6 +28,53 @@ import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebo
 import type { PartnerOrderFormValues } from "@contexts/order-flow/domain/schemas/NewOrderForm";
 import { ContactColumn } from "../../shared/ContactColumn";
 
+type PickupMode = "AGENT_STORE" | "EMPTY_BOX" | "HOME_PICKUP";
+
+/** Las tres formas en que la caja llega a JBG, con el estilo de cada una. */
+const PICKUP_MODES = [
+  {
+    mode: "AGENT_STORE",
+    icon: Store,
+    title: "Recolección en tienda del agente",
+    description:
+      "El cliente deja su caja en la tienda y el chofer pasa por ella para llevarla a bodega.",
+    selectedClass:
+      "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30",
+    dotClass: "border-emerald-500 bg-emerald-500",
+    titleClass: "text-emerald-700 dark:text-emerald-400",
+  },
+  {
+    mode: "EMPTY_BOX",
+    icon: PackageOpen,
+    title: "Dejar caja vacía a domicilio",
+    description:
+      "El chofer deja la caja al cliente y se recolecta después, ya empacada, para llevarla a bodega.",
+    selectedClass:
+      "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30",
+    dotClass: "border-amber-500 bg-amber-500",
+    titleClass: "text-amber-700 dark:text-amber-400",
+  },
+  {
+    mode: "HOME_PICKUP",
+    icon: Truck,
+    title: "Recolección a domicilio",
+    description:
+      "El cliente ya tiene su caja empacada; el chofer pasa a recogerla y la lleva a bodega.",
+    selectedClass:
+      "border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30",
+    dotClass: "border-sky-500 bg-sky-500",
+    titleClass: "text-sky-700 dark:text-sky-400",
+  },
+] as const satisfies readonly {
+  mode: PickupMode;
+  icon: typeof Store;
+  title: string;
+  description: string;
+  selectedClass: string;
+  dotClass: string;
+  titleClass: string;
+}[];
+
 interface PartnerContactStepProps {
   selectedStoreId?: string;
   onStoreChange?: (storeId: string) => void;
@@ -36,6 +82,15 @@ interface PartnerContactStepProps {
 
 export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerContactStepProps = {}) {
   const { register, control, clearErrors, setValue, formState: { errors } } = useFormContext<PartnerOrderFormValues>();
+  const [emptyBoxDelivery, homePickup] = useWatch({
+    control,
+    name: ["emptyBoxDelivery", "homePickup"],
+  });
+  const pickupMode: PickupMode = emptyBoxDelivery
+    ? "EMPTY_BOX"
+    : homePickup
+      ? "HOME_PICKUP"
+      : "AGENT_STORE";
   const { user } = useAuth();
   const canPickStore = user ? iamPolicies.listStores(user) : false;
   const [storeOpen, setStoreOpen] = useState(false);
@@ -173,88 +228,66 @@ export function PartnerContactStep({ selectedStoreId, onStoreChange }: PartnerCo
               <p className="text-sm text-destructive">{errors.orderData.partnerOrderNumber.message}</p>
             )}
           </div>
-          {/* Visita a domicilio: una sola modalidad a la vez — marcar una
-              desmarca la otra. */}
-          <Controller
-            control={control}
-            name="emptyBoxDelivery"
-            render={({ field }) => (
-              <label
-                htmlFor="empty-box-delivery"
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
-                  field.value
-                    ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30"
-                    : "hover:bg-muted/40",
-                )}
-              >
-                <Checkbox
-                  id="empty-box-delivery"
-                  checked={field.value}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked);
-                    if (checked) setValue("homePickup", false);
+          {/* Cómo llega la caja a JBG: una sola opción, y siempre una a la
+              vista. La de la tienda del agente es la que queda si no se elige
+              otra; antes no se veía en ningún lado y había que deducirla de
+              no haber marcado nada. Por dentro sigue siendo el par de banderas
+              `emptyBoxDelivery` / `homePickup`, las dos en falso para ésta. */}
+          <div
+            role="radiogroup"
+            aria-label="Cómo se recoge la caja"
+            className="space-y-2"
+          >
+            {PICKUP_MODES.map((option) => {
+              const selected = pickupMode === option.mode;
+              const Icon = option.icon;
+              return (
+                <button
+                  key={option.mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => {
+                    setValue("emptyBoxDelivery", option.mode === "EMPTY_BOX", {
+                      shouldDirty: true,
+                    });
+                    setValue("homePickup", option.mode === "HOME_PICKUP", {
+                      shouldDirty: true,
+                    });
                   }}
-                  className="mt-0.5 data-[state=checked]:border-amber-500 data-[state=checked]:bg-amber-500"
-                />
-                <span className="space-y-0.5">
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+                    selected ? option.selectedClass : "hover:bg-muted/40",
+                  )}
+                >
                   <span
                     className={cn(
-                      "flex items-center gap-1.5 text-sm font-medium",
-                      field.value && "text-amber-700 dark:text-amber-400",
+                      "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
+                      selected ? option.dotClass : "border-muted-foreground/50",
                     )}
                   >
-                    <PackageOpen className="size-4" />
-                    Dejar caja vacía a domicilio
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    El chofer deja la caja al cliente y se recolecta después, ya
-                    empacada, para llevarla a bodega.
-                  </span>
-                </span>
-              </label>
-            )}
-          />
-          <Controller
-            control={control}
-            name="homePickup"
-            render={({ field }) => (
-              <label
-                htmlFor="home-pickup"
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
-                  field.value
-                    ? "border-sky-300 bg-sky-50 dark:border-sky-700 dark:bg-sky-950/30"
-                    : "hover:bg-muted/40",
-                )}
-              >
-                <Checkbox
-                  id="home-pickup"
-                  checked={field.value}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked);
-                    if (checked) setValue("emptyBoxDelivery", false);
-                  }}
-                  className="mt-0.5 data-[state=checked]:border-sky-500 data-[state=checked]:bg-sky-500"
-                />
-                <span className="space-y-0.5">
-                  <span
-                    className={cn(
-                      "flex items-center gap-1.5 text-sm font-medium",
-                      field.value && "text-sky-700 dark:text-sky-400",
+                    {selected && (
+                      <span className="size-1.5 rounded-full bg-white" />
                     )}
-                  >
-                    <Truck className="size-4" />
-                    Recolección a domicilio
                   </span>
-                  <span className="block text-xs text-muted-foreground">
-                    El cliente ya tiene su caja empacada; el chofer pasa a
-                    recogerla y la lleva a bodega.
+                  <span className="space-y-0.5">
+                    <span
+                      className={cn(
+                        "flex items-center gap-1.5 text-sm font-medium",
+                        selected && option.titleClass,
+                      )}
+                    >
+                      <Icon className="size-4" />
+                      {option.title}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {option.description}
+                    </span>
                   </span>
-                </span>
-              </label>
-            )}
-          />
+                </button>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 

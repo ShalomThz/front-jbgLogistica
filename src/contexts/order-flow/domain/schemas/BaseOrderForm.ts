@@ -63,7 +63,15 @@ export const baseOrderFormSchema = z.object({
     partnerOrderNumber: z.string(),
   }),
   sender: contactWithAddressSchema,
-  recipient: contactWithAddressSchema,
+  // Skydropx rechaza la guía si el nombre del destinatario pasa de 30
+  // caracteres ("Dirección de destino nombre es demasiado largo"). Se frena
+  // acá, no después de cobrar.
+  recipient: contactWithAddressSchema.extend({
+    name: z
+      .string()
+      .min(1, "El nombre es requerido")
+      .max(30, "Máximo 30 caracteres (límite de la paquetería)"),
+  }),
   package: basePackageSchema,
   /** "Dejar caja vacía a domicilio": el chofer la deja y luego la recolecta. */
   emptyBoxDelivery: z.boolean(),

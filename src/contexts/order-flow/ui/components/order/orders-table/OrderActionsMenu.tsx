@@ -15,20 +15,24 @@ import {
   type InvoiceVariant,
 } from "@contexts/sales/ui/invoices/invoiceActions";
 import {
+  isBeforeSale,
+  labelCreationOf,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
+import {
   availableLabelOptions,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
+import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer } from "lucide-react";
 import {
-  AWAITING_ARRIVAL_REASON,
-  isAwaitingArrival,
-} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
-import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
+  DisabledReason,
+  LABEL_PENDING_REASON,
+  SALE_PROCESSED_REASON,
+} from "../DisabledReason";
 
 interface OrderActionsMenuProps {
   order: OrderListView;
   canEdit: boolean;
   canEditHQ: boolean;
-  canDelete: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   sendingInvoiceOrderId: string | null;
@@ -37,14 +41,12 @@ interface OrderActionsMenuProps {
   onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
-  onDelete: (order: OrderListView) => void;
 }
 
 export const OrderActionsMenu = ({
   order,
   canEdit,
   canEditHQ,
-  canDelete,
   downloadingLabel,
   downloadingInvoice,
   sendingInvoiceOrderId,
@@ -53,13 +55,25 @@ export const OrderActionsMenu = ({
   onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
-  onDelete,
 }: OrderActionsMenuProps) => {
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
+  // Con la guía en creación no se entra a completar la venta (ver EditOrderPage).
+  const labelPending =
+    !!order.shipment && labelCreationOf(order.shipment) === "pending";
+  // "Editar orden" de una HQ es completar la venta; la del socio, su
+  // formulario, que ya no se abre cuando HQ eligió la paquetería (el back
+  // rechaza cambiar los datos de la guía).
+  const saleProcessed =
+    order.type === "PARTNER" &&
+    !!order.shipment &&
+    !isBeforeSale(order.shipment.status);
+  const editBlockReason = labelPending
+    ? LABEL_PENDING_REASON
+    : saleProcessed
+      ? SALE_PROCESSED_REASON
+      : null;
   const canPrintInvoice = canInvoice(order);
   const canPrintPartnerInvoice = canInvoicePartner(order);
-  // Sin el paquete en bodega no hay qué pesar: el back lo rechazaría.
-  const awaitingArrival = isAwaitingArrival(order.shipment?.status);
   const { user } = useAuth();
   // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
   const labelOptions =
@@ -76,24 +90,34 @@ export const OrderActionsMenu = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {canEdit && isOpen && (
-          <DropdownMenuItem
-            className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
-            onClick={() => onEdit(order)}
+          <DisabledReason
+            reason={editBlockReason}
+            className="block"
           >
-            <Pencil className="size-4" />
-            Editar orden
-          </DropdownMenuItem>
+            <DropdownMenuItem
+              className="bg-blue-50 text-blue-700 focus:bg-blue-100 focus:text-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:focus:bg-blue-950/50"
+              disabled={!!editBlockReason}
+              onClick={() => onEdit(order)}
+            >
+              <Pencil className="size-4" />
+              Editar orden
+            </DropdownMenuItem>
+          </DisabledReason>
         )}
         {order.type === "PARTNER" && canEditHQ && isOpen && (
-          <DropdownMenuItem
-            className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
-            disabled={awaitingArrival}
-            title={awaitingArrival ? AWAITING_ARRIVAL_REASON : undefined}
-            onClick={() => onCompleteSale(order)}
+          <DisabledReason
+            reason={labelPending ? LABEL_PENDING_REASON : null}
+            className="block"
           >
-            <Package className="size-4" />
-            {awaitingArrival ? "Procesar (falta que llegue)" : "Procesar orden"}
-          </DropdownMenuItem>
+            <DropdownMenuItem
+              className="bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800 dark:bg-green-950/30 dark:text-green-400 dark:focus:bg-green-950/50"
+              disabled={labelPending}
+              onClick={() => onCompleteSale(order)}
+            >
+              <Package className="size-4" />
+              Completar venta
+            </DropdownMenuItem>
+          </DisabledReason>
         )}
         {(labelOptions.length > 0 || canPrintInvoice || canPrintPartnerInvoice) && (
           <>
@@ -146,18 +170,6 @@ export const OrderActionsMenu = ({
                 )}
               </>
             )}
-          </>
-        )}
-        {canDelete && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="bg-red-50 text-red-700 focus:bg-red-100 focus:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:focus:bg-red-950/50"
-              onClick={() => onDelete(order)}
-            >
-              <Trash2 className="size-4" />
-              Eliminar
-            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

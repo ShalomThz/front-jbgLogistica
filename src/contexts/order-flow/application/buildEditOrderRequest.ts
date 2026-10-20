@@ -3,9 +3,14 @@ import type { HQOrderFormValues } from "../domain/schemas/HQOrderForm";
 import type { PartnerOrderFormValues } from "../domain/schemas/PartnerOrderForm";
 import { buildPackagePayload } from "./buildPackagePayload";
 
+/**
+ * El descuento siempre viaja: sin monto va vacío, y no ausente. El back lee la
+ * ausencia como "no lo toques", así que borrar un descuento ya guardado dejaba
+ * la factura restándolo mientras el Cobro cobraba sin él.
+ */
 export const buildDiscountPayload = (discount: HQOrderFormValues["shippingService"]["discount"]) => {
   const amount = parseFloat(discount.amount);
-  if (!amount || amount <= 0) return undefined;
+  if (!amount || amount <= 0) return { amount: null, concept: null };
   return {
     amount: { amount, currency: discount.currency },
     concept: discount.concept.trim() || null,

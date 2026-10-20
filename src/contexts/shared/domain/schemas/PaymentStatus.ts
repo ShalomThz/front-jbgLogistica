@@ -101,6 +101,11 @@ interface PaymentStatusSource {
   isPaid: boolean;
 }
 
+/** Se pueden registrar abonos: no en una orden cancelada. Espeja la regla del
+ * back (`Order.addPayment`), en los dos libros. */
+export const acceptsPayments = (order: { status: string }): boolean =>
+  order.status !== "CANCELLED";
+
 /** Órdenes previas a paymentStatus lo derivan de isPaid. */
 export const resolvePaymentStatus = (
   financials: PaymentStatusSource,
@@ -114,7 +119,11 @@ interface Amount {
 
 interface BilledBalanceSource {
   totalBilled: Amount | null;
-  payments: { amount: Amount }[];
+  payments: {
+    amount: Amount;
+    /** La tasa congelada al registrarlo, si fue en otra moneda. */
+    exchangeRate?: { to: string; rate: number } | null;
+  }[];
 }
 
 export interface BilledBalance {
@@ -125,10 +134,11 @@ export interface BilledBalance {
 }
 
 /**
- * Pagado y saldo en la moneda de facturación. El front no convierte monedas,
- * así que solo es fiable cuando todos los abonos están en la moneda de
- * `totalBilled`; con monedas mixtas (o sin total) devuelve null y la UI muestra
- * únicamente el estado (que el backend deriva con FX).
+ * Pagado y saldo en la moneda de facturación. El front no consulta tipos de
+ * cambio: suma los abonos en la moneda de `totalBilled`, y los de otra moneda
+ * con la tasa que quedó guardada al registrarlos —la misma que usa el back—.
+ * Si alguno no tiene tasa (abonos viejos), o no hay total, devuelve null y la
+ * UI muestra únicamente el estado.
  */
 /** El dinero se compara y se muestra en centavos: `totalBilled` viene de sumar
  * importes multiplicados por tipos de cambio, así que arrastra residuos de coma
@@ -149,6 +159,8 @@ export const resolveBilledBalance = (
   for (const p of financials.payments) {
     if (p.amount.currency === total.currency) {
       paid += p.amount.amount;
+    } else if (p.exchangeRate?.to === total.currency) {
+      paid += p.amount.amount * p.exchangeRate.rate;
     } else if (rates && rates[p.amount.currency] !== undefined) {
       paid += p.amount.amount * rates[p.amount.currency];
     } else {

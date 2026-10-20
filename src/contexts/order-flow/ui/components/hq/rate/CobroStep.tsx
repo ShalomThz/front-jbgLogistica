@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import type { MoneyPrimitives } from "@contexts/shared/domain/schemas/Money";
 import type { OrderPricingPrimitives } from "@contexts/sales/domain/schemas/order/Order";
 import { useZones } from "@contexts/pricing/infrastructure/hooks/zones/useZones";
-import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
 import {
   Badge,
   Button,
@@ -89,12 +88,6 @@ interface CobroStepProps {
   /** Lo que el socio efectivamente le cobró a su cliente, haya habido tarifa
    * o no. Es lo único que queda cuando `partnerPricing` es null. */
   partnerTariff: MoneyPrimitives | null;
-
-  /** Abonos capturados en este paso (locales; se suben al finalizar). */
-  pendingPayments: AddPaymentRequest[];
-  onAddPayment: (data: AddPaymentRequest) => void;
-  onRemovePayment: (index: number) => void;
-  onClearPayments: () => void;
 }
 
 const PRICE_TYPE_ICON = { PUBLIC: Users, PARTNER: Handshake } as const;
@@ -128,10 +121,6 @@ export function CobroStep({
   isPartnerOrder,
   partnerPricing,
   partnerTariff,
-  pendingPayments,
-  onAddPayment,
-  onRemovePayment,
-  onClearPayments,
 }: CobroStepProps) {
   // Solo la zona de la cotización del socio, no el catálogo entero.
   const partnerZoneFilters = useMemo(
@@ -437,10 +426,6 @@ export function CobroStep({
           isSubmitting={isSubmitting}
           disabled={!tariff || tariff.amount <= 0}
           orderId={orderId}
-          pendingPayments={pendingPayments}
-          onAddPayment={onAddPayment}
-          onRemovePayment={onRemovePayment}
-          onClearPayments={onClearPayments}
         />
       </div>
     </div>

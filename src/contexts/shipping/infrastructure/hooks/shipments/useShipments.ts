@@ -7,6 +7,7 @@ import type {
   ResolveShipmentIncidentRequest,
 } from "../../../application/shipment/RecordShipmentEventRequest";
 import type { RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
+import { putShipmentInOrderCaches } from "@contexts/shared/infrastructure/websocket/useWebSocketEvents";
 import { shipmentRepository } from "../../services/shipments/shipmentRepository";
 import { SHIPMENT_TRACKING_QUERY_KEY } from "./useShipment";
 
@@ -16,7 +17,7 @@ interface UseShipmentsOptions {
   page?: number;
   limit?: number;
   filters?: unknown[];
- }
+}
 
 export const useShipments = ({
   page = 1,
@@ -82,11 +83,12 @@ interface UseShipmentRatesOptions {
 export const useShipmentActions = () => {
   const queryClient = useQueryClient();
 
+  // El envío que vuelve ya dice si la guía salió o si la paquetería la está
+  // creando: va directo a la orden en pantalla, que si no seguiría sin el id
+  // de la creación y se leería como "Guía sin generar".
   const fulfillMutation = useMutation({
     mutationFn: (shipmentId: string) => shipmentRepository.fulfill(shipmentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SHIPMENTS_QUERY_KEY });
-    },
+    onSuccess: putShipmentInOrderCaches,
   });
 
   const selectProviderMutation = useMutation({
@@ -105,12 +107,15 @@ export const useShipmentActions = () => {
     },
   });
 
-  const abortCreationMutation = useMutation({
+  const syncWithCarrierMutation = useMutation({
     mutationFn: (shipmentId: string) =>
-      shipmentRepository.abortCreation(shipmentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SHIPMENTS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      shipmentRepository.syncWithCarrier(shipmentId),
+    // El envío viene completo: se pone en la orden en pantalla ya, porque la
+    // tabla de órdenes del back se reproyecta después y pedirla ahora la traería
+    // sin la guía. El socket confirma cuando el back termina.
+    onSuccess: ({ shipment }) => {
+      putShipmentInOrderCaches(shipment);
+      queryClient.invalidateQueries({ queryKey: SHIPMENT_TRACKING_QUERY_KEY });
     },
   });
 
@@ -163,9 +168,8 @@ export const useShipmentActions = () => {
     isCancelling: cancelMutation.isPending,
     cancelError: cancelMutation.error?.message ?? null,
 
-    abortShipmentCreation: async (shipmentId: string) =>
-      await abortCreationMutation.mutateAsync(shipmentId),
-    isAbortingCreation: abortCreationMutation.isPending,
+    syncWithCarrier: syncWithCarrierMutation.mutateAsync,
+    isSyncingWithCarrier: syncWithCarrierMutation.isPending,
 
     recordShipmentEvent: recordEventMutation.mutateAsync,
     isRecordingEvent: recordEventMutation.isPending,

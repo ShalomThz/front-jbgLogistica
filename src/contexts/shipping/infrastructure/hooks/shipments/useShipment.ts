@@ -1,5 +1,3 @@
-import { stageLockLabel } from "@contexts/shipping/application/shipment/AvailableShipmentEventsResponse";
-import type { ShipmentStage } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
 import { useQuery } from "@tanstack/react-query";
 import { shipmentRepository } from "../../services/shipments/shipmentRepository";
 
@@ -49,7 +47,7 @@ export const useShipmentTracking = (
     ...ALWAYS_FRESH,
   });
 
-/** Lo que se puede registrar ahora; se pide al abrir el diálogo. */
+/** El catálogo de eventos y lo que hace avanzar; se pide al abrir el diálogo. */
 export const useAvailableShipmentEvents = (
   shipmentId: string | undefined,
   enabled = true,
@@ -60,51 +58,3 @@ export const useAvailableShipmentEvents = (
     enabled: enabled && !!shipmentId,
     ...ALWAYS_FRESH,
   });
-
-/**
- * Qué falta en las etapas cerradas, para marcarlo con candado sobre la línea
- * de tiempo, y la etapa que sigue cuando la actual ya está cumplida (null si
- * no). Lo usan el diálogo de registrar evento y el Historial de la orden; las
- * consultas son las mismas, así que no se piden dos veces.
- */
-export const useStageLocks = (
-  shipmentId: string | undefined,
-  stages: readonly ShipmentStage[],
-  current: ShipmentStage | null,
-  enabled = true,
-) => {
-  const { data: availability } = useAvailableShipmentEvents(
-    shipmentId,
-    enabled,
-  );
-  const { data: history = [] } = useShipmentTracking(shipmentId, enabled);
-
-  // Lo que falta en cada etapa cerrada, dicho como acción.
-  const requirements = Object.fromEntries(
-    Object.entries(availability?.stageRequirements ?? {}).map(
-      ([stage, lock]) => [stage, stageLockLabel(lock)],
-    ),
-  ) as Partial<Record<ShipmentStage, string>>;
-
-  // Abiertas: las que tienen algún evento que se puede registrar ya.
-  const openStages = new Set(
-    (availability?.events ?? []).filter((e) => !e.blocked).map((e) => e.stage),
-  );
-
-  // La etapa actual está cumplida cuando la siguiente ya se abrió —su evento
-  // de apertura se registró— y algo se registró en ella. Lo segundo evita
-  // darla por cumplida en los pasos que abre el estatus y no un evento: una
-  // recolección a domicilio ya puede registrar "Recibido en bodega" sin que el
-  // agente haya hecho nada. Cumplida, lo que sigue es la siguiente.
-  const nextStage = current ? stages[stages.indexOf(current) + 1] : undefined;
-  const currentCompleted =
-    !!current &&
-    !!nextStage &&
-    openStages.has(nextStage) &&
-    history.some((e) => e.eventCode && e.stage === current);
-
-  return {
-    requirements,
-    nextStage: currentCompleted ? (nextStage ?? null) : null,
-  };
-};
