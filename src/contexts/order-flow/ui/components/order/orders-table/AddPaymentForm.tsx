@@ -16,6 +16,8 @@ import {
   type PaymentMethod,
 } from "@contexts/shared/domain/schemas/PaymentMethod";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { toast } from "sonner";
 
 
 interface Props {
@@ -51,15 +53,37 @@ export const AddPaymentForm = ({
   const [currency, setCurrency] = useState(defaultCurrency);
   const [method, setMethod] = useState<PaymentMethod | "">("");
   const [concept, setConcept] = useState("");
+  // El último intento que falló. Reintentar **el mismo** abono reusa su id —quizá
+  // la respuesta se perdió pero el back sí lo guardó— y no lo duplica. Si se
+  // corrigió el monto, la moneda o el método, es otro abono y lleva id nuevo:
+  // el back rechaza un id conocido con otros datos.
+  const [failedAttempt, setFailedAttempt] = useState<{
+    id: string;
+    signature: string;
+  } | null>(null);
 
   const handleAdd = async () => {
     const numericAmount = Number(amount);
     if (!method || !numericAmount || numericAmount <= 0) return;
-    await onAdd({
-      amount: { amount: numericAmount, currency },
-      method,
-      concept: concept.trim() || null,
-    });
+    const signature = `${numericAmount}|${currency}|${method}`;
+    const id =
+      failedAttempt?.signature === signature
+        ? failedAttempt.id
+        : crypto.randomUUID();
+    try {
+      await onAdd({
+        id,
+        amount: { amount: numericAmount, currency },
+        method,
+        concept: concept.trim() || null,
+      });
+    } catch (error) {
+      // Lo escrito se queda, para corregir o reintentar.
+      setFailedAttempt({ id, signature });
+      toast.error(parseApiError(error));
+      return;
+    }
+    setFailedAttempt(null);
     setAmount("");
     setCurrency(defaultCurrency);
     setMethod("");

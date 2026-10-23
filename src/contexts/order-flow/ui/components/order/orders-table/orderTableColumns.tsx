@@ -18,7 +18,6 @@ import { OrderPaymentControl } from "./OrderPaymentControl";
 export interface OrderColumnContext {
   canEdit: (order: OrderListView) => boolean;
   canEditHQ: boolean;
-  canDelete: (order: OrderListView) => boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   sendingInvoiceOrderId: string | null;
@@ -27,7 +26,6 @@ export interface OrderColumnContext {
   onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
-  onDelete: (order: OrderListView) => void;
 }
 
 export interface OrderColumn {
@@ -283,7 +281,6 @@ export const ORDER_COLUMNS: OrderColumn[] = [
         order={order}
         canEdit={ctx.canEdit(order)}
         canEditHQ={ctx.canEditHQ}
-        canDelete={ctx.canDelete(order)}
         downloadingLabel={ctx.downloadingLabel}
         downloadingInvoice={ctx.downloadingInvoice}
         sendingInvoiceOrderId={ctx.sendingInvoiceOrderId}
@@ -292,7 +289,6 @@ export const ORDER_COLUMNS: OrderColumn[] = [
         onSendInvoiceEmail={ctx.onSendInvoiceEmail}
         onEdit={ctx.onEdit}
         onCompleteSale={ctx.onCompleteSale}
-        onDelete={ctx.onDelete}
       />
     ),
   },

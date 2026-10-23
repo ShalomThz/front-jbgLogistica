@@ -1,4 +1,7 @@
-import { httpClient, httpClientBlob } from "@contexts/shared/infrastructure/http/httpClient";
+import {
+  httpClient,
+  httpClientBlob,
+} from "@contexts/shared/infrastructure/http/httpClient";
 import {
   shipmentResponseSchema,
   type ShipmentResponsePrimitives,
@@ -23,7 +26,14 @@ import {
 } from "../../../domain/schemas/tracking/ShipmentTrackingEvent";
 import type { UpdateShipmentGeolocationRequest } from "../../../application/shipment/UpdateShipmentGeolocationRequest";
 import type { SelectShipmentProviderRequest } from "../../../application/shipment/GetshipmentProviderRequest";
-import { rateSchema, type RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
+import {
+  syncShipmentWithCarrierResponseSchema,
+  type SyncShipmentWithCarrierResponse,
+} from "../../../application/shipment/SyncShipmentWithCarrierResponse";
+import {
+  rateSchema,
+  type RatePrimitives,
+} from "../../../domain/schemas/value-objects/Rate";
 import {
   DEFAULT_LABEL_VARIANT,
   type LabelVariant,
@@ -67,7 +77,9 @@ export const shipmentRepository = {
     return response.data[0] ?? null;
   },
 
-  findByOrderId: async (orderId: string): Promise<ShipmentResponsePrimitives | null> => {
+  findByOrderId: async (
+    orderId: string,
+  ): Promise<ShipmentResponsePrimitives | null> => {
     const data = await httpClient<unknown>("/shipment/find", {
       method: "POST",
       body: JSON.stringify({
@@ -80,36 +92,32 @@ export const shipmentRepository = {
   },
 
   fulfill: async (shipmentId: string): Promise<ShipmentResponsePrimitives> => {
-    const data = await httpClient<unknown>(
-      `/shipment/${shipmentId}/fulfill`,
-      { method: "POST" },
-    );
+    const data = await httpClient<unknown>(`/shipment/${shipmentId}/fulfill`, {
+      method: "POST",
+    });
     return shipmentResponseSchema.parse(data);
   },
 
-  /** Aborts a shipment stuck in creation (reverts to PROVIDER_SELECTED for
-   * retry). Distinct from `cancel`, which cancels a fulfilled shipment. */
-  abortCreation: async (
+  /** Pone el envío al día con la paquetería, si su webhook no llegó: la guía,
+   * una cancelación o un estado nuevo del paquete. */
+  syncWithCarrier: async (
     shipmentId: string,
-  ): Promise<ShipmentResponsePrimitives> => {
+  ): Promise<SyncShipmentWithCarrierResponse> => {
     const data = await httpClient<unknown>(
-      `/shipment/${shipmentId}/abort-creation`,
+      `/shipment/${shipmentId}/sync-carrier`,
       { method: "POST" },
     );
-    return shipmentResponseSchema.parse(data);
+    return syncShipmentWithCarrierResponseSchema.parse(data);
   },
 
   getRates: async (
     request: GetShipmentRatesRequest,
   ): Promise<RatePrimitives[]> => {
     const { shipmentId, additionalData, warehouseAddress } = request;
-    const data = await httpClient<unknown>(
-      `/shipment/${shipmentId}/rates`,
-      {
-        method: "POST",
-        body: JSON.stringify({ additionalData, warehouseAddress }),
-      },
-    );
+    const data = await httpClient<unknown>(`/shipment/${shipmentId}/rates`, {
+      method: "POST",
+      body: JSON.stringify({ additionalData, warehouseAddress }),
+    });
     return z.array(rateSchema).parse(data);
   },
 
@@ -117,13 +125,10 @@ export const shipmentRepository = {
     request: SelectShipmentProviderRequest,
   ): Promise<ShipmentResponsePrimitives> => {
     const { shipmentId, ...body } = request;
-    const data = await httpClient<unknown>(
-      `/shipment/${shipmentId}/provider`,
-      {
-        method: "POST",
-        body: JSON.stringify(body),
-      },
-    );
+    const data = await httpClient<unknown>(`/shipment/${shipmentId}/provider`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
     return shipmentResponseSchema.parse(data);
   },
 
@@ -131,9 +136,7 @@ export const shipmentRepository = {
     shipmentId: string,
     variant: LabelVariant = DEFAULT_LABEL_VARIANT,
   ): Promise<Blob> => {
-    return httpClientBlob(
-      `/shipment/${shipmentId}/label?variant=${variant}`,
-    );
+    return httpClientBlob(`/shipment/${shipmentId}/label?variant=${variant}`);
   },
 
   cancel: async (shipmentId: string): Promise<void> => {
@@ -161,8 +164,9 @@ export const shipmentRepository = {
   },
 
   /**
-   * Registra un evento de la línea de tiempo. Cierra también la parada si el
-   * envío va en una ruta en curso y el evento lo entrega o lo devuelve.
+   * Registra un evento de la línea de tiempo; con `advance`, además lleva al
+   * envío al paso que sigue y cierra la parada si esperaba al chofer en una
+   * ruta.
    *
    * Va como `multipart/form-data` porque puede llevar foto y firma, y una
    * imagen en base64 dentro de un JSON obliga al server a un `JSON.parse`
@@ -178,7 +182,7 @@ export const shipmentRepository = {
   }: RecordShipmentEventRequest): Promise<ShipmentResponsePrimitives> => {
     const formData = new FormData();
     for (const [key, value] of Object.entries(fields)) {
-      if (value !== undefined) formData.append(key, value);
+      if (value !== undefined) formData.append(key, String(value));
     }
     // El multipart solo lleva texto y archivos: la bodega va como JSON.
     if (location) formData.append("location", JSON.stringify(location));

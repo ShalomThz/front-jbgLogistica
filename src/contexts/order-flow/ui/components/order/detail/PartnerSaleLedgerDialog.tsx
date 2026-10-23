@@ -64,13 +64,10 @@ export const PartnerSaleLedgerDialog = ({
   const balance = Math.max(0, billed - paid);
   const currency = partnerSale.total.currency;
 
+  // El error sigue hasta el formulario, que lo muestra y conserva lo escrito.
   const handleAdd = async (data: AddPaymentRequest) => {
-    try {
-      await onAddPayment(data);
-      toast.success("Abono registrado");
-    } catch (error) {
-      toast.error(parseApiError(error));
-    }
+    await onAddPayment(data);
+    toast.success("Abono registrado");
   };
 
   const handleRemove = async (paymentId: string) => {

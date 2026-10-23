@@ -22,6 +22,13 @@ export const paymentSchema = z.object({
     })
     .nullable()
     .default(null),
+  /** La tasa con que contó un abono en otra moneda, congelada al registrarlo
+   * (`amount × rate` en la moneda `to`). Null en la de facturación y en los
+   * abonos anteriores al campo. */
+  exchangeRate: z
+    .object({ to: z.string(), rate: z.number() })
+    .nullable()
+    .default(null),
 });
 
 export type PaymentPrimitives = z.infer<typeof paymentSchema>;

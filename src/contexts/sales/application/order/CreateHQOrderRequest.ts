@@ -5,6 +5,9 @@ import { createAddressSchema } from "@contexts/shared/domain/schemas/address/Add
 import z from "zod";
 
 export const createHQOrderSchema = z.object({
+  /** Lo genera el flujo al abrirse y lo conserva en los reintentos: si la
+   * respuesta se pierde, el back devuelve la orden ya creada en vez de otra. */
+  id: z.uuid().optional(),
   storeId: z.string(),
   references: orderReferencesSchema,
   package: packageSchema,

@@ -13,7 +13,6 @@ interface OrderCardProps {
   isHighlighted?: boolean;
   canEdit: boolean;
   canEditHQ: boolean;
-  canDelete: boolean;
   canViewFinancials: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
@@ -24,7 +23,6 @@ interface OrderCardProps {
   onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
-  onDelete: (order: OrderListView) => void;
 }
 
 const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
@@ -34,7 +32,6 @@ export const OrderCard = ({
   isHighlighted,
   canEdit,
   canEditHQ,
-  canDelete,
   canViewFinancials,
   downloadingLabel,
   downloadingInvoice,
@@ -45,7 +42,6 @@ export const OrderCard = ({
   onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
-  onDelete,
 }: OrderCardProps) => {
   return (
     <div
@@ -139,7 +135,6 @@ export const OrderCard = ({
           order={order}
           canEdit={canEdit}
           canEditHQ={canEditHQ}
-          canDelete={canDelete}
           downloadingLabel={downloadingLabel}
           downloadingInvoice={downloadingInvoice}
           sendingInvoiceOrderId={sendingInvoiceOrderId}
@@ -148,7 +143,6 @@ export const OrderCard = ({
           onSendInvoiceEmail={onSendInvoiceEmail}
           onEdit={onEdit}
           onCompleteSale={onCompleteSale}
-          onDelete={onDelete}
         />
       </div>
     </div>

@@ -142,4 +142,112 @@ describe("CloverCheckoutPanel", () => {
 
     expect(onSendEmail).toHaveBeenCalledWith("destination");
   });
+
+  it("displays conversion details and charges in USD when order is billed in MXN", async () => {
+    const onCreate = vi.fn().mockResolvedValue(undefined);
+    render(
+      <CloverCheckoutPanel
+        outstanding={52.64}
+        billedCurrency="MXN"
+        billedPending={1000}
+        exchangeRate={0.05263158}
+        checkout={null}
+        onCreate={onCreate}
+        origin={origin}
+        destination={destination}
+        onSendEmail={vi.fn()}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
+    );
+
+    expect(screen.getByText("$1000.00 MXN")).toBeInTheDocument();
+    expect(screen.getByText("$52.64 USD")).toBeInTheDocument();
+    expect(screen.getByText(/Tipo de cambio: 1 USD ≈ \$19.00 MXN/)).toBeInTheDocument();
+
+    const input = screen.getByLabelText("Monto a cobrar con Clover");
+    expect(input).toHaveValue(52.64);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Generar enlace" }),
+    );
+
+    expect(onCreate).toHaveBeenCalledWith({
+      amount: 52.64,
+      currency: "USD",
+    });
+  });
+
+  it("shows loading state when exchange rate is fetching", () => {
+    render(
+      <CloverCheckoutPanel
+        outstanding={0}
+        billedCurrency="MXN"
+        billedPending={1000}
+        isLoadingRate={true}
+        checkout={null}
+        onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
+        onSendEmail={vi.fn()}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
+    );
+
+    expect(
+      screen.getByText("Consultando tipo de cambio actual a USD…"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Generar enlace" }),
+    ).toBeDisabled();
+  });
+
+  it("shows error state when exchange rate fails", () => {
+    render(
+      <CloverCheckoutPanel
+        outstanding={0}
+        billedCurrency="MXN"
+        billedPending={1000}
+        rateError="No se pudo conectar con el servicio de divisas"
+        checkout={null}
+        onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
+        onSendEmail={vi.fn()}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
+    );
+
+    expect(
+      screen.getByText("No se pudo conectar con el servicio de divisas"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Generar enlace" }),
+    ).toBeDisabled();
+  });
+
+  it("shows MXN equivalent for active checkout on MXN order", () => {
+    render(
+      <CloverCheckoutPanel
+        outstanding={52.64}
+        billedCurrency="MXN"
+        billedPending={1000}
+        exchangeRate={0.05}
+        checkout={activeCheckout}
+        onCreate={vi.fn()}
+        origin={origin}
+        destination={destination}
+        onSendEmail={vi.fn()}
+        isLoading={false}
+        isSendingEmail={false}
+      />,
+    );
+
+    expect(screen.getByText("$35.50 USD")).toBeInTheDocument();
+    // 35.50 / 0.05 = 710 MXN
+    expect(screen.getByText(/≈ \$710.00 MXN/)).toBeInTheDocument();
+  });
 });
+

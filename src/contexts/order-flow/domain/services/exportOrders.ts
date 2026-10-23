@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
-import { ORDER_STATUS_LABELS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import { orderProgress } from "@contexts/order-flow/domain/services/orderProgress";
 import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import {
   PAYMENT_STATUS_LABELS,
@@ -11,11 +11,13 @@ import {
 export function exportOrders(orders: OrderListView[]) {
   const rows = orders.map((o) => {
     const balance = resolveBilledBalance(o.financials);
+    const progress = orderProgress(o);
     return {
     "Ref. JBG": o.references.orderNumber ?? "",
     "Ref. Agente": o.references.partnerOrderNumber ?? "",
     Tipo: o.type === "PARTNER" ? "Agente" : "JBG",
-    Estado: ORDER_STATUS_LABELS[o.status],
+    // Lo mismo que dice la tabla: la etapa y, si agrega algo, el estatus.
+    Estado: [progress.label, progress.detail].filter(Boolean).join(" · "),
     "Remitente": o.origin.name,
     "Empresa Remitente": o.origin.company,
     "Tel. Remitente": o.origin.phone,

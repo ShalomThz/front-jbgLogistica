@@ -2,6 +2,7 @@ import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderLi
 import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import {
   PAYMENT_STATUS_LABELS,
+  acceptsPayments,
   resolveBilledBalance,
   resolvePaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
@@ -16,8 +17,9 @@ import {
 } from "@contexts/shared/domain/schemas/StatusTone";
 import { INCIDENT_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
 import {
-  AWAITING_ARRIVAL_REASON,
-  isAwaitingArrival,
+  FINISHED_SHIPMENT_STATUSES,
+  isBeforeSale,
+  labelCreationOf,
 } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import {
   canInvoice,
@@ -33,6 +35,11 @@ import {
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
 import { CancelShipmentDialog } from "../CancelShipmentDialog";
+import {
+  DisabledReason,
+  LABEL_PENDING_REASON,
+  SALE_PROCESSED_REASON,
+} from "../DisabledReason";
 import {
   Button,
   Dialog,
@@ -56,7 +63,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, Trash2, TriangleAlert, Users } from "lucide-react";
+import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, TriangleAlert, Users } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -77,6 +84,7 @@ import {
 import { PartnerSaleSection } from "./PartnerSaleSection";
 import { ShipmentEventDialog } from "@contexts/shipping/ui/components/shipment/ShipmentEventDialog";
 import { ShipmentIncidentDialog } from "@contexts/shipping/ui/components/shipment/ShipmentIncidentDialog";
+import { ShipmentLabelActions } from "@contexts/shipping/ui/components/shipment/ShipmentLabelActions";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
@@ -111,8 +119,6 @@ interface OrderDetailDialogProps {
   order: OrderListView | null;
   open: boolean;
   onClose: () => void;
-  onDelete?: (order: OrderListView) => void;
-  isDeleting?: boolean;
   onCancelShipment?: (shipmentId: string) => void;
   isCancelling?: boolean;
   sendingInvoiceOrderId?: string | null;
@@ -123,8 +129,6 @@ export const OrderDetailDialog = ({
   order,
   open,
   onClose,
-  onDelete,
-  isDeleting,
   onCancelShipment,
   isCancelling,
   sendingInvoiceOrderId,
@@ -153,6 +157,18 @@ export const OrderDetailDialog = ({
   const isEditable =
     order.status !== "COMPLETED" && order.status !== "CANCELLED";
   const isCompleted = order.status === "COMPLETED";
+  // Con la guía en creación no se entra a completar la venta (ver
+  // EditOrderPage) ni se cancela el envío (el back también lo rechaza:
+  // Shipment.isCreatingLabel).
+  const labelPending =
+    !!shipment && labelCreationOf(shipment) === "pending";
+  // El formulario del agente ya no se abre cuando HQ eligió la paquetería: el
+  // back rechaza cambiar los datos de la guía (ver OrderActionsMenu).
+  const partnerEditBlockReason = labelPending
+    ? LABEL_PENDING_REASON
+    : shipment && !isBeforeSale(shipment.status)
+      ? SALE_PROCESSED_REASON
+      : null;
   // Los números con los que la gente nombra la orden. Vacío cuando no tiene
   // ninguno todavía, y ahí el título cae al uuid.
   const referenceLabel = [
@@ -179,9 +195,6 @@ export const OrderDetailDialog = ({
   const canEditHQ = user ? orderPolicies.editHQ(user) : false;
   const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
   const userCanEdit = order.type === "PARTNER" ? (canEditPartner || canEditHQ) : canEditHQ;
-  const userCanDelete = user
-    ? order.type === "PARTNER" ? orderPolicies.deletePartner(user) : orderPolicies.deleteHQ(user)
-    : false;
   const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
   // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
   const labelOptions =
@@ -369,6 +382,7 @@ export const OrderDetailDialog = ({
               actions={
                 shipment && (
                   <>
+                    <ShipmentLabelActions shipment={shipment} />
                     <ShipmentIncidentDialog
                       shipmentId={shipment.id}
                       incident={shipment.incident}
@@ -383,6 +397,7 @@ export const OrderDetailDialog = ({
                         current: progress.stage,
                         tone: progress.tone,
                       }}
+                      viaCarrier={shipment.provider?.type === "THIRD_PARTY"}
                     />
                   </>
                 )
@@ -672,7 +687,7 @@ export const OrderDetailDialog = ({
                 partnerSale={order.financials.partnerSale}
                 storeName={order.store.name}
                 clientName={origin.name}
-                canEdit={userCanEdit}
+                canEdit={userCanEdit && acceptsPayments(order)}
               />
             ) : (
               // La pestaña aparece igual y explica el vacío: si desapareciera,
@@ -1001,16 +1016,26 @@ export const OrderDetailDialog = ({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {shipment && order.status !== "CANCELLED" && userCanCancelShipment && (
-            <Button
-              variant="outline"
-              onClick={() => setCancelShipmentOpen(true)}
-              disabled={isCancelling}
-              className="w-full sm:w-auto"
+          {/* Lo que ya terminó —entregado, devuelto o cancelado— no se cancela:
+              el back también lo rechaza (Shipment.assertCancellable). */}
+          {shipment &&
+            !FINISHED_SHIPMENT_STATUSES.includes(shipment.status) &&
+            order.status !== "CANCELLED" &&
+            userCanCancelShipment && (
+            <DisabledReason
+              reason={labelPending ? LABEL_PENDING_REASON : null}
+              className="inline-flex w-full sm:w-auto"
             >
-              <Ban className="size-4" />
-              {isCancelling ? "Cancelando..." : "Cancelar envío"}
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCancelShipmentOpen(true)}
+                disabled={isCancelling || labelPending}
+                className="w-full sm:w-auto"
+              >
+                <Ban className="size-4" />
+                {isCancelling ? "Cancelando..." : "Cancelar envío"}
+              </Button>
+            </DisabledReason>
           )}
           {shipment && (
             <CancelShipmentDialog
@@ -1022,17 +1047,6 @@ export const OrderDetailDialog = ({
               }}
               isLoading={isCancelling}
             />
-          )}
-          {userCanDelete && (
-            <Button
-              variant="destructive"
-              onClick={() => onDelete?.(order)}
-              disabled={isDeleting}
-              className="w-full sm:w-auto"
-            >
-              <Trash2 className="size-4" />
-              Eliminar
-            </Button>
           )}
           {userCanEdit && (
             order.type === "PARTNER" ? (
@@ -1046,51 +1060,58 @@ export const OrderDetailDialog = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {canEditPartner && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setPendingRoute(`/orders/${order.id}/edit`);
-                        onClose();
-                      }}
+                    <DisabledReason
+                      reason={partnerEditBlockReason}
+                      className="block"
                     >
-                      <Pencil className="size-4" />
-                      Editar orden
-                    </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!!partnerEditBlockReason}
+                        onClick={() => {
+                          setPendingRoute(`/orders/${order.id}/edit`);
+                          onClose();
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                        Editar orden
+                      </DropdownMenuItem>
+                    </DisabledReason>
                   )}
                   {canEditHQ && (
-                    <DropdownMenuItem
-                      // Sin el paquete en bodega no hay qué pesar: el back lo
-                      // rechazaría.
-                      disabled={isAwaitingArrival(shipment?.status)}
-                      title={
-                        isAwaitingArrival(shipment?.status)
-                          ? AWAITING_ARRIVAL_REASON
-                          : undefined
-                      }
-                      onClick={() => {
-                        setPendingRoute(`/orders/${order.id}/edit?mode=complete`);
-                        onClose();
-                      }}
+                    <DisabledReason
+                      reason={labelPending ? LABEL_PENDING_REASON : null}
+                      className="block"
                     >
-                      <Package className="size-4" />
-                      {isAwaitingArrival(shipment?.status)
-                        ? "Completar venta (falta que llegue)"
-                        : "Completar venta"}
-                    </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={labelPending}
+                        onClick={() => {
+                          setPendingRoute(`/orders/${order.id}/edit?mode=complete`);
+                          onClose();
+                        }}
+                      >
+                        <Package className="size-4" />
+                        Completar venta
+                      </DropdownMenuItem>
+                    </DisabledReason>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button
-                disabled={!isEditable}
-                onClick={() => {
-                  setPendingRoute(`/orders/${order.id}/edit`);
-                  onClose();
-                }}
-                className="w-full sm:w-auto"
+              <DisabledReason
+                reason={isEditable && labelPending ? LABEL_PENDING_REASON : null}
+                className="inline-flex w-full sm:w-auto"
               >
-                <Pencil className="size-4" />
-                Editar
-              </Button>
+                <Button
+                  disabled={!isEditable || labelPending}
+                  onClick={() => {
+                    setPendingRoute(`/orders/${order.id}/edit`);
+                    onClose();
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <Pencil className="size-4" />
+                  Editar
+                </Button>
+              </DisabledReason>
             )
           )}
         </DialogFooter>

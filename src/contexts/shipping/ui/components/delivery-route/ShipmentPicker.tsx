@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Badge, Checkbox, Input } from "@contexts/shared/shadcn";
 import { Package, Search } from "lucide-react";
+import { DELIVERY_ROUTE_READY } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { useShipments } from "../../../infrastructure/hooks/shipments/useShipments";
 
 interface Props {
@@ -17,7 +18,7 @@ export const ShipmentPicker = ({ selectedIds, onChange }: Props) => {
     // Solo flota JBG: una paquetería lleva su propia logística y el back
     // rechaza meter esos envíos en una ruta.
     filters: [
-      { field: "status", filterOperator: "=", value: "FULFILLED" },
+      { field: "status", filterOperator: "IN", value: DELIVERY_ROUTE_READY },
       { field: "provider.type", filterOperator: "=", value: "INTERNAL_FLEET" },
     ],
   });

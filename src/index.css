@@ -252,6 +252,23 @@
   --flash-order-color: rgb(59 130 246 / 0.25); /* blue-500/25 (dark hover) */
 }
 
+/* El tramo hacia donde va a avanzar el envío, en el diálogo de avanzar: se
+   llena de izquierda a derecha, se desvanece y vuelve a empezar. */
+@keyframes tramo-avanza {
+  0% { transform: scaleX(0); opacity: 1; }
+  70% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.animate-tramo-avanza {
+  transform-origin: left;
+  animation: tramo-avanza 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-tramo-avanza {
+    animation: none;
+  }
+}
+
 /* La caja de JBG al terminar una orden: entra dando un saltito y después queda
    flotando. Dos animaciones encadenadas y no una sola, porque la entrada debe
    correr una vez y el flote seguir para siempre. */

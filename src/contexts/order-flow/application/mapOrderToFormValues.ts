@@ -111,6 +111,12 @@ export function mapOrderToHQFormValues(order: OrderListView): HQOrderFormValues 
     },
     package: {
       ...hqOrderDefaultValues.package,
+      // La carta porte y el empaque con que se cotizó. Se guardan en el envío al
+      // pedir tarifas; sin esto, reabrir la orden obliga a elegirlos otra vez.
+      consignmentNoteClassCode:
+        order.shipment?.additionalData.consignment_note_class_code ?? "",
+      consignmentNotePackagingCode:
+        order.shipment?.additionalData.consignment_note_packaging_code ?? "",
       boxId: order.package.boxId,
       ownership: order.package.ownership,
       length: String(order.package.dimensions.length),

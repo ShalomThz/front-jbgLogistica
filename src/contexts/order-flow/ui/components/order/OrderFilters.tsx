@@ -1,7 +1,10 @@
 import { StoreFilterCombobox } from "@contexts/iam/ui/components/store/StoreFilterCombobox";
 import { BoxFilterCombobox } from "@contexts/inventory/ui/components/box/BoxFilterCombobox";
-import { ORDER_STATUS_OPTIONS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { CustomerFilterCombobox } from "@contexts/sales/ui/components/customer/CustomerFilterCombobox";
+import {
+  SHIPMENT_STATUS_LABELS,
+  shipmentStatuses,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import {
   Button,
   Calendar,
@@ -318,9 +321,9 @@ export const OrderFilters = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  {ORDER_STATUS_OPTIONS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
+                  {shipmentStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {SHIPMENT_STATUS_LABELS[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>

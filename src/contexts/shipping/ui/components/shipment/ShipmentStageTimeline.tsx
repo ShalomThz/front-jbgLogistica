@@ -6,11 +6,6 @@ import {
   TONE_TEXT,
   type StatusTone,
 } from "@contexts/shared/domain/schemas/StatusTone";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import {
   STAGE_CAPTIONS,
@@ -24,7 +19,6 @@ import {
   Building2,
   Check,
   Container,
-  Lock,
   PackageCheck,
   Plane,
   Store,
@@ -77,16 +71,10 @@ interface Props {
   focused?: ShipmentStage | null;
   /** Presente, los pasos se pueden tocar. */
   onFocus?: (stage: ShipmentStage) => void;
-  /** Si viene, solo estas etapas se pueden tocar (el diálogo: las que tienen
-   * eventos disponibles). */
-  enabled?: ReadonlySet<ShipmentStage>;
-  /** Lo que falta hacer antes de poder usar una etapa ("Primero se debe
-   * completar la venta"). Se marca con un candado sobre el paso y se lee al
-   * pasar el mouse: así se ve qué hacer, no solo que está apagada. */
-  requirements?: Partial<Record<ShipmentStage, string>>;
-  /** La etapa actual ya cumplió lo que abre la siguiente: lleva palomita en
-   * vez de su ícono, sin dejar de ser la actual. */
-  currentCompleted?: boolean;
+  /** La etapa a la que va a avanzar (el diálogo de avanzar): el tramo hasta
+   * ella se anima y su paso se marca punteado. Si es la misma etapa, late el
+   * paso actual. */
+  advancingTo?: ShipmentStage | null;
 }
 
 const formatShortDate = (iso: string) =>
@@ -117,11 +105,10 @@ export const ShipmentStageTimeline = ({
   captions,
   focused = null,
   onFocus,
-  enabled,
-  requirements,
-  currentCompleted = false,
+  advancingTo = null,
 }: Props) => {
   const currentIndex = current ? stageIndex(current) : -1;
+  const targetIndex = advancingTo ? stageIndex(advancingTo) : -1;
 
   const stateOf = (stage: ShipmentStage): StepState => {
     if (stage === current) return "current";
@@ -141,14 +128,22 @@ export const ShipmentStageTimeline = ({
           const state = stateOf(stage);
           const Icon = STAGE_ICON[stage];
           const caption = captions?.[stage];
-          const isClickable = !!onFocus && (!enabled || enabled.has(stage));
+          const isClickable = !!onFocus;
           const isFocused = focused === stage;
-          const requirement = requirements?.[stage];
           // El color del paso: el de la orden, salvo el del agente, que va en
           // su propio color (ver `toneForStage`).
           const stepTone = toneForStage(stage, tone);
           // El tramo que llega a este paso: recorrido si este ya se alcanzó.
           const reached = state !== "pending";
+          // Avanzar: el tramo que lleva al destino se anima, y el destino se
+          // marca. Sin cambio de etapa, el que late es el actual.
+          const position = stageIndex(stage);
+          const advancing =
+            advancingTo !== null &&
+            position > currentIndex &&
+            position <= targetIndex;
+          const isTarget = advancingTo === stage && state !== "current";
+          const pulsesInPlace = advancingTo === stage && state === "current";
 
           return (
             <li
@@ -166,70 +161,68 @@ export const ShipmentStageTimeline = ({
                     "h-0.5",
                     reached ? cn(TONE_FILL[tone], "opacity-50") : "bg-border",
                   )}
-                />
+                >
+                  {advancing && (
+                    <span
+                      className={cn(
+                        "animate-tramo-avanza absolute inset-0",
+                        TONE_FILL[stepTone],
+                      )}
+                    />
+                  )}
+                </span>
               )}
 
-              {/* Lo que falta para abrir la etapa va al pasar el mouse. El
-                  disparador es el `span` y no el botón porque uno
-                  deshabilitado no recibe el hover. */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="relative z-10">
-                    <button
-                      type="button"
-                      disabled={!isClickable}
-                      onClick={() => isClickable && onFocus?.(stage)}
-                      title={requirement ? undefined : STAGE_LABELS[stage]}
-                      className={cn(
-                        "relative z-10 flex size-8 items-center justify-center rounded-full border-2 transition-shadow",
-                        isClickable
-                          ? "cursor-pointer hover:shadow-md"
-                          : "cursor-default",
-                        state === "current"
-                          ? cn(
-                              TONE_SOLID[stepTone],
-                              "ring-2 ring-offset-1 ring-offset-background",
-                              TONE_RING[stepTone],
-                            )
-                          : state === "done"
-                            ? TONE_OUTLINE[stepTone]
-                            : PENDING_STEP,
-                        isFocused &&
-                          "ring-2 ring-primary ring-offset-2 ring-offset-background",
-                        onFocus &&
-                          enabled &&
-                          !enabled.has(stage) &&
-                          "opacity-50",
-                      )}
-                    >
-                      {state === "done" ||
-                      (state === "current" && currentCompleted) ? (
-                        <Check className="size-4" />
-                      ) : (
-                        <Icon className="size-4" />
-                      )}
-                      {state === "current" && hasIncident && (
-                        <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-status-problem text-background">
-                          <TriangleAlert className="size-2.5" />
-                        </span>
-                      )}
-                      {/* Neutro: el color queda para el estado de la orden y
-                          para el agente; esto es solo "todavía no". */}
-                      {requirement && state !== "current" && (
-                        <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-muted-foreground text-background">
-                          <Lock className="size-2.5" />
-                        </span>
-                      )}
-                    </button>
+              <button
+                type="button"
+                disabled={!isClickable}
+                onClick={() => isClickable && onFocus?.(stage)}
+                title={STAGE_LABELS[stage]}
+                className={cn(
+                  "relative z-10 flex size-8 items-center justify-center rounded-full border-2 transition-shadow",
+                  isClickable
+                    ? "cursor-pointer hover:shadow-md"
+                    : "cursor-default",
+                  state === "current"
+                    ? cn(
+                        TONE_SOLID[stepTone],
+                        "ring-2 ring-offset-1 ring-offset-background",
+                        TONE_RING[stepTone],
+                      )
+                    : state === "done"
+                      ? TONE_OUTLINE[stepTone]
+                      : isTarget
+                        ? cn(TONE_OUTLINE[stepTone], "border-dashed")
+                        : PENDING_STEP,
+                  isFocused &&
+                    "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                )}
+              >
+                {(isTarget || pulsesInPlace) && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute -inset-1 animate-ping rounded-full ring-2 motion-reduce:animate-none",
+                      TONE_RING[stepTone],
+                    )}
+                  />
+                )}
+                {state === "done" ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Icon className="size-4" />
+                )}
+                {state === "current" && hasIncident && (
+                  <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-status-problem text-background">
+                    <TriangleAlert className="size-2.5" />
                   </span>
-                </TooltipTrigger>
-                {requirement && <TooltipContent>{requirement}</TooltipContent>}
-              </Tooltip>
+                )}
+              </button>
 
               <p
                 className={cn(
                   "mt-1.5 text-center text-[11px] leading-tight",
-                  state === "current"
+                  state === "current" || isTarget
                     ? cn("font-semibold", TONE_TEXT[stepTone])
                     : state === "done"
                       ? cn("font-medium opacity-75", TONE_TEXT[stepTone])

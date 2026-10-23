@@ -12,10 +12,7 @@ import {
   STAGE_LABELS,
   type ShipmentStage,
 } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
-import {
-  useShipmentTracking,
-  useStageLocks,
-} from "@contexts/shipping/infrastructure/hooks/shipments/useShipment";
+import { useShipmentTracking } from "@contexts/shipping/infrastructure/hooks/shipments/useShipment";
 import { ShipmentEventList } from "@contexts/shipping/ui/components/shipment/ShipmentEventList";
 import {
   ShipmentStageTimeline,
@@ -57,23 +54,10 @@ export function OrderStatusTimeline({
     shipment?.id,
     canViewTracking,
   );
-  // Los candados y la palomita, como en el diálogo de registrar evento. Solo
-  // para quien registra eventos: el back no da las etapas abiertas a nadie
-  // más, y a quien solo mira no le sirve saber qué falta registrar.
-  const canRecordEvents = !!user && shippingPolicies.recordEvents(user);
-  const { requirements, nextStage } = useStageLocks(
-    shipment?.id,
-    stages,
-    progress.stage,
-    canRecordEvents,
-  );
-
-  // La etapa que se está mirando: la siguiente si la actual ya está cumplida, y
-  // si no la actual. La que se toca a mano vale mientras la línea no se mueva;
-  // cuando avanza (se registró el evento que abre la siguiente, cambió la
-  // etapa), el enfoque la sigue. Por eso la elección guarda dónde estaba la
-  // línea cuando se hizo.
-  const anchor = nextStage ?? progress.stage;
+  // La etapa que se está mirando: la actual. La que se toca a mano vale
+  // mientras la línea no se mueva; cuando avanza, el enfoque la sigue. Por eso
+  // la elección guarda dónde estaba la línea cuando se hizo.
+  const anchor = progress.stage;
   const [picked, setPicked] = useState<{
     stage: ShipmentStage;
     anchor: ShipmentStage | null;
@@ -110,8 +94,6 @@ export function OrderStatusTimeline({
         captions={captions}
         focused={canViewTracking ? focusedStage : null}
         onFocus={canViewTracking ? setFocused : undefined}
-        requirements={requirements}
-        currentCompleted={!!nextStage}
       />
 
       {cancelled ? (
@@ -135,7 +117,7 @@ export function OrderStatusTimeline({
           Entregado al destinatario
         </p>
       ) : (
-        progress.hint && (
+        (progress.hint || progress.detail) && (
           <p className="text-center text-xs text-muted-foreground">
             {progress.detail && (
               <span className="font-medium text-foreground">

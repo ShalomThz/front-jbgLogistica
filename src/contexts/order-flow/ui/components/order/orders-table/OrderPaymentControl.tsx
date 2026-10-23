@@ -6,6 +6,7 @@ import {
   PAYMENT_STATUS_BADGE_CLASS,
   PAYMENT_STATUS_BUTTON_CLASS,
   PAYMENT_STATUS_LABELS,
+  acceptsPayments,
   resolveBilledBalance,
   resolvePaymentStatus,
 } from "@contexts/shared/domain/schemas/PaymentStatus";
@@ -42,7 +43,7 @@ export const OrderPaymentControl = ({
       ? `Parcial · ${pendingLabel}`
       : PAYMENT_STATUS_LABELS[status];
 
-  if (!canEdit) {
+  if (!canEdit || !acceptsPayments(order)) {
     return (
       <Badge variant="outline" className={PAYMENT_STATUS_BADGE_CLASS[status]}>
         {statusLabel}

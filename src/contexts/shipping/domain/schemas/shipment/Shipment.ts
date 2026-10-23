@@ -29,9 +29,17 @@ export const shipmentSchema = z.object({
   rate: rateSchema.nullable(),
   shippingMode: z.enum(shippingModes).default("GROUND"),
   status: z.enum(shipmentStatuses),
-  // La etapa del rastreo. El back la deduce del estatus para los envíos
-  // anteriores a las etapas, así que solo es null antes de arrancar (borrador).
+  // La etapa del rastreo. El back la deduce siempre del estatus: es null en el
+  // borrador y en un envío cancelado.
   stage: z.enum(shipmentStages).nullable().default(null),
+  // Lo último que reportó la paquetería (Skydropx), con el texto a mostrar.
+  carrierStatus: z
+    .object({ code: z.string(), label: z.string() })
+    .nullable()
+    .default(null),
+  // El problema que la paquetería sigue reportando, o null. A diferencia de
+  // `carrierStatus`, la oficina no lo marca a mano.
+  carrierIncidentCode: z.string().nullable().default(null),
   // La incidencia abierta, si hay una.
   incident: shipmentIncidentSchema.nullable().default(null),
   // Carrier shipment id, stamped while the label is generated asynchronously.

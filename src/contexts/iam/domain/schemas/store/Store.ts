@@ -14,6 +14,22 @@ export const STORE_TYPE_LABELS: Record<StoreType, string> = {
   JBG: "Distribuidora JBG",
 };
 
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, "Debe ser un color hex de 6 dígitos (#RRGGBB)");
+
+// Logo y colores de la factura que esta tienda (si es socio) le entrega a su
+// propio cliente. La factura "jbg" no lee este campo.
+export const partnerInvoiceBrandingSchema = z.object({
+  logo: z.string().min(1).nullable().default(null),
+  primaryColor: hexColorSchema.nullable().default(null),
+  accentColor: hexColorSchema.nullable().default(null),
+});
+
+export type PartnerInvoiceBrandingPrimitives = z.infer<
+  typeof partnerInvoiceBrandingSchema
+>;
+
 export const storeSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Store name is required"),
@@ -28,6 +44,11 @@ export const storeSchema = z.object({
   address: addressSchema,
   phone: z.string().min(1, "Phone number is required"),
   contactEmail: emailSchema,
+  invoiceBranding: partnerInvoiceBrandingSchema.default({
+    logo: null,
+    primaryColor: null,
+    accentColor: null,
+  }),
   ...aggregateRootSchema.shape,
 });
 

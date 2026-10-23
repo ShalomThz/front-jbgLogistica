@@ -1,6 +1,7 @@
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { Button } from "@contexts/shared/shadcn";
+import { CheckCircle2, Clock3, RefreshCw, XCircle } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 export const CloverPaymentResultPage = () => {
@@ -24,6 +25,8 @@ export const CloverPaymentResultPage = () => {
         type="error"
         title="No pudimos consultar el pago"
         message="Conserva tu comprobante y comunícate con JBG Logistics."
+        onRetry={() => query.refetch()}
+        isRefetching={query.isFetching}
       />
     );
   }
@@ -60,7 +63,9 @@ export const CloverPaymentResultPage = () => {
     <Result
       type="pending"
       title="Estamos confirmando tu pago"
-      message="No cierres esta página. La confirmación puede tardar unos segundos."
+      message="No cierres esta página. La confirmación puede tardar unos segundos en procesarse."
+      onRetry={() => query.refetch()}
+      isRefetching={query.isFetching}
     />
   );
 };
@@ -69,9 +74,17 @@ interface ResultProps {
   type: "success" | "pending" | "error";
   title: string;
   message?: string;
+  onRetry?: () => void;
+  isRefetching?: boolean;
 }
 
-const Result = ({ type, title, message }: ResultProps) => (
+const Result = ({
+  type,
+  title,
+  message,
+  onRetry,
+  isRefetching,
+}: ResultProps) => (
   <main className="grid min-h-screen place-items-center bg-muted/30 p-4">
     <div className="w-full max-w-md space-y-5 rounded-2xl border bg-background p-8 text-center shadow-sm">
       {type === "success" ? (
@@ -85,9 +98,29 @@ const Result = ({ type, title, message }: ResultProps) => (
         <h1 className="text-2xl font-semibold">{title}</h1>
         {message && <p className="mt-2 text-muted-foreground">{message}</p>}
       </div>
-      <p className="text-xs text-muted-foreground">
-        Ya puedes cerrar esta página.
-      </p>
+
+      {onRetry && (
+        <div className="pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            disabled={isRefetching}
+          >
+            <RefreshCw
+              className={`mr-1.5 size-3.5 ${isRefetching ? "animate-spin" : ""}`}
+            />
+            {isRefetching ? "Verificando…" : "Verificar estado"}
+          </Button>
+        </div>
+      )}
+
+      {type !== "pending" && (
+        <p className="text-xs text-muted-foreground">
+          Ya puedes cerrar esta página.
+        </p>
+      )}
     </div>
   </main>
 );

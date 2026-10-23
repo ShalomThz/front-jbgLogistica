@@ -7,6 +7,7 @@ import { useOrders } from "@contexts/sales/infrastructure/hooks/orders/userOrder
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
+import { DELIVERY_ROUTE_READY } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { needsGeolocationVerification } from "@contexts/shipping/domain/services/shipmentAddressVerification";
 import { useAlreadyRoutedShipmentIds } from "@contexts/shipping/infrastructure/hooks/routes/useRoutes";
 import { ShipmentGeolocationFillerDialog } from "../route/ShipmentGeolocationFillerDialog";
@@ -34,7 +35,11 @@ export const OrderPicker = ({ selectedShipmentIds, onChange, excludedShipmentIds
 
   const { orders: fulfilledRaw, isLoading } = useOrders({
     filters: [
-      { field: "shipment.status", filterOperator: "=", value: "FULFILLED" },
+      {
+        field: "shipment.status",
+        filterOperator: "IN",
+        value: DELIVERY_ROUTE_READY,
+      },
       // Solo flota JBG: una paquetería lleva su propia logística y el back
       // rechaza meter esos envíos en una ruta.
       {

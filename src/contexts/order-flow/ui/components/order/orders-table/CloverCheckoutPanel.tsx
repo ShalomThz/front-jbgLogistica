@@ -20,9 +20,10 @@ import {
   Copy,
   ExternalLink,
   Link2,
+  Loader2,
   Mail,
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 interface EmailParty {
@@ -42,6 +43,11 @@ interface Props {
   isLoading: boolean;
   isSendingEmail: boolean;
   error?: string | null;
+  billedCurrency?: string;
+  billedPending?: number;
+  exchangeRate?: number | null;
+  isLoadingRate?: boolean;
+  rateError?: string | null;
 }
 
 const money = (amount: number) => `$${amount.toFixed(2)} USD`;
@@ -56,8 +62,18 @@ export const CloverCheckoutPanel = ({
   isLoading,
   isSendingEmail,
   error,
+  billedCurrency = "USD",
+  billedPending = outstanding,
+  exchangeRate = 1,
+  isLoadingRate = false,
+  rateError = null,
 }: Props) => {
   const [amount, setAmount] = useState(outstanding.toFixed(2));
+
+  useEffect(() => {
+    setAmount(outstanding.toFixed(2));
+  }, [outstanding]);
+
   // Solo para decidir y confirmar a quién va dirigido antes de generar el
   // enlace — el envío real del correo sigue siendo una acción aparte, ya
   // creado el checkout (ver el dropdown "Enviar por correo" más abajo).
@@ -65,8 +81,11 @@ export const CloverCheckoutPanel = ({
     useState<CloverCheckoutEmailRecipient>("origin");
   const previewParty = previewRecipient === "origin" ? origin : destination;
 
+  const isUSD = billedCurrency === "USD";
   const numericAmount = Number(amount);
   const isValid =
+    !isLoadingRate &&
+    !rateError &&
     Number.isFinite(numericAmount) &&
     numericAmount > 0 &&
     Math.round(numericAmount * 100) <= Math.round(outstanding * 100);
@@ -118,6 +137,11 @@ export const CloverCheckoutPanel = ({
             <div className="text-lg font-semibold tabular-nums">
               {money(checkout.amount.amount)}
             </div>
+            {!isUSD && exchangeRate && exchangeRate > 0 && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                ≈ ${(checkout.amount.amount / exchangeRate).toFixed(2)} {billedCurrency}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Vence {new Date(checkout.expiresAt).toLocaleTimeString()}
             </p>
@@ -180,69 +204,112 @@ export const CloverCheckoutPanel = ({
               El enlace anterior expiró. Genera uno nuevo para continuar.
             </p>
           )}
-          <form className="space-y-3" onSubmit={submit}>
-          <div className="space-y-1.5">
-            <Label>¿A quién se le va a enviar?</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={previewRecipient === "origin" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setPreviewRecipient("origin")}
-              >
-                Remitente
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={previewRecipient === "destination" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setPreviewRecipient("destination")}
-              >
-                Destinatario
-              </Button>
+
+          {!isUSD && isLoadingRate && (
+            <div className="flex items-center gap-2 rounded-md border bg-background/60 p-2.5 text-xs text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>Consultando tipo de cambio actual a USD…</span>
             </div>
-            <div className="rounded-md border bg-background/60 px-3 py-2">
-              <p className="text-sm font-medium">{previewParty.name}</p>
-              <p
-                className={cn(
-                  "text-xs",
-                  previewParty.email ? "text-muted-foreground" : "text-destructive",
-                )}
-              >
-                {previewParty.email ??
-                  "Sin correo registrado — agrega uno para poder enviarle el enlace"}
+          )}
+
+          {!isUSD && rateError && (
+            <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
+              {rateError}
+            </div>
+          )}
+
+          {!isUSD && !isLoadingRate && !rateError && exchangeRate && exchangeRate > 0 && (
+            <div className="rounded-md border bg-background/60 p-2.5 text-xs space-y-1">
+              <div className="flex items-center justify-between font-medium">
+                <span>Saldo pendiente:</span>
+                <span className="tabular-nums font-semibold">
+                  ${billedPending.toFixed(2)} {billedCurrency}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Equivalente en USD:</span>
+                <span className="tabular-nums font-semibold text-foreground">
+                  ${outstanding.toFixed(2)} USD
+                </span>
+              </div>
+              <div className="border-t border-dashed pt-1 text-[11px] text-muted-foreground">
+                Tipo de cambio: 1 USD ≈ ${(1 / exchangeRate).toFixed(2)} {billedCurrency} (1 {billedCurrency} = ${exchangeRate.toFixed(4)} USD)
+              </div>
+            </div>
+          )}
+
+          <form className="space-y-3" onSubmit={submit}>
+            <div className="space-y-1.5">
+              <Label>¿A quién se le va a enviar?</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={previewRecipient === "origin" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setPreviewRecipient("origin")}
+                >
+                  Remitente
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={previewRecipient === "destination" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setPreviewRecipient("destination")}
+                >
+                  Destinatario
+                </Button>
+              </div>
+              <div className="rounded-md border bg-background/60 px-3 py-2">
+                <p className="text-sm font-medium">{previewParty.name}</p>
+                <p
+                  className={cn(
+                    "text-xs",
+                    previewParty.email ? "text-muted-foreground" : "text-destructive",
+                  )}
+                >
+                  {previewParty.email ??
+                    "Sin correo registrado — agrega uno para poder enviarle el enlace"}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Es solo para confirmar a quién va dirigido; el envío se hace
+                después de generar el enlace.
               </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Es solo para confirmar a quién va dirigido; el envío se hace
-              después de generar el enlace.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="clover-checkout-amount">
-              Monto a cobrar con Clover
-            </Label>
-            <Input
-              id="clover-checkout-amount"
-              type="number"
-              min="0.01"
-              max={outstanding.toFixed(2)}
-              step="0.01"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Saldo máximo disponible: {money(outstanding)}. Clover procesará
-              y liquidará el cobro en USD.
-            </p>
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={!isValid || isLoading}>
-            <Link2 className="size-4" />
-            {isLoading ? "Generando…" : "Generar enlace"}
-          </Button>
+            <div className="space-y-1.5">
+              <Label htmlFor="clover-checkout-amount">
+                Monto a cobrar con Clover
+              </Label>
+              <Input
+                id="clover-checkout-amount"
+                type="number"
+                min="0.01"
+                max={outstanding.toFixed(2)}
+                step="0.01"
+                disabled={isLoadingRate || Boolean(rateError)}
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Saldo máximo disponible: {money(outstanding)}. Clover procesará
+                el cobro en USD.
+                {!isUSD && exchangeRate && exchangeRate > 0 && numericAmount > 0 && numericAmount <= outstanding && (
+                  <span className="block mt-0.5 text-emerald-700 dark:text-emerald-400">
+                    Abonará aprox. ${(numericAmount / exchangeRate).toFixed(2)} {billedCurrency} a la orden.
+                  </span>
+                )}
+              </p>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button
+              type="submit"
+              disabled={!isValid || isLoading || isLoadingRate || Boolean(rateError)}
+            >
+              <Link2 className="size-4" />
+              {isLoading ? "Generando…" : "Generar enlace"}
+            </Button>
           </form>
         </div>
       )}

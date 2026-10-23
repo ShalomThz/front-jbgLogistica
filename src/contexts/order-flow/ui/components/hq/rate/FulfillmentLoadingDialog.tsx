@@ -8,21 +8,22 @@ import {
   DialogTitle,
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
-import { AlertTriangle, Ban, Loader2, PackageCheck } from "lucide-react";
+import { AlertTriangle, Loader2, PackageCheck } from "lucide-react";
 
 export type FulfillmentPhase = "selecting" | "fulfilling";
 
+/** Ya no se espera a la paquetería: los dos pasos son peticiones rápidas. */
 const PHASE_COPY: Record<
   FulfillmentPhase,
   { title: string; description: string }
 > = {
   selecting: {
-    title: "Creando envío…",
-    description: "Registrando el proveedor y la tarifa seleccionada.",
+    title: "Registrando la venta…",
+    description: "Guardando la tarifa, los datos de la orden y los abonos.",
   },
   fulfilling: {
-    title: "Generando guía…",
-    description: "Esto puede tardar unos segundos.",
+    title: "Solicitando la guía…",
+    description: "Esto tarda unos segundos.",
   },
 };
 
@@ -30,11 +31,9 @@ interface FulfillmentLoadingDialogProps {
   open: boolean;
   phase: FulfillmentPhase;
   error: string | null;
-  /** Offer a manual cancel (the creation has been waiting for a while). */
-  canCancel?: boolean;
-  onCancel?: () => void;
-  /** The error state is a user-initiated cancellation, not a failure. */
-  cancelled?: boolean;
+  /** La paquetería rechazó la guía: con la misma tarifa daría lo mismo, así que
+   * solo se ofrece elegir otra. */
+  rejected?: boolean;
   onRetry: () => void;
   onChangeCarrier: () => void;
 }
@@ -67,9 +66,7 @@ export function FulfillmentLoadingDialog({
   open,
   phase,
   error,
-  canCancel,
-  onCancel,
-  cancelled,
+  rejected = false,
   onRetry,
   onChangeCarrier,
 }: FulfillmentLoadingDialogProps) {
@@ -84,32 +81,28 @@ export function FulfillmentLoadingDialog({
       >
         {error ? (
           <div className="flex flex-col items-center gap-4">
-            <StatusBadge
-              icon={cancelled ? Ban : AlertTriangle}
-              variant={cancelled ? "neutral" : "error"}
-            />
+            <StatusBadge icon={AlertTriangle} variant="error" />
             <DialogHeader className="space-y-1.5 sm:text-center">
+              {/* Si falló al pedir la guía, la venta y los abonos ya quedaron. */}
               <DialogTitle className="text-center">
-                {cancelled
-                  ? "Creación cancelada"
-                  : "No se pudo generar la guía"}
+                {phase === "fulfilling"
+                  ? "La venta quedó registrada, pero no salió la guía"
+                  : "No se pudo registrar la venta"}
               </DialogTitle>
               <DialogDescription className="text-center">
-                {cancelled
-                  ? "Cancelaste la creación de la guía. Puedes reintentar o elegir otra paquetería."
-                  : "Hubo un problema al generar la guía con la paquetería. Puedes volver a intentarlo o elegir otra paquetería."}
+                {rejected
+                  ? "La paquetería rechazó la guía con esta tarifa. Elige otra paquetería; lo que ya se registró no se repite."
+                  : "Puedes volver a intentarlo o elegir otra paquetería. Lo que ya se registró no se repite."}
               </DialogDescription>
             </DialogHeader>
-            {!cancelled && (
-              <p className="w-full break-words rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
-                {error}
-              </p>
-            )}
+            <p className="w-full break-words rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
+              {error}
+            </p>
             <DialogFooter className="w-full gap-2 sm:justify-center">
               <Button variant="outline" onClick={onChangeCarrier}>
                 Elegir otra paquetería
               </Button>
-              <Button onClick={onRetry}>Reintentar</Button>
+              {!rejected && <Button onClick={onRetry}>Reintentar</Button>}
             </DialogFooter>
           </div>
         ) : (
@@ -126,26 +119,6 @@ export function FulfillmentLoadingDialog({
               <PackageCheck className="size-3.5" />
               No cierres esta ventana.
             </p>
-
-            {canCancel && (
-              <div className="w-full space-y-3 border-t pt-4">
-                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                  <span>
-                    La paquetería parece tener problemas para crear el envío.
-                    Después de elegir otra paquetería, se recomienda verificar la
-                    cancelación de este envío con esta paquetería en Skydropx.
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={onCancel}
-                >
-                  Cancelar creación
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </DialogContent>
