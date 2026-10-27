@@ -30,7 +30,7 @@ import {
 import { TONE_OUTLINE } from "@contexts/shared/domain/schemas/StatusTone";
 import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import type { ConsolidationListItem } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
-import { Container, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Container, Plus, RefreshCw, TriangleAlert, Trash2 } from "lucide-react";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("es-MX", {
@@ -48,7 +48,7 @@ export const ConsolidationsPage = () => {
 
   const [toDelete, setToDelete] = useState<ConsolidationListItem | null>(null);
 
-  const { consolidations, isLoading, refetch, deleteConsolidation, isDeleting } =
+  const { consolidations, isLoading, error, refetch, deleteConsolidation, isDeleting } =
     useConsolidations({ limit: 100 });
 
   const handleDelete = async () => {
@@ -94,7 +94,19 @@ export const ConsolidationsPage = () => {
 
       <Card className="min-h-0 flex-1">
         <CardContent className="h-full overflow-y-auto p-0">
-          {consolidations.length === 0 ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <TriangleAlert className="size-10 text-destructive/60" />
+              <p className="text-sm font-medium text-destructive">
+                No se pudieron cargar los consolidados
+              </p>
+              <p className="max-w-sm text-xs text-muted-foreground">{error}</p>
+              <Button variant="outline" size="sm" className="mt-1 gap-1.5" onClick={() => refetch()}>
+                <RefreshCw className="size-3.5" />
+                Reintentar
+              </Button>
+            </div>
+          ) : consolidations.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
               <Container className="size-10 opacity-30" />
               <p className="text-sm font-medium">No hay consolidados registrados</p>

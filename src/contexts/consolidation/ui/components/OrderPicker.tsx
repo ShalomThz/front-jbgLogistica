@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Badge, Button, Checkbox, Input } from "@contexts/shared/shadcn";
 import { Package, Search, Trash2 } from "lucide-react";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
+import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
+
+// ease-out fuerte, mismo valor que usa TruckVisual — entra rápido, sale aún más rápido
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 export interface SelectedOrder {
   orderId: string;
@@ -14,6 +19,10 @@ export interface SelectedOrder {
 interface Props {
   selected: SelectedOrder[];
   onChange: (selected: SelectedOrder[]) => void;
+  capacityLinearFeet: number;
+  /** Pies lineales ya confirmados en el consolidado (0 en el wizard de
+   * creación, donde todavía no hay nada guardado). */
+  usedLinearFeet?: number;
 }
 
 /**
@@ -27,8 +36,14 @@ interface Props {
  * canceladas. Se identifican por su número de orden/socio (mismo badge doble
  * que usa la tabla de órdenes), no por el id interno.
  */
-export const OrderPicker = ({ selected, onChange }: Props) => {
+export const OrderPicker = ({
+  selected,
+  onChange,
+  capacityLinearFeet,
+  usedLinearFeet = 0,
+}: Props) => {
   const [search, setSearch] = useState("");
+  const reduceMotion = useReducedMotion();
 
   const { data, isLoading } = useQuery({
     queryKey: ["consolidation", "available-orders"],
@@ -59,6 +74,8 @@ export const OrderPicker = ({ selected, onChange }: Props) => {
         return (
           o.destination.name.toLowerCase().includes(q) ||
           o.destination.company.toLowerCase().includes(q) ||
+          o.destination.address.city?.toLowerCase().includes(q) ||
+          o.store.name.toLowerCase().includes(q) ||
           o.references.orderNumber?.toLowerCase().includes(q) ||
           o.references.partnerOrderNumber?.toLowerCase().includes(q) ||
           o.id.toLowerCase().includes(q)
@@ -86,14 +103,22 @@ export const OrderPicker = ({ selected, onChange }: Props) => {
     return order.references.orderNumber ?? order.references.partnerOrderNumber ?? orderId.slice(0, 8).toUpperCase();
   };
 
+  const pendingLinearFeet = selected.reduce((sum, s) => sum + (s.linearFeet || 0), 0);
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <TruckVisual
+        usedLinearFeet={usedLinearFeet}
+        pendingLinearFeet={pendingLinearFeet}
+        capacityLinearFeet={capacityLinearFeet}
+      />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col gap-2">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar por cliente o número de orden…"
+            placeholder="Buscar por cliente, origen, destino o referencia…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -136,14 +161,18 @@ export const OrderPicker = ({ selected, onChange }: Props) => {
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <Badge variant="outline" className="font-mono text-[10px]">
-                      {o.references.orderNumber ?? "—"}
-                    </Badge>
-                    {o.references.partnerOrderNumber && (
-                      <Badge variant="secondary" className="font-mono text-[10px]">
-                        {o.references.partnerOrderNumber}
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-muted-foreground">JBG</span>
+                      <Badge variant="outline" className="font-mono text-[10px]">
+                        {o.references.orderNumber ?? "—"}
                       </Badge>
-                    )}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-muted-foreground">Agente</span>
+                      <Badge variant="secondary" className="font-mono text-[10px]">
+                        {o.references.partnerOrderNumber ?? "—"}
+                      </Badge>
+                    </span>
                   </div>
                 </div>
               );
@@ -165,10 +194,23 @@ export const OrderPicker = ({ selected, onChange }: Props) => {
           </div>
         ) : (
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {selected.map((s) => {
-              const invalid = !s.linearFeet || s.linearFeet <= 0;
-              return (
-                <div key={s.orderId} className="rounded-md border p-2.5">
+            <AnimatePresence initial={false}>
+              {selected.map((s) => {
+                const invalid = !s.linearFeet || s.linearFeet <= 0;
+                return (
+                  <motion.div
+                    key={s.orderId}
+                    layout
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={
+                      reduceMotion
+                        ? { opacity: 0, transition: { duration: 0.12 } }
+                        : { opacity: 0, scale: 0.95, transition: { duration: 0.12, ease: EASE_OUT } }
+                    }
+                    transition={{ duration: 0.18, ease: EASE_OUT }}
+                    className="rounded-md border p-2.5"
+                  >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="truncate font-mono text-xs font-medium">
                       {labelFor(s.orderId)}
@@ -221,11 +263,13 @@ export const OrderPicker = ({ selected, onChange }: Props) => {
                       Captura cuántos pies lineales ocupa.
                     </p>
                   )}
-                </div>
-              );
-            })}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

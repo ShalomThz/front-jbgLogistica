@@ -35,6 +35,7 @@ import { STAGE_LABELS, toneForStage } from "@contexts/consolidation/domain/schem
 import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/components/ConsolidationStageTimeline";
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
 import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import {
   ArrowLeft,
   Boxes,
@@ -77,20 +78,25 @@ function StatCard({
   value,
   icon: Icon,
   colorClass = "text-primary",
+  title,
 }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
   colorClass?: string;
+  /** Detalle completo para el tooltip nativo cuando el valor se trunca (p. ej. placas/licencia). */
+  title?: string;
 }) {
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between gap-2 p-4">
+    <Card className="py-0">
+      <CardContent className="flex items-center justify-between gap-2 p-3">
         <div className="min-w-0">
           <p className="truncate text-xs text-muted-foreground">{label}</p>
-          <p className="text-xl font-bold">{value}</p>
+          <p className="truncate text-xl font-bold" title={title}>
+            {value}
+          </p>
         </div>
-        <div className={`shrink-0 rounded-full bg-muted p-2.5 ${colorClass}`}>
+        <div className={`shrink-0 rounded-full bg-muted p-2 ${colorClass}`}>
           <Icon className="size-4" />
         </div>
       </CardContent>
@@ -114,7 +120,7 @@ function BarRow({
 }) {
   const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
-    <li className="space-y-1 p-3">
+    <li className="space-y-1 px-3 py-1.5">
       <div className="flex items-center justify-between gap-2 text-sm">
         <span className="truncate">{label}</span>
         <span className="shrink-0 font-medium text-muted-foreground">
@@ -125,6 +131,34 @@ function BarRow({
         <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
       </div>
     </li>
+  );
+}
+
+/** Tarjeta de resumen compacta: título, botón "ver todo" que salta a la
+ * pestaña con el detalle completo, y el contenido truncado abajo. Así
+ * Resumen deja de ser una pestaña más y se vuelve el panel "de un vistazo"
+ * que junta lo importante de las demás sin tener que entrar a cada una. */
+function SummaryCard({
+  title,
+  onViewAll,
+  children,
+}: {
+  title: string;
+  onViewAll: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="flex flex-col py-0">
+      <CardContent className="flex flex-1 flex-col p-3">
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold">{title}</p>
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onViewAll}>
+            Ver todo
+          </Button>
+        </div>
+        <div className="flex-1">{children}</div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -216,6 +250,13 @@ export const ConsolidationDetailPage = () => {
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
   }, [orders]);
 
+  const recentHistory = useMemo(() => {
+    const list = data?.history ?? [];
+    return [...list]
+      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+      .slice(0, 3);
+  }, [data]);
+
   const hasInvalidSelection = pickerSelection.some(
     (o) => !o.linearFeet || o.linearFeet <= 0,
   );
@@ -273,7 +314,7 @@ export const ConsolidationDetailPage = () => {
   const tone = toneForStage(consolidation.stage);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate("/consolidations")}>
@@ -301,7 +342,7 @@ export const ConsolidationDetailPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Órdenes" value={orders.length} icon={Boxes} />
         <StatCard label="Clientes" value={clients.length} icon={Users} />
         <StatCard label="Destinos" value={destinations.length} icon={MapPin} />
@@ -310,6 +351,18 @@ export const ConsolidationDetailPage = () => {
           value={`${capacityPct}%`}
           icon={Gauge}
           colorClass={TONE_TEXT[capacityTone]}
+        />
+        <StatCard
+          label="Unidad"
+          value={trailer ? trailer.unitNumber : "Sin asignar"}
+          title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
+          icon={Truck}
+        />
+        <StatCard
+          label="Conductor"
+          value={driver ? driver.user.name : "Sin asignar"}
+          title={driver ? `${driver.user.name} · ${driver.licenseNumber}` : undefined}
+          icon={User}
         />
       </div>
 
@@ -326,62 +379,46 @@ export const ConsolidationDetailPage = () => {
           ))}
         </TabsList>
 
-        <TabsContent value="resumen" className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto">
-          <Card>
-            <CardContent className="p-5">
+        <TabsContent value="resumen" className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto">
+          <Card className="py-0">
+            <CardContent className="p-3">
               <ConsolidationStageTimeline current={consolidation.stage} />
             </CardContent>
           </Card>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
-              <CardContent className="space-y-2 p-5">
-                <p className="flex items-center gap-2 text-sm font-medium">
-                  <Truck className="size-4" /> Unidad
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {trailer
-                    ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}`
-                    : "Sin tráiler asignado"}
-                </p>
-                <p className="flex items-center gap-2 pt-2 text-sm font-medium">
-                  <User className="size-4" /> Conductor
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {driver ? `${driver.user.name} · ${driver.licenseNumber}` : "Sin asignar"}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="space-y-2 p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Capacidad</p>
-                  <p className={`text-lg font-bold ${TONE_TEXT[capacityTone]}`}>
-                    {capacityPct}%
-                  </p>
-                </div>
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={`h-full transition-all ${isOverCapacity ? "bg-destructive" : "bg-primary"}`}
-                    style={{ width: `${capacityPct}%` }}
-                  />
-                </div>
-                <p
-                  className={`text-sm ${isOverCapacity ? "font-medium text-destructive" : "text-muted-foreground"}`}
-                >
-                  {totalLinearFeet.toFixed(1)} / {consolidation.capacityLinearFeet} pies
-                  lineales {isOverCapacity && "— por encima de la capacidad"}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
 
-          <Card>
-            <CardContent className="p-5">
-              <p className="mb-3 text-sm font-medium">Órdenes en este embarque</p>
+          <Card className="py-0">
+            <CardContent className="p-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="flex items-baseline gap-1.5">
+                  <span className={cn("text-2xl font-bold tabular-nums", TONE_TEXT[capacityTone])}>
+                    {capacityPct}%
+                  </span>
+                  <span className="text-sm text-muted-foreground">cargado</span>
+                </div>
+                <span
+                  className={cn(
+                    "text-sm",
+                    isOverCapacity ? "font-medium text-destructive" : "text-muted-foreground",
+                  )}
+                >
+                  {totalLinearFeet.toLocaleString("es-MX", { maximumFractionDigits: 1 })} /{" "}
+                  {consolidation.capacityLinearFeet.toLocaleString("es-MX", { maximumFractionDigits: 1 })} ft
+                  {isOverCapacity && " — por encima de la capacidad"}
+                </span>
+              </div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn("h-full rounded-full", isOverCapacity ? "bg-destructive" : "bg-primary")}
+                  style={{ width: `${Math.min(100, capacityPct)}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            <SummaryCard title="Órdenes en este embarque" onViewAll={() => setActiveTab("ordenes")}>
               {orders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Este consolidado todavía no tiene órdenes.
-                </p>
+                <p className="text-sm text-muted-foreground">Sin órdenes todavía.</p>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
                   <table className="w-full text-sm">
@@ -389,28 +426,108 @@ export const ConsolidationDetailPage = () => {
                       <tr>
                         <th className="p-2">Orden</th>
                         <th className="p-2">Cliente</th>
-                        <th className="p-2">Pies lineales</th>
+                        <th className="p-2">ft</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.slice(0, 8).map((o) => (
+                      {orders.slice(0, 5).map((o) => (
                         <tr key={o.orderId} className="border-b last:border-0 odd:bg-muted/20">
                           <td className="p-2 font-mono text-xs">{orderLabel(o)}</td>
-                          <td className="p-2">{o.client?.name ?? "—"}</td>
+                          <td className="p-2 truncate">{o.client?.name ?? "—"}</td>
                           <td className="p-2">{o.linearFeet.toFixed(1)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  {orders.length > 8 && (
-                    <p className="border-t p-2 text-center text-xs text-muted-foreground">
-                      +{orders.length - 8} más — ver pestaña "Órdenes del embarque"
-                    </p>
-                  )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </SummaryCard>
+
+            <SummaryCard title="Clientes" onViewAll={() => setActiveTab("clientes")}>
+              {clients.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin clientes todavía.</p>
+              ) : (
+                <ul className="-mx-1 divide-y">
+                  {clients.slice(0, 4).map((c) => (
+                    <BarRow
+                      key={c.id}
+                      label={c.name}
+                      value={c.orderCount}
+                      max={maxClientOrders}
+                      suffix={c.orderCount === 1 ? "orden" : "órdenes"}
+                    />
+                  ))}
+                </ul>
+              )}
+            </SummaryCard>
+
+            <SummaryCard title="Destinos" onViewAll={() => setActiveTab("destinos")}>
+              {destinations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin destinos todavía.</p>
+              ) : (
+                <ul className="-mx-1 divide-y">
+                  {destinations.slice(0, 4).map(([destination, count]) => (
+                    <BarRow
+                      key={destination}
+                      label={destination}
+                      value={count}
+                      max={maxDestinationCount}
+                      suffix={count === 1 ? "orden" : "órdenes"}
+                    />
+                  ))}
+                </ul>
+              )}
+            </SummaryCard>
+
+            <SummaryCard title="Distribución de espacio" onViewAll={() => setActiveTab("espacio")}>
+              {sections.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin órdenes todavía.</p>
+              ) : (
+                <ul className="-mx-1 divide-y">
+                  {sections.slice(0, 4).map(([section, feet]) => (
+                    <BarRow key={section} label={section} value={feet} max={maxSectionFeet} suffix="ft" />
+                  ))}
+                </ul>
+              )}
+            </SummaryCard>
+
+            <SummaryCard title="Evidencias" onViewAll={() => setActiveTab("evidencias")}>
+              {consolidation.evidencePhotos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin evidencia adjunta todavía.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {consolidation.evidencePhotos.slice(0, 4).map((key) => (
+                    <EvidencePhotoThumbnail key={key} path={key} size="sm" />
+                  ))}
+                </div>
+              )}
+            </SummaryCard>
+
+            <SummaryCard title="Actividad reciente" onViewAll={() => setActiveTab("historial")}>
+              {recentHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin movimientos registrados.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {recentHistory.map((entry) => {
+                    const Icon = HISTORY_ICONS[entry.type] ?? FilePlus;
+                    return (
+                      <li key={entry.id} className="flex items-start gap-2 text-sm">
+                        <div className="mt-0.5 shrink-0 rounded-full bg-primary/10 p-1 text-primary">
+                          <Icon className="size-3" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate">{entry.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(entry.occurredAt).toLocaleString("es-MX")}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </SummaryCard>
+          </div>
         </TabsContent>
 
         <TabsContent value="ordenes" className="mt-4 min-h-0 flex-1 overflow-y-auto">
@@ -634,7 +751,12 @@ export const ConsolidationDetailPage = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1">
-            <OrderPicker selected={pickerSelection} onChange={setPickerSelection} />
+            <OrderPicker
+              selected={pickerSelection}
+              onChange={setPickerSelection}
+              capacityLinearFeet={consolidation.capacityLinearFeet}
+              usedLinearFeet={totalLinearFeet}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOrdersOpen(false)}>
@@ -656,11 +778,18 @@ export const ConsolidationDetailPage = () => {
 /** Una foto de evidencia; se abre en grande en otra pestaña. La llave que
  * manda el back es un storage key, no una URL servible directo — hay que
  * resolverla con `/media/:id` como hace el resto de la app. */
-const EvidencePhotoThumbnail = ({ path }: { path: string }) => {
+const EvidencePhotoThumbnail = ({
+  path,
+  size = "md",
+}: {
+  path: string;
+  size?: "sm" | "md";
+}) => {
   const { data: photo, isLoading } = useMedia(path);
+  const sizeClass = size === "sm" ? "size-14" : "size-28";
 
   if (isLoading) {
-    return <div className="size-28 animate-pulse rounded-md border bg-muted" />;
+    return <div className={`${sizeClass} animate-pulse rounded-md border bg-muted`} />;
   }
   if (!photo?.url) return null;
 
@@ -669,7 +798,7 @@ const EvidencePhotoThumbnail = ({ path }: { path: string }) => {
       <img
         src={photo.url}
         alt="Evidencia del consolidado"
-        className="size-28 rounded-md border object-cover transition-opacity hover:opacity-90"
+        className={`${sizeClass} rounded-md border object-cover transition-opacity hover:opacity-90`}
       />
     </a>
   );
