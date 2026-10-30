@@ -20,8 +20,6 @@ export const availableShipmentEventSchema = z.object({
   requiresRecipient: z.boolean(),
   /** Ya se registró sobre este envío. */
   recorded: z.boolean(),
-  /** Es el que sigue en su etapa según el orden de la guía. */
-  suggested: z.boolean(),
 });
 
 export type AvailableShipmentEvent = z.infer<

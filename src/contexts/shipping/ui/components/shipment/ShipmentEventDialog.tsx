@@ -21,11 +21,12 @@ import {
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { CameraPhotoInput } from "@contexts/shared/ui/components/CameraPhotoInput";
-import { MAX_EVIDENCE_PHOTOS } from "@contexts/shipping/application/shipment/RecordShipmentEventRequest";
+import { DateTimePicker } from "@contexts/shared/ui/components/DateTimePicker";
 import {
-  ADVANCE_BLOCK_MESSAGES,
-  type AvailableShipmentEvent,
-} from "@contexts/shipping/application/shipment/AvailableShipmentEventsResponse";
+  MAX_EVIDENCE_PHOTOS,
+  occurredAtFromInput,
+} from "@contexts/shipping/application/shipment/RecordShipmentEventRequest";
+import { ADVANCE_BLOCK_MESSAGES } from "@contexts/shipping/application/shipment/AvailableShipmentEventsResponse";
 import {
   STAGE_LABELS,
   type ShipmentStage,
@@ -88,10 +89,6 @@ const WAREHOUSE_STAGES: ReadonlySet<ShipmentStage> = new Set([
 /** `""` no es "sin valor" para el back, que lo rechaza: se manda `undefined`. */
 const orUndefined = (value: string) => value.trim() || undefined;
 
-/** El sugerido primero: es el que se busca casi siempre. */
-const suggestedFirst = (events: AvailableShipmentEvent[]) =>
-  [...events].sort((a, b) => Number(b.suggested) - Number(a.suggested));
-
 /**
  * Mueve el envío por su recorrido y deja constancia en el historial.
  *
@@ -135,6 +132,8 @@ export const ShipmentEventDialog = ({
   const [photos, setPhotos] = useState<File[]>([]);
   // Una sola firma, pero el componente de foto trabaja con listas.
   const [signature, setSignature] = useState<File[]>([]);
+  // Vacío es "ahora"; con valor, lo que se carga después de los hechos.
+  const [occurredAt, setOccurredAt] = useState("");
 
   const { data: availability, isLoading } = useAvailableShipmentEvents(
     shipmentId,
@@ -170,9 +169,8 @@ export const ShipmentEventDialog = ({
   const activeStage =
     mode === "advance" ? (next?.stage ?? null) : (stage ?? current);
 
-  const stageEvents = suggestedFirst(
-    catalog.filter((e) => e.stage === activeStage),
-  );
+  // En el orden del catálogo, sin sugerencia: se elige lo que pasó.
+  const stageEvents = catalog.filter((e) => e.stage === activeStage);
   const chosen = stageEvents.find((e) => e.code === code) ?? null;
   // Lo que pide la evidencia: el atajo elegido, o el evento del paso.
   const event =
@@ -205,6 +203,7 @@ export const ShipmentEventDialog = ({
     optional.warehouse && !!warehouse,
     optional.dispatch && !!transportMode,
     optional.dispatch && !!consolidationRef.trim(),
+    !!occurredAt,
   ].filter(Boolean).length;
 
   const resetFields = () => {
@@ -217,6 +216,7 @@ export const ShipmentEventDialog = ({
     setConsolidationRef("");
     setPhotos([]);
     setSignature([]);
+    setOccurredAt("");
   };
 
   const pickMode = (value: Mode) => {
@@ -280,6 +280,7 @@ export const ShipmentEventDialog = ({
         consolidationRef: orUndefined(consolidationRef),
         photos: photos.length > 0 ? photos : undefined,
         signature: signature[0],
+        occurredAt: occurredAtFromInput(occurredAt),
       });
       toast.success(
         mode === "advance" && activeStage
@@ -598,6 +599,17 @@ export const ShipmentEventDialog = ({
 
                       {detailsOpen && (
                         <div className="space-y-3 border-t p-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="event-occurred-at" className="text-xs">
+                              Fecha y hora
+                            </Label>
+                            <DateTimePicker
+                              id="event-occurred-at"
+                              value={occurredAt}
+                              onChange={setOccurredAt}
+                            />
+                          </div>
+
                           <div className="space-y-1.5">
                             <Label htmlFor="event-notes" className="text-xs">
                               Observaciones

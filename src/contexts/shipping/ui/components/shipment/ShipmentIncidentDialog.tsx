@@ -20,7 +20,12 @@ import {
 } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { CameraPhotoInput } from "@contexts/shared/ui/components/CameraPhotoInput";
-import { MAX_EVIDENCE_PHOTOS } from "@contexts/shipping/application/shipment/RecordShipmentEventRequest";
+import { DateTimePicker } from "@contexts/shared/ui/components/DateTimePicker";
+import {
+  MAX_EVIDENCE_PHOTOS,
+  occurredAtFromInput,
+  occurredAtToInput,
+} from "@contexts/shipping/application/shipment/RecordShipmentEventRequest";
 import type { ShipmentIncidentPrimitives } from "@contexts/shipping/domain/schemas/shipment/Shipment";
 import {
   INCIDENT_LABELS,
@@ -55,6 +60,8 @@ export const ShipmentIncidentDialog = ({ shipmentId, incident }: Props) => {
   const [type, setType] = useState<ShipmentIncidentType | "">("");
   const [text, setText] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+  // Vacío es "ahora".
+  const [occurredAt, setOccurredAt] = useState("");
 
   if (!user || !shippingPolicies.recordEvents(user)) return null;
 
@@ -63,6 +70,7 @@ export const ShipmentIncidentDialog = ({ shipmentId, incident }: Props) => {
     setType("");
     setText("");
     setPhotos([]);
+    setOccurredAt("");
   };
 
   const canSubmit =
@@ -72,7 +80,11 @@ export const ShipmentIncidentDialog = ({ shipmentId, incident }: Props) => {
     if (!canSubmit) return;
     try {
       if (incident) {
-        await resolveShipmentIncident({ shipmentId, resolution: text.trim() });
+        await resolveShipmentIncident({
+          shipmentId,
+          resolution: text.trim(),
+          occurredAt: occurredAtFromInput(occurredAt),
+        });
         toast.success("Incidencia resuelta");
       } else if (type) {
         await openShipmentIncident({
@@ -80,6 +92,7 @@ export const ShipmentIncidentDialog = ({ shipmentId, incident }: Props) => {
           type,
           reason: text.trim(),
           photos: photos.length > 0 ? photos : undefined,
+          occurredAt: occurredAtFromInput(occurredAt),
         });
         toast.success(`Incidencia abierta: ${INCIDENT_LABELS[type]}`);
       }
@@ -165,6 +178,19 @@ export const ShipmentIncidentDialog = ({ shipmentId, incident }: Props) => {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="incident-occurred-at" className="text-xs">
+                Fecha y hora
+              </Label>
+              <DateTimePicker
+                id="incident-occurred-at"
+                // Al resolver, no antes de que se abrió: el back lo rechaza.
+                min={incident ? occurredAtToInput(incident.openedAt) : undefined}
+                value={occurredAt}
+                onChange={setOccurredAt}
               />
             </div>
 
