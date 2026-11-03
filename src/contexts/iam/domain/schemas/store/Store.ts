@@ -18,10 +18,25 @@ const hexColorSchema = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, "Debe ser un color hex de 6 dígitos (#RRGGBB)");
 
-// Logo y colores de la factura que esta tienda (si es socio) le entrega a su
-// propio cliente. La factura "jbg" no lee este campo.
+// Cómo se ve la etiqueta "Agente" de esta tienda (logo y colores del banner de
+// tracking / bloque de C.P.). La etiqueta "cargo" de JBG no lee este campo.
+export const agentLabelBrandingSchema = z.object({
+  logo: z.string().min(1).nullable().default(null),
+  primaryColor: hexColorSchema.nullable().default(null),
+  secondaryColor: hexColorSchema.nullable().default(null),
+});
+
+export type AgentLabelBrandingPrimitives = z.infer<
+  typeof agentLabelBrandingSchema
+>;
+
+// Logo, pie y colores de la factura que esta tienda (si es socio) le entrega
+// a su propio cliente. La factura "jbg" no lee este campo.
 export const partnerInvoiceBrandingSchema = z.object({
   logo: z.string().min(1).nullable().default(null),
+  // Reemplaza entero el banner promocional de JBG del pie de página.
+  // Totalmente opcional: vacío deja el de JBG tal cual.
+  footer: z.string().min(1).nullable().default(null),
   primaryColor: hexColorSchema.nullable().default(null),
   accentColor: hexColorSchema.nullable().default(null),
 });
@@ -44,8 +59,14 @@ export const storeSchema = z.object({
   address: addressSchema,
   phone: z.string().min(1, "Phone number is required"),
   contactEmail: emailSchema,
+  agentLabelBranding: agentLabelBrandingSchema.default({
+    logo: null,
+    primaryColor: null,
+    secondaryColor: null,
+  }),
   invoiceBranding: partnerInvoiceBrandingSchema.default({
     logo: null,
+    footer: null,
     primaryColor: null,
     accentColor: null,
   }),

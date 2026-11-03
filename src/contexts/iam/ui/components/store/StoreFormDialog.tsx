@@ -29,13 +29,6 @@ import {
 } from "@contexts/iam/domain/schemas/store/Store";
 import { useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { StoreInvoiceColorInput } from "./StoreInvoiceColorInput";
-import { StoreInvoiceLogoInput } from "./StoreInvoiceLogoInput";
-
-// Los mismos colores por default que usa la plantilla de la factura en el
-// backend — si la tienda no configura nada, así se ve.
-const DEFAULT_PRIMARY_COLOR = "#15295C";
-const DEFAULT_ACCENT_COLOR = "#C62433";
 
 type FormInput = z.input<typeof createStoreRequestSchema>;
 
@@ -54,10 +47,16 @@ function getDefaults(store?: StoreListViewPrimitives | null): FormInput {
     zoneId: store?.zone.id ?? "",
     phone: store?.phone ?? "",
     contactEmail: store?.contactEmail ?? "",
+    agentLabelBranding: {
+      logo: store?.agentLabelBranding?.logo ?? "",
+      primaryColor: store?.agentLabelBranding?.primaryColor ?? "",
+      secondaryColor: store?.agentLabelBranding?.secondaryColor ?? "",
+    },
     invoiceBranding: {
-      logo: store?.invoiceBranding.logo ?? "",
-      primaryColor: store?.invoiceBranding.primaryColor ?? "",
-      accentColor: store?.invoiceBranding.accentColor ?? "",
+      logo: store?.invoiceBranding?.logo ?? "",
+      footer: store?.invoiceBranding?.footer ?? "",
+      primaryColor: store?.invoiceBranding?.primaryColor ?? "",
+      accentColor: store?.invoiceBranding?.accentColor ?? "",
     },
     address: {
       address1: store?.address.address1 ?? "",
@@ -215,57 +214,6 @@ export const StoreFormDialog = ({
               {errors.contactEmail && (
                 <p className="text-xs text-destructive">{errors.contactEmail.message}</p>
               )}
-            </div>
-            <div className="space-y-3 border-t pt-4">
-              <div>
-                <Label className="text-sm font-semibold">Factura del socio</Label>
-                <p className="text-xs text-muted-foreground">
-                  Cómo se ve la factura que esta tienda le entrega a su propio
-                  cliente. La factura JBG no cambia.
-                </p>
-              </div>
-              <Controller
-                name="invoiceBranding.logo"
-                control={control}
-                render={({ field }) => (
-                  <StoreInvoiceLogoInput
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    error={errors.invoiceBranding?.logo?.message}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Controller
-                  name="invoiceBranding.primaryColor"
-                  control={control}
-                  render={({ field }) => (
-                    <StoreInvoiceColorInput
-                      label="Color principal"
-                      value={field.value}
-                      defaultColor={DEFAULT_PRIMARY_COLOR}
-                      onChange={field.onChange}
-                      error={errors.invoiceBranding?.primaryColor?.message}
-                      disabled={isLoading}
-                    />
-                  )}
-                />
-                <Controller
-                  name="invoiceBranding.accentColor"
-                  control={control}
-                  render={({ field }) => (
-                    <StoreInvoiceColorInput
-                      label="Color de acento"
-                      value={field.value}
-                      defaultColor={DEFAULT_ACCENT_COLOR}
-                      onChange={field.onChange}
-                      error={errors.invoiceBranding?.accentColor?.message}
-                      disabled={isLoading}
-                    />
-                  )}
-                />
-              </div>
             </div>
             <div className="border-t pt-4">
               <AddressAutocompleteSection fieldPrefix="address" labelPrefix="Tienda" />
