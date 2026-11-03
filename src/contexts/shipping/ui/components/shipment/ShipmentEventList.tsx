@@ -1,5 +1,22 @@
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { shippingPolicies } from "@contexts/shared/domain/policies/shipping.policy";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
+import {
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@contexts/shared/shadcn";
+import { DateTimePicker } from "@contexts/shared/ui/components/DateTimePicker";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
+import {
+  occurredAtFromInput,
+  occurredAtToInput,
+} from "@contexts/shipping/application/shipment/RecordShipmentEventRequest";
+import { useUpdateShipmentEventTime } from "@contexts/shipping/infrastructure/hooks/shipments/useShipments";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   TONE_EVENT,
   TONE_TEXT,
@@ -15,7 +32,16 @@ import {
   ACTOR_LABELS,
   type ShipmentTrackingEventPrimitives,
 } from "@contexts/shipping/domain/schemas/tracking/ShipmentTrackingEvent";
-import { MapPin, TriangleAlert, UserRound } from "lucide-react";
+import { MapPin, Pencil, TriangleAlert, UserRound } from "lucide-react";
+
+const formatEventTime = (iso: string) =>
+  new Date(iso).toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 interface Props {
   events: readonly ShipmentTrackingEventPrimitives[];
@@ -42,6 +68,10 @@ export const ShipmentEventList = ({
   tone,
   isCurrentStage,
 }: Props) => {
+  // Una vez para toda la lista, no por evento.
+  const { user } = useAuth();
+  const canEditTime = !!user && shippingPolicies.recordEvents(user);
+
   if (events.length === 0) {
     return <p className="py-3 text-center text-xs text-muted-foreground">{emptyText}</p>;
   }
@@ -63,6 +93,7 @@ export const ShipmentEventList = ({
           <ShipmentEventItem
             key={event.id}
             event={event}
+            canEditTime={canEditTime}
             accent={
               isCurrentStage && index === 0 ? palette.latest : palette.earlier
             }
@@ -84,9 +115,11 @@ const readString = (
 const ShipmentEventItem = ({
   event,
   accent,
+  canEditTime,
 }: {
   event: ShipmentTrackingEventPrimitives;
   accent: string;
+  canEditTime: boolean;
 }) => {
   const signaturePath = readString(event.metadata, "signaturePath");
   const recipientName = readString(event.metadata, "recipientName");
@@ -112,15 +145,7 @@ const ShipmentEventItem = ({
           {event.incident && <TriangleAlert className="size-3.5" />}
           {event.description}
         </p>
-        <span className="text-xs text-muted-foreground">
-          {new Date(event.occurredAt).toLocaleString("es-MX", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
+        <EventTime event={event} canEdit={canEditTime} />
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -169,6 +194,114 @@ const ShipmentEventItem = ({
         </div>
       )}
     </li>
+  );
+};
+
+/**
+ * La hora del evento. Quien puede registrar eventos la corrige con el lápiz:
+ * cualquier evento, nunca a futuro, y el historial se reordena por la nueva. Si
+ * ya se corrigió, lo dice, con la original al pasar el cursor.
+ */
+const EventTime = ({
+  event,
+  canEdit,
+}: {
+  event: ShipmentTrackingEventPrimitives;
+  canEdit: boolean;
+}) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      {formatEventTime(event.occurredAt)}
+      {event.timeEdit && (
+        <span
+          className="italic"
+          title={`Hora original: ${formatEventTime(event.timeEdit.originalOccurredAt)}`}
+        >
+          (hora corregida)
+        </span>
+      )}
+      {canEdit && (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              aria-label="Corregir la hora"
+            >
+              <Pencil className="size-3" />
+            </Button>
+          </PopoverTrigger>
+          {/* Radix monta el contenido solo abierto: la mutation existe
+              mientras se edita, no una por cada evento de la lista. */}
+          <PopoverContent align="end" className="w-auto space-y-2">
+            <EventTimeForm event={event} onDone={() => setOpen(false)} />
+          </PopoverContent>
+        </Popover>
+      )}
+    </span>
+  );
+};
+
+const EventTimeForm = ({
+  event,
+  onDone,
+}: {
+  event: ShipmentTrackingEventPrimitives;
+  onDone: () => void;
+}) => {
+  const { mutateAsync, isPending } = useUpdateShipmentEventTime();
+  // Precargada con la actual, al minuto: es lo que maneja el campo.
+  const current = occurredAtToInput(event.occurredAt);
+  const [value, setValue] = useState(current);
+
+  // Guardar la misma hora la cortaría al minuto y marcaría el evento como
+  // corregido sin que nadie lo corrigiera.
+  const unchanged = value === current;
+
+  const save = async () => {
+    try {
+      const occurredAt = occurredAtFromInput(value);
+      if (!occurredAt) return;
+      await mutateAsync({
+        shipmentId: event.shipmentId,
+        eventId: event.id,
+        occurredAt,
+      });
+      toast.success("Hora corregida");
+      onDone();
+    } catch (error) {
+      toast.error(parseApiError(error));
+    }
+  };
+
+  return (
+    <>
+      <p className="text-xs font-medium">Corregir la hora</p>
+      <DateTimePicker inline value={value} onChange={setValue} />
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onDone}
+          disabled={isPending}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={save}
+          disabled={!value || unchanged || isPending}
+        >
+          {isPending ? "Guardando..." : "Guardar"}
+        </Button>
+      </div>
+    </>
   );
 };
 

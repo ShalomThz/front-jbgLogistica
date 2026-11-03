@@ -44,6 +44,25 @@ const EMPTY_FORM: FormState = {
   isActive: true,
 };
 
+function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium">{value}</dd>
+    </div>
+  );
+}
+
 /**
  * Catálogo de tráilers reales (unidades de flota): alta/edición simple, sin
  * máquina de estados de disponibilidad — el consolidado elige una unidad de
@@ -60,6 +79,7 @@ export const TrailersPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TrailerPrimitives | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [viewing, setViewing] = useState<TrailerPrimitives | null>(null);
 
   const openCreate = () => {
     setEditing(null);
@@ -167,7 +187,11 @@ export const TrailersPage = () => {
               </TableHeader>
               <TableBody>
                 {trailers.map((t) => (
-                  <TableRow key={t.id}>
+                  <TableRow
+                    key={t.id}
+                    className="cursor-pointer"
+                    onClick={() => setViewing(t)}
+                  >
                     <TableCell className="font-mono font-medium">{t.unitNumber}</TableCell>
                     <TableCell className="text-sm">{t.type}</TableCell>
                     <TableCell className="font-mono text-sm">{t.plates}</TableCell>
@@ -179,7 +203,14 @@ export const TrailersPage = () => {
                     </TableCell>
                     {canEdit && (
                       <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(t)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(t);
+                          }}
+                        >
                           <Pencil className="size-3.5" />
                         </Button>
                       </TableCell>
@@ -191,6 +222,49 @@ export const TrailersPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="size-5 text-primary" />
+              <span className="font-mono">{viewing?.unitNumber}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {viewing && (
+            <div className="space-y-3">
+              <Badge variant={viewing.isActive ? "default" : "outline"}>
+                {viewing.isActive ? "Activo" : "Inactivo"}
+              </Badge>
+              <dl className="divide-y rounded-md border">
+                <DetailRow label="Tipo" value={viewing.type} />
+                <DetailRow label="Placas" value={viewing.plates} />
+                <DetailRow label="Capacidad típica" value={`${viewing.capacityLinearFeet} ft lineales`} />
+                <DetailRow label="Creado" value={formatDateTime(viewing.createdAt)} />
+                <DetailRow label="Última actualización" value={formatDateTime(viewing.updatedAt)} />
+              </dl>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewing(null)}>
+              Cerrar
+            </Button>
+            {canEdit && viewing && (
+              <Button
+                className="gap-1.5"
+                onClick={() => {
+                  const trailer = viewing;
+                  setViewing(null);
+                  openEdit(trailer);
+                }}
+              >
+                <Pencil className="size-3.5" />
+                Editar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={formOpen} onOpenChange={(v) => !v && setFormOpen(false)}>
         <DialogContent className="sm:max-w-md">

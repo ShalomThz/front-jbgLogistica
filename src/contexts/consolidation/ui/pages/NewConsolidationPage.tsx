@@ -20,8 +20,9 @@ import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTra
 import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
 import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
+import { TrailerCardList } from "@contexts/consolidation/ui/components/TrailerCardList";
 import { StepIndicator } from "@contexts/order-flow/ui/components/shared/StepIndicator";
-import { ArrowLeft, Container, MapPin, Package, Truck, User } from "lucide-react";
+import { ArrowLeft, Container, Package, Truck, User } from "lucide-react";
 
 const steps = [
   { key: "datos", label: "Datos del consolidado" },
@@ -125,12 +126,12 @@ export const NewConsolidationPage = () => {
       </div>
 
       {step === "datos" && (
-        <div className="mx-auto w-full max-w-2xl space-y-4">
+        <div className="mx-auto grid w-full max-w-4xl gap-4 lg:grid-cols-2">
           <Card>
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Container className="size-4 text-muted-foreground" />
-                Identificación
+                Identificación y ruta
               </div>
               <div className="space-y-2">
                 <Label htmlFor="folio">Folio</Label>
@@ -140,15 +141,6 @@ export const NewConsolidationPage = () => {
                   value={folio}
                   onChange={(e) => setFolio(e.target.value)}
                 />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <MapPin className="size-4 text-muted-foreground" />
-                Ruta
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -179,32 +171,15 @@ export const NewConsolidationPage = () => {
                 <Truck className="size-4 text-muted-foreground" />
                 Unidad y conductor
               </div>
+              <div className="space-y-2">
+                <Label>Tráiler</Label>
+                <TrailerCardList
+                  trailers={activeTrailers}
+                  selectedId={trailerId}
+                  onSelect={handleSelectTrailer}
+                />
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Tráiler</Label>
-                  <Select value={trailerId} onValueChange={handleSelectTrailer}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Elige una unidad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeTrailers.length === 0 ? (
-                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          No hay tráilers activos —{" "}
-                          <a href="/trailers" className="underline">
-                            da de alta uno
-                          </a>
-                          .
-                        </div>
-                      ) : (
-                        activeTrailers.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.unitNumber} · {t.type} · {t.plates}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label>Conductor</Label>
                   <Select value={driverId} onValueChange={setDriverId}>
@@ -220,16 +195,16 @@ export const NewConsolidationPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Capacidad (pies lineales)</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  min={1}
-                  value={capacityLinearFeet}
-                  onChange={(e) => setCapacityLinearFeet(e.target.value)}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="capacity">Capacidad (pies lineales)</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    min={1}
+                    value={capacityLinearFeet}
+                    onChange={(e) => setCapacityLinearFeet(e.target.value)}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -239,16 +214,12 @@ export const NewConsolidationPage = () => {
       {step === "ordenes" && (
         <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1">
-            <OrderPicker selected={orders} onChange={setOrders} />
+            <OrderPicker
+              selected={orders}
+              onChange={setOrders}
+              capacityLinearFeet={Number(capacityLinearFeet) || 0}
+            />
           </div>
-          {orders.length > 0 && (
-            <p
-              className={`text-center text-sm ${overCapacity ? "font-medium text-destructive" : "text-muted-foreground"}`}
-            >
-              {totalLinearFeet.toFixed(1)} / {capacityLinearFeet} pies lineales usados
-              {overCapacity && " — por encima de la capacidad declarada"}
-            </p>
-          )}
         </div>
       )}
 

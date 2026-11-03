@@ -26,6 +26,8 @@ export const recordShipmentEventRequestSchema = z.object({
   consolidationRef: z.string().trim().min(1).optional(),
   photos: z.array(z.instanceof(Blob)).max(MAX_EVIDENCE_PHOTOS).optional(),
   signature: z.instanceof(Blob).optional(),
+  /** Cuándo ocurrió, en ISO, si no fue ahora. */
+  occurredAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export type RecordShipmentEventRequest = z.infer<
@@ -37,6 +39,7 @@ export const openShipmentIncidentRequestSchema = z.object({
   type: z.enum(shipmentIncidentTypes),
   reason: z.string().trim().min(1, "Escribe el motivo"),
   photos: z.array(z.instanceof(Blob)).max(MAX_EVIDENCE_PHOTOS).optional(),
+  occurredAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export type OpenShipmentIncidentRequest = z.infer<
@@ -46,8 +49,32 @@ export type OpenShipmentIncidentRequest = z.infer<
 export const resolveShipmentIncidentRequestSchema = z.object({
   shipmentId: z.string().min(1),
   resolution: z.string().trim().min(1, "Escribe cómo se resolvió"),
+  occurredAt: z.iso.datetime({ offset: true }).optional(),
 });
 
 export type ResolveShipmentIncidentRequest = z.infer<
   typeof resolveShipmentIncidentRequestSchema
 >;
+
+/** Corrige la hora de un evento ya registrado. */
+export const updateShipmentEventTimeRequestSchema = z.object({
+  shipmentId: z.string().min(1),
+  eventId: z.string().min(1),
+  occurredAt: z.iso.datetime({ offset: true }),
+});
+
+export type UpdateShipmentEventTimeRequest = z.infer<
+  typeof updateShipmentEventTimeRequestSchema
+>;
+
+/** El valor de un `<input type="datetime-local">`, en la hora local del
+ * navegador, como lo pide el back. Vacío es "ahora": `undefined`. */
+export const occurredAtFromInput = (value: string): string | undefined =>
+  value ? new Date(value).toISOString() : undefined;
+
+/** Al revés: una hora ISO como la espera un `datetime-local`, en hora local. */
+export const occurredAtToInput = (iso: string): string => {
+  const date = new Date(iso);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};

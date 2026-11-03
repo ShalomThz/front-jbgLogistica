@@ -5,6 +5,7 @@ import type {
   OpenShipmentIncidentRequest,
   RecordShipmentEventRequest,
   ResolveShipmentIncidentRequest,
+  UpdateShipmentEventTimeRequest,
 } from "../../../application/shipment/RecordShipmentEventRequest";
 import type { RatePrimitives } from "../../../domain/schemas/value-objects/Rate";
 import { putShipmentInOrderCaches } from "@contexts/shared/infrastructure/websocket/useWebSocketEvents";
@@ -179,6 +180,26 @@ export const useShipmentActions = () => {
     isSavingIncident:
       openIncidentMutation.isPending || resolveIncidentMutation.isPending,
   };
+};
+
+/**
+ * Corrige la hora de un evento del historial. Aparte de `useShipmentActions`
+ * porque lo usa cada evento de la lista: solo esta mutation, no todas.
+ *
+ * Además del historial, corregir la apertura de la incidencia abierta cambia la
+ * del envío, que la orden embebe.
+ */
+export const useUpdateShipmentEventTime = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: UpdateShipmentEventTimeRequest) =>
+      shipmentRepository.updateEventTime(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SHIPMENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: SHIPMENT_TRACKING_QUERY_KEY });
+    },
+  });
 };
 
 const EMPTY_RATES: RatePrimitives[] = [];

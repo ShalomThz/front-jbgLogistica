@@ -19,7 +19,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </Sidebar>
       <SidebarInset className="flex flex-col overflow-hidden">
         <Header />
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto p-6 [scrollbar-gutter:stable]">
           {children}
         </div>
       </SidebarInset>

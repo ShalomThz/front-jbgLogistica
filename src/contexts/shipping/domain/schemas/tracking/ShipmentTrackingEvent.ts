@@ -35,6 +35,14 @@ export const trackingIncidentSchema = z.object({
 
 export type TrackingIncident = z.infer<typeof trackingIncidentSchema>;
 
+/** La última corrección de la hora. `originalOccurredAt` es la hora con la que
+ * se creó el evento, y no cambia aunque se corrija varias veces. */
+export const trackingTimeEditSchema = z.object({
+  originalOccurredAt: z.iso.datetime({ offset: true }),
+  editedBy: z.string(),
+  editedAt: z.iso.datetime({ offset: true }),
+});
+
 /**
  * Una línea del historial, completa: con responsable, observaciones y
  * evidencia. Es la que ve el panel; el rastreo público recibe una versión
@@ -61,6 +69,8 @@ export const shipmentTrackingEventSchema = z.object({
   photoPaths: z.array(z.string()).default([]),
   metadata: z.record(z.string(), z.unknown()).nullable(),
   occurredAt: z.iso.datetime({ offset: true }),
+  /** Null mientras nadie corrija la hora. */
+  timeEdit: trackingTimeEditSchema.nullable().default(null),
 });
 
 export type ShipmentTrackingEventPrimitives = z.infer<

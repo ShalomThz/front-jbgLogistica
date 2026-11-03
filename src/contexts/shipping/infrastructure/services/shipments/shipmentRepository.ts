@@ -19,6 +19,7 @@ import type {
   OpenShipmentIncidentRequest,
   RecordShipmentEventRequest,
   ResolveShipmentIncidentRequest,
+  UpdateShipmentEventTimeRequest,
 } from "../../../application/shipment/RecordShipmentEventRequest";
 import {
   shipmentTrackingEventSchema,
@@ -204,10 +205,12 @@ export const shipmentRepository = {
     type,
     reason,
     photos = [],
+    occurredAt,
   }: OpenShipmentIncidentRequest): Promise<ShipmentResponsePrimitives> => {
     const formData = new FormData();
     formData.append("type", type);
     formData.append("reason", reason);
+    if (occurredAt) formData.append("occurredAt", occurredAt);
     photos.forEach((photo, index) =>
       formData.append("photos", photo, `evidencia-${index + 1}.jpg`),
     );
@@ -222,11 +225,25 @@ export const shipmentRepository = {
   resolveIncident: async ({
     shipmentId,
     resolution,
+    occurredAt,
   }: ResolveShipmentIncidentRequest): Promise<ShipmentResponsePrimitives> => {
     const data = await httpClient<unknown>(
       `/shipment/${shipmentId}/incident/resolve`,
-      { method: "POST", body: JSON.stringify({ resolution }) },
+      { method: "POST", body: JSON.stringify({ resolution, occurredAt }) },
     );
     return shipmentResponseSchema.parse(data);
+  },
+
+  /** Corrige la hora de un evento del historial. */
+  updateEventTime: async ({
+    shipmentId,
+    eventId,
+    occurredAt,
+  }: UpdateShipmentEventTimeRequest): Promise<ShipmentTrackingEventPrimitives> => {
+    const data = await httpClient<unknown>(
+      `/shipment/${shipmentId}/events/${eventId}`,
+      { method: "PATCH", body: JSON.stringify({ occurredAt }) },
+    );
+    return shipmentTrackingEventSchema.parse(data);
   },
 };
