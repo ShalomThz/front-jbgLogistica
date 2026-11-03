@@ -54,6 +54,7 @@ function getDefaults(store?: StoreListViewPrimitives | null): FormInput {
     },
     invoiceBranding: {
       logo: store?.invoiceBranding?.logo ?? "",
+      footer: store?.invoiceBranding?.footer ?? "",
       primaryColor: store?.invoiceBranding?.primaryColor ?? "",
       accentColor: store?.invoiceBranding?.accentColor ?? "",
     },

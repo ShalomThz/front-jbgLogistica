@@ -30,10 +30,13 @@ export type AgentLabelBrandingPrimitives = z.infer<
   typeof agentLabelBrandingSchema
 >;
 
-// Logo y colores de la factura que esta tienda (si es socio) le entrega a su
-// propio cliente. La factura "jbg" no lee este campo.
+// Logo, pie y colores de la factura que esta tienda (si es socio) le entrega
+// a su propio cliente. La factura "jbg" no lee este campo.
 export const partnerInvoiceBrandingSchema = z.object({
   logo: z.string().min(1).nullable().default(null),
+  // Reemplaza entero el banner promocional de JBG del pie de página.
+  // Totalmente opcional: vacío deja el de JBG tal cual.
+  footer: z.string().min(1).nullable().default(null),
   primaryColor: hexColorSchema.nullable().default(null),
   accentColor: hexColorSchema.nullable().default(null),
 });
@@ -63,6 +66,7 @@ export const storeSchema = z.object({
   }),
   invoiceBranding: partnerInvoiceBrandingSchema.default({
     logo: null,
+    footer: null,
     primaryColor: null,
     accentColor: null,
   }),

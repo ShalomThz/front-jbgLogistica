@@ -18,6 +18,7 @@ import {
   type EditStoreInvoiceBrandingPrimitives,
 } from "@contexts/iam/application/store/CreateStoreRequest";
 import { StoreInvoiceColorInput } from "./StoreInvoiceColorInput";
+import { StoreInvoiceFooterInput } from "./StoreInvoiceFooterInput";
 import { StoreInvoiceLogoInput } from "./StoreInvoiceLogoInput";
 
 const DEFAULT_PRIMARY_COLOR = "#15295C";
@@ -45,6 +46,7 @@ export const StoreInvoiceDialog = ({
     defaultValues: {
       invoiceBranding: {
         logo: store?.invoiceBranding?.logo ?? "",
+        footer: store?.invoiceBranding?.footer ?? "",
         primaryColor: store?.invoiceBranding?.primaryColor ?? "",
         accentColor: store?.invoiceBranding?.accentColor ?? "",
       },
@@ -63,6 +65,7 @@ export const StoreInvoiceDialog = ({
       reset({
         invoiceBranding: {
           logo: store.invoiceBranding?.logo ?? "",
+          footer: store.invoiceBranding?.footer ?? "",
           primaryColor: store.invoiceBranding?.primaryColor ?? "",
           accentColor: store.invoiceBranding?.accentColor ?? "",
         },
@@ -152,6 +155,20 @@ export const StoreInvoiceDialog = ({
                 value={field.value ?? ""}
                 onChange={field.onChange}
                 error={errors.invoiceBranding?.logo?.message}
+                disabled={isLoading}
+              />
+            )}
+          />
+
+          {/* Pie de página */}
+          <Controller
+            name="invoiceBranding.footer"
+            control={control}
+            render={({ field }) => (
+              <StoreInvoiceFooterInput
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                error={errors.invoiceBranding?.footer?.message}
                 disabled={isLoading}
               />
             )}

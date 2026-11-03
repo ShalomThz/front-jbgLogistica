@@ -21,6 +21,14 @@ export const partnerInvoiceLogoUploadSchema = z
     "El logo debe ser una imagen JPEG o PNG",
   );
 
+export const partnerInvoiceFooterUploadSchema = z
+  .string()
+  .max(MAX_LOGO_LENGTH, "El pie es demasiado grande")
+  .regex(
+    /^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/,
+    "El pie debe ser una imagen JPEG o PNG",
+  );
+
 const hexColorFormSchema = z
   .string()
   .transform((value) => value.trim() || null)
@@ -71,6 +79,15 @@ export const createStoreRequestSchema = storeSchema
             .union([partnerInvoiceLogoUploadSchema, z.string().min(1).max(255)])
             .optional(),
         ),
+      footer: z
+        .string()
+        .optional()
+        .transform((value) => value || undefined)
+        .pipe(
+          z
+            .union([partnerInvoiceFooterUploadSchema, z.string().min(1).max(255)])
+            .optional(),
+        ),
       primaryColor: hexColorFormSchema,
       accentColor: hexColorFormSchema,
     }),
@@ -89,6 +106,15 @@ export const editStoreInvoiceBrandingSchema = z.object({
       .pipe(
         z
           .union([partnerInvoiceLogoUploadSchema, z.string().min(1).max(255)])
+          .optional(),
+      ),
+    footer: z
+      .string()
+      .optional()
+      .transform((value) => value || undefined)
+      .pipe(
+        z
+          .union([partnerInvoiceFooterUploadSchema, z.string().min(1).max(255)])
           .optional(),
       ),
     primaryColor: hexColorFormSchema,
