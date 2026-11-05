@@ -31,6 +31,7 @@ export const consolidatedOrderSchema = z.object({
   linearFeet: z.number().nonnegative(),
   section: z.string().nullable().default(null),
   comment: z.string().nullable().default(null),
+  verifiedByUserId: z.string().nullable().default(null),
   addedAt: z.string(),
 });
 
@@ -46,6 +47,9 @@ export const consolidationSchema = z.object({
   trailerId: z.string().nullable().default(null),
   driverId: z.string().nullable().default(null),
   capacityLinearFeet: z.number().positive("La capacidad debe ser mayor a 0"),
+  // Divisor de alto×largo×ancho (pulgadas) con el que se sugieren los pies
+  // lineales al agregar órdenes — elegido una vez al crear el consolidado.
+  linearFeetDivisor: z.number().positive().default(123000),
   orders: z.array(consolidatedOrderSchema).default([]),
   evidencePhotos: z.array(z.string()).max(4).default([]),
   plannedDepartureAt: z.string().nullable().default(null),
@@ -67,6 +71,9 @@ export const consolidatedOrderDetailSchema = z.object({
   // absoluto, y sin el default el fetch entero truena en el parse (se vio
   // en vivo: la página se quedaba pegada en "Cargando..." sin aviso).
   comment: z.string().nullable().default(null),
+  // Mismo cuidado que `comment`: documentos previos a este campo no traen la
+  // llave.
+  verifiedByUserId: z.string().nullable().default(null),
   addedAt: z.string(),
   orderNumber: z.string().nullable(),
   partnerOrderNumber: z.string().nullable(),
@@ -86,6 +93,9 @@ export const consolidatedOrderDetailSchema = z.object({
       "DELIVERED",
     ])
     .nullable(),
+  // "Rastreo" lo decide esto, no `shipmentStage`: una guía por paquetería
+  // externa (Skydropx) se marca directo como entregada.
+  carrierType: z.enum(["INTERNAL_FLEET", "THIRD_PARTY"]).nullable().default(null),
   client: z
     .object({
       id: z.string().nullable(),
@@ -152,6 +162,7 @@ export const createConsolidationRequestSchema = z.object({
   trailerId: z.string().nullable().optional(),
   driverId: z.string().nullable().optional(),
   capacityLinearFeet: z.number().positive("La capacidad debe ser mayor a 0"),
+  linearFeetDivisor: z.number().positive().optional(),
   plannedDepartureAt: z.string().nullable().optional(),
   plannedArrivalAt: z.string().nullable().optional(),
 });
@@ -189,6 +200,7 @@ export const updateConsolidationOrderCommentsRequestSchema = z.object({
       z.object({
         orderId: z.string(),
         comment: z.string().max(500).nullable(),
+        verifiedByUserId: z.string().nullable(),
       }),
     )
     .min(1),

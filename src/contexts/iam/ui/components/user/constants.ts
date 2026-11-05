@@ -162,6 +162,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   CAN_DELETE_CONSOLIDATIONS: "Eliminar consolidados",
   CAN_MANAGE_CONSOLIDATION_PACKAGES: "Agregar o quitar órdenes de un consolidado",
   CAN_ADVANCE_CONSOLIDATION_STAGE: "Avanzar la etapa de un consolidado",
+  CAN_VERIFY_CONSOLIDATION_ORDERS: "Asignar usuario verificador a una orden",
 
   // Tariffs
   CAN_LIST_TARIFFS: "Listar tarifas",
@@ -306,6 +307,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
     "Agregar o quitar órdenes de un consolidado.",
   CAN_ADVANCE_CONSOLIDATION_STAGE:
     "Avanzar la etapa de un consolidado (preparación → ... → conciliado).",
+  CAN_VERIFY_CONSOLIDATION_ORDERS:
+    "Elegir qué usuario del sistema verificó cada orden en la tabla de revisión de un consolidado.",
 
   // Tariffs
   CAN_LIST_TARIFFS: "Ver la lista de tarifas configuradas.",
@@ -463,6 +466,7 @@ export const PERMISSION_GROUPS: {
         "CAN_DELETE_CONSOLIDATIONS",
         "CAN_MANAGE_CONSOLIDATION_PACKAGES",
         "CAN_ADVANCE_CONSOLIDATION_STAGE",
+        "CAN_VERIFY_CONSOLIDATION_ORDERS",
       ],
     },
     {

@@ -8,6 +8,7 @@ export const consolidationPolicies = {
   delete: hasAll("CAN_DELETE_CONSOLIDATIONS"),
   managePackages: hasAll("CAN_MANAGE_CONSOLIDATION_PACKAGES"),
   advanceStage: hasAll("CAN_ADVANCE_CONSOLIDATION_STAGE"),
+  verifyOrders: hasAll("CAN_VERIFY_CONSOLIDATION_ORDERS"),
 
   // Catálogo de tráilers
   listTrailers: hasAll("CAN_LIST_TRAILERS"),

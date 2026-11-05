@@ -6,6 +6,10 @@ import { Package, Search, Trash2 } from "lucide-react";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
+import {
+  calculateLinearFeet,
+  DEFAULT_LINEAR_FEET_DIVISOR,
+} from "@contexts/consolidation/domain/calculateLinearFeet";
 
 // ease-out fuerte, mismo valor que usa TruckVisual — entra rápido, sale aún más rápido
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
@@ -23,6 +27,9 @@ interface Props {
   /** Pies lineales ya confirmados en el consolidado (0 en el wizard de
    * creación, donde todavía no hay nada guardado). */
   usedLinearFeet?: number;
+  /** Divisor elegido al crear el consolidado para sugerir pies lineales
+   * (alto×largo×ancho / divisor) en cuanto se marca una orden. */
+  linearFeetDivisor?: number;
 }
 
 /**
@@ -41,6 +48,7 @@ export const OrderPicker = ({
   onChange,
   capacityLinearFeet,
   usedLinearFeet = 0,
+  linearFeetDivisor = DEFAULT_LINEAR_FEET_DIVISOR,
 }: Props) => {
   const [search, setSearch] = useState("");
   const reduceMotion = useReducedMotion();
@@ -90,7 +98,17 @@ export const OrderPicker = ({
       onChange(selected.filter((s) => s.orderId !== orderId));
       return;
     }
-    onChange([...selected, { orderId, linearFeet: 0, section: "" }]);
+    // Se sugiere con la fórmula alto×largo×ancho / divisor, pero sigue
+    // siendo un campo editable — si la caja no trae dimensiones usables
+    // (0 es inválido para `calculateLinearFeet`), se deja en 0 como antes.
+    const order = ordersById.get(orderId);
+    const suggestedLinearFeet = order
+      ? calculateLinearFeet(order.package.dimensions, linearFeetDivisor)
+      : 0;
+    onChange([
+      ...selected,
+      { orderId, linearFeet: suggestedLinearFeet, section: "" },
+    ]);
   };
 
   const updateSelected = (orderId: string, patch: Partial<SelectedOrder>) => {

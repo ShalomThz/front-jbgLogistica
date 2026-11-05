@@ -32,17 +32,16 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { useDrivers } from "@contexts/shipping/infrastructure/hooks/drivers/useDrivers";
 import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
+import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import {
   useConsolidation,
   useConsolidationActions,
 } from "@contexts/consolidation/infrastructure/hooks/useConsolidation";
 import type { ConsolidationHistoryEntryPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS, toneForStage } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
-import {
-  STAGE_LABELS as SHIPMENT_STAGE_LABELS,
-  type ShipmentStage,
-} from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
+import type { CarrierType } from "@contexts/shipping/domain/schemas/value-objects/Carrier";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
+import { ORDER_STATUS_LABELS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/components/ConsolidationStageTimeline";
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
 import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
@@ -197,14 +196,25 @@ function orderLabel(o: { orderNumber: string | null; partnerOrderNumber: string 
   return o.orderNumber ?? o.partnerOrderNumber ?? o.orderId.slice(0, 8).toUpperCase();
 }
 
-/** Tono de la columna "Rastreo" — directo del estatus real del envío
- * (`shipping.Shipment.stage`), sin inventar un estado nuevo. `null` es una
- * orden que todavía no tiene envío. */
-function toneForShipmentStage(stage: ShipmentStage | null): StatusTone {
-  if (!stage) return "draft";
-  if (stage === "DELIVERED") return "done";
-  if (stage === "AGENT") return "waiting";
-  return "transit";
+const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
+  DRAFT: "waiting",
+  PENDING_HQ_PROCESS: "waiting",
+  COMPLETED: "done",
+  CANCELLED: "stopped",
+};
+
+/** "Rastreo" no lee el stage del envío: una guía por paquetería externa
+ * (Skydropx) no tiene tracking fino integrado aquí, así que se marca directo
+ * como entregada; una de flota interna (JBG) o sin envío todavía muestra el
+ * estatus real de la orden — mismo valor que ya usa el resto de la app, no
+ * un estado nuevo. */
+function rastreoFor(
+  carrierType: CarrierType | null,
+  orderStatus: OrderStatus | null,
+): { label: string; tone: StatusTone } {
+  if (carrierType === "THIRD_PARTY") return { label: "Entregado", tone: "done" };
+  if (!orderStatus) return { label: "Sin estatus", tone: "draft" };
+  return { label: ORDER_STATUS_LABELS[orderStatus], tone: ORDER_STATUS_TONE[orderStatus] };
 }
 
 type VerificationStatus = "pendiente" | "verificado" | "atencion";
@@ -235,6 +245,9 @@ export const ConsolidationDetailPage = () => {
   const canEdit = user ? consolidationPolicies.edit(user) : false;
   const canManagePackages = user ? consolidationPolicies.managePackages(user) : false;
   const canAdvanceStage = user ? consolidationPolicies.advanceStage(user) : false;
+  // Columna "Usuario verificador": sólo la ve (y la edita) quien tenga este
+  // permiso — hoy nada más el rol Admin lo trae por default.
+  const canVerifyOrders = user ? consolidationPolicies.verifyOrders(user) : false;
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("resumen");
   const [addOrdersOpen, setAddOrdersOpen] = useState(false);
@@ -243,10 +256,12 @@ export const ConsolidationDetailPage = () => {
   const [orderSearch, setOrderSearch] = useState("");
   const [verificationFilter, setVerificationFilter] = useState<"all" | VerificationStatus>("all");
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [verifierDrafts, setVerifierDrafts] = useState<Record<string, string | null>>({});
 
   const { data, isLoading } = useConsolidation(id);
   const { drivers } = useDrivers({ filters: [] });
   const { trailers } = useTrailers();
+  const { users: verifierUsers } = useUsers({ enabled: canVerifyOrders });
   const {
     addOrders,
     isAddingOrders,
@@ -385,21 +400,31 @@ export const ConsolidationDetailPage = () => {
     }
   };
 
-  const dirtyComments = orders.filter(
-    (o) => o.orderId in commentDrafts && commentDrafts[o.orderId] !== (o.comment ?? ""),
-  );
+  const dirtyReviews = orders.filter((o) => {
+    const commentChanged =
+      o.orderId in commentDrafts && commentDrafts[o.orderId] !== (o.comment ?? "");
+    const verifierChanged =
+      o.orderId in verifierDrafts && verifierDrafts[o.orderId] !== o.verifiedByUserId;
+    return commentChanged || verifierChanged;
+  });
 
   const handleSaveReview = async () => {
-    if (dirtyComments.length === 0) return;
+    if (dirtyReviews.length === 0) return;
     try {
       await updateOrderComments({
-        comments: dirtyComments.map((o) => ({
+        comments: dirtyReviews.map((o) => ({
           orderId: o.orderId,
-          comment: commentDrafts[o.orderId].trim() || null,
+          comment: (o.orderId in commentDrafts
+            ? commentDrafts[o.orderId]
+            : (o.comment ?? "")
+          ).trim() || null,
+          verifiedByUserId:
+            o.orderId in verifierDrafts ? verifierDrafts[o.orderId] : o.verifiedByUserId,
         })),
       });
       toast.success("Revisión guardada");
       setCommentDrafts({});
+      setVerifierDrafts({});
     } catch (error) {
       toast.error(parseApiError(error));
     }
@@ -740,13 +765,14 @@ export const ConsolidationDetailPage = () => {
                       <th className="p-2">Sección</th>
                       <th className="p-2">Rastreo</th>
                       <th className="p-2">Verificación</th>
+                      {canVerifyOrders && <th className="p-2">Usuario verificador</th>}
                       <th className="p-2">Comentario</th>
                       {canManagePackages && !isLocked && <th className="p-2" />}
                     </tr>
                   </thead>
                   <tbody>
                     {filteredOrders.map((o) => {
-                      const stageTone = toneForShipmentStage(o.shipmentStage);
+                      const rastreo = rastreoFor(o.carrierType, o.orderStatus);
                       const verification = VERIFICATION_CONFIG[verificationStatusFor(o.orderStatus)];
                       const VerificationIcon = verification.icon;
                       const draft = commentDrafts[o.orderId] ?? o.comment ?? "";
@@ -778,8 +804,8 @@ export const ConsolidationDetailPage = () => {
                             {o.section ? <Badge variant="outline">{o.section}</Badge> : "—"}
                           </td>
                           <td className="p-2">
-                            <Badge variant="outline" className={TONE_OUTLINE[stageTone]}>
-                              {o.shipmentStage ? SHIPMENT_STAGE_LABELS[o.shipmentStage] : "Sin envío"}
+                            <Badge variant="outline" className={TONE_OUTLINE[rastreo.tone]}>
+                              {rastreo.label}
                             </Badge>
                           </td>
                           <td className="p-2">
@@ -788,6 +814,35 @@ export const ConsolidationDetailPage = () => {
                               {verification.label}
                             </Badge>
                           </td>
+                          {canVerifyOrders && (
+                            <td className="min-w-40 p-2">
+                              <Select
+                                value={
+                                  (o.orderId in verifierDrafts
+                                    ? verifierDrafts[o.orderId]
+                                    : o.verifiedByUserId) ?? "none"
+                                }
+                                onValueChange={(v) =>
+                                  setVerifierDrafts((d) => ({
+                                    ...d,
+                                    [o.orderId]: v === "none" ? null : v,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Sin asignar" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Sin asignar</SelectItem>
+                                  {verifierUsers.map((u) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                      {u.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          )}
                           <td className="min-w-48 p-2">
                             {canEdit ? (
                               <Input
@@ -831,7 +886,7 @@ export const ConsolidationDetailPage = () => {
                   <Button
                     size="sm"
                     className="gap-1.5"
-                    disabled={dirtyComments.length === 0 || isUpdatingOrderComments}
+                    disabled={dirtyReviews.length === 0 || isUpdatingOrderComments}
                     onClick={handleSaveReview}
                   >
                     <Save className="size-3.5" />
@@ -985,6 +1040,7 @@ export const ConsolidationDetailPage = () => {
               onChange={setPickerSelection}
               capacityLinearFeet={consolidation.capacityLinearFeet}
               usedLinearFeet={totalLinearFeet}
+              linearFeetDivisor={consolidation.linearFeetDivisor}
             />
           </div>
           <DialogFooter>
