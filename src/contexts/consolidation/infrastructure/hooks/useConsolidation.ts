@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AddOrdersToConsolidationRequest,
   UpdateConsolidationDetailsRequest,
+  UpdateConsolidationOrderCommentsRequest,
 } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
 import { CONSOLIDATIONS_QUERY_KEY } from "./useConsolidations";
@@ -47,6 +48,12 @@ export const useConsolidationActions = (id: string) => {
     onSuccess: invalidate,
   });
 
+  const updateOrderCommentsMutation = useMutation({
+    mutationFn: (request: UpdateConsolidationOrderCommentsRequest) =>
+      consolidationRepository.updateOrderComments(id, request),
+    onSuccess: invalidate,
+  });
+
   const advanceStageMutation = useMutation({
     mutationFn: () => consolidationRepository.advanceStage(id),
     onSuccess: invalidate,
@@ -69,6 +76,10 @@ export const useConsolidationActions = (id: string) => {
 
     removeOrder: (orderId: string) => removeOrderMutation.mutateAsync(orderId),
     isRemovingOrder: removeOrderMutation.isPending,
+
+    updateOrderComments: (request: UpdateConsolidationOrderCommentsRequest) =>
+      updateOrderCommentsMutation.mutateAsync(request),
+    isUpdatingOrderComments: updateOrderCommentsMutation.isPending,
 
     advanceStage: () => advanceStageMutation.mutateAsync(),
     isAdvancingStage: advanceStageMutation.isPending,

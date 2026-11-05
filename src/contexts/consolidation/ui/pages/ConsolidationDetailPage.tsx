@@ -12,6 +12,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Tabs,
   TabsContent,
   TabsList,
@@ -32,25 +38,38 @@ import {
 } from "@contexts/consolidation/infrastructure/hooks/useConsolidation";
 import type { ConsolidationHistoryEntryPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS, toneForStage } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
+import {
+  STAGE_LABELS as SHIPMENT_STAGE_LABELS,
+  type ShipmentStage,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
+import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/components/ConsolidationStageTimeline";
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
 import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
+import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import {
   ArrowLeft,
   Boxes,
+  Calendar,
   Camera,
   CircleCheck,
+  Clock,
   FilePlus,
   Gauge,
   MapPin,
+  MessageSquare,
   PackageMinus,
   PackagePlus,
   Plus,
+  Save,
+  Search,
   Trash2,
   Truck,
+  TriangleAlert,
   User,
   Users,
+  Weight,
 } from "lucide-react";
 
 const TABS = [
@@ -169,12 +188,44 @@ const HISTORY_ICONS: Record<ConsolidationHistoryEntryPrimitives["type"], React.E
   ORDER_REMOVED: PackageMinus,
   STAGE_ADVANCED: CircleCheck,
   EVIDENCE_ATTACHED: Camera,
+  ORDER_COMMENTS_UPDATED: MessageSquare,
 };
 
 /** "MX-0927-01" o, si la orden no trae folio propio, el id de la orden
  * truncado — mismo criterio que usa la tabla de órdenes del resto de la app. */
 function orderLabel(o: { orderNumber: string | null; partnerOrderNumber: string | null; orderId: string }) {
   return o.orderNumber ?? o.partnerOrderNumber ?? o.orderId.slice(0, 8).toUpperCase();
+}
+
+/** Tono de la columna "Rastreo" — directo del estatus real del envío
+ * (`shipping.Shipment.stage`), sin inventar un estado nuevo. `null` es una
+ * orden que todavía no tiene envío. */
+function toneForShipmentStage(stage: ShipmentStage | null): StatusTone {
+  if (!stage) return "draft";
+  if (stage === "DELIVERED") return "done";
+  if (stage === "AGENT") return "waiting";
+  return "transit";
+}
+
+type VerificationStatus = "pendiente" | "verificado" | "atencion";
+
+const VERIFICATION_CONFIG: Record<
+  VerificationStatus,
+  { label: string; tone: StatusTone; icon: React.ElementType }
+> = {
+  verificado: { label: "Verificado", tone: "done", icon: CircleCheck },
+  atencion: { label: "Atención", tone: "stopped", icon: TriangleAlert },
+  pendiente: { label: "Pendiente", tone: "waiting", icon: Clock },
+};
+
+/** La columna "Verificación" del tablero de revisión — lee el estatus real de
+ * la orden (`sales.Order.status`), no un estado nuevo: `COMPLETED` es lo más
+ * cerca que hay hoy de "ya se revisó", `CANCELLED` es lo que necesita
+ * atención, y lo demás sigue pendiente. */
+function verificationStatusFor(status: OrderStatus | null): VerificationStatus {
+  if (status === "COMPLETED") return "verificado";
+  if (status === "CANCELLED") return "atencion";
+  return "pendiente";
 }
 
 export const ConsolidationDetailPage = () => {
@@ -189,6 +240,9 @@ export const ConsolidationDetailPage = () => {
   const [addOrdersOpen, setAddOrdersOpen] = useState(false);
   const [pickerSelection, setPickerSelection] = useState<SelectedOrder[]>([]);
   const [evidencePhotos, setEvidencePhotos] = useState<File[]>([]);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [verificationFilter, setVerificationFilter] = useState<"all" | VerificationStatus>("all");
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useConsolidation(id);
   const { drivers } = useDrivers({ filters: [] });
@@ -198,6 +252,8 @@ export const ConsolidationDetailPage = () => {
     isAddingOrders,
     removeOrder,
     isRemovingOrder,
+    updateOrderComments,
+    isUpdatingOrderComments,
     advanceStage,
     isAdvancingStage,
     attachEvidence,
@@ -250,6 +306,26 @@ export const ConsolidationDetailPage = () => {
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
   }, [orders]);
 
+  const totalWeightKg = useMemo(
+    () => orders.reduce((sum, o) => sum + o.totalWeightKg, 0),
+    [orders],
+  );
+
+  const filteredOrders = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (verificationFilter !== "all" && verificationStatusFor(o.orderStatus) !== verificationFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        orderLabel(o).toLowerCase().includes(q) ||
+        (o.client?.name.toLowerCase().includes(q) ?? false) ||
+        (o.destination ? `${o.destination.city}, ${o.destination.country}`.toLowerCase().includes(q) : false)
+      );
+    });
+  }, [orders, orderSearch, verificationFilter]);
+
   const recentHistory = useMemo(() => {
     const list = data?.history ?? [];
     return [...list]
@@ -300,6 +376,26 @@ export const ConsolidationDetailPage = () => {
     }
   };
 
+  const dirtyComments = orders.filter(
+    (o) => o.orderId in commentDrafts && commentDrafts[o.orderId] !== (o.comment ?? ""),
+  );
+
+  const handleSaveReview = async () => {
+    if (dirtyComments.length === 0) return;
+    try {
+      await updateOrderComments({
+        comments: dirtyComments.map((o) => ({
+          orderId: o.orderId,
+          comment: commentDrafts[o.orderId].trim() || null,
+        })),
+      });
+      toast.success("Revisión guardada");
+      setCommentDrafts({});
+    } catch (error) {
+      toast.error(parseApiError(error));
+    }
+  };
+
   const handleAttachEvidence = async () => {
     if (evidencePhotos.length === 0) return;
     try {
@@ -326,6 +422,19 @@ export const ConsolidationDetailPage = () => {
               <MapPin className="size-3.5" />
               {consolidation.origin.label} → {consolidation.destination.label}
             </p>
+            {consolidation.plannedDepartureAt && (
+              <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Calendar className="size-3.5" />
+                Fecha de salida:{" "}
+                <span className="font-medium text-foreground">
+                  {new Date(consolidation.plannedDepartureAt).toLocaleDateString("es-MX", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -342,27 +451,55 @@ export const ConsolidationDetailPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <Card className="py-0">
+        <CardContent className="flex flex-col divide-y p-0 sm:flex-row sm:divide-x sm:divide-y-0">
+          <div className="flex flex-1 items-center gap-3 p-3">
+            <div className="shrink-0 rounded-full bg-muted p-2 text-primary">
+              <Truck className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Número de unidad</p>
+              <p
+                className="truncate font-mono text-lg font-semibold"
+                title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
+              >
+                {trailer ? trailer.unitNumber : "Sin asignar"}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-1 items-center gap-3 p-3">
+            <div className="shrink-0 rounded-full bg-muted p-2 text-primary">
+              <User className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Conductor</p>
+              <p
+                className="truncate text-lg font-semibold"
+                title={driver ? `${driver.user.name} · ${driver.licenseNumber}` : undefined}
+              >
+                {driver ? driver.user.name : "Sin asignar"}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         <StatCard label="Órdenes" value={orders.length} icon={Boxes} />
         <StatCard label="Clientes" value={clients.length} icon={Users} />
         <StatCard label="Destinos" value={destinations.length} icon={MapPin} />
         <StatCard
-          label="Capacidad"
+          label="Capacidad ocupada"
           value={`${capacityPct}%`}
           icon={Gauge}
           colorClass={TONE_TEXT[capacityTone]}
         />
+        <StatCard label="Total de pies" value={totalLinearFeet.toFixed(1)} icon={Boxes} />
+        <StatCard label="Total de kilos" value={`${totalWeightKg.toFixed(1)} kg`} icon={Weight} />
         <StatCard
-          label="Unidad"
-          value={trailer ? trailer.unitNumber : "Sin asignar"}
-          title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
+          label="Capacidad de unidad"
+          value={`${consolidation.capacityLinearFeet} pies`}
           icon={Truck}
-        />
-        <StatCard
-          label="Conductor"
-          value={driver ? driver.user.name : "Sin asignar"}
-          title={driver ? `${driver.user.name} · ${driver.licenseNumber}` : undefined}
-          icon={User}
         />
       </div>
 
@@ -530,8 +667,8 @@ export const ConsolidationDetailPage = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="ordenes" className="mt-4 min-h-0 flex-1 overflow-y-auto">
-          <div className="mb-3 flex items-center justify-between">
+        <TabsContent value="ordenes" className="mt-4 flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {isLocked
                 ? "La carga está sellada: ya no se pueden agregar ni quitar órdenes."
@@ -554,63 +691,146 @@ export const ConsolidationDetailPage = () => {
               Este consolidado todavía no tiene órdenes.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-                  <tr>
-                    <th className="p-2">Orden</th>
-                    <th className="p-2">Cliente</th>
-                    <th className="p-2">Destino</th>
-                    <th className="p-2">Peso</th>
-                    <th className="p-2">Pies lineales</th>
-                    <th className="p-2">Sección</th>
-                    {canManagePackages && !isLocked && <th className="p-2" />}
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((o) => (
-                    <tr key={o.orderId} className="border-b last:border-0 odd:bg-muted/20">
-                      <td className="p-2">
-                        <div className="flex flex-col gap-0.5">
-                          <Badge variant="outline" className="w-fit font-mono text-[10px]">
-                            {o.orderNumber ?? "—"}
-                          </Badge>
-                          {o.partnerOrderNumber && (
-                            <Badge variant="secondary" className="w-fit font-mono text-[10px]">
-                              {o.partnerOrderNumber}
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2">{o.client?.name ?? "—"}</td>
-                      <td className="p-2">
-                        {o.destination ? `${o.destination.city}, ${o.destination.country}` : "—"}
-                      </td>
-                      <td className="p-2 text-xs text-muted-foreground">
-                        {o.totalWeightKg.toFixed(1)} kg
-                      </td>
-                      <td className="p-2">{o.linearFeet.toFixed(1)}</td>
-                      <td className="p-2">
-                        {o.section ? <Badge variant="outline">{o.section}</Badge> : "—"}
-                      </td>
-                      {canManagePackages && !isLocked && (
-                        <td className="p-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7 text-destructive hover:bg-destructive/10"
-                            disabled={isRemovingOrder}
-                            onClick={() => handleRemoveOrder(o.orderId)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </td>
-                      )}
+            <>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar orden, cliente o destino..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select
+                  value={verificationFilter}
+                  onValueChange={(v) => setVerificationFilter(v as typeof verificationFilter)}
+                >
+                  <SelectTrigger className="w-full sm:w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las revisiones</SelectItem>
+                    {(Object.keys(VERIFICATION_CONFIG) as VerificationStatus[]).map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {VERIFICATION_CONFIG[v].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className="p-2">Orden</th>
+                      <th className="p-2">Cliente / Destino</th>
+                      <th className="p-2">Peso</th>
+                      <th className="p-2">Pies lineales</th>
+                      <th className="p-2">Sección</th>
+                      <th className="p-2">Rastreo</th>
+                      <th className="p-2">Verificación</th>
+                      <th className="p-2">Comentario</th>
+                      {canManagePackages && !isLocked && <th className="p-2" />}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((o) => {
+                      const stageTone = toneForShipmentStage(o.shipmentStage);
+                      const verification = VERIFICATION_CONFIG[verificationStatusFor(o.orderStatus)];
+                      const VerificationIcon = verification.icon;
+                      const draft = commentDrafts[o.orderId] ?? o.comment ?? "";
+                      return (
+                        <tr key={o.orderId} className="border-b last:border-0 odd:bg-muted/20">
+                          <td className="p-2">
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="w-fit font-mono text-[10px]">
+                                {o.orderNumber ?? "—"}
+                              </Badge>
+                              {o.partnerOrderNumber && (
+                                <Badge variant="secondary" className="w-fit font-mono text-[10px]">
+                                  {o.partnerOrderNumber}
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-2">
+                            <p className="font-medium">{o.client?.name ?? "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {o.destination ? `${o.destination.city}, ${o.destination.country}` : "—"}
+                            </p>
+                          </td>
+                          <td className="p-2 text-xs text-muted-foreground">
+                            {o.totalWeightKg.toFixed(1)} kg
+                          </td>
+                          <td className="p-2">{o.linearFeet.toFixed(1)}</td>
+                          <td className="p-2">
+                            {o.section ? <Badge variant="outline">{o.section}</Badge> : "—"}
+                          </td>
+                          <td className="p-2">
+                            <Badge variant="outline" className={TONE_OUTLINE[stageTone]}>
+                              {o.shipmentStage ? SHIPMENT_STAGE_LABELS[o.shipmentStage] : "Sin envío"}
+                            </Badge>
+                          </td>
+                          <td className="p-2">
+                            <Badge variant="outline" className={cn("gap-1", TONE_OUTLINE[verification.tone])}>
+                              <VerificationIcon className="size-3" />
+                              {verification.label}
+                            </Badge>
+                          </td>
+                          <td className="min-w-48 p-2">
+                            {canEdit ? (
+                              <Input
+                                value={draft}
+                                placeholder="Agregar comentario..."
+                                className="h-8 text-xs"
+                                onChange={(e) =>
+                                  setCommentDrafts((d) => ({ ...d, [o.orderId]: e.target.value }))
+                                }
+                              />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{o.comment ?? "—"}</span>
+                            )}
+                          </td>
+                          {canManagePackages && !isLocked && (
+                            <td className="p-2">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="size-7 text-destructive hover:bg-destructive/10"
+                                disabled={isRemovingOrder}
+                                onClick={() => handleRemoveOrder(o.orderId)}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {canEdit && (
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando {filteredOrders.length} de {orders.length} orden
+                    {orders.length === 1 ? "" : "es"}.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={dirtyComments.length === 0 || isUpdatingOrderComments}
+                    onClick={handleSaveReview}
+                  >
+                    <Save className="size-3.5" />
+                    {isUpdatingOrderComments ? "Guardando..." : "Guardar revisión"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 

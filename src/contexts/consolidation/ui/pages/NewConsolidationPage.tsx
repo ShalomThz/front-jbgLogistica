@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Badge,
@@ -40,6 +40,7 @@ type StepKey = (typeof steps)[number]["key"];
  */
 export const NewConsolidationPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { createConsolidation, isCreating } = useConsolidations();
   const { drivers } = useDrivers({ filters: [] });
   const { trailers } = useTrailers();
@@ -77,6 +78,19 @@ export const NewConsolidationPage = () => {
     const trailer = trailers.find((t) => t.id === id);
     if (trailer) setCapacityLinearFeet(String(trailer.capacityLinearFeet));
   };
+
+  // Preselecciona la unidad cuando se llega desde "Crear consolidado" en la
+  // fila de un tráiler (Tráilers → ?trailerId=...), en vez de que el admin
+  // tenga que volver a buscarla en la lista.
+  useEffect(() => {
+    const paramTrailerId = searchParams.get("trailerId");
+    if (paramTrailerId && trailers.some((t) => t.id === paramTrailerId)) {
+      // One-time preselect from the URL once trailers finish loading.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      handleSelectTrailer(paramTrailerId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trailers, searchParams]);
 
   const handleCreate = async () => {
     try {

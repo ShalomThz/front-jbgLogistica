@@ -30,6 +30,7 @@ export const consolidatedOrderSchema = z.object({
   orderId: z.string(),
   linearFeet: z.number().nonnegative(),
   section: z.string().nullable().default(null),
+  comment: z.string().nullable().default(null),
   addedAt: z.string(),
 });
 
@@ -61,10 +62,26 @@ export const consolidatedOrderDetailSchema = z.object({
   orderId: z.string(),
   linearFeet: z.number().nonnegative(),
   section: z.string().nullable(),
+  comment: z.string().nullable(),
   addedAt: z.string(),
   orderNumber: z.string().nullable(),
   partnerOrderNumber: z.string().nullable(),
   totalWeightKg: z.number().nonnegative(),
+  // Estado real de la orden/envío — no es un workflow nuevo, son los mismos
+  // valores que ya usa el resto de la app.
+  orderStatus: z.enum(["DRAFT", "PENDING_HQ_PROCESS", "COMPLETED", "CANCELLED"]).nullable(),
+  shipmentStage: z
+    .enum([
+      "AGENT",
+      "ORIGIN_WAREHOUSE",
+      "DISPATCHED",
+      "IN_TRANSIT",
+      "DESTINATION_WAREHOUSE",
+      "DISTRIBUTION",
+      "OUT_FOR_DELIVERY",
+      "DELIVERED",
+    ])
+    .nullable(),
   client: z
     .object({
       id: z.string().nullable(),
@@ -86,6 +103,7 @@ const historyEntryTypes = [
   "ORDER_REMOVED",
   "STAGE_ADVANCED",
   "EVIDENCE_ATTACHED",
+  "ORDER_COMMENTS_UPDATED",
 ] as const;
 
 export const consolidationHistoryEntrySchema = z.object({
@@ -159,6 +177,21 @@ export const addOrdersToConsolidationRequestSchema = z.object({
 
 export type AddOrdersToConsolidationRequest = z.infer<
   typeof addOrdersToConsolidationRequestSchema
+>;
+
+export const updateConsolidationOrderCommentsRequestSchema = z.object({
+  comments: z
+    .array(
+      z.object({
+        orderId: z.string(),
+        comment: z.string().max(500).nullable(),
+      }),
+    )
+    .min(1),
+});
+
+export type UpdateConsolidationOrderCommentsRequest = z.infer<
+  typeof updateConsolidationOrderCommentsRequestSchema
 >;
 
 // ── Responses ────────────────────────────────────────────────────────────────

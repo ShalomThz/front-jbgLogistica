@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Table,
   TableBody,
   TableCell,
@@ -24,13 +34,24 @@ import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import {
+  consolidationStages,
   STAGE_LABELS,
   toneForStage,
 } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
 import { TONE_OUTLINE } from "@contexts/shared/domain/schemas/StatusTone";
 import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import type { ConsolidationListItem } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
-import { Container, Plus, RefreshCw, TriangleAlert, Trash2 } from "lucide-react";
+import {
+  Boxes,
+  Container,
+  Eye,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Truck,
+  TriangleAlert,
+  Trash2,
+} from "lucide-react";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("es-MX", {
@@ -40,6 +61,34 @@ function formatDate(dateStr: string): string {
   });
 }
 
+type StageFilter = "all" | (typeof consolidationStages)[number];
+
+function QuickStat({
+  label,
+  value,
+  icon: Icon,
+  colorClass,
+}: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  colorClass: string;
+}) {
+  return (
+    <Card className="py-0">
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={`rounded-lg p-2.5 ${colorClass}`}>
+          <Icon className="size-5" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export const ConsolidationsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,9 +96,35 @@ export const ConsolidationsPage = () => {
   const canDelete = user ? consolidationPolicies.delete(user) : false;
 
   const [toDelete, setToDelete] = useState<ConsolidationListItem | null>(null);
+  const [search, setSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState<StageFilter>("all");
 
   const { consolidations, isLoading, error, refetch, deleteConsolidation, isDeleting } =
     useConsolidations({ limit: 100 });
+
+  const preparacionCount = consolidations.filter(
+    ({ consolidation: c }) => c.stage === "PREPARACION",
+  ).length;
+  const enTransitoCount = consolidations.filter(
+    ({ consolidation: c }) => c.stage === "EN_TRANSITO",
+  ).length;
+  const totalBoxes = consolidations.reduce(
+    (sum, { consolidation: c }) => sum + c.orders.length,
+    0,
+  );
+
+  const filteredConsolidations = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return consolidations.filter(({ consolidation: c }) => {
+      if (stageFilter !== "all" && c.stage !== stageFilter) return false;
+      if (!q) return true;
+      return (
+        c.folio.toLowerCase().includes(q) ||
+        c.origin.label.toLowerCase().includes(q) ||
+        c.destination.label.toLowerCase().includes(q)
+      );
+    });
+  }, [consolidations, search, stageFilter]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -92,6 +167,49 @@ export const ConsolidationsPage = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <QuickStat
+          label="En preparación"
+          value={preparacionCount}
+          icon={Boxes}
+          colorClass="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+        />
+        <QuickStat
+          label="En tránsito"
+          value={enTransitoCount}
+          icon={Truck}
+          colorClass="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+        />
+        <QuickStat
+          label="Cajas cargadas"
+          value={totalBoxes}
+          icon={Container}
+          colorClass="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Buscar folio o ruta..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+          <SelectTrigger className="w-full sm:w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las etapas</SelectItem>
+            {consolidationStages.map((s) => (
+              <SelectItem key={s} value={s}>
+                {STAGE_LABELS[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card className="min-h-0 flex-1">
         <CardContent className="h-full overflow-y-auto p-0">
           {error ? (
@@ -122,6 +240,11 @@ export const ConsolidationsPage = () => {
                 </Button>
               )}
             </div>
+          ) : filteredConsolidations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+              <Container className="size-10 opacity-30" />
+              <p className="text-sm font-medium">Ningún consolidado coincide con la búsqueda</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -136,15 +259,30 @@ export const ConsolidationsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {consolidations.map(({ consolidation: c, totalLinearFeet, isOverCapacity }) => {
+                {filteredConsolidations.map(({ consolidation: c, totalLinearFeet, isOverCapacity }) => {
                   const tone = toneForStage(c.stage);
+                  const capacityPct = Math.min(
+                    100,
+                    Math.round((totalLinearFeet / c.capacityLinearFeet) * 100),
+                  );
                   return (
                     <TableRow
                       key={c.id}
                       className="cursor-pointer"
                       onClick={() => navigate(`/consolidations/${c.id}`)}
                     >
-                      <TableCell className="font-mono font-medium">{c.folio}</TableCell>
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="font-mono font-medium text-primary hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/consolidations/${c.id}`);
+                          }}
+                        >
+                          {c.folio}
+                        </button>
+                      </TableCell>
                       <TableCell className="text-sm">
                         {c.origin.label} → {c.destination.label}
                       </TableCell>
@@ -154,28 +292,59 @@ export const ConsolidationsPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{c.orders.length}</TableCell>
-                      <TableCell
-                        className={isOverCapacity ? "font-medium text-destructive" : ""}
-                      >
-                        {totalLinearFeet.toFixed(1)} / {c.capacityLinearFeet} ft
+                      <TableCell className="min-w-36">
+                        <p
+                          className={`text-xs ${isOverCapacity ? "font-medium text-destructive" : "text-muted-foreground"}`}
+                        >
+                          {totalLinearFeet.toFixed(1)} / {c.capacityLinearFeet} ft · {capacityPct}%
+                        </p>
+                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={`h-full rounded-full ${isOverCapacity ? "bg-destructive" : "bg-primary"}`}
+                            style={{ width: `${capacityPct}%` }}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDate(c.createdAt)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {canDelete && (
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
                           <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setToDelete({ consolidation: c, driver: null, totalLinearFeet, isOverCapacity });
-                            }}
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => navigate(`/consolidations/${c.id}`)}
                           >
-                            <Trash2 className="size-3.5" />
+                            <Eye className="size-3.5" />
+                            Ver
                           </Button>
-                        )}
+                          {canDelete && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="size-8">
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() =>
+                                    setToDelete({
+                                      consolidation: c,
+                                      driver: null,
+                                      totalLinearFeet,
+                                      isOverCapacity,
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="mr-2 size-4" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Badge,
@@ -12,6 +13,11 @@ import {
   DialogTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Switch,
   Table,
   TableBody,
@@ -25,8 +31,9 @@ import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
+import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import type { TrailerPrimitives } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
-import { Pencil, Plus, RefreshCw, Truck } from "lucide-react";
+import { Container, Eye, Pencil, Plus, RefreshCw, Search, Truck } from "lucide-react";
 
 interface FormState {
   unitNumber: string;
@@ -68,18 +75,62 @@ function DetailRow({ label, value }: { label: string; value: string }) {
  * máquina de estados de disponibilidad — el consolidado elige una unidad de
  * esta lista en vez de capturar tipo/unidad/placas como texto libre.
  */
+const STATUS_FILTERS = ["all", "active", "inactive"] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  all: "Todos los estados",
+  active: "Activos",
+  inactive: "Inactivos",
+};
+
 export const TrailersPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const canCreate = user ? consolidationPolicies.createTrailers(user) : false;
   const canEdit = user ? consolidationPolicies.editTrailers(user) : false;
 
   const { trailers, isLoading, refetch, createTrailer, isCreating, updateTrailer, isUpdating } =
     useTrailers();
+  // Para calcular "Espacio ocupado": el consolidado activo (no CONCILIADO) de
+  // cada unidad, si tiene uno — no es un campo propio del tráiler, se deriva
+  // cruzando con la lista de consolidados que ya se pide en otras pantallas.
+  const { consolidations } = useConsolidations({ limit: 100 });
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TrailerPrimitives | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [viewing, setViewing] = useState<TrailerPrimitives | null>(null);
+
+  const activeConsolidationByTrailer = useMemo(() => {
+    const map = new Map<string, { totalLinearFeet: number }>();
+    // Orden ascendente por creación: si por algún motivo una unidad quedara
+    // con más de un consolidado abierto a la vez (no debería, el back no lo
+    // impide todavía), se queda con el más reciente al sobrescribir al final.
+    const sorted = [...consolidations].sort(
+      (a, b) =>
+        new Date(a.consolidation.createdAt).getTime() -
+        new Date(b.consolidation.createdAt).getTime(),
+    );
+    for (const { consolidation, totalLinearFeet } of sorted) {
+      if (!consolidation.trailerId || consolidation.stage === "CONCILIADO") continue;
+      map.set(consolidation.trailerId, { totalLinearFeet });
+    }
+    return map;
+  }, [consolidations]);
+
+  const filteredTrailers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return trailers.filter((t) => {
+      if (statusFilter === "active" && !t.isActive) return false;
+      if (statusFilter === "inactive" && t.isActive) return false;
+      if (!q) return true;
+      return (
+        t.unitNumber.toLowerCase().includes(q) || t.plates.toLowerCase().includes(q)
+      );
+    });
+  }, [trailers, search, statusFilter]);
 
   const openCreate = () => {
     setEditing(null);
@@ -160,13 +211,41 @@ export const TrailersPage = () => {
         </div>
       </div>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar unidad o placas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_FILTERS.map((f) => (
+              <SelectItem key={f} value={f}>
+                {STATUS_FILTER_LABELS[f]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card className="min-h-0 flex-1">
         <CardContent className="h-full overflow-y-auto p-0">
-          {trailers.length === 0 ? (
+          {filteredTrailers.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
               <Truck className="size-10 opacity-30" />
-              <p className="text-sm font-medium">No hay tráilers registrados</p>
-              {canCreate && (
+              <p className="text-sm font-medium">
+                {trailers.length === 0
+                  ? "No hay tráilers registrados"
+                  : "Ningún tráiler coincide con la búsqueda"}
+              </p>
+              {canCreate && trailers.length === 0 && (
                 <Button variant="outline" size="sm" className="mt-1 gap-1.5" onClick={openCreate}>
                   <Plus className="size-3.5" />
                   Crear el primero
@@ -181,42 +260,101 @@ export const TrailersPage = () => {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Placas</TableHead>
                   <TableHead>Capacidad</TableHead>
+                  <TableHead>Espacio ocupado</TableHead>
                   <TableHead>Estado</TableHead>
-                  {canEdit && <TableHead className="text-right">Acciones</TableHead>}
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trailers.map((t) => (
-                  <TableRow
-                    key={t.id}
-                    className="cursor-pointer"
-                    onClick={() => setViewing(t)}
-                  >
-                    <TableCell className="font-mono font-medium">{t.unitNumber}</TableCell>
-                    <TableCell className="text-sm">{t.type}</TableCell>
-                    <TableCell className="font-mono text-sm">{t.plates}</TableCell>
-                    <TableCell className="text-sm">{t.capacityLinearFeet} ft</TableCell>
-                    <TableCell>
-                      <Badge variant={t.isActive ? "default" : "outline"}>
-                        {t.isActive ? "Activo" : "Inactivo"}
-                      </Badge>
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
+                {filteredTrailers.map((t) => {
+                  const active = activeConsolidationByTrailer.get(t.id);
+                  const occupiedPct = active
+                    ? Math.min(100, Math.round((active.totalLinearFeet / t.capacityLinearFeet) * 100))
+                    : null;
+                  return (
+                    <TableRow key={t.id} className="cursor-pointer" onClick={() => setViewing(t)}>
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 font-mono font-medium text-primary hover:underline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openEdit(t);
+                            setViewing(t);
                           }}
                         >
-                          <Pencil className="size-3.5" />
-                        </Button>
+                          <Truck className="size-4 shrink-0 text-muted-foreground" />
+                          {t.unitNumber}
+                        </button>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))}
+                      <TableCell className="text-sm">{t.type}</TableCell>
+                      <TableCell className="font-mono text-sm">{t.plates}</TableCell>
+                      <TableCell className="text-sm">{t.capacityLinearFeet} ft</TableCell>
+                      <TableCell className="min-w-36">
+                        {active ? (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              {active.totalLinearFeet.toFixed(1)} / {t.capacityLinearFeet} ft ·{" "}
+                              {occupiedPct}%
+                            </p>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-primary"
+                                style={{ width: `${occupiedPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sin consolidado activo</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={t.isActive ? "default" : "outline"}>
+                          {t.isActive ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {canCreate && t.isActive && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/consolidations/new?trailerId=${t.id}`);
+                              }}
+                            >
+                              <Container className="size-3.5" />
+                              Crear consolidado
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewing(t);
+                            }}
+                          >
+                            <Eye className="size-3.5" />
+                          </Button>
+                          {canEdit && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(t);
+                              }}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
