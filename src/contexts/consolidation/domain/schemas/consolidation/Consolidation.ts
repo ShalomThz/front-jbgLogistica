@@ -62,7 +62,11 @@ export const consolidatedOrderDetailSchema = z.object({
   orderId: z.string(),
   linearFeet: z.number().nonnegative(),
   section: z.string().nullable(),
-  comment: z.string().nullable(),
+  // `.default(null)`, no sólo `.nullable()` — consolidados con órdenes
+  // agregadas antes de que existiera este campo no traen la llave en
+  // absoluto, y sin el default el fetch entero truena en el parse (se vio
+  // en vivo: la página se quedaba pegada en "Cargando..." sin aviso).
+  comment: z.string().nullable().default(null),
   addedAt: z.string(),
   orderNumber: z.string().nullable(),
   partnerOrderNumber: z.string().nullable(),
