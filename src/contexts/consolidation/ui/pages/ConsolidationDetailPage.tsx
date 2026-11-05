@@ -274,6 +274,15 @@ export const ConsolidationDetailPage = () => {
 
   const orders = useMemo(() => data?.orders ?? [], [data]);
 
+  // Las órdenes nuevas se agregan al final del arreglo (`Consolidation.addOrder`
+  // hace `push`), así que truncar por posición las deja fuera de la tarjeta de
+  // resumen en cuanto ya hay 5 u más — se ordenan por fecha de alta para que la
+  // vista previa siempre muestre las más recientes, no las más viejas.
+  const recentOrders = useMemo(
+    () => [...orders].sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()),
+    [orders],
+  );
+
   const clients = useMemo(() => {
     const map = new Map<string, { name: string; orderCount: number }>();
     for (const o of orders) {
@@ -567,7 +576,7 @@ export const ConsolidationDetailPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.slice(0, 5).map((o) => (
+                      {recentOrders.slice(0, 5).map((o) => (
                         <tr key={o.orderId} className="border-b last:border-0 odd:bg-muted/20">
                           <td className="p-2 font-mono text-xs">{orderLabel(o)}</td>
                           <td className="p-2 truncate">{o.client?.name ?? "—"}</td>
