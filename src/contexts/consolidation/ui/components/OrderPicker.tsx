@@ -251,7 +251,7 @@ export const OrderPicker = ({
                       <Input
                         type="number"
                         min={0}
-                        step="0.1"
+                        step="0.01"
                         aria-invalid={invalid}
                         className="h-8"
                         value={s.linearFeet || ""}
