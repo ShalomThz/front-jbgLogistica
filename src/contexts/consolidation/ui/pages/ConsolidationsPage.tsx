@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@contexts/shared/shadcn";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
@@ -43,6 +44,7 @@ import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/
 import type { ConsolidationListItem } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import {
   Boxes,
+  ChevronDown,
   Container,
   Eye,
   MoreHorizontal,
@@ -98,6 +100,7 @@ export const ConsolidationsPage = () => {
   const [toDelete, setToDelete] = useState<ConsolidationListItem | null>(null);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<StageFilter>("all");
+  const [statsOpen, setStatsOpen] = useState(true);
 
   const { consolidations, isLoading, error, refetch, deleteConsolidation, isDeleting } =
     useConsolidations({ limit: 100 });
@@ -167,25 +170,40 @@ export const ConsolidationsPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <QuickStat
-          label="En preparación"
-          value={preparacionCount}
-          icon={Boxes}
-          colorClass="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-        />
-        <QuickStat
-          label="En tránsito"
-          value={enTransitoCount}
-          icon={Truck}
-          colorClass="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
-        />
-        <QuickStat
-          label="Cajas cargadas"
-          value={totalBoxes}
-          icon={Container}
-          colorClass="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
-        />
+      {/* Métricas (colapsable) */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setStatsOpen((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronDown
+            className={cn("size-3.5 transition-transform", !statsOpen && "-rotate-90")}
+          />
+          Métricas
+        </button>
+        {statsOpen && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <QuickStat
+              label="En preparación"
+              value={preparacionCount}
+              icon={Boxes}
+              colorClass="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+            />
+            <QuickStat
+              label="En tránsito"
+              value={enTransitoCount}
+              icon={Truck}
+              colorClass="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+            />
+            <QuickStat
+              label="Cajas cargadas"
+              value={totalBoxes}
+              icon={Container}
+              colorClass="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

@@ -18,6 +18,8 @@ interface TruckVisualProps {
    * solo número mientras carga el tráiler. */
   pendingLinearFeet?: number;
   capacityLinearFeet: number;
+  /** Más bajo y con menos padding, para modales. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -46,6 +48,7 @@ export const TruckVisual = ({
   usedLinearFeet,
   pendingLinearFeet = 0,
   capacityLinearFeet,
+  compact = false,
   className,
 }: TruckVisualProps) => {
   const totalFeet = usedLinearFeet + pendingLinearFeet;
@@ -85,13 +88,14 @@ export const TruckVisual = ({
   return (
     <div
       className={cn(
-        "flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-5 sm:p-6",
+        "flex shrink-0 items-center gap-4 overflow-hidden rounded-xl border bg-card",
+        compact ? "p-3 sm:p-4" : "p-5 sm:p-6",
         className,
       )}
     >
       <motion.svg
         viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
-        className="h-24 w-auto shrink-0 sm:h-28 lg:h-32"
+        className={cn("w-auto shrink-0", compact ? "h-14 sm:h-20" : "h-24 sm:h-28 lg:h-32")}
         initial={reduceMotion ? false : { opacity: 0, transform: "translateX(-16px)" }}
         animate={{ opacity: 1, transform: "translateX(0px)" }}
         transition={{ duration: 0.4, ease: EASE }}
@@ -140,7 +144,9 @@ export const TruckVisual = ({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1.5">
-          <motion.span className={cn("text-3xl font-bold tabular-nums", tone)}>
+          <motion.span
+            className={cn(compact ? "text-2xl" : "text-3xl", "font-bold tabular-nums", tone)}
+          >
             {roundedPct}
           </motion.span>
           <span className={cn("text-xl font-bold", tone)}>%</span>

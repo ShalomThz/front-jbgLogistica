@@ -6,12 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Select,
   SelectContent,
@@ -44,7 +38,7 @@ import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
 import { ORDER_STATUS_LABELS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
 import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/components/ConsolidationStageTimeline";
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
-import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
+import { AddOrdersDialog } from "@contexts/consolidation/ui/components/AddOrdersDialog";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import {
@@ -52,6 +46,7 @@ import {
   Boxes,
   Calendar,
   Camera,
+  ChevronDown,
   CircleCheck,
   Clock,
   FilePlus,
@@ -250,8 +245,8 @@ export const ConsolidationDetailPage = () => {
   const canVerifyOrders = user ? consolidationPolicies.verifyOrders(user) : false;
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("resumen");
+  const [statsOpen, setStatsOpen] = useState(true);
   const [addOrdersOpen, setAddOrdersOpen] = useState(false);
-  const [pickerSelection, setPickerSelection] = useState<SelectedOrder[]>([]);
   const [evidencePhotos, setEvidencePhotos] = useState<File[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
   const [verificationFilter, setVerificationFilter] = useState<"all" | VerificationStatus>("all");
@@ -357,10 +352,6 @@ export const ConsolidationDetailPage = () => {
       .slice(0, 3);
   }, [data]);
 
-  const hasInvalidSelection = pickerSelection.some(
-    (o) => !o.linearFeet || o.linearFeet <= 0,
-  );
-
   if (isLoading || !data || !consolidation) return <PageLoader />;
 
   const { totalLinearFeet, capacityPercentUsed, isOverCapacity, isLocked, history } = data;
@@ -369,27 +360,6 @@ export const ConsolidationDetailPage = () => {
   const maxDestinationCount = destinations[0]?.[1] ?? 0;
   const maxSectionFeet = sections[0]?.[1] ?? 0;
   const capacityTone = isOverCapacity ? "stopped" : "done";
-
-  const handleAddOrders = async () => {
-    try {
-      const result = await addOrders({
-        orders: pickerSelection.map((o) => ({
-          orderId: o.orderId,
-          linearFeet: o.linearFeet,
-          section: o.section || null,
-        })),
-      });
-      toast.success(
-        result.capacityWarning
-          ? "Órdenes agregadas — el consolidado quedó por encima de su capacidad declarada"
-          : "Órdenes agregadas al consolidado",
-      );
-      setAddOrdersOpen(false);
-      setPickerSelection([]);
-    } catch (error) {
-      toast.error(parseApiError(error));
-    }
-  };
 
   const handleRemoveOrder = async (orderId: string) => {
     try {
@@ -518,23 +488,38 @@ export const ConsolidationDetailPage = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        <StatCard label="Órdenes" value={orders.length} icon={Boxes} />
-        <StatCard label="Clientes" value={clients.length} icon={Users} />
-        <StatCard label="Destinos" value={destinations.length} icon={MapPin} />
-        <StatCard
-          label="Capacidad ocupada"
-          value={`${capacityPct}%`}
-          icon={Gauge}
-          colorClass={TONE_TEXT[capacityTone]}
-        />
-        <StatCard label="Total de pies" value={totalLinearFeet.toFixed(1)} icon={Boxes} />
-        <StatCard label="Total de kilos" value={`${totalWeightKg.toFixed(1)} kg`} icon={Weight} />
-        <StatCard
-          label="Capacidad de unidad"
-          value={`${consolidation.capacityLinearFeet} pies`}
-          icon={Truck}
-        />
+      {/* Métricas (colapsable) */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setStatsOpen((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronDown
+            className={cn("size-3.5 transition-transform", !statsOpen && "-rotate-90")}
+          />
+          Métricas
+        </button>
+        {statsOpen && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            <StatCard label="Órdenes" value={orders.length} icon={Boxes} />
+            <StatCard label="Clientes" value={clients.length} icon={Users} />
+            <StatCard label="Destinos" value={destinations.length} icon={MapPin} />
+            <StatCard
+              label="Capacidad ocupada"
+              value={`${capacityPct}%`}
+              icon={Gauge}
+              colorClass={TONE_TEXT[capacityTone]}
+            />
+            <StatCard label="Total de pies" value={totalLinearFeet.toFixed(1)} icon={Boxes} />
+            <StatCard label="Total de kilos" value={`${totalWeightKg.toFixed(1)} kg`} icon={Weight} />
+            <StatCard
+              label="Capacidad de unidad"
+              value={`${consolidation.capacityLinearFeet} pies`}
+              icon={Truck}
+            />
+          </div>
+        )}
       </div>
 
       <Tabs
@@ -780,11 +765,11 @@ export const ConsolidationDetailPage = () => {
                         <tr key={o.orderId} className="border-b last:border-0 odd:bg-muted/20">
                           <td className="p-2">
                             <div className="flex flex-col gap-0.5">
-                              <Badge variant="outline" className="w-fit font-mono text-[10px]">
+                              <Badge variant="outline" className="w-fit font-mono text-sm font-semibold">
                                 {o.orderNumber ?? "—"}
                               </Badge>
                               {o.partnerOrderNumber && (
-                                <Badge variant="secondary" className="w-fit font-mono text-[10px]">
+                                <Badge variant="secondary" className="w-fit font-mono text-sm font-semibold">
                                   {o.partnerOrderNumber}
                                 </Badge>
                               )}
@@ -1025,37 +1010,15 @@ export const ConsolidationDetailPage = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={addOrdersOpen} onOpenChange={(v) => !v && setAddOrdersOpen(false)}>
-        <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Agregar órdenes</DialogTitle>
-            <DialogDescription>
-              Elige las órdenes que suben a este consolidado y captura los pies
-              lineales que ocupan.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="min-h-0 flex-1">
-            <OrderPicker
-              selected={pickerSelection}
-              onChange={setPickerSelection}
-              capacityLinearFeet={consolidation.capacityLinearFeet}
-              usedLinearFeet={totalLinearFeet}
-              linearFeetDivisor={consolidation.linearFeetDivisor}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOrdersOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={pickerSelection.length === 0 || hasInvalidSelection || isAddingOrders}
-              onClick={handleAddOrders}
-            >
-              {isAddingOrders ? "Agregando..." : `Agregar (${pickerSelection.length})`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddOrdersDialog
+        open={addOrdersOpen}
+        onOpenChange={setAddOrdersOpen}
+        capacityLinearFeet={consolidation.capacityLinearFeet}
+        usedLinearFeet={totalLinearFeet}
+        linearFeetDivisor={consolidation.linearFeetDivisor}
+        addOrders={addOrders}
+        isAddingOrders={isAddingOrders}
+      />
     </div>
   );
 };

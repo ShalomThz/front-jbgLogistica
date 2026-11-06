@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Badge, Button, Checkbox, Input } from "@contexts/shared/shadcn";
-import { Package, Search, Trash2 } from "lucide-react";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
+import { Eraser, Package, Search, Trash2 } from "lucide-react";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
@@ -30,6 +31,8 @@ interface Props {
   /** Divisor elegido al crear el consolidado para sugerir pies lineales
    * (alto×largo×ancho / divisor) en cuanto se marca una orden. */
   linearFeetDivisor?: number;
+  /** Versión compacta del tráiler, para cuando el picker vive en un modal. */
+  compact?: boolean;
 }
 
 /**
@@ -49,6 +52,7 @@ export const OrderPicker = ({
   capacityLinearFeet,
   usedLinearFeet = 0,
   linearFeetDivisor = DEFAULT_LINEAR_FEET_DIVISOR,
+  compact = false,
 }: Props) => {
   const [search, setSearch] = useState("");
   const reduceMotion = useReducedMotion();
@@ -112,182 +116,241 @@ export const OrderPicker = ({
   };
 
   const updateSelected = (orderId: string, patch: Partial<SelectedOrder>) => {
-    onChange(selected.map((s) => (s.orderId === orderId ? { ...s, ...patch } : s)));
+    onChange(
+      selected.map((s) => (s.orderId === orderId ? { ...s, ...patch } : s)),
+    );
   };
 
   const labelFor = (orderId: string) => {
     const order = ordersById.get(orderId);
     if (!order) return orderId.slice(0, 8).toUpperCase();
-    return order.references.orderNumber ?? order.references.partnerOrderNumber ?? orderId.slice(0, 8).toUpperCase();
+    return (
+      order.references.orderNumber ??
+      order.references.partnerOrderNumber ??
+      orderId.slice(0, 8).toUpperCase()
+    );
   };
 
-  const pendingLinearFeet = selected.reduce((sum, s) => sum + (s.linearFeet || 0), 0);
+  const pendingLinearFeet = selected.reduce(
+    (sum, s) => sum + (s.linearFeet || 0),
+    0,
+  );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    // Container query: las dos columnas dependen del ancho donde vive el
+    // picker (modal o página), no del viewport.
+    <div className="@container flex h-full min-h-0 flex-col gap-3">
       <TruckVisual
         usedLinearFeet={usedLinearFeet}
         pendingLinearFeet={pendingLinearFeet}
         capacityLinearFeet={capacityLinearFeet}
+        compact={compact}
       />
-      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar por cliente, origen, destino o referencia…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 @3xl:flex-row">
+        {/* `min-w-0`: sin él, el ancho mínimo de la columna es el texto completo
+          de cada fila (`truncate` es `nowrap`) y empuja a las seleccionadas
+          fuera del contenedor. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar por cliente, origen, destino o referencia…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
 
-        {isLoading ? (
-          <div className="flex flex-1 items-center justify-center py-10 text-sm text-muted-foreground">
-            Cargando órdenes disponibles…
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
-            <Package className="size-8 opacity-30" />
-            <p className="text-sm">
-              {available.length === 0
-                ? "No hay órdenes disponibles para consolidar"
-                : "Sin resultados para esa búsqueda"}
-            </p>
-          </div>
-        ) : (
-          <div className="min-h-0 flex-1 divide-y overflow-y-auto rounded-md border">
-            {filtered.map((o) => {
-              const isSelected = selectedIds.includes(o.id);
-              return (
-                <div
-                  key={o.id}
-                  onClick={() => toggle(o.id)}
-                  className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors select-none hover:bg-muted/50 ${
-                    isSelected ? "bg-primary/5" : ""
-                  }`}
-                >
-                  <Checkbox checked={isSelected} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{o.destination.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {o.destination.customerNumber != null
-                        ? `#${formatCustomerNumber(o.destination.customerNumber)} · `
-                        : ""}
-                      {o.destination.address.city || "Sin ciudad"} · {o.store.name}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-muted-foreground">JBG</span>
-                      <Badge variant="outline" className="font-mono text-[10px]">
-                        {o.references.orderNumber ?? "—"}
-                      </Badge>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-muted-foreground">Agente</span>
-                      <Badge variant="secondary" className="font-mono text-[10px]">
-                        {o.references.partnerOrderNumber ?? "—"}
-                      </Badge>
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="flex min-h-0 w-full flex-col gap-2 lg:w-[22rem] lg:shrink-0">
-        <p className="text-xs font-medium text-muted-foreground">
-          {selected.length === 0
-            ? "Ninguna orden seleccionada"
-            : `${selected.length} orden${selected.length !== 1 ? "es" : ""} seleccionada${selected.length !== 1 ? "s" : ""}`}
-        </p>
-        {selected.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
-            Marca órdenes de la lista para agregarlas aquí y capturar sus pies
-            lineales.
-          </div>
-        ) : (
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            <AnimatePresence initial={false}>
-              {selected.map((s) => {
-                const invalid = !s.linearFeet || s.linearFeet <= 0;
+          {isLoading ? (
+            <div className="flex flex-1 items-center justify-center py-10 text-sm text-muted-foreground">
+              Cargando órdenes disponibles…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
+              <Package className="size-8 opacity-30" />
+              <p className="text-sm">
+                {available.length === 0
+                  ? "No hay órdenes disponibles para consolidar"
+                  : "Sin resultados para esa búsqueda"}
+              </p>
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1 divide-y overflow-y-auto rounded-md border">
+              {filtered.map((o) => {
+                const isSelected = selectedIds.includes(o.id);
                 return (
-                  <motion.div
-                    key={s.orderId}
-                    layout
-                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={
-                      reduceMotion
-                        ? { opacity: 0, transition: { duration: 0.12 } }
-                        : { opacity: 0, scale: 0.95, transition: { duration: 0.12, ease: EASE_OUT } }
-                    }
-                    transition={{ duration: 0.18, ease: EASE_OUT }}
-                    className="rounded-md border p-2.5"
+                  <div
+                    key={o.id}
+                    onClick={() => toggle(o.id)}
+                    className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors select-none hover:bg-muted/50 ${
+                      isSelected ? "bg-primary/5" : ""
+                    }`}
                   >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="truncate font-mono text-xs font-medium">
-                      {labelFor(s.orderId)}
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="size-6 shrink-0 text-destructive hover:bg-destructive/10"
-                      onClick={() => toggle(s.orderId)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-muted-foreground">
-                        Pies lineales
-                      </label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        aria-invalid={invalid}
-                        className="h-8"
-                        value={s.linearFeet || ""}
-                        onChange={(e) =>
-                          updateSelected(s.orderId, {
-                            linearFeet: Number(e.target.value),
-                          })
-                        }
-                      />
+                    <Checkbox checked={isSelected} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {o.destination.name}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {o.destination.customerNumber != null
+                          ? `#${formatCustomerNumber(o.destination.customerNumber)} · `
+                          : ""}
+                        {o.destination.address.city || "Sin ciudad"} ·{" "}
+                        {o.store.name}
+                      </p>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-muted-foreground">
-                        Sección
-                      </label>
-                      <Input
-                        placeholder="Ej. A1"
-                        className="h-8"
-                        value={s.section}
-                        onChange={(e) =>
-                          updateSelected(s.orderId, { section: e.target.value })
-                        }
-                      />
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">
+                          JBG
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-sm font-semibold"
+                        >
+                          {o.references.orderNumber ?? "—"}
+                        </Badge>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">
+                          Agente
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="font-mono text-sm font-semibold"
+                        >
+                          {o.references.partnerOrderNumber ?? "—"}
+                        </Badge>
+                      </span>
                     </div>
                   </div>
-                  {invalid && (
-                    <p className="mt-1 text-[11px] text-destructive">
-                      Captura cuántos pies lineales ocupa.
-                    </p>
-                  )}
-                  </motion.div>
                 );
               })}
-            </AnimatePresence>
+            </div>
+          )}
+        </div>
+
+        {/* Apilado, se reparte la altura con la lista en cuanto hay algo
+          seleccionado; lado a lado, ancho fijo. */}
+        <div
+          className={cn(
+            "flex min-h-0 w-full flex-col gap-2 @3xl:w-[22rem] @3xl:flex-none",
+            selected.length > 0 && "flex-1",
+          )}
+        >
+          <div className="flex h-6 items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {selected.length === 0
+                ? "Ninguna orden seleccionada"
+                : `${selected.length} orden${selected.length !== 1 ? "es" : ""} seleccionada${selected.length !== 1 ? "s" : ""}`}
+            </p>
+            {selected.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-6 gap-1 px-2 text-xs"
+                onClick={() => onChange([])}
+              >
+                <Eraser className="size-3.5" />
+                Limpiar
+              </Button>
+            )}
           </div>
-        )}
-      </div>
+          {selected.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
+              Marca órdenes de la lista para agregarlas aquí y capturar sus pies
+              lineales.
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+              <AnimatePresence initial={false}>
+                {selected.map((s) => {
+                  const invalid = !s.linearFeet || s.linearFeet <= 0;
+                  return (
+                    <motion.div
+                      key={s.orderId}
+                      layout
+                      initial={
+                        reduceMotion
+                          ? { opacity: 0 }
+                          : { opacity: 0, scale: 0.95 }
+                      }
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={
+                        reduceMotion
+                          ? { opacity: 0, transition: { duration: 0.12 } }
+                          : {
+                              opacity: 0,
+                              scale: 0.95,
+                              transition: { duration: 0.12, ease: EASE_OUT },
+                            }
+                      }
+                      transition={{ duration: 0.18, ease: EASE_OUT }}
+                      className="rounded-md border p-2.5"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-sm font-semibold">
+                          {labelFor(s.orderId)}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="size-6 shrink-0 text-destructive hover:bg-destructive/10"
+                          onClick={() => toggle(s.orderId)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-muted-foreground">
+                            Pies lineales
+                          </label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            aria-invalid={invalid}
+                            className="h-8"
+                            value={s.linearFeet || ""}
+                            onChange={(e) =>
+                              updateSelected(s.orderId, {
+                                linearFeet: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-muted-foreground">
+                            Sección
+                          </label>
+                          <Input
+                            placeholder="Ej. A1"
+                            className="h-8"
+                            value={s.section}
+                            onChange={(e) =>
+                              updateSelected(s.orderId, {
+                                section: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                      {invalid && (
+                        <p className="mt-1 text-[11px] text-destructive">
+                          Captura cuántos pies lineales ocupa.
+                        </p>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
