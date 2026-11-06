@@ -4,6 +4,8 @@ import { paginationSchema } from "@contexts/shared/domain/schemas/Pagination";
 import { driverSchema } from "@contexts/shipping/domain/schemas/driver/Driver";
 import { trailerSchema } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 import { consolidationStages } from "./ConsolidationStages";
+import { shipmentStages } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
+import { shipmentStatuses } from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 
 // Mismo shape que `GeoLocation.toPrimitives()` del back — no se usa todavía en
 // la UI (el mapa en vivo está deferido), pero el folio/destino lo pueden
@@ -81,20 +83,13 @@ export const consolidatedOrderDetailSchema = z.object({
   // Estado real de la orden/envío — no es un workflow nuevo, son los mismos
   // valores que ya usa el resto de la app.
   orderStatus: z.enum(["DRAFT", "PENDING_HQ_PROCESS", "COMPLETED", "CANCELLED"]).nullable(),
-  shipmentStage: z
-    .enum([
-      "AGENT",
-      "ORIGIN_WAREHOUSE",
-      "DISPATCHED",
-      "IN_TRANSIT",
-      "DESTINATION_WAREHOUSE",
-      "DISTRIBUTION",
-      "OUT_FOR_DELIVERY",
-      "DELIVERED",
-    ])
-    .nullable(),
-  // "Rastreo" lo decide esto, no `shipmentStage`: una guía por paquetería
-  // externa (Skydropx) se marca directo como entregada.
+  // "Rastreo" sale del envío: la etapa es la etiqueta, el estatus el color
+  // y los cortes (cancelado/devuelto), y una incidencia lo vuelve problema.
+  shipmentStage: z.enum(shipmentStages).nullable(),
+  shipmentStatus: z.enum(shipmentStatuses).nullable(),
+  hasShipmentIncident: z.boolean(),
+  // Paquetería externa (Skydropx): "Rastreo" la marca directo como entregada —
+  // para JBG ya salió al entregarla a la paquetería.
   carrierType: z.enum(["INTERNAL_FLEET", "THIRD_PARTY"]).nullable().default(null),
   client: z
     .object({

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -33,12 +34,22 @@ import {
 } from "@contexts/consolidation/infrastructure/hooks/useConsolidation";
 import type { ConsolidationHistoryEntryPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS, toneForStage } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
-import type { CarrierType } from "@contexts/shipping/domain/schemas/value-objects/Carrier";
 import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
-import { ORDER_STATUS_LABELS } from "@contexts/sales/domain/schemas/order/OrderStatusConfig";
+import type { ConsolidatedOrderDetailPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
+import { STAGE_LABELS as SHIPMENT_STAGE_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
+import {
+  SHIPMENT_STATUS_LABELS,
+  SHIPMENT_STATUS_TONE,
+} from "@contexts/shipping/domain/schemas/shipment/ShipmentStatuses";
 import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/components/ConsolidationStageTimeline";
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
 import { AddOrdersDialog } from "@contexts/consolidation/ui/components/AddOrdersDialog";
+import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
+import {
+  orderQueryOptions,
+  useOrder,
+} from "@contexts/sales/infrastructure/hooks/orders/useOrder";
+import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import {
@@ -49,8 +60,10 @@ import {
   ChevronDown,
   CircleCheck,
   Clock,
+  ExternalLink,
   FilePlus,
   Gauge,
+  Loader2,
   MapPin,
   MessageSquare,
   PackageMinus,
@@ -191,25 +204,34 @@ function orderLabel(o: { orderNumber: string | null; partnerOrderNumber: string 
   return o.orderNumber ?? o.partnerOrderNumber ?? o.orderId.slice(0, 8).toUpperCase();
 }
 
-const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
-  DRAFT: "waiting",
-  PENDING_HQ_PROCESS: "waiting",
-  COMPLETED: "done",
-  CANCELLED: "stopped",
-};
-
-/** "Rastreo" no lee el stage del envío: una guía por paquetería externa
- * (Skydropx) no tiene tracking fino integrado aquí, así que se marca directo
- * como entregada; una de flota interna (JBG) o sin envío todavía muestra el
- * estatus real de la orden — mismo valor que ya usa el resto de la app, no
- * un estado nuevo. */
+/** "Rastreo" sale del envío, con el mismo vocabulario y color que el resto de
+ * la app (`orderProgress`): la etapa dice dónde está, el estatus de quién es la
+ * pelota, y una incidencia abierta lo vuelve problema. Una guía por paquetería
+ * externa (Skydropx) se marca directo como entregada: para JBG ya salió al
+ * entregarla a la paquetería. */
 function rastreoFor(
-  carrierType: CarrierType | null,
-  orderStatus: OrderStatus | null,
+  o: Pick<
+    ConsolidatedOrderDetailPrimitives,
+    "carrierType" | "orderStatus" | "shipmentStage" | "shipmentStatus" | "hasShipmentIncident"
+  >,
 ): { label: string; tone: StatusTone } {
-  if (carrierType === "THIRD_PARTY") return { label: "Entregado", tone: "done" };
-  if (!orderStatus) return { label: "Sin estatus", tone: "draft" };
-  return { label: ORDER_STATUS_LABELS[orderStatus], tone: ORDER_STATUS_TONE[orderStatus] };
+  if (o.carrierType === "THIRD_PARTY") return { label: "Entregado", tone: "done" };
+  // Los cortes ganan sobre cualquier avance.
+  if (o.orderStatus === "CANCELLED" || o.shipmentStatus === "CANCELLED") {
+    return { label: "Cancelada", tone: "stopped" };
+  }
+  if (o.shipmentStatus === "RETURNED") {
+    return { label: SHIPMENT_STATUS_LABELS.RETURNED, tone: "stopped" };
+  }
+  if (!o.shipmentStatus) return { label: "Sin envío", tone: "draft" };
+  // Envío en borrador: todavía no arranca el recorrido, no hay etapa.
+  if (!o.shipmentStage) {
+    return { label: SHIPMENT_STATUS_LABELS[o.shipmentStatus], tone: "draft" };
+  }
+  return {
+    label: SHIPMENT_STAGE_LABELS[o.shipmentStage],
+    tone: o.hasShipmentIncident ? "stopped" : SHIPMENT_STATUS_TONE[o.shipmentStatus],
+  };
 }
 
 type VerificationStatus = "pendiente" | "verificado" | "atencion";
@@ -252,6 +274,35 @@ export const ConsolidationDetailPage = () => {
   const [verificationFilter, setVerificationFilter] = useState<"all" | VerificationStatus>("all");
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [verifierDrafts, setVerifierDrafts] = useState<Record<string, string | null>>({});
+  // Clic en "Rastreo": se carga la orden y se abre su detalle directo en la
+  // pestaña Historial (la línea de tiempo), sin salir del consolidado.
+  // La orden se lee suscrita a su query (`useOrder`), no copiada a estado:
+  // registrar un evento o avanzar el envío invalida/parcha `["orders", id]`
+  // (`invalidateTimeline`, socket) y el modal se re-renderiza solo.
+  const queryClient = useQueryClient();
+  const [timelineOrderId, setTimelineOrderId] = useState<string | null>(null);
+  const [openingTimelineOrderId, setOpeningTimelineOrderId] = useState<string | null>(null);
+  const { data: timelineOrder } = useOrder(timelineOrderId ?? undefined);
+
+  const openOrderTimeline = async (orderId: string) => {
+    setOpeningTimelineOrderId(orderId);
+    try {
+      // Precarga fresca antes de abrir: spinner en el badge y error en toast.
+      await queryClient.fetchQuery(orderQueryOptions(orderId));
+      setTimelineOrderId(orderId);
+    } catch (error) {
+      toast.error(parseApiError(error));
+    } finally {
+      setOpeningTimelineOrderId(null);
+    }
+  };
+
+  const closeOrderTimeline = () => {
+    setTimelineOrderId(null);
+    // Rastreo/Verificación salen del detalle del consolidado, que los eventos
+    // del envío no invalidan — se refresca al volver a la tabla.
+    queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+  };
 
   const { data, isLoading } = useConsolidation(id);
   const { drivers } = useDrivers({ filters: [] });
@@ -757,7 +808,7 @@ export const ConsolidationDetailPage = () => {
                   </thead>
                   <tbody>
                     {filteredOrders.map((o) => {
-                      const rastreo = rastreoFor(o.carrierType, o.orderStatus);
+                      const rastreo = rastreoFor(o);
                       const verification = VERIFICATION_CONFIG[verificationStatusFor(o.orderStatus)];
                       const VerificationIcon = verification.icon;
                       const draft = commentDrafts[o.orderId] ?? o.comment ?? "";
@@ -789,9 +840,25 @@ export const ConsolidationDetailPage = () => {
                             {o.section ? <Badge variant="outline">{o.section}</Badge> : "—"}
                           </td>
                           <td className="p-2">
-                            <Badge variant="outline" className={TONE_OUTLINE[rastreo.tone]}>
-                              {rastreo.label}
-                            </Badge>
+                            <button
+                              type="button"
+                              title="Ver línea de tiempo de la orden"
+                              disabled={openingTimelineOrderId === o.orderId}
+                              onClick={() => openOrderTimeline(o.orderId)}
+                              className="cursor-pointer rounded-md transition-opacity hover:opacity-80 disabled:cursor-wait"
+                            >
+                              <Badge
+                                variant="outline"
+                                className={cn("gap-1", TONE_OUTLINE[rastreo.tone])}
+                              >
+                                {rastreo.label}
+                                {openingTimelineOrderId === o.orderId ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  <ExternalLink className="size-3" />
+                                )}
+                              </Badge>
+                            </button>
                           </td>
                           <td className="p-2">
                             <Badge variant="outline" className={cn("gap-1", TONE_OUTLINE[verification.tone])}>
@@ -1009,6 +1076,13 @@ export const ConsolidationDetailPage = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <OrderDetailDialog
+        order={timelineOrderId ? (timelineOrder ?? null) : null}
+        open={!!timelineOrderId && !!timelineOrder}
+        onClose={closeOrderTimeline}
+        defaultTab="historial"
+      />
 
       <AddOrdersDialog
         open={addOrdersOpen}
