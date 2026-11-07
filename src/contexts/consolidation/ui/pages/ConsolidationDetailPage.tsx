@@ -34,8 +34,10 @@ import {
 } from "@contexts/consolidation/infrastructure/hooks/useConsolidation";
 import type { ConsolidationHistoryEntryPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS, toneForStage } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
-import type { OrderStatus } from "@contexts/sales/domain/schemas/order/Order";
-import type { ConsolidatedOrderDetailPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
+import type {
+  ConsolidatedOrderDetailPrimitives,
+  ConsolidatedOrderVerificationStatus,
+} from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS as SHIPMENT_STAGE_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
 import {
   SHIPMENT_STATUS_LABELS,
@@ -44,6 +46,7 @@ import {
 import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/components/ConsolidationStageTimeline";
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
 import { AddOrdersDialog } from "@contexts/consolidation/ui/components/AddOrdersDialog";
+import { OrderCommentDialog } from "@contexts/consolidation/ui/components/OrderCommentDialog";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
 import {
   orderQueryOptions,
@@ -66,6 +69,7 @@ import {
   Loader2,
   MapPin,
   MessageSquare,
+  MessageSquarePlus,
   PackageMinus,
   PackagePlus,
   Plus,
@@ -234,26 +238,20 @@ function rastreoFor(
   };
 }
 
-type VerificationStatus = "pendiente" | "verificado" | "atencion";
-
+/** La columna "Verificación": la revisión que captura quien verifica para este
+ * renglón del consolidado. El orden es el de las opciones del select. */
 const VERIFICATION_CONFIG: Record<
-  VerificationStatus,
+  ConsolidatedOrderVerificationStatus,
   { label: string; tone: StatusTone; icon: React.ElementType }
 > = {
-  verificado: { label: "Verificado", tone: "done", icon: CircleCheck },
-  atencion: { label: "Atención", tone: "stopped", icon: TriangleAlert },
-  pendiente: { label: "Pendiente", tone: "waiting", icon: Clock },
+  REVIEWED: { label: "Revisado", tone: "done", icon: CircleCheck },
+  PENDING: { label: "Pendiente", tone: "waiting", icon: Clock },
+  ALERT: { label: "Alerta", tone: "stopped", icon: TriangleAlert },
 };
 
-/** La columna "Verificación" del tablero de revisión — lee el estatus real de
- * la orden (`sales.Order.status`), no un estado nuevo: `COMPLETED` es lo más
- * cerca que hay hoy de "ya se revisó", `CANCELLED` es lo que necesita
- * atención, y lo demás sigue pendiente. */
-function verificationStatusFor(status: OrderStatus | null): VerificationStatus {
-  if (status === "COMPLETED") return "verificado";
-  if (status === "CANCELLED") return "atencion";
-  return "pendiente";
-}
+const VERIFICATION_OPTIONS = Object.keys(
+  VERIFICATION_CONFIG,
+) as ConsolidatedOrderVerificationStatus[];
 
 export const ConsolidationDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -271,9 +269,15 @@ export const ConsolidationDetailPage = () => {
   const [addOrdersOpen, setAddOrdersOpen] = useState(false);
   const [evidencePhotos, setEvidencePhotos] = useState<File[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
-  const [verificationFilter, setVerificationFilter] = useState<"all" | VerificationStatus>("all");
+  const [verificationFilter, setVerificationFilter] = useState<"all" | ConsolidatedOrderVerificationStatus>("all");
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [verifierDrafts, setVerifierDrafts] = useState<Record<string, string | null>>({});
+  // Renglón cuyo comentario se está escribiendo en el modal; la celda sólo
+  // muestra el botón o el texto ya capturado.
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [verificationDrafts, setVerificationDrafts] = useState<
+    Record<string, ConsolidatedOrderVerificationStatus>
+  >({});
   // Clic en "Rastreo": se carga la orden y se abre su detalle directo en la
   // pestaña Historial (la línea de tiempo), sin salir del consolidado.
   // La orden se lee suscrita a su query (`useOrder`), no copiada a estado:
@@ -384,7 +388,7 @@ export const ConsolidationDetailPage = () => {
   const filteredOrders = useMemo(() => {
     const q = orderSearch.trim().toLowerCase();
     return orders.filter((o) => {
-      if (verificationFilter !== "all" && verificationStatusFor(o.orderStatus) !== verificationFilter) {
+      if (verificationFilter !== "all" && o.verificationStatus !== verificationFilter) {
         return false;
       }
       if (!q) return true;
@@ -411,6 +415,7 @@ export const ConsolidationDetailPage = () => {
   const maxDestinationCount = destinations[0]?.[1] ?? 0;
   const maxSectionFeet = sections[0]?.[1] ?? 0;
   const capacityTone = isOverCapacity ? "stopped" : "done";
+  const editingCommentOrder = orders.find((o) => o.orderId === editingCommentId);
 
   const handleRemoveOrder = async (orderId: string) => {
     try {
@@ -426,7 +431,10 @@ export const ConsolidationDetailPage = () => {
       o.orderId in commentDrafts && commentDrafts[o.orderId] !== (o.comment ?? "");
     const verifierChanged =
       o.orderId in verifierDrafts && verifierDrafts[o.orderId] !== o.verifiedByUserId;
-    return commentChanged || verifierChanged;
+    const verificationChanged =
+      o.orderId in verificationDrafts &&
+      verificationDrafts[o.orderId] !== o.verificationStatus;
+    return commentChanged || verifierChanged || verificationChanged;
   });
 
   const handleSaveReview = async () => {
@@ -441,11 +449,13 @@ export const ConsolidationDetailPage = () => {
           ).trim() || null,
           verifiedByUserId:
             o.orderId in verifierDrafts ? verifierDrafts[o.orderId] : o.verifiedByUserId,
+          verificationStatus: verificationDrafts[o.orderId] ?? o.verificationStatus,
         })),
       });
       toast.success("Revisión guardada");
       setCommentDrafts({});
       setVerifierDrafts({});
+      setVerificationDrafts({});
     } catch (error) {
       toast.error(parseApiError(error));
     }
@@ -781,7 +791,7 @@ export const ConsolidationDetailPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las revisiones</SelectItem>
-                    {(Object.keys(VERIFICATION_CONFIG) as VerificationStatus[]).map((v) => (
+                    {VERIFICATION_OPTIONS.map((v) => (
                       <SelectItem key={v} value={v}>
                         {VERIFICATION_CONFIG[v].label}
                       </SelectItem>
@@ -809,7 +819,9 @@ export const ConsolidationDetailPage = () => {
                   <tbody>
                     {filteredOrders.map((o) => {
                       const rastreo = rastreoFor(o);
-                      const verification = VERIFICATION_CONFIG[verificationStatusFor(o.orderStatus)];
+                      const verificationStatus =
+                        verificationDrafts[o.orderId] ?? o.verificationStatus;
+                      const verification = VERIFICATION_CONFIG[verificationStatus];
                       const VerificationIcon = verification.icon;
                       const draft = commentDrafts[o.orderId] ?? o.comment ?? "";
                       return (
@@ -861,10 +873,40 @@ export const ConsolidationDetailPage = () => {
                             </button>
                           </td>
                           <td className="p-2">
-                            <Badge variant="outline" className={cn("gap-1", TONE_OUTLINE[verification.tone])}>
-                              <VerificationIcon className="size-3" />
-                              {verification.label}
-                            </Badge>
+                            {canVerifyOrders ? (
+                              <Select
+                                value={verificationStatus}
+                                onValueChange={(v) =>
+                                  setVerificationDrafts((d) => ({
+                                    ...d,
+                                    [o.orderId]: v as ConsolidatedOrderVerificationStatus,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger
+                                  size="sm"
+                                  className={cn("min-w-32 text-xs", TONE_OUTLINE[verification.tone])}
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {VERIFICATION_OPTIONS.map((v) => {
+                                    const { label, icon: Icon, tone } = VERIFICATION_CONFIG[v];
+                                    return (
+                                      <SelectItem key={v} value={v} className="text-xs">
+                                        <Icon className={cn("size-3.5", TONE_TEXT[tone])} />
+                                        {label}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant="outline" className={cn("gap-1", TONE_OUTLINE[verification.tone])}>
+                                <VerificationIcon className="size-3" />
+                                {verification.label}
+                              </Badge>
+                            )}
                           </td>
                           {canVerifyOrders && (
                             <td className="min-w-40 p-2">
@@ -896,17 +938,28 @@ export const ConsolidationDetailPage = () => {
                             </td>
                           )}
                           <td className="min-w-48 p-2">
-                            {canEdit ? (
-                              <Input
-                                value={draft}
-                                placeholder="Agregar comentario..."
-                                className="h-8 text-xs"
-                                onChange={(e) =>
-                                  setCommentDrafts((d) => ({ ...d, [o.orderId]: e.target.value }))
-                                }
-                              />
-                            ) : (
+                            {!canEdit ? (
                               <span className="text-xs text-muted-foreground">{o.comment ?? "—"}</span>
+                            ) : draft.trim() ? (
+                              <button
+                                type="button"
+                                title="Editar comentario"
+                                onClick={() => setEditingCommentId(o.orderId)}
+                                className="line-clamp-2 w-full cursor-text rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-muted"
+                              >
+                                {draft}
+                              </button>
+                            ) : (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                                onClick={() => setEditingCommentId(o.orderId)}
+                              >
+                                <MessageSquarePlus className="size-3.5" />
+                                Agregar comentario
+                              </Button>
                             )}
                           </td>
                           {canManagePackages && !isLocked && (
@@ -1083,6 +1136,21 @@ export const ConsolidationDetailPage = () => {
         onClose={closeOrderTimeline}
         defaultTab="historial"
       />
+
+      {editingCommentOrder && (
+        <OrderCommentDialog
+          key={editingCommentOrder.orderId}
+          open
+          onOpenChange={(open) => !open && setEditingCommentId(null)}
+          orderLabel={orderLabel(editingCommentOrder)}
+          initialValue={
+            commentDrafts[editingCommentOrder.orderId] ?? editingCommentOrder.comment ?? ""
+          }
+          onSubmit={(value) =>
+            setCommentDrafts((d) => ({ ...d, [editingCommentOrder.orderId]: value }))
+          }
+        />
+      )}
 
       <AddOrdersDialog
         open={addOrdersOpen}

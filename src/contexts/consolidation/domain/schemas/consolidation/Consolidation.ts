@@ -25,6 +25,18 @@ export type ConsolidationLocationPrimitives = z.infer<
   typeof consolidationLocationSchema
 >;
 
+/** Revisión del renglón dentro del consolidado — espeja
+ * `consolidatedOrderVerificationStatuses` del back. La elige quien verifica;
+ * no se deduce de la orden de venta. */
+export const consolidatedOrderVerificationStatuses = [
+  "PENDING",
+  "REVIEWED",
+  "ALERT",
+] as const;
+
+export type ConsolidatedOrderVerificationStatus =
+  (typeof consolidatedOrderVerificationStatuses)[number];
+
 // El renglón de una orden dentro del consolidado, tal como vive en el
 // agregado (`GET /consolidation/:id` lo manda enriquecido aparte, ver
 // `consolidatedOrderDetailSchema`).
@@ -34,6 +46,7 @@ export const consolidatedOrderSchema = z.object({
   section: z.string().nullable().default(null),
   comment: z.string().nullable().default(null),
   verifiedByUserId: z.string().nullable().default(null),
+  verificationStatus: z.enum(consolidatedOrderVerificationStatuses),
   addedAt: z.string(),
 });
 
@@ -76,6 +89,7 @@ export const consolidatedOrderDetailSchema = z.object({
   // Mismo cuidado que `comment`: documentos previos a este campo no traen la
   // llave.
   verifiedByUserId: z.string().nullable().default(null),
+  verificationStatus: z.enum(consolidatedOrderVerificationStatuses),
   addedAt: z.string(),
   orderNumber: z.string().nullable(),
   partnerOrderNumber: z.string().nullable(),
@@ -196,6 +210,7 @@ export const updateConsolidationOrderCommentsRequestSchema = z.object({
         orderId: z.string(),
         comment: z.string().max(500).nullable(),
         verifiedByUserId: z.string().nullable(),
+        verificationStatus: z.enum(consolidatedOrderVerificationStatuses),
       }),
     )
     .min(1),
