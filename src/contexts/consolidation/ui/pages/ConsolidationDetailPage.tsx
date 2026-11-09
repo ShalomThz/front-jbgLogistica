@@ -265,7 +265,7 @@ export const ConsolidationDetailPage = () => {
   const canVerifyOrders = user ? consolidationPolicies.verifyOrders(user) : false;
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("resumen");
-  const [statsOpen, setStatsOpen] = useState(true);
+  const [statsOpen, setStatsOpen] = useState(false);
   const [addOrdersOpen, setAddOrdersOpen] = useState(false);
   const [evidencePhotos, setEvidencePhotos] = useState<File[]>([]);
   const [orderSearch, setOrderSearch] = useState("");

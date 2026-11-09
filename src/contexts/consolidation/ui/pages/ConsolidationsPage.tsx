@@ -100,7 +100,7 @@ export const ConsolidationsPage = () => {
   const [toDelete, setToDelete] = useState<ConsolidationListItem | null>(null);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<StageFilter>("all");
-  const [statsOpen, setStatsOpen] = useState(true);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const { consolidations, isLoading, error, refetch, deleteConsolidation, isDeleting } =
     useConsolidations({ limit: 100 });

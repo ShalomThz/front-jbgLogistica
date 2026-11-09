@@ -7,6 +7,7 @@ import { Eraser, Package, Search, Trash2 } from "lucide-react";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
+import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import {
   calculateLinearFeet,
   DEFAULT_LINEAR_FEET_DIVISOR,
@@ -42,8 +43,9 @@ interface Props {
  * bodega no tiene ningún vínculo con una orden ni con su
  * `references.orderNumber`.
  *
- * Sólo se ofrecen órdenes sin consolidado asignado y que no estén
- * canceladas. Se identifican por su número de orden/socio (mismo badge doble
+ * Sólo se ofrecen órdenes completadas (ni borradores, ni pendientes de HQ,
+ * ni canceladas) y sin consolidado asignado — misma regla que valida el
+ * back al agregarlas. Se identifican por su número de orden/socio (mismo badge doble
  * que usa la tabla de órdenes), no por el id interno.
  */
 export const OrderPicker = ({
@@ -58,12 +60,14 @@ export const OrderPicker = ({
   const reduceMotion = useReducedMotion();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["consolidation", "available-orders"],
+    // Bajo `CONSOLIDATIONS_QUERY_KEY` para que agregar/quitar órdenes de un
+    // consolidado (que ya invalidan esa llave) refresque los disponibles.
+    queryKey: [...CONSOLIDATIONS_QUERY_KEY, "available-orders"],
     queryFn: () =>
       orderRepository.find({
         filters: [
           { field: "consolidationId", filterOperator: "IS_NULL", value: null },
-          { field: "status", filterOperator: "!=", value: "CANCELLED" },
+          { field: "status", filterOperator: "=", value: "COMPLETED" },
         ],
         limit: 200,
         offset: 0,
