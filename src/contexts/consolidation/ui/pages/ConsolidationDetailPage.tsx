@@ -13,6 +13,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   Tabs,
   TabsContent,
   TabsList,
@@ -25,8 +31,7 @@ import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { TONE_OUTLINE, TONE_TEXT } from "@contexts/shared/domain/schemas/StatusTone";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
-import { useDrivers } from "@contexts/shipping/infrastructure/hooks/drivers/useDrivers";
-import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { useUsers } from "@contexts/iam/infrastructure/hooks/users/useUsers";
 import {
   useConsolidation,
@@ -53,6 +58,7 @@ import {
   useOrder,
 } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
 import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
+import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import {
@@ -258,10 +264,15 @@ export const ConsolidationDetailPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canEdit = user ? consolidationPolicies.edit(user) : false;
-  const canManagePackages = user ? consolidationPolicies.managePackages(user) : false;
+  const canManageOrders = user ? consolidationPolicies.manageOrders(user) : false;
+  // Abrir el detalle de una orden desde el embarque es cosa de órdenes: sin
+  // ese permiso la fila y el badge de Rastreo no son clickeables.
+  const canViewOrders = user ? orderPolicies.view(user) : false;
   const canAdvanceStage = user ? consolidationPolicies.advanceStage(user) : false;
-  // Columna "Usuario verificador": sólo la ve (y la edita) quien tenga este
-  // permiso — hoy nada más el rol Admin lo trae por default.
+  // Revisión de órdenes, mismas reglas que el back: `canReviewOrders` comenta
+  // y ve "Guardar revisión" (edita o verifica); `canVerifyOrders` además
+  // elige verificación y usuario verificador.
+  const canReviewOrders = user ? consolidationPolicies.reviewOrders(user) : false;
   const canVerifyOrders = user ? consolidationPolicies.verifyOrders(user) : false;
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("resumen");
@@ -278,26 +289,29 @@ export const ConsolidationDetailPage = () => {
   const [verificationDrafts, setVerificationDrafts] = useState<
     Record<string, ConsolidatedOrderVerificationStatus>
   >({});
-  // Clic en "Rastreo": se carga la orden y se abre su detalle directo en la
-  // pestaña Historial (la línea de tiempo), sin salir del consolidado.
+  // Clic en la fila: se carga la orden y se abre su detalle (Resumen) sin
+  // salir del consolidado. Clic en "Rastreo": mismo modal, directo en la
+  // pestaña Historial (la línea de tiempo).
   // La orden se lee suscrita a su query (`useOrder`), no copiada a estado:
   // registrar un evento o avanzar el envío invalida/parcha `["orders", id]`
   // (`invalidateTimeline`, socket) y el modal se re-renderiza solo.
   const queryClient = useQueryClient();
   const [timelineOrderId, setTimelineOrderId] = useState<string | null>(null);
-  const [openingTimelineOrderId, setOpeningTimelineOrderId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<"resumen" | "historial">("resumen");
+  const [openingOrderId, setOpeningOrderId] = useState<string | null>(null);
   const { data: timelineOrder } = useOrder(timelineOrderId ?? undefined);
 
-  const openOrderTimeline = async (orderId: string) => {
-    setOpeningTimelineOrderId(orderId);
+  const openOrderDetail = async (orderId: string, tab: "resumen" | "historial") => {
+    setOpeningOrderId(orderId);
     try {
       // Precarga fresca antes de abrir: spinner en el badge y error en toast.
       await queryClient.fetchQuery(orderQueryOptions(orderId));
+      setDetailTab(tab);
       setTimelineOrderId(orderId);
     } catch (error) {
       toast.error(parseApiError(error));
     } finally {
-      setOpeningTimelineOrderId(null);
+      setOpeningOrderId(null);
     }
   };
 
@@ -309,9 +323,12 @@ export const ConsolidationDetailPage = () => {
   };
 
   const { data, isLoading } = useConsolidation(id);
-  const { drivers } = useDrivers({ filters: [] });
-  const { trailers } = useTrailers();
-  const { users: verifierUsers } = useUsers({ enabled: canVerifyOrders });
+  const { users } = useUsers({ enabled: canVerifyOrders });
+  // Sólo puede quedar como verificador quien tiene el permiso de verificar.
+  const verifierUsers = useMemo(
+    () => users.filter(consolidationPolicies.verifyOrders),
+    [users],
+  );
   const {
     addOrders,
     isAddingOrders,
@@ -327,15 +344,10 @@ export const ConsolidationDetailPage = () => {
 
   const consolidation = data?.consolidation;
 
-  const driver = useMemo(
-    () => drivers.find((d) => d.id === consolidation?.driverId),
-    [drivers, consolidation?.driverId],
-  );
-
-  const trailer = useMemo(
-    () => trailers.find((t) => t.id === consolidation?.trailerId),
-    [trailers, consolidation?.trailerId],
-  );
+  // Conductor y tráiler vienen en el detalle: no dependen de tener permiso
+  // sobre los catálogos.
+  const driver = data?.driver ?? null;
+  const trailer = data?.trailer ?? null;
 
   const orders = useMemo(() => data?.orders ?? [], [data]);
 
@@ -395,6 +407,9 @@ export const ConsolidationDetailPage = () => {
       return (
         orderLabel(o).toLowerCase().includes(q) ||
         (o.client?.name.toLowerCase().includes(q) ?? false) ||
+        (o.store?.name.toLowerCase().includes(q) ?? false) ||
+        (o.carrierName?.toLowerCase().includes(q) ?? false) ||
+        (o.trackingNumber?.toLowerCase().includes(q) ?? false) ||
         (o.destination ? `${o.destination.city}, ${o.destination.country}`.toLowerCase().includes(q) : false)
       );
     });
@@ -426,6 +441,15 @@ export const ConsolidationDetailPage = () => {
     }
   };
 
+  // Verificador efectivo del renglón: lo elegido a mano (incluido "Sin
+  // asignar"), si no el guardado, y si no hay ninguno el usuario de la sesión.
+  // Ese default no ensucia el renglón: se guarda sólo cuando el renglón tiene
+  // algún otro cambio, para no asignarte órdenes que no revisaste.
+  const verifierFor = (o: (typeof orders)[number]): string | null => {
+    if (o.orderId in verifierDrafts) return verifierDrafts[o.orderId];
+    return o.verifiedByUserId ?? (canVerifyOrders && user ? user.id : null);
+  };
+
   const dirtyReviews = orders.filter((o) => {
     const commentChanged =
       o.orderId in commentDrafts && commentDrafts[o.orderId] !== (o.comment ?? "");
@@ -447,8 +471,7 @@ export const ConsolidationDetailPage = () => {
             ? commentDrafts[o.orderId]
             : (o.comment ?? "")
           ).trim() || null,
-          verifiedByUserId:
-            o.orderId in verifierDrafts ? verifierDrafts[o.orderId] : o.verifiedByUserId,
+          verifiedByUserId: verifierFor(o),
           verificationStatus: verificationDrafts[o.orderId] ?? o.verificationStatus,
         })),
       });
@@ -540,9 +563,9 @@ export const ConsolidationDetailPage = () => {
               <p className="text-xs text-muted-foreground">Conductor</p>
               <p
                 className="truncate text-lg font-semibold"
-                title={driver ? `${driver.user.name} · ${driver.licenseNumber}` : undefined}
+                title={driver ? `${driver.name} · ${driver.licenseNumber}` : undefined}
               >
-                {driver ? driver.user.name : "Sin asignar"}
+                {driver ? driver.name : "Sin asignar"}
               </p>
             </div>
           </div>
@@ -754,7 +777,7 @@ export const ConsolidationDetailPage = () => {
                 ? "La carga está sellada: ya no se pueden agregar ni quitar órdenes."
                 : "Agrega o quita órdenes mientras el consolidado siga en preparación o cargando."}
             </p>
-            {canManagePackages && !isLocked && (
+            {canManageOrders && !isLocked && (
               <Button
                 size="sm"
                 className="gap-1.5"
@@ -800,23 +823,27 @@ export const ConsolidationDetailPage = () => {
                 </Select>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-auto rounded-md border">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 border-b bg-muted/40 text-left text-xs text-muted-foreground">
-                    <tr>
-                      <th className="p-2">Orden</th>
-                      <th className="p-2">Cliente / Destino</th>
-                      <th className="p-2">Peso</th>
-                      <th className="p-2">Pies lineales</th>
-                      <th className="p-2">Sección</th>
-                      <th className="p-2">Rastreo</th>
-                      <th className="p-2">Verificación</th>
-                      {canVerifyOrders && <th className="p-2">Usuario verificador</th>}
-                      <th className="p-2">Comentario</th>
-                      {canManagePackages && !isLocked && <th className="p-2" />}
-                    </tr>
-                  </thead>
-                  <tbody>
+              {/* `Table` trae su propio div con scroll: se le pasa el alto para que
+                  el encabezado sticky siga fijo (igual que la tabla de órdenes). */}
+              <div className="min-h-0 flex-1 overflow-hidden rounded-md border [&>div]:max-h-full [&>div]:overflow-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
+                    <TableRow>
+                      <TableHead>Rastreo</TableHead>
+                      <TableHead>Orden</TableHead>
+                      <TableHead>Agencia</TableHead>
+                      <TableHead>Paquetería</TableHead>
+                      <TableHead>Cliente / Destino</TableHead>
+                      <TableHead>Peso</TableHead>
+                      <TableHead>Pies lineales</TableHead>
+                      <TableHead>Sección</TableHead>
+                      <TableHead>Verificación</TableHead>
+                      {canVerifyOrders && <TableHead>Usuario verificador</TableHead>}
+                      <TableHead>Comentario</TableHead>
+                      {canManageOrders && !isLocked && <TableHead />}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {filteredOrders.map((o) => {
                       const rastreo = rastreoFor(o);
                       const verificationStatus =
@@ -824,9 +851,47 @@ export const ConsolidationDetailPage = () => {
                       const verification = VERIFICATION_CONFIG[verificationStatus];
                       const VerificationIcon = verification.icon;
                       const draft = commentDrafts[o.orderId] ?? o.comment ?? "";
+                      const formerVerifier =
+                        o.verifiedByUserId &&
+                        !verifierUsers.some((u) => u.id === o.verifiedByUserId)
+                          ? users.find((u) => u.id === o.verifiedByUserId)
+                          : undefined;
                       return (
-                        <tr key={o.orderId} className="border-b last:border-0 odd:bg-muted/20">
-                          <td className="p-2">
+                        <TableRow
+                          key={o.orderId}
+                          className={cn(
+                            canViewOrders &&
+                              (openingOrderId === o.orderId ? "cursor-wait" : "cursor-pointer"),
+                          )}
+                          onClick={
+                            canViewOrders ? () => openOrderDetail(o.orderId, "resumen") : undefined
+                          }
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              title="Ver línea de tiempo de la orden"
+                              disabled={!canViewOrders || openingOrderId === o.orderId}
+                              onClick={() => openOrderDetail(o.orderId, "historial")}
+                              className={cn(
+                                "rounded-md transition-opacity",
+                                canViewOrders && "cursor-pointer hover:opacity-80 disabled:cursor-wait",
+                              )}
+                            >
+                              <Badge
+                                variant="outline"
+                                className={cn("gap-1", TONE_OUTLINE[rastreo.tone])}
+                              >
+                                {rastreo.label}
+                                {openingOrderId === o.orderId ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  canViewOrders && <ExternalLink className="size-3" />
+                                )}
+                              </Badge>
+                            </button>
+                          </TableCell>
+                          <TableCell>
                             <div className="flex flex-col gap-0.5">
                               <Badge variant="outline" className="w-fit font-mono text-sm font-semibold">
                                 {o.orderNumber ?? "—"}
@@ -837,42 +902,47 @@ export const ConsolidationDetailPage = () => {
                                 </Badge>
                               )}
                             </div>
-                          </td>
-                          <td className="p-2">
+                          </TableCell>
+                          <TableCell>
+                            {o.store ? (
+                              <>
+                                <p className="font-medium">{o.store.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {o.store.type === "PARTNER" ? "Agencia" : "JBG"}
+                                </p>
+                              </>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2.5">
+                              <CarrierLogo
+                                name={o.carrierName}
+                                className="size-9 shrink-0 rounded object-contain"
+                              />
+                              <div>
+                                <p className="font-medium">{o.carrierName ?? "—"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {o.trackingNumber ?? "No. de guía no disponible"}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <p className="font-medium">{o.client?.name ?? "—"}</p>
                             <p className="text-xs text-muted-foreground">
                               {o.destination ? `${o.destination.city}, ${o.destination.country}` : "—"}
                             </p>
-                          </td>
-                          <td className="p-2 text-xs text-muted-foreground">
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
                             {o.totalWeightKg.toFixed(1)} kg
-                          </td>
-                          <td className="p-2">{o.linearFeet.toFixed(1)}</td>
-                          <td className="p-2">
+                          </TableCell>
+                          <TableCell>{o.linearFeet.toFixed(1)}</TableCell>
+                          <TableCell>
                             {o.section ? <Badge variant="outline">{o.section}</Badge> : "—"}
-                          </td>
-                          <td className="p-2">
-                            <button
-                              type="button"
-                              title="Ver línea de tiempo de la orden"
-                              disabled={openingTimelineOrderId === o.orderId}
-                              onClick={() => openOrderTimeline(o.orderId)}
-                              className="cursor-pointer rounded-md transition-opacity hover:opacity-80 disabled:cursor-wait"
-                            >
-                              <Badge
-                                variant="outline"
-                                className={cn("gap-1", TONE_OUTLINE[rastreo.tone])}
-                              >
-                                {rastreo.label}
-                                {openingTimelineOrderId === o.orderId ? (
-                                  <Loader2 className="size-3 animate-spin" />
-                                ) : (
-                                  <ExternalLink className="size-3" />
-                                )}
-                              </Badge>
-                            </button>
-                          </td>
-                          <td className="p-2">
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {canVerifyOrders ? (
                               <Select
                                 value={verificationStatus}
@@ -885,7 +955,7 @@ export const ConsolidationDetailPage = () => {
                               >
                                 <SelectTrigger
                                   size="sm"
-                                  className={cn("min-w-32 text-xs", TONE_OUTLINE[verification.tone])}
+                                  className={cn("min-w-32 text-xs shadow-none", TONE_OUTLINE[verification.tone])}
                                 >
                                   <SelectValue />
                                 </SelectTrigger>
@@ -907,15 +977,21 @@ export const ConsolidationDetailPage = () => {
                                 {verification.label}
                               </Badge>
                             )}
-                          </td>
+                            {/* Fecha de la verificación guardada; se oculta
+                                mientras hay un cambio sin guardar. */}
+                            {o.verifiedAt && verificationStatus === o.verificationStatus && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {new Date(o.verifiedAt).toLocaleString("es-MX", {
+                                  dateStyle: "short",
+                                  timeStyle: "short",
+                                })}
+                              </p>
+                            )}
+                          </TableCell>
                           {canVerifyOrders && (
-                            <td className="min-w-40 p-2">
+                            <TableCell className="min-w-40" onClick={(e) => e.stopPropagation()}>
                               <Select
-                                value={
-                                  (o.orderId in verifierDrafts
-                                    ? verifierDrafts[o.orderId]
-                                    : o.verifiedByUserId) ?? "none"
-                                }
+                                value={verifierFor(o) ?? "none"}
                                 onValueChange={(v) =>
                                   setVerifierDrafts((d) => ({
                                     ...d,
@@ -923,7 +999,7 @@ export const ConsolidationDetailPage = () => {
                                   }))
                                 }
                               >
-                                <SelectTrigger className="h-8 text-xs">
+                                <SelectTrigger className="h-8 border-transparent bg-transparent text-xs shadow-none hover:border-input">
                                   <SelectValue placeholder="Sin asignar" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -933,12 +1009,19 @@ export const ConsolidationDetailPage = () => {
                                       {u.name}
                                     </SelectItem>
                                   ))}
+                                  {/* Verificador ya guardado que perdió el
+                                      permiso: se conserva sólo en su renglón. */}
+                                  {formerVerifier && (
+                                    <SelectItem value={formerVerifier.id}>
+                                      {formerVerifier.name}
+                                    </SelectItem>
+                                  )}
                                 </SelectContent>
                               </Select>
-                            </td>
+                            </TableCell>
                           )}
-                          <td className="min-w-48 p-2">
-                            {!canEdit ? (
+                          <TableCell className="max-w-72 min-w-48 whitespace-normal" onClick={(e) => e.stopPropagation()}>
+                            {!canReviewOrders ? (
                               <span className="text-xs text-muted-foreground">{o.comment ?? "—"}</span>
                             ) : draft.trim() ? (
                               <button
@@ -950,20 +1033,18 @@ export const ConsolidationDetailPage = () => {
                                 {draft}
                               </button>
                             ) : (
-                              <Button
+                              <button
                                 type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                                className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
                                 onClick={() => setEditingCommentId(o.orderId)}
                               >
                                 <MessageSquarePlus className="size-3.5" />
                                 Agregar comentario
-                              </Button>
+                              </button>
                             )}
-                          </td>
-                          {canManagePackages && !isLocked && (
-                            <td className="p-2">
+                          </TableCell>
+                          {canManageOrders && !isLocked && (
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -973,16 +1054,16 @@ export const ConsolidationDetailPage = () => {
                               >
                                 <Trash2 className="size-3.5" />
                               </Button>
-                            </td>
+                            </TableCell>
                           )}
-                        </tr>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
 
-              {canEdit && (
+              {canReviewOrders && (
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">
                     Mostrando {filteredOrders.length} de {orders.length} orden
@@ -1118,6 +1199,13 @@ export const ConsolidationDetailPage = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium">{entry.description}</p>
+                      {entry.details.length > 0 && (
+                        <ul className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
+                          {entry.details.map((detail) => (
+                            <li key={detail}>{detail}</li>
+                          ))}
+                        </ul>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {new Date(entry.occurredAt).toLocaleString("es-MX")}
                       </p>
@@ -1134,7 +1222,7 @@ export const ConsolidationDetailPage = () => {
         order={timelineOrderId ? (timelineOrder ?? null) : null}
         open={!!timelineOrderId && !!timelineOrder}
         onClose={closeOrderTimeline}
-        defaultTab="historial"
+        defaultTab={detailTab}
       />
 
       {editingCommentOrder && (

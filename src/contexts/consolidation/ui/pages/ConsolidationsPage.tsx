@@ -95,6 +95,7 @@ export const ConsolidationsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canCreate = user ? consolidationPolicies.create(user) : false;
+  const canView = user ? consolidationPolicies.view(user) : false;
   const canDelete = user ? consolidationPolicies.delete(user) : false;
 
   const [toDelete, setToDelete] = useState<ConsolidationListItem | null>(null);
@@ -286,20 +287,24 @@ export const ConsolidationsPage = () => {
                   return (
                     <TableRow
                       key={c.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/consolidations/${c.id}`)}
+                      className={canView ? "cursor-pointer" : undefined}
+                      onClick={canView ? () => navigate(`/consolidations/${c.id}`) : undefined}
                     >
                       <TableCell>
-                        <button
-                          type="button"
-                          className="font-mono font-medium text-primary hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/consolidations/${c.id}`);
-                          }}
-                        >
-                          {c.folio}
-                        </button>
+                        {canView ? (
+                          <button
+                            type="button"
+                            className="font-mono font-medium text-primary hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/consolidations/${c.id}`);
+                            }}
+                          >
+                            {c.folio}
+                          </button>
+                        ) : (
+                          <span className="font-mono font-medium">{c.folio}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">
                         {c.origin.label} → {c.destination.label}
@@ -328,16 +333,21 @@ export const ConsolidationsPage = () => {
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5"
-                            onClick={() => navigate(`/consolidations/${c.id}`)}
-                          >
-                            <Eye className="size-3.5" />
-                            Ver
-                          </Button>
-                          {canDelete && (
+                          {canView && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => navigate(`/consolidations/${c.id}`)}
+                            >
+                              <Eye className="size-3.5" />
+                              Ver
+                            </Button>
+                          )}
+                          {/* Sólo antes de sellar: después es un embarque
+                              real y el back lo rechaza. */}
+                          {canDelete &&
+                            (c.stage === "PREPARACION" || c.stage === "CARGANDO") && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="icon" variant="ghost" className="size-8">

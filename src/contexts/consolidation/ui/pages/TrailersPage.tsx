@@ -32,8 +32,8 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
 import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
-import type { TrailerPrimitives } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
-import { Container, Eye, Pencil, Plus, RefreshCw, Search, Truck } from "lucide-react";
+import type { TrailerListItem } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
+import { Container, Eye, Pencil, Plus, RefreshCw, Search, TriangleAlert, Truck } from "lucide-react";
 
 interface FormState {
   unitNumber: string;
@@ -88,6 +88,7 @@ export const TrailersPage = () => {
   const { user } = useAuth();
   const canCreate = user ? consolidationPolicies.createTrailers(user) : false;
   const canEdit = user ? consolidationPolicies.editTrailers(user) : false;
+  const canCreateConsolidation = user ? consolidationPolicies.create(user) : false;
 
   const { trailers, isLoading, refetch, createTrailer, isCreating, updateTrailer, isUpdating } =
     useTrailers();
@@ -99,9 +100,9 @@ export const TrailersPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<TrailerPrimitives | null>(null);
+  const [editing, setEditing] = useState<TrailerListItem | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [viewing, setViewing] = useState<TrailerPrimitives | null>(null);
+  const [viewing, setViewing] = useState<TrailerListItem | null>(null);
 
   const activeConsolidationByTrailer = useMemo(() => {
     const map = new Map<string, { totalLinearFeet: number }>();
@@ -138,7 +139,7 @@ export const TrailersPage = () => {
     setFormOpen(true);
   };
 
-  const openEdit = (trailer: TrailerPrimitives) => {
+  const openEdit = (trailer: TrailerListItem) => {
     setEditing(trailer);
     setForm({
       unitNumber: trailer.unitNumber,
@@ -314,7 +315,7 @@ export const TrailersPage = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {canCreate && t.isActive && (
+                          {canCreateConsolidation && t.isActive && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -410,6 +411,27 @@ export const TrailersPage = () => {
             <DialogTitle>{editing ? "Editar tráiler" : "Nuevo tráiler"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Un consolidado sellado guarda su propia copia del tráiler:
+                editar aquí no la cambia, y conviene saberlo antes. */}
+            {editing && editing.sealedInFolios.length > 0 && (
+              <div className="flex gap-2 rounded-md border border-status-attention/40 bg-status-attention-soft p-3 text-xs">
+                <TriangleAlert className="mt-0.5 size-4 shrink-0 text-status-attention-fg" />
+                <div className="space-y-1">
+                  <p className="font-medium">
+                    Este tráiler ya va en {editing.sealedInFolios.length} consolidado
+                    {editing.sealedInFolios.length === 1 ? " sellado" : "s sellados"}.
+                  </p>
+                  <p className="text-muted-foreground">
+                    Esos embarques conservan la unidad, el tipo y las placas que tenía al
+                    sellarse. Lo que cambies aquí solo aplica a consolidados abiertos y
+                    futuros.
+                  </p>
+                  <p className="font-mono text-muted-foreground">
+                    {editing.sealedInFolios.join(", ")}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="unitNumber">Unidad</Label>
               <Input

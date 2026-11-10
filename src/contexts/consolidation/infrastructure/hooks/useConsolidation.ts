@@ -21,7 +21,9 @@ export const useConsolidation = (id: string | undefined) =>
   });
 
 /** Mutaciones sobre un consolidado puntual: invalidan tanto su detalle como el
- * listado (el folio/etapa/capacidad que se ve ahí también cambia). */
+ * listado (el folio/etapa/capacidad que se ve ahí también cambia). También al
+ * fallar (`onSettled`): un rechazo suele ser que el consolidado cambió por
+ * otro lado, y la pantalla debe mostrar el estado real. */
 export const useConsolidationActions = (id: string) => {
   const queryClient = useQueryClient();
 
@@ -33,36 +35,36 @@ export const useConsolidationActions = (id: string) => {
   const updateDetailsMutation = useMutation({
     mutationFn: (request: UpdateConsolidationDetailsRequest) =>
       consolidationRepository.updateDetails(id, request),
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
 
   const addOrdersMutation = useMutation({
     mutationFn: (request: AddOrdersToConsolidationRequest) =>
       consolidationRepository.addOrders(id, request),
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
 
   const removeOrderMutation = useMutation({
     mutationFn: (orderId: string) =>
       consolidationRepository.removeOrder(id, orderId),
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
 
   const updateOrderCommentsMutation = useMutation({
     mutationFn: (request: UpdateConsolidationOrderCommentsRequest) =>
       consolidationRepository.updateOrderComments(id, request),
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
 
   const advanceStageMutation = useMutation({
     mutationFn: () => consolidationRepository.advanceStage(id),
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
 
   const attachEvidenceMutation = useMutation({
     mutationFn: (photos: File[]) =>
       consolidationRepository.attachEvidence(id, photos),
-    onSuccess: invalidate,
+    onSettled: invalidate,
   });
 
   return {

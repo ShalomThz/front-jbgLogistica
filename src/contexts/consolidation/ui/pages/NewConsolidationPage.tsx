@@ -99,7 +99,7 @@ export const NewConsolidationPage = () => {
 
   const handleCreate = async () => {
     try {
-      const consolidation = await createConsolidation({
+      const { consolidation, trailerInUseBy } = await createConsolidation({
         folio: folio.trim(),
         origin: { label: origin.trim(), geolocation: null },
         destination: { label: destination.trim(), geolocation: null },
@@ -109,17 +109,30 @@ export const NewConsolidationPage = () => {
         linearFeetDivisor: Number(linearFeetDivisor),
       });
 
-      if (orders.length > 0) {
-        await consolidationRepository.addOrders(consolidation.id, {
-          orders: orders.map((o) => ({
-            orderId: o.orderId,
-            linearFeet: o.linearFeet,
-            section: o.section || null,
-          })),
-        });
+      if (trailerInUseBy.length > 0) {
+        toast.warning(
+          `El tráiler también está asignado a: ${trailerInUseBy.join(", ")}`,
+        );
       }
 
-      toast.success(`Consolidado ${consolidation.folio} creado`);
+      // El consolidado ya existe: si cargarle las órdenes falla, se entra a
+      // él igual (reintentar aquí lo duplicaría) y se agregan desde ahí.
+      try {
+        if (orders.length > 0) {
+          await consolidationRepository.addOrders(consolidation.id, {
+            orders: orders.map((o) => ({
+              orderId: o.orderId,
+              linearFeet: o.linearFeet,
+              section: o.section || null,
+            })),
+          });
+        }
+        toast.success(`Consolidado ${consolidation.folio} creado`);
+      } catch (error) {
+        toast.error(
+          `Consolidado ${consolidation.folio} creado, pero no se pudieron agregar las órdenes: ${parseApiError(error)}`,
+        );
+      }
       navigate(`/consolidations/${consolidation.id}`, { replace: true });
     } catch (error) {
       toast.error(parseApiError(error));

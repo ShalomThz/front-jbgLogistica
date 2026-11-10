@@ -5,6 +5,8 @@ import {
   addOrdersToConsolidationResponseSchema,
   consolidationSchema,
   createConsolidationRequestSchema,
+  createConsolidationResponseSchema,
+  type CreateConsolidationResponse,
   findConsolidationsResponseSchema,
   getConsolidationResponseSchema,
   updateConsolidationDetailsRequestSchema,
@@ -52,13 +54,13 @@ export const consolidationRepository = {
 
   create: async (
     request: CreateConsolidationRequest,
-  ): Promise<ConsolidationPrimitives> => {
+  ): Promise<CreateConsolidationResponse> => {
     const payload = createConsolidationRequestSchema.parse(request);
     const data = await httpClient<unknown>("/consolidation", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    return consolidationSchema.parse(data);
+    return createConsolidationResponseSchema.parse(data);
   },
 
   updateDetails: async (
