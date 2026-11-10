@@ -5,9 +5,12 @@ import {
   addOrdersToConsolidationResponseSchema,
   consolidationSchema,
   createConsolidationRequestSchema,
+  createConsolidationResponseSchema,
+  type CreateConsolidationResponse,
   findConsolidationsResponseSchema,
   getConsolidationResponseSchema,
   updateConsolidationDetailsRequestSchema,
+  updateConsolidationOrderCommentsRequestSchema,
   type AddOrdersToConsolidationRequest,
   type AddOrdersToConsolidationResponse,
   type ConsolidationPrimitives,
@@ -15,6 +18,7 @@ import {
   type FindConsolidationsResponse,
   type GetConsolidationResponse,
   type UpdateConsolidationDetailsRequest,
+  type UpdateConsolidationOrderCommentsRequest,
 } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 
 interface FindConsolidationsRequest {
@@ -50,13 +54,13 @@ export const consolidationRepository = {
 
   create: async (
     request: CreateConsolidationRequest,
-  ): Promise<ConsolidationPrimitives> => {
+  ): Promise<CreateConsolidationResponse> => {
     const payload = createConsolidationRequestSchema.parse(request);
     const data = await httpClient<unknown>("/consolidation", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    return consolidationSchema.parse(data);
+    return createConsolidationResponseSchema.parse(data);
   },
 
   updateDetails: async (
@@ -94,6 +98,18 @@ export const consolidationRepository = {
     const data = await httpClient<unknown>(
       `/consolidation/${id}/orders/${orderId}`,
       { method: "DELETE" },
+    );
+    return consolidationSchema.parse(data);
+  },
+
+  updateOrderComments: async (
+    id: string,
+    request: UpdateConsolidationOrderCommentsRequest,
+  ): Promise<ConsolidationPrimitives> => {
+    const payload = updateConsolidationOrderCommentsRequestSchema.parse(request);
+    const data = await httpClient<unknown>(
+      `/consolidation/${id}/orders/comments`,
+      { method: "PUT", body: JSON.stringify(payload) },
     );
     return consolidationSchema.parse(data);
   },

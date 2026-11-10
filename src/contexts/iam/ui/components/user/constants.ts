@@ -156,12 +156,13 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 
   // Consolidados
   CAN_LIST_CONSOLIDATIONS: "Listar consolidados",
-  CAN_VIEW_CONSOLIDATIONS: "Ver el detalle de un consolidado",
+  CAN_VIEW_CONSOLIDATIONS: "Ver detalle",
   CAN_CREATE_CONSOLIDATIONS: "Crear consolidados",
   CAN_EDIT_CONSOLIDATIONS: "Editar consolidados",
   CAN_DELETE_CONSOLIDATIONS: "Eliminar consolidados",
-  CAN_MANAGE_CONSOLIDATION_PACKAGES: "Agregar o quitar órdenes de un consolidado",
-  CAN_ADVANCE_CONSOLIDATION_STAGE: "Avanzar la etapa de un consolidado",
+  CAN_MANAGE_CONSOLIDATION_PACKAGES: "Agregar o quitar órdenes",
+  CAN_ADVANCE_CONSOLIDATION_STAGE: "Avanzar etapa",
+  CAN_VERIFY_CONSOLIDATION_ORDERS: "Verificar órdenes",
 
   // Tariffs
   CAN_LIST_TARIFFS: "Listar tarifas",
@@ -296,16 +297,20 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_EDIT_TRAILERS: "Modificar los datos de un tráiler o desactivarlo.",
 
   // Consolidados
-  CAN_LIST_CONSOLIDATIONS: "Ver el tablero de consolidados (embarques de tráiler).",
-  CAN_VIEW_CONSOLIDATIONS: "Ver el detalle de un consolidado (órdenes, clientes, historial).",
-  CAN_CREATE_CONSOLIDATIONS: "Crear un nuevo consolidado y agregarle órdenes.",
+  CAN_LIST_CONSOLIDATIONS: "Ver el menú Consolidados y el tablero de embarques.",
+  CAN_VIEW_CONSOLIDATIONS:
+    "Abrir un consolidado: sus órdenes, clientes, historial, conductor y tráiler. Abrir el detalle de una orden desde ahí requiere además poder ver órdenes.",
+  CAN_CREATE_CONSOLIDATIONS:
+    "Crear un consolidado nuevo: elegir tráiler y conductor, y cargarle órdenes. Incluye agregar o quitar órdenes.",
   CAN_EDIT_CONSOLIDATIONS:
-    "Modificar los datos de un consolidado y adjuntar evidencia.",
+    "Adjuntar evidencia y comentar la revisión de las órdenes. No permite cambiar la verificación.",
   CAN_DELETE_CONSOLIDATIONS: "Eliminar permanentemente un consolidado.",
   CAN_MANAGE_CONSOLIDATION_PACKAGES:
-    "Agregar o quitar órdenes de un consolidado.",
+    "Agregar órdenes completadas a un consolidado y quitarlas del embarque.",
   CAN_ADVANCE_CONSOLIDATION_STAGE:
-    "Avanzar la etapa de un consolidado (preparación → ... → conciliado).",
+    "Avanzar un consolidado a su siguiente etapa (preparación → ... → conciliado).",
+  CAN_VERIFY_CONSOLIDATION_ORDERS:
+    "Revisar las órdenes del embarque: marcar Revisado / Pendiente / Alerta, elegir el usuario verificador, comentar y guardar la revisión.",
 
   // Tariffs
   CAN_LIST_TARIFFS: "Ver la lista de tarifas configuradas.",
@@ -463,6 +468,7 @@ export const PERMISSION_GROUPS: {
         "CAN_DELETE_CONSOLIDATIONS",
         "CAN_MANAGE_CONSOLIDATION_PACKAGES",
         "CAN_ADVANCE_CONSOLIDATION_STAGE",
+        "CAN_VERIFY_CONSOLIDATION_ORDERS",
       ],
     },
     {

@@ -8,7 +8,7 @@ export const trailerSchema = z.object({
   type: z.string().min(1, "El tipo de tráiler es requerido"),
   plates: z.string().min(1, "Las placas son requeridas"),
   capacityLinearFeet: z.number().positive("La capacidad debe ser mayor a 0"),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
   ...aggregateRootSchema.shape,
 });
 
@@ -29,8 +29,17 @@ export const updateTrailerRequestSchema = createTrailerRequestSchema
 
 export type UpdateTrailerRequest = z.infer<typeof updateTrailerRequestSchema>;
 
+// Tráiler como llega en el listado: además trae en qué consolidados ya
+// sellados va. Esos embarques guardan su propia copia de unidad, tipo y
+// placas, así que editar el tráiler no los cambia.
+export const trailerListItemSchema = trailerSchema.extend({
+  sealedInFolios: z.array(z.string()),
+});
+
+export type TrailerListItem = z.infer<typeof trailerListItemSchema>;
+
 export const findTrailersResponseSchema = z.object({
-  data: z.array(trailerSchema),
+  data: z.array(trailerListItemSchema),
   pagination: paginationSchema,
 });
 

@@ -123,6 +123,9 @@ interface OrderDetailDialogProps {
   isCancelling?: boolean;
   sendingInvoiceOrderId?: string | null;
   onSendInvoiceEmail?: (order: OrderListView) => void;
+  /** Pestaña con la que abre cada vez (p. ej. "historial" para ir directo a
+   * la línea de tiempo). */
+  defaultTab?: string;
 }
 
 export const OrderDetailDialog = ({
@@ -133,6 +136,7 @@ export const OrderDetailDialog = ({
   isCancelling,
   sendingInvoiceOrderId,
   onSendInvoiceEmail,
+  defaultTab = "resumen",
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -140,9 +144,17 @@ export const OrderDetailDialog = ({
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [cancelShipmentOpen, setCancelShipmentOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("resumen");
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const { boxes } = useBoxes({ enabled: open });
   const { data: signatureData, isLoading: isLoadingSignature } = useMedia(order?.customerSignature);
+
+  // Cada apertura arranca en `defaultTab`, no en la última pestaña vista —
+  // se ajusta en render al detectar el cambio de `open`, sin efecto.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setActiveTab(defaultTab);
+  }
 
   useEffect(() => {
     if (!open && pendingRoute) {

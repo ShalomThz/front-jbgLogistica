@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Badge,
@@ -21,8 +21,9 @@ import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
 import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
 import { TrailerCardList } from "@contexts/consolidation/ui/components/TrailerCardList";
+import { DEFAULT_LINEAR_FEET_DIVISOR } from "@contexts/consolidation/domain/calculateLinearFeet";
 import { StepIndicator } from "@contexts/order-flow/ui/components/shared/StepIndicator";
-import { ArrowLeft, Container, Package, Truck, User } from "lucide-react";
+import { ArrowLeft, Container, Package, Ruler, Truck, User } from "lucide-react";
 
 const steps = [
   { key: "datos", label: "Datos del consolidado" },
@@ -40,6 +41,7 @@ type StepKey = (typeof steps)[number]["key"];
  */
 export const NewConsolidationPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { createConsolidation, isCreating } = useConsolidations();
   const { drivers } = useDrivers({ filters: [] });
   const { trailers } = useTrailers();
@@ -52,6 +54,9 @@ export const NewConsolidationPage = () => {
   const [trailerId, setTrailerId] = useState<string>("");
   const [driverId, setDriverId] = useState<string>("");
   const [capacityLinearFeet, setCapacityLinearFeet] = useState("53");
+  const [linearFeetDivisor, setLinearFeetDivisor] = useState(
+    String(DEFAULT_LINEAR_FEET_DIVISOR),
+  );
 
   const [orders, setOrders] = useState<SelectedOrder[]>([]);
 
@@ -62,7 +67,8 @@ export const NewConsolidationPage = () => {
     !!origin.trim() &&
     !!destination.trim() &&
     !!trailerId &&
-    Number(capacityLinearFeet) > 0;
+    Number(capacityLinearFeet) > 0 &&
+    Number(linearFeetDivisor) > 0;
 
   const hasInvalidOrder = orders.some((o) => !o.linearFeet || o.linearFeet <= 0);
   const ordenesComplete = orders.length === 0 || !hasInvalidOrder;
@@ -78,28 +84,55 @@ export const NewConsolidationPage = () => {
     if (trailer) setCapacityLinearFeet(String(trailer.capacityLinearFeet));
   };
 
+  // Preselecciona la unidad cuando se llega desde "Crear consolidado" en la
+  // fila de un tráiler (Tráilers → ?trailerId=...), en vez de que el admin
+  // tenga que volver a buscarla en la lista.
+  useEffect(() => {
+    const paramTrailerId = searchParams.get("trailerId");
+    if (paramTrailerId && trailers.some((t) => t.id === paramTrailerId)) {
+      // One-time preselect from the URL once trailers finish loading.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      handleSelectTrailer(paramTrailerId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trailers, searchParams]);
+
   const handleCreate = async () => {
     try {
-      const consolidation = await createConsolidation({
+      const { consolidation, trailerInUseBy } = await createConsolidation({
         folio: folio.trim(),
         origin: { label: origin.trim(), geolocation: null },
         destination: { label: destination.trim(), geolocation: null },
         trailerId: trailerId || null,
         driverId: driverId || null,
         capacityLinearFeet: Number(capacityLinearFeet),
+        linearFeetDivisor: Number(linearFeetDivisor),
       });
 
-      if (orders.length > 0) {
-        await consolidationRepository.addOrders(consolidation.id, {
-          orders: orders.map((o) => ({
-            orderId: o.orderId,
-            linearFeet: o.linearFeet,
-            section: o.section || null,
-          })),
-        });
+      if (trailerInUseBy.length > 0) {
+        toast.warning(
+          `El tráiler también está asignado a: ${trailerInUseBy.join(", ")}`,
+        );
       }
 
-      toast.success(`Consolidado ${consolidation.folio} creado`);
+      // El consolidado ya existe: si cargarle las órdenes falla, se entra a
+      // él igual (reintentar aquí lo duplicaría) y se agregan desde ahí.
+      try {
+        if (orders.length > 0) {
+          await consolidationRepository.addOrders(consolidation.id, {
+            orders: orders.map((o) => ({
+              orderId: o.orderId,
+              linearFeet: o.linearFeet,
+              section: o.section || null,
+            })),
+          });
+        }
+        toast.success(`Consolidado ${consolidation.folio} creado`);
+      } catch (error) {
+        toast.error(
+          `Consolidado ${consolidation.folio} creado, pero no se pudieron agregar las órdenes: ${parseApiError(error)}`,
+        );
+      }
       navigate(`/consolidations/${consolidation.id}`, { replace: true });
     } catch (error) {
       toast.error(parseApiError(error));
@@ -206,6 +239,24 @@ export const NewConsolidationPage = () => {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="linear-feet-divisor" className="flex items-center gap-1.5">
+                  <Ruler className="size-3.5 text-muted-foreground" />
+                  Divisor para pies lineales
+                </Label>
+                <Input
+                  id="linear-feet-divisor"
+                  type="number"
+                  min={1}
+                  value={linearFeetDivisor}
+                  onChange={(e) => setLinearFeetDivisor(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Al agregar una orden se sugieren sus pies lineales con
+                  alto×largo×ancho (pulgadas) de su caja ÷ este número —
+                  siempre editable después.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -218,6 +269,7 @@ export const NewConsolidationPage = () => {
               selected={orders}
               onChange={setOrders}
               capacityLinearFeet={Number(capacityLinearFeet) || 0}
+              linearFeetDivisor={Number(linearFeetDivisor) || DEFAULT_LINEAR_FEET_DIVISOR}
             />
           </div>
         </div>
