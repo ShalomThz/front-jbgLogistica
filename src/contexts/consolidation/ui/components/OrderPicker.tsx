@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Badge, Button, Checkbox, Input } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { Eraser, Package, Search, Trash2 } from "lucide-react";
 import { orderRepository } from "@contexts/sales/infrastructure/services/orders/orderRepository";
+import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
 import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
@@ -20,6 +21,7 @@ export interface SelectedOrder {
   orderId: string;
   linearFeet: number;
   section: string;
+  displayLabel?: string;
 }
 
 interface Props {
@@ -58,24 +60,37 @@ export const OrderPicker = ({
 }: Props) => {
   const [search, setSearch] = useState("");
   const reduceMotion = useReducedMotion();
+  const debouncedSearch = useDebouncedValue(search.trim());
 
-  const { data, isLoading } = useQuery({
-    // Bajo `CONSOLIDATIONS_QUERY_KEY` para que agregar/quitar órdenes de un
-    // consolidado (que ya invalidan esa llave) refresque los disponibles.
-    queryKey: [...CONSOLIDATIONS_QUERY_KEY, "available-orders"],
-    queryFn: () =>
+  const {
+    data, isLoading, isError, fetchNextPage, hasNextPage,
+    isFetchingNextPage, refetch,
+  } = useInfiniteQuery({
+    // Agregar/quitar órdenes invalida también todas las búsquedas del selector.
+    queryKey: [...CONSOLIDATIONS_QUERY_KEY, "available-orders", debouncedSearch],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
       orderRepository.find({
         filters: [
           { field: "consolidationId", filterOperator: "IS_NULL", value: null },
           { field: "status", filterOperator: "=", value: "COMPLETED" },
         ],
-        limit: 200,
-        offset: 0,
+        search: debouncedSearch || undefined,
+        limit: 50,
+        offset: pageParam,
       }),
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasMore && lastPage.data.length > 0
+        ? lastPage.pagination.offset + lastPage.data.length
+        : undefined,
   });
 
   const available = useMemo(
-    () => (data?.data ?? []).filter((o) => !o.consolidationId),
+    () => [...new Map(
+      (data?.pages.flatMap((page) => page.data) ?? [])
+        .filter((o) => !o.consolidationId)
+        .map((o) => [o.id, o]),
+    ).values()],
     [data],
   );
 
@@ -83,21 +98,6 @@ export const OrderPicker = ({
     () => new Map(available.map((o) => [o.id, o])),
     [available],
   );
-
-  const filtered = search.trim()
-    ? available.filter((o) => {
-        const q = search.toLowerCase();
-        return (
-          o.destination.name.toLowerCase().includes(q) ||
-          o.destination.company.toLowerCase().includes(q) ||
-          o.destination.address.city?.toLowerCase().includes(q) ||
-          o.store.name.toLowerCase().includes(q) ||
-          o.references.orderNumber?.toLowerCase().includes(q) ||
-          o.references.partnerOrderNumber?.toLowerCase().includes(q) ||
-          o.id.toLowerCase().includes(q)
-        );
-      })
-    : available;
 
   const selectedIds = selected.map((s) => s.orderId);
 
@@ -115,7 +115,10 @@ export const OrderPicker = ({
       : 0;
     onChange([
       ...selected,
-      { orderId, linearFeet: suggestedLinearFeet, section: "" },
+      {
+        orderId, linearFeet: suggestedLinearFeet, section: "",
+        displayLabel: order?.references.orderNumber ?? order?.references.partnerOrderNumber ?? orderId.slice(0, 8).toUpperCase(),
+      },
     ]);
   };
 
@@ -127,7 +130,7 @@ export const OrderPicker = ({
 
   const labelFor = (orderId: string) => {
     const order = ordersById.get(orderId);
-    if (!order) return orderId.slice(0, 8).toUpperCase();
+    if (!order) return selected.find((s) => s.orderId === orderId)?.displayLabel ?? orderId.slice(0, 8).toUpperCase();
     return (
       order.references.orderNumber ??
       order.references.partnerOrderNumber ??
@@ -159,7 +162,7 @@ export const OrderPicker = ({
             <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Buscar por cliente, origen, destino o referencia…"
+              placeholder="Buscar por cliente, número de cliente, referencia o guía…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
@@ -170,18 +173,23 @@ export const OrderPicker = ({
             <div className="flex flex-1 items-center justify-center py-10 text-sm text-muted-foreground">
               Cargando órdenes disponibles…
             </div>
-          ) : filtered.length === 0 ? (
+          ) : isError && available.length === 0 ? (
+            <div className="py-10 text-center text-sm text-destructive">
+              <p>No se pudieron cargar las órdenes.</p>
+              <Button type="button" variant="outline" onClick={() => void refetch()}>Reintentar</Button>
+            </div>
+          ) : available.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
               <Package className="size-8 opacity-30" />
               <p className="text-sm">
-                {available.length === 0
+                {!debouncedSearch
                   ? "No hay órdenes disponibles para consolidar"
                   : "Sin resultados para esa búsqueda"}
               </p>
             </div>
           ) : (
             <div className="min-h-0 flex-1 divide-y overflow-y-auto rounded-md border">
-              {filtered.map((o) => {
+              {available.map((o) => {
                 const isSelected = selectedIds.includes(o.id);
                 return (
                   <div
@@ -231,6 +239,14 @@ export const OrderPicker = ({
                   </div>
                 );
               })}
+              {hasNextPage && (
+                <div className="p-3 text-center">
+                  {isError && <p className="text-sm text-destructive">No se pudieron cargar más órdenes.</p>}
+                  <Button type="button" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+                    {isFetchingNextPage ? "Cargando…" : "Cargar más órdenes"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
