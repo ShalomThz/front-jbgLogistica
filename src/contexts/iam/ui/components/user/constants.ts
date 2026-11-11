@@ -303,7 +303,7 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   CAN_CREATE_CONSOLIDATIONS:
     "Crear un consolidado nuevo: elegir tráiler y conductor, y cargarle órdenes. Incluye agregar o quitar órdenes.",
   CAN_EDIT_CONSOLIDATIONS:
-    "Adjuntar evidencia y comentar la revisión de las órdenes. No permite cambiar la verificación.",
+    "Editar los datos de un consolidado en preparación, adjuntar evidencia y comentar la revisión de sus órdenes. No permite cambiar la verificación.",
   CAN_DELETE_CONSOLIDATIONS: "Eliminar permanentemente un consolidado.",
   CAN_MANAGE_CONSOLIDATION_PACKAGES:
     "Agregar órdenes completadas a un consolidado y quitarlas del embarque.",

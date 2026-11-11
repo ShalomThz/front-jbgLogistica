@@ -7,13 +7,15 @@ interface Props {
   trailers: TrailerPrimitives[];
   selectedId: string;
   onSelect: (id: string) => void;
+  /** Id de la etiqueta visible del grupo, para lectores de pantalla. */
+  labelledBy?: string;
 }
 
 /** Lista de unidades elegibles como tarjetas — cada una se ve y se siente
  * como un vehículo real (ícono, estado, capacidad), no una fila de combo
  * box. Mismo espíritu que un selector de flota: tocar la tarjeta es "elegir
  * ese camión". */
-export const TrailerCardList = ({ trailers, selectedId, onSelect }: Props) => {
+export const TrailerCardList = ({ trailers, selectedId, onSelect, labelledBy }: Props) => {
   if (trailers.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
@@ -27,13 +29,19 @@ export const TrailerCardList = ({ trailers, selectedId, onSelect }: Props) => {
   }
 
   return (
-    <div className="max-h-64 space-y-2 overflow-y-auto pr-0.5">
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      className="max-h-64 space-y-2 overflow-y-auto pr-0.5"
+    >
       {trailers.map((t) => {
         const isSelected = t.id === selectedId;
         return (
           <button
             key={t.id}
             type="button"
+            role="radio"
+            aria-checked={isSelected}
             onClick={() => onSelect(t.id)}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.98]",

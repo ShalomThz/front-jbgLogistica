@@ -1,354 +1,137 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@contexts/shared/shadcn";
-import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { FormProvider, useWatch } from "react-hook-form";
+import { Button } from "@contexts/shared/shadcn";
+import { cn } from "@contexts/shared/shadcn/lib/utils";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useDrivers } from "@contexts/shipping/infrastructure/hooks/drivers/useDrivers";
-import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
-import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
-import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
-import { OrderPicker, type SelectedOrder } from "@contexts/consolidation/ui/components/OrderPicker";
-import { TrailerCardList } from "@contexts/consolidation/ui/components/TrailerCardList";
-import { DEFAULT_LINEAR_FEET_DIVISOR } from "@contexts/consolidation/domain/calculateLinearFeet";
 import { StepIndicator } from "@contexts/order-flow/ui/components/shared/StepIndicator";
-import { ArrowLeft, Container, Package, Ruler, Truck, User } from "lucide-react";
-
-const steps = [
-  { key: "datos", label: "Datos del consolidado" },
-  { key: "ordenes", label: "Agregar órdenes" },
-  { key: "revisar", label: "Revisar y crear" },
-] as const;
-
-type StepKey = (typeof steps)[number]["key"];
+import { useNewConsolidationFlow } from "@contexts/consolidation/ui/hooks/useNewConsolidationFlow";
+import { ConsolidationDetailsStep } from "@contexts/consolidation/ui/components/new-consolidation/ConsolidationDetailsStep";
+import { ConsolidationOrdersStep } from "@contexts/consolidation/ui/components/new-consolidation/ConsolidationOrdersStep";
+import { ConsolidationReviewStep } from "@contexts/consolidation/ui/components/new-consolidation/ConsolidationReviewStep";
+import { TrailerInUseDialog } from "@contexts/consolidation/ui/components/new-consolidation/TrailerInUseDialog";
 
 /**
- * Alta de un consolidado: página de 3 pasos en vez de un diálogo —demasiados
- * datos para un modal, mismo criterio que `NewHQOrderPage`. A diferencia de
- * ese flujo (varios archivos + hook propio), este wizard es más chico y se
- * resuelve en un solo archivo con estado local.
+ * Alta de un consolidado en 3 pasos (datos → órdenes → revisar). El estado y
+ * la validación por paso viven en `useNewConsolidationFlow`; cada paso es su
+ * propio componente.
+ *
+ * Tres capas, como los modales de la app: header y footer fijos y sólo el
+ * contenido scrollea. La página ocupa todo el alto del área del layout, así
+ * que el footer con las acciones siempre queda a la vista.
  */
 export const NewConsolidationPage = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { createConsolidation, isCreating } = useConsolidations();
-  const { drivers } = useDrivers({ filters: [] });
-  const { trailers } = useTrailers();
+  const flow = useNewConsolidationFlow();
+  const { drivers: allDrivers } = useDrivers({ filters: [] });
+  // Igual que la página de Conductores: los dados de baja no se ofrecen.
+  const drivers = allDrivers.filter((d) => d.user.isActive);
 
-  const [step, setStep] = useState<StepKey>("datos");
-
-  const [folio, setFolio] = useState("");
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [trailerId, setTrailerId] = useState<string>("");
-  const [driverId, setDriverId] = useState<string>("");
-  const [capacityLinearFeet, setCapacityLinearFeet] = useState("53");
-  const [linearFeetDivisor, setLinearFeetDivisor] = useState(
-    String(DEFAULT_LINEAR_FEET_DIVISOR),
-  );
-
-  const [orders, setOrders] = useState<SelectedOrder[]>([]);
-
-  const activeTrailers = trailers.filter((t) => t.isActive);
-
-  const datosComplete =
-    !!folio.trim() &&
-    !!origin.trim() &&
-    !!destination.trim() &&
-    !!trailerId &&
-    Number(capacityLinearFeet) > 0 &&
-    Number(linearFeetDivisor) > 0;
-
-  const hasInvalidOrder = orders.some((o) => !o.linearFeet || o.linearFeet <= 0);
-  const ordenesComplete = orders.length === 0 || !hasInvalidOrder;
-
+  const [trailerId, orders, capacity] = useWatch({
+    control: flow.form.control,
+    name: ["trailerId", "orders", "capacityLinearFeet"],
+  });
+  const trailer = flow.trailers.find((t) => t.id === trailerId);
   const totalLinearFeet = orders.reduce((sum, o) => sum + (o.linearFeet || 0), 0);
-  const overCapacity = totalLinearFeet > Number(capacityLinearFeet || 0);
-  const selectedDriver = drivers.find((d) => d.id === driverId);
-  const selectedTrailer = trailers.find((t) => t.id === trailerId);
-
-  const handleSelectTrailer = (id: string) => {
-    setTrailerId(id);
-    const trailer = trailers.find((t) => t.id === id);
-    if (trailer) setCapacityLinearFeet(String(trailer.capacityLinearFeet));
-  };
-
-  // Preselecciona la unidad cuando se llega desde "Crear consolidado" en la
-  // fila de un tráiler (Tráilers → ?trailerId=...), en vez de que el admin
-  // tenga que volver a buscarla en la lista.
-  useEffect(() => {
-    const paramTrailerId = searchParams.get("trailerId");
-    if (paramTrailerId && trailers.some((t) => t.id === paramTrailerId)) {
-      // One-time preselect from the URL once trailers finish loading.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      handleSelectTrailer(paramTrailerId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trailers, searchParams]);
-
-  const handleCreate = async () => {
-    try {
-      const { consolidation, trailerInUseBy } = await createConsolidation({
-        folio: folio.trim(),
-        origin: { label: origin.trim(), geolocation: null },
-        destination: { label: destination.trim(), geolocation: null },
-        trailerId: trailerId || null,
-        driverId: driverId || null,
-        capacityLinearFeet: Number(capacityLinearFeet),
-        linearFeetDivisor: Number(linearFeetDivisor),
-      });
-
-      if (trailerInUseBy.length > 0) {
-        toast.warning(
-          `El tráiler también está asignado a: ${trailerInUseBy.join(", ")}`,
-        );
-      }
-
-      // El consolidado ya existe: si cargarle las órdenes falla, se entra a
-      // él igual (reintentar aquí lo duplicaría) y se agregan desde ahí.
-      try {
-        if (orders.length > 0) {
-          await consolidationRepository.addOrders(consolidation.id, {
-            orders: orders.map((o) => ({
-              orderId: o.orderId,
-              linearFeet: o.linearFeet,
-              section: o.section || null,
-            })),
-          });
-        }
-        toast.success(`Consolidado ${consolidation.folio} creado`);
-      } catch (error) {
-        toast.error(
-          `Consolidado ${consolidation.folio} creado, pero no se pudieron agregar las órdenes: ${parseApiError(error)}`,
-        );
-      }
-      navigate(`/consolidations/${consolidation.id}`, { replace: true });
-    } catch (error) {
-      toast.error(parseApiError(error));
-    }
-  };
-
-  const goNext = () => setStep(steps[steps.findIndex((s) => s.key === step) + 1].key);
-  const goPrev = () => setStep(steps[steps.findIndex((s) => s.key === step) - 1].key);
-
-  const nextDisabled =
-    (step === "datos" && !datosComplete) || (step === "ordenes" && !ordenesComplete);
+  const overCapacity = totalLinearFeet > (Number(capacity) || 0);
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-6">
-      <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/consolidations")}>
-          <ArrowLeft className="size-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">Nuevo consolidado</h1>
-      </div>
-
-      <div className="flex justify-center">
-        <StepIndicator steps={[...steps]} currentStep={step} onStepClick={setStep} />
-      </div>
-
-      {step === "datos" && (
-        <div className="mx-auto grid w-full max-w-4xl gap-4 lg:grid-cols-2">
-          <Card>
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Container className="size-4 text-muted-foreground" />
-                Identificación y ruta
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="folio">Folio</Label>
-                <Input
-                  id="folio"
-                  placeholder="Ej. MX-0927-01"
-                  value={folio}
-                  onChange={(e) => setFolio(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="origin">Origen</Label>
-                  <Input
-                    id="origin"
-                    placeholder="Ej. Los Ángeles, CA"
-                    value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="destination">Destino</Label>
-                  <Input
-                    id="destination"
-                    placeholder="Ej. Ciudad de México, CDMX"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Truck className="size-4 text-muted-foreground" />
-                Unidad y conductor
-              </div>
-              <div className="space-y-2">
-                <Label>Tráiler</Label>
-                <TrailerCardList
-                  trailers={activeTrailers}
-                  selectedId={trailerId}
-                  onSelect={handleSelectTrailer}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Conductor</Label>
-                  <Select value={driverId} onValueChange={setDriverId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sin asignar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {drivers.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.user.name} · {d.licenseNumber}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="capacity">Capacidad (pies lineales)</Label>
-                  <Input
-                    id="capacity"
-                    type="number"
-                    min={1}
-                    value={capacityLinearFeet}
-                    onChange={(e) => setCapacityLinearFeet(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="linear-feet-divisor" className="flex items-center gap-1.5">
-                  <Ruler className="size-3.5 text-muted-foreground" />
-                  Divisor para pies lineales
-                </Label>
-                <Input
-                  id="linear-feet-divisor"
-                  type="number"
-                  min={1}
-                  value={linearFeetDivisor}
-                  onChange={(e) => setLinearFeetDivisor(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Al agregar una orden se sugieren sus pies lineales con
-                  alto×largo×ancho (pulgadas) de su caja ÷ este número —
-                  siempre editable después.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Header */}
+      <header className="flex shrink-0 flex-col gap-3 border-b pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={flow.step === "datos" ? "Volver a consolidados" : "Paso anterior"}
+            onClick={flow.handleBack}
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+          <h1 className="text-xl font-bold sm:text-2xl">Nuevo consolidado</h1>
         </div>
-      )}
-
-      {step === "ordenes" && (
-        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3">
-          <div className="min-h-0 flex-1">
-            <OrderPicker
-              selected={orders}
-              onChange={setOrders}
-              capacityLinearFeet={Number(capacityLinearFeet) || 0}
-              linearFeetDivisor={Number(linearFeetDivisor) || DEFAULT_LINEAR_FEET_DIVISOR}
+        {/* En pantallas angostas los pasos scrollean de lado en vez de
+            romper la línea: `w-max` impide que las pastillas se encojan. */}
+        <div className="-mx-1 overflow-x-auto px-1 pb-1 md:pb-0">
+          <div className="w-max">
+            <StepIndicator
+              steps={flow.steps}
+              currentStep={flow.step}
+              onStepClick={flow.navigateToStep}
             />
           </div>
         </div>
-      )}
+      </header>
 
-      {step === "revisar" && (
-        <div className="mx-auto w-full max-w-2xl space-y-4">
-          <Card>
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-mono text-lg font-semibold">{folio}</p>
-                <Badge variant="outline">{origin} → {destination}</Badge>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Truck className="size-4 shrink-0 text-muted-foreground" />
-                  <span>
-                    {selectedTrailer
-                      ? `${selectedTrailer.unitNumber} · ${selectedTrailer.type} · ${selectedTrailer.plates}`
-                      : "Sin tráiler asignado"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="size-4 shrink-0 text-muted-foreground" />
-                  <span>{selectedDriver ? `${selectedDriver.user.name} · ${selectedDriver.licenseNumber}` : "Sin conductor asignado"}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Content: sólo esto scrollea. `section` y no `main`: el layout ya
+          tiene el `main` de la página. */}
+      <section
+        aria-label="Contenido del paso"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto py-4 sm:py-6"
+      >
+        <FormProvider {...flow.form}>
+          {flow.step === "datos" && (
+            <ConsolidationDetailsStep
+              trailers={flow.trailers}
+              drivers={drivers}
+              onSelectTrailer={flow.selectTrailer}
+            />
+          )}
+          {flow.step === "ordenes" && <ConsolidationOrdersStep />}
+          {flow.step === "revisar" && (
+            <ConsolidationReviewStep
+              trailers={flow.trailers}
+              drivers={drivers}
+              onEdit={flow.navigateToStep}
+              showOrders={flow.canManageOrders}
+            />
+          )}
+        </FormProvider>
+      </section>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="flex items-center gap-3 p-5">
-                <div className="rounded-full bg-muted p-2.5 text-primary">
-                  <Package className="size-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Órdenes</p>
-                  <p className="text-2xl font-bold">{orders.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-5">
-                <p className="text-xs text-muted-foreground">Capacidad</p>
-                <p
-                  className={`text-2xl font-bold ${overCapacity ? "text-destructive" : ""}`}
-                >
-                  {totalLinearFeet.toFixed(1)}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {" "}
-                    / {capacityLinearFeet} ft
-                  </span>
-                </p>
-                {overCapacity && (
-                  <p className="text-xs font-medium text-destructive">
-                    Por encima de la capacidad
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+      {/* Footer */}
+      <footer className="flex shrink-0 items-center gap-3 border-t pt-4">
+        {/* Resumen vivo de lo que se lleva capturado; en móvil no cabe junto
+            a los botones. */}
+        <div className="hidden min-w-0 flex-1 truncate text-sm text-muted-foreground sm:block">
+          {trailer ? (
+            <span className="font-mono font-medium text-foreground">{trailer.unitNumber}</span>
+          ) : (
+            "Sin tráiler"
+          )}
+          {" · "}
+          {orders.length} orden{orders.length === 1 ? "" : "es"}
+          {" · "}
+          <span className={cn(overCapacity && "font-medium text-destructive")}>
+            {totalLinearFeet.toFixed(1)} / {Number(capacity) || 0} ft
+          </span>
         </div>
-      )}
 
-      <div className="mx-auto mt-auto flex w-full max-w-2xl justify-between border-t pt-4">
-        <Button variant="outline" onClick={() => (step === "datos" ? navigate("/consolidations") : goPrev())}>
-          {step === "datos" ? "Cancelar" : "Anterior"}
-        </Button>
-        {step !== "revisar" ? (
-          <Button disabled={nextDisabled} onClick={goNext}>
-            Siguiente
+        <div className="flex flex-1 gap-2 sm:flex-none">
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={flow.handleBack}>
+            {flow.step === "datos" ? "Cancelar" : "Anterior"}
           </Button>
-        ) : (
-          <Button onClick={handleCreate} disabled={isCreating}>
-            {isCreating ? "Creando..." : "Crear consolidado"}
-          </Button>
-        )}
-      </div>
+          {flow.step === "revisar" ? (
+            <Button
+              className="flex-1 sm:flex-none"
+              onClick={flow.handleCreate}
+              disabled={flow.submitting}
+            >
+              {flow.submitting && <Loader2 className="size-4 animate-spin" />}
+              {flow.submitting ? "Creando..." : "Crear consolidado"}
+            </Button>
+          ) : (
+            <Button className="flex-1 sm:flex-none" onClick={flow.handleNext}>
+              Siguiente
+              <ArrowRight className="size-4" />
+            </Button>
+          )}
+        </div>
+      </footer>
+
+      <TrailerInUseDialog
+        trailer={flow.trailerToConfirm}
+        onConfirm={flow.confirmTrailer}
+        onCancel={flow.cancelTrailer}
+      />
     </div>
   );
 };

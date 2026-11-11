@@ -23,6 +23,9 @@ export const consolidationPolicies = {
 
   // Catálogo de tráilers
   listTrailers: hasAll("CAN_LIST_TRAILERS"),
+  // Leer el catálogo: también quien crea consolidados, para elegir el tráiler.
+  // Sólo protege la ruta; la página de Tráilers sigue pidiendo `listTrailers`.
+  findTrailers: hasAny("CAN_LIST_TRAILERS", "CAN_CREATE_CONSOLIDATIONS"),
   createTrailers: hasAll("CAN_CREATE_TRAILERS"),
   editTrailers: hasAll("CAN_EDIT_TRAILERS"),
 };

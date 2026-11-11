@@ -3,6 +3,9 @@ import { hasAll, hasAny } from "./Policy";
 export const orderPolicies = {
   // List (unificado)
   list: hasAll("CAN_LIST_ORDERS"),
+  // Buscar órdenes: también quien agrega órdenes a un consolidado, para el
+  // selector de órdenes disponibles. Sólo protege `/order/find`.
+  find: hasAny("CAN_LIST_ORDERS", "CAN_MANAGE_CONSOLIDATION_PACKAGES"),
   listAll: hasAll("CAN_LIST_ALL_ORDERS"),
 
   // Partner

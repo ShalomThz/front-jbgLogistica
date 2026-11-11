@@ -5,6 +5,7 @@ import type {
   FindConsolidationsResponse,
 } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
+import { TRAILERS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
 
 export const CONSOLIDATIONS_QUERY_KEY = ["consolidations"] as const;
 
@@ -37,6 +38,8 @@ export const useConsolidations = ({
       consolidationRepository.create(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+      // El catálogo de tráilers dice en qué consolidados va cada uno.
+      queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
     },
   });
 
@@ -44,6 +47,8 @@ export const useConsolidations = ({
     mutationFn: (id: string) => consolidationRepository.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+      // El catálogo de tráilers dice en qué consolidados va cada uno.
+      queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
     },
   });
 

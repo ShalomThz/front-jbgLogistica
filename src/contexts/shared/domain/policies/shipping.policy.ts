@@ -23,6 +23,15 @@ export const shippingPolicies = {
 
   // Drivers
   listDrivers: hasAll("CAN_LIST_DRIVERS"),
+  // Buscar conductores: también quien crea/edita rutas o crea consolidados
+  // (para asignarlos). Sólo protege `/driver/find`; la página de Conductores
+  // sigue pidiendo `listDrivers`.
+  findDrivers: hasAny(
+    "CAN_LIST_DRIVERS",
+    "CAN_CREATE_ROUTES",
+    "CAN_EDIT_ROUTES",
+    "CAN_CREATE_CONSOLIDATIONS",
+  ),
   createDrivers: hasAll("CAN_CREATE_DRIVERS"),
   editDrivers: hasAll("CAN_EDIT_DRIVERS"),
 };

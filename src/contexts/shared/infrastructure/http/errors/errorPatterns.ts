@@ -6,6 +6,7 @@ export const messageFallbacks: Array<{ pattern: RegExp; code: string }> = [
   { pattern: /email.*already.*(taken|in use)|already.*(taken|in use).*email/i, code: "EMAIL_ALREADY_TAKEN" },
   { pattern: /phone.*already.*(taken|in use)|already.*(taken|in use).*phone/i, code: "PHONE_ALREADY_TAKEN" },
   { pattern: /order.*same partner order number.*already exists/i, code: "ORDER_DUPLICATE_PARTNER_NUMBER" },
+  { pattern: /ya existe un consolidado con el folio/i, code: "CONSOLIDATION_FOLIO_TAKEN" },
   { pattern: /order.*same references.*already exists/i, code: "ORDER_DUPLICATE_REFERENCES" },
   // Antes del comodín `/already exists/` de abajo, que lo leería como una caja.
   { pattern: /an order with this id already exists/i, code: "ORDER_ID_CONFLICT" },

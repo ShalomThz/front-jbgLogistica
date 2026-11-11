@@ -91,6 +91,11 @@ export const errorTranslations: Record<string, Record<Lang, string>> = {
     en: "That payment was already recorded with different data. Check the ledger before recording it again.",
     pt: "Esse pagamento já foi registrado com outros dados. Confira o livro antes de registrá-lo de novo.",
   },
+  CONSOLIDATION_FOLIO_TAKEN: {
+    es: "Ya existe un consolidado con ese folio",
+    en: "A consolidation with that folio already exists",
+    pt: "Já existe uma consolidação com esse fólio",
+  },
   ORDER_ID_CONFLICT: {
     es: "Esta orden ya se creó desde otra sesión. Recarga la página y búscala en la lista de órdenes.",
     en: "This order was already created from another session. Reload the page and find it in the orders list.",
