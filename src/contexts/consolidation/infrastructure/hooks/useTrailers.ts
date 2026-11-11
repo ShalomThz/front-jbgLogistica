@@ -4,19 +4,19 @@ import type {
   UpdateTrailerRequest,
 } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 import { trailerRepository } from "@contexts/consolidation/infrastructure/services/trailerRepository";
-
-export const TRAILERS_QUERY_KEY = ["trailers"] as const;
+import { consolidationKeys } from "./consolidationKeys";
+import { trailerKeys } from "./trailerKeys";
 
 export const useTrailers = () => {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: TRAILERS_QUERY_KEY,
+    queryKey: trailerKeys.all,
     queryFn: () => trailerRepository.find({ limit: 200 }),
   });
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: trailerKeys.all });
 
   const createMutation = useMutation({
     mutationFn: (request: CreateTrailerRequest) =>
@@ -27,7 +27,11 @@ export const useTrailers = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, request }: { id: string; request: UpdateTrailerRequest }) =>
       trailerRepository.update(id, request),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      // El listado y el detalle de consolidados muestran unidad y placas.
+      queryClient.invalidateQueries({ queryKey: consolidationKeys.all });
+    },
   });
 
   return {

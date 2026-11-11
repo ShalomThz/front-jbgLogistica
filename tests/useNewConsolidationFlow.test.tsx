@@ -15,8 +15,8 @@ const { trailers, createConsolidation, addOrders, toast, permissions } = vi.hois
 vi.mock("@contexts/consolidation/infrastructure/hooks/useTrailers", () => ({
   useTrailers: () => ({ trailers: trailers.current }),
 }));
-vi.mock("@contexts/consolidation/infrastructure/hooks/useConsolidations", () => ({
-  useConsolidations: () => ({ createConsolidation }),
+vi.mock("@contexts/consolidation/infrastructure/hooks/useCreateConsolidation", () => ({
+  useCreateConsolidation: () => ({ createConsolidation }),
 }));
 vi.mock("@contexts/consolidation/infrastructure/services/consolidationRepository", () => ({
   consolidationRepository: { addOrders },
@@ -39,6 +39,7 @@ function trailer(id: string, openInFolios: string[]) {
     isActive: true,
     sealedInFolios: [],
     openInFolios,
+    occupiedLinearFeet: null,
   };
 }
 

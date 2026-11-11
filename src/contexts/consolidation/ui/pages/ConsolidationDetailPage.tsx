@@ -57,7 +57,7 @@ import {
   orderQueryOptions,
   useOrder,
 } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
-import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
+import { consolidationKeys } from "@contexts/consolidation/infrastructure/hooks/consolidationKeys";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
@@ -316,7 +316,7 @@ export const ConsolidationDetailPage = () => {
     setTimelineOrderId(null);
     // Rastreo/Verificación salen del detalle del consolidado, que los eventos
     // del envío no invalidan — se refresca al volver a la tabla.
-    queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+    if (id) queryClient.invalidateQueries({ queryKey: consolidationKeys.detail(id) });
   };
 
   const { data, isLoading } = useConsolidation(id);

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -41,6 +41,8 @@ import {
 } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
 import { TONE_OUTLINE } from "@contexts/shared/domain/schemas/StatusTone";
 import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
+import { useConsolidationStats } from "@contexts/consolidation/infrastructure/hooks/useConsolidationStats";
+import { useConsolidationFilters } from "@contexts/consolidation/ui/hooks/useConsolidationFilters";
 import type { ConsolidationListItem } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import {
   Boxes,
@@ -64,6 +66,8 @@ function formatDate(dateStr: string): string {
 }
 
 type StageFilter = "all" | (typeof consolidationStages)[number];
+
+const LIMIT = 20;
 
 function QuickStat({
   label,
@@ -99,36 +103,35 @@ export const ConsolidationsPage = () => {
   const canDelete = user ? consolidationPolicies.delete(user) : false;
 
   const [toDelete, setToDelete] = useState<ConsolidationListItem | null>(null);
-  const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState<StageFilter>("all");
   const [statsOpen, setStatsOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const { consolidations, isLoading, error, refetch, deleteConsolidation, isDeleting } =
-    useConsolidations({ limit: 100 });
+  const { state: filterState, setFilter, criteria } = useConsolidationFilters();
+  const hasFilters = filterState.searchQuery !== "" || filterState.stageFilter !== "all";
 
-  const preparacionCount = consolidations.filter(
-    ({ consolidation: c }) => c.stage === "PREPARACION",
-  ).length;
-  const enTransitoCount = consolidations.filter(
-    ({ consolidation: c }) => c.stage === "EN_TRANSITO",
-  ).length;
-  const totalBoxes = consolidations.reduce(
-    (sum, { consolidation: c }) => sum + c.orders.length,
-    0,
-  );
+  // Otra búsqueda o etapa invalida la página actual. Se ajusta durante el
+  // render (como en `DriversPage`): `criteria` está memoizado y sólo cambia
+  // cuando cambian los filtros.
+  const [lastCriteria, setLastCriteria] = useState(criteria);
+  if (criteria !== lastCriteria) {
+    setLastCriteria(criteria);
+    setPage(1);
+  }
 
-  const filteredConsolidations = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return consolidations.filter(({ consolidation: c }) => {
-      if (stageFilter !== "all" && c.stage !== stageFilter) return false;
-      if (!q) return true;
-      return (
-        c.folio.toLowerCase().includes(q) ||
-        c.origin.label.toLowerCase().includes(q) ||
-        c.destination.label.toLowerCase().includes(q)
-      );
-    });
-  }, [consolidations, search, stageFilter]);
+  // Búsqueda, etapa y orden se resuelven en el back: el listado pagina.
+  const {
+    consolidations,
+    pagination,
+    totalPages,
+    isLoading,
+    error,
+    refetch,
+    deleteConsolidation,
+    isDeleting,
+  } = useConsolidations({ ...criteria, page, limit: LIMIT });
+  const { stats } = useConsolidationStats();
+  // Al eliminar el último de la última página, esa página deja de existir.
+  if (pagination && page > Math.max(1, totalPages)) setPage(Math.max(1, totalPages));
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -187,19 +190,19 @@ export const ConsolidationsPage = () => {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <QuickStat
               label="En preparación"
-              value={preparacionCount}
+              value={stats?.byStage.PREPARACION ?? 0}
               icon={Boxes}
               colorClass="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
             />
             <QuickStat
               label="En tránsito"
-              value={enTransitoCount}
+              value={stats?.byStage.EN_TRANSITO ?? 0}
               icon={Truck}
               colorClass="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
             />
             <QuickStat
               label="Cajas cargadas"
-              value={totalBoxes}
+              value={stats?.loadedOrders ?? 0}
               icon={Container}
               colorClass="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
             />
@@ -210,11 +213,14 @@ export const ConsolidationsPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
           placeholder="Buscar folio o ruta..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={filterState.searchQuery}
+          onChange={(e) => setFilter("searchQuery", e.target.value)}
           className="flex-1"
         />
-        <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+        <Select
+          value={filterState.stageFilter}
+          onValueChange={(v) => setFilter("stageFilter", v as StageFilter)}
+        >
           <SelectTrigger className="w-full sm:w-52">
             <SelectValue />
           </SelectTrigger>
@@ -243,6 +249,11 @@ export const ConsolidationsPage = () => {
                 Reintentar
               </Button>
             </div>
+          ) : consolidations.length === 0 && hasFilters ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+              <Container className="size-10 opacity-30" />
+              <p className="text-sm font-medium">Ningún consolidado coincide con la búsqueda</p>
+            </div>
           ) : consolidations.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
               <Container className="size-10 opacity-30" />
@@ -259,11 +270,6 @@ export const ConsolidationsPage = () => {
                 </Button>
               )}
             </div>
-          ) : filteredConsolidations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-              <Container className="size-10 opacity-30" />
-              <p className="text-sm font-medium">Ningún consolidado coincide con la búsqueda</p>
-            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -278,7 +284,7 @@ export const ConsolidationsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredConsolidations.map(({ consolidation: c, totalLinearFeet, isOverCapacity }) => {
+                {consolidations.map(({ consolidation: c, totalLinearFeet, isOverCapacity }) => {
                   const tone = toneForStage(c.stage);
                   const capacityPct = Math.min(
                     100,
@@ -382,6 +388,32 @@ export const ConsolidationsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {pagination && pagination.total > LIMIT && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Página {page} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!pagination.hasMore}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
         <DialogContent className="sm:max-w-sm">

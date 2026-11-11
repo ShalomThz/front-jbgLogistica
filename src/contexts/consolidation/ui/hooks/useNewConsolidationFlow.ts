@@ -10,7 +10,7 @@ import {
   type NewConsolidationFormValues,
 } from "@contexts/consolidation/domain/schemas/consolidation/NewConsolidationForm";
 import { handleConsolidationError } from "@contexts/consolidation/application/errors/handleConsolidationError";
-import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
+import { useCreateConsolidation } from "@contexts/consolidation/infrastructure/hooks/useCreateConsolidation";
 import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
@@ -50,7 +50,7 @@ export const useNewConsolidationFlow = () => {
   const stepIndex = (target: NewConsolidationStep) =>
     steps.findIndex((s) => s.key === target);
   const [searchParams] = useSearchParams();
-  const { createConsolidation } = useConsolidations();
+  const { createConsolidation } = useCreateConsolidation();
   const { trailers } = useTrailers();
 
   const form = useForm<NewConsolidationFormValues>({

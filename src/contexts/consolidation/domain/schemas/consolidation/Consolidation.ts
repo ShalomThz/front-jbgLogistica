@@ -273,6 +273,14 @@ export type FindConsolidationsResponse = z.infer<
   typeof findConsolidationsResponseSchema
 >;
 
+/** Métricas del listado, sobre toda la colección (el listado pagina). */
+export const consolidationStatsSchema = z.object({
+  byStage: z.record(z.enum(consolidationStages), z.number().int().nonnegative()),
+  loadedOrders: z.number().int().nonnegative(),
+});
+
+export type ConsolidationStats = z.infer<typeof consolidationStatsSchema>;
+
 export const createConsolidationResponseSchema = z.object({
   consolidation: consolidationSchema,
   // Folios de otros consolidados sin conciliar que usan el mismo tráiler —

@@ -8,7 +8,7 @@ import { orderRepository } from "@contexts/sales/infrastructure/services/orders/
 import { useDebouncedValue } from "@contexts/shared/infrastructure/hooks/useDebouncedValue";
 import { formatCustomerNumber } from "@contexts/shared/domain/formatCustomerNumber";
 import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
-import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
+import { consolidationKeys } from "@contexts/consolidation/infrastructure/hooks/consolidationKeys";
 import {
   calculateLinearFeet,
   DEFAULT_LINEAR_FEET_DIVISOR,
@@ -67,7 +67,12 @@ export const OrderPicker = ({
     isFetchingNextPage, refetch,
   } = useInfiniteQuery({
     // Agregar/quitar órdenes invalida también todas las búsquedas del selector.
-    queryKey: [...CONSOLIDATIONS_QUERY_KEY, "available-orders", debouncedSearch],
+    queryKey: consolidationKeys.availableOrders(debouncedSearch),
+    // Sin los 5 minutos de caché del resto (como `useShipment`): lo que se
+    // puede cargar cambia por cosas que no pasan aquí —completar una venta,
+    // otro consolidado que toma una orden— y con caché se ofrecían órdenes
+    // que el back ya rechaza. Se vuelve a pedir cada vez que se abre.
+    staleTime: 0,
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       orderRepository.find({

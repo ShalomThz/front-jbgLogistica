@@ -1,9 +1,10 @@
 import { httpClient } from "@contexts/shared/infrastructure/http/httpClient";
-import type { Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import {
   addOrdersToConsolidationRequestSchema,
   addOrdersToConsolidationResponseSchema,
   consolidationSchema,
+  consolidationStatsSchema,
   createConsolidationRequestSchema,
   createConsolidationResponseSchema,
   type CreateConsolidationResponse,
@@ -14,6 +15,7 @@ import {
   type AddOrdersToConsolidationRequest,
   type AddOrdersToConsolidationResponse,
   type ConsolidationPrimitives,
+  type ConsolidationStats,
   type CreateConsolidationRequest,
   type FindConsolidationsResponse,
   type GetConsolidationResponse,
@@ -23,6 +25,7 @@ import {
 
 interface FindConsolidationsRequest {
   filters?: Filter[];
+  order?: { field: string; direction: Direction };
   limit?: number;
   offset?: number;
   search?: string;
@@ -45,6 +48,11 @@ export const consolidationRepository = {
       body: JSON.stringify({ filters: [], ...request }),
     });
     return findConsolidationsResponseSchema.parse(data);
+  },
+
+  stats: async (): Promise<ConsolidationStats> => {
+    const data = await httpClient<unknown>("/consolidation/stats");
+    return consolidationStatsSchema.parse(data);
   },
 
   getById: async (id: string): Promise<GetConsolidationResponse> => {
