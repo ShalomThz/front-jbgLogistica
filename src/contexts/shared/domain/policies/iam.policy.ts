@@ -3,6 +3,9 @@ import { hasAll, hasAny } from "./Policy";
 export const iamPolicies = {
   manageUsers: hasAll("CAN_LIST_USERS"),
   listUsers: hasAll("CAN_LIST_USERS"),
+  // Buscar usuarios: también quien verifica órdenes de un consolidado, para
+  // elegir al usuario verificador. Sólo protege `/user/find`.
+  findUsers: hasAny("CAN_LIST_USERS", "CAN_VERIFY_CONSOLIDATION_ORDERS"),
   viewUser: hasAll("CAN_VIEW_USERS"),
   createUser: hasAll("CAN_CREATE_USERS"),
   editUser: hasAll("CAN_EDIT_USERS"),

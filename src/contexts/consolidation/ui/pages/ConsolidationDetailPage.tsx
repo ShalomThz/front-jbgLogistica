@@ -495,7 +495,11 @@ export const ConsolidationDetailPage = () => {
   const tone = toneForStage(consolidation.stage);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    // Desde `md` la página ocupa el alto disponible y cada pestaña scrollea
+    // por dentro. En pantallas angostas el encabezado, las tarjetas y las
+    // pestañas apiladas no dejan alto para la tabla: ahí la página crece y
+    // scrollea entera.
+    <div className="flex flex-col gap-3 md:h-full md:min-h-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate("/consolidations")}>
@@ -606,7 +610,7 @@ export const ConsolidationDetailPage = () => {
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as (typeof TABS)[number])}
-        className="flex min-h-0 flex-1 flex-col"
+        className="flex flex-col md:min-h-0 md:flex-1"
       >
         <TabsList className="h-auto flex-wrap gap-1">
           {TABS.map((tab) => (
@@ -822,7 +826,9 @@ export const ConsolidationDetailPage = () => {
 
               {/* `Table` trae su propio div con scroll: se le pasa el alto para que
                   el encabezado sticky siga fijo (igual que la tabla de órdenes). */}
-              <div className="min-h-0 flex-1 overflow-hidden rounded-md border [&>div]:max-h-full [&>div]:overflow-auto">
+              {/* En móvil la tabla tiene un alto propio (la página ya
+                  scrollea) para conservar el encabezado fijo. */}
+              <div className="min-h-0 flex-1 overflow-hidden rounded-md border [&>div]:max-h-[70dvh] [&>div]:overflow-auto md:[&>div]:max-h-full">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
@@ -1198,8 +1204,10 @@ export const ConsolidationDetailPage = () => {
                       <p className="font-medium">{entry.description}</p>
                       {entry.details.length > 0 && (
                         <ul className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
-                          {entry.details.map((detail) => (
-                            <li key={detail}>{detail}</li>
+                          {/* Índice: dos líneas pueden repetirse (órdenes con
+                              el mismo número) y la lista no se reordena. */}
+                          {entry.details.map((detail, i) => (
+                            <li key={i}>{detail}</li>
                           ))}
                         </ul>
                       )}

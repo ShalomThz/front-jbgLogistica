@@ -319,6 +319,7 @@ export const OrderPicker = ({
                           size="icon"
                           variant="ghost"
                           className="size-6 shrink-0 text-destructive hover:bg-destructive/10"
+                          aria-label={`Quitar la orden ${labelFor(s.orderId)}`}
                           onClick={() => toggle(s.orderId)}
                         >
                           <Trash2 className="size-3.5" />
@@ -326,10 +327,14 @@ export const OrderPicker = ({
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <label className="text-[11px] text-muted-foreground">
+                          <label
+                            htmlFor={`linear-feet-${s.orderId}`}
+                            className="text-[11px] text-muted-foreground"
+                          >
                             Pies lineales
                           </label>
                           <Input
+                            id={`linear-feet-${s.orderId}`}
                             type="number"
                             min={0}
                             step="0.01"
@@ -344,10 +349,14 @@ export const OrderPicker = ({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] text-muted-foreground">
+                          <label
+                            htmlFor={`section-${s.orderId}`}
+                            className="text-[11px] text-muted-foreground"
+                          >
                             Sección
                           </label>
                           <Input
+                            id={`section-${s.orderId}`}
                             placeholder="Ej. A1"
                             className="h-8"
                             value={s.section}

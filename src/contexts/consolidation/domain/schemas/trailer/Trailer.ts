@@ -34,6 +34,9 @@ export type UpdateTrailerRequest = z.infer<typeof updateTrailerRequestSchema>;
 // placas, así que editar el tráiler no los cambia.
 export const trailerListItemSchema = trailerSchema.extend({
   sealedInFolios: z.array(z.string()),
+  // Consolidados sin conciliar que ya lo usan: asignarlo a otro se permite,
+  // pero se pide confirmación.
+  openInFolios: z.array(z.string()),
 });
 
 export type TrailerListItem = z.infer<typeof trailerListItemSchema>;

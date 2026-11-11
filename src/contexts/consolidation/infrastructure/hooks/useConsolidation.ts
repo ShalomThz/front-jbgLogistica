@@ -6,6 +6,7 @@ import type {
 } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
 import { CONSOLIDATIONS_QUERY_KEY } from "./useConsolidations";
+import { TRAILERS_QUERY_KEY } from "./useTrailers";
 
 const consolidationKey = (id: string) => [...CONSOLIDATIONS_QUERY_KEY, id] as const;
 
@@ -30,6 +31,9 @@ export const useConsolidationActions = (id: string) => {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: consolidationKey(id) });
     queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+    // El catálogo de tráilers dice en qué consolidados va cada uno y cuáles
+    // ya se sellaron: cambiar el tráiler o la etapa lo deja viejo.
+    queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
   };
 
   const updateDetailsMutation = useMutation({

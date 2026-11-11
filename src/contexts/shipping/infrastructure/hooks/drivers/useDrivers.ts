@@ -15,13 +15,14 @@ interface UseDriversParams extends Omit<FindDriversRequest, "limit" | "offset"> 
 
 export const useDrivers = ({
   page = 1,
-  limit = 10,
+  // Sin límite = todos (selectores). La paginación pasa el suyo.
+  limit,
   filters = [],
   order,
   search,
 }: UseDriversParams) => {
   const queryClient = useQueryClient();
-  const offset = (page - 1) * limit;
+  const offset = limit !== undefined ? (page - 1) * limit : undefined;
 
   const { data, isLoading, error, refetch } = useQuery<FindDriversResponse>({
     queryKey: [...DRIVERS_QUERY_KEY, { page, limit, filters, order, search }],
@@ -47,7 +48,8 @@ export const useDrivers = ({
 
   const drivers: DriverListViewPrimitives[] = data?.data ?? [];
   const pagination = data?.pagination ?? null;
-  const totalPages = pagination ? Math.ceil(pagination.total / limit) : 1;
+  const totalPages =
+    pagination && limit !== undefined ? Math.ceil(pagination.total / limit) : 1;
 
   return {
     drivers,
