@@ -216,16 +216,13 @@ function orderLabel(o: { orderNumber: string | null; partnerOrderNumber: string 
 
 /** "Rastreo" sale del envío, con el mismo vocabulario y color que el resto de
  * la app (`orderProgress`): la etapa dice dónde está, el estatus de quién es la
- * pelota, y una incidencia abierta lo vuelve problema. Una guía por paquetería
- * externa (Skydropx) se marca directo como entregada: para JBG ya salió al
- * entregarla a la paquetería. */
+ * pelota, y una incidencia abierta lo vuelve problema. */
 function rastreoFor(
   o: Pick<
     ConsolidatedOrderDetailPrimitives,
-    "carrierType" | "orderStatus" | "shipmentStage" | "shipmentStatus" | "hasShipmentIncident"
+    "orderStatus" | "shipmentStage" | "shipmentStatus" | "hasShipmentIncident"
   >,
 ): { label: string; tone: StatusTone } {
-  if (o.carrierType === "THIRD_PARTY") return { label: "Entregado", tone: "done" };
   // Los cortes ganan sobre cualquier avance.
   if (o.orderStatus === "CANCELLED" || o.shipmentStatus === "CANCELLED") {
     return { label: "Cancelada", tone: "stopped" };
