@@ -1,25 +1,24 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
-import type {
-  CreateConsolidationRequest,
-  FindConsolidationsResponse,
-} from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
+import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
+import type { FindConsolidationsResponse } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
-import { TRAILERS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
-
-export const CONSOLIDATIONS_QUERY_KEY = ["consolidations"] as const;
+import { consolidationKeys } from "./consolidationKeys";
+import { trailerKeys } from "./trailerKeys";
 
 interface UseConsolidationsOptions {
   page?: number;
   limit?: number;
   filters?: Filter[];
+  order?: { field: string; direction: Direction };
   search?: string;
 }
 
+/** El listado. Crear va aparte (`useCreateConsolidation`). */
 export const useConsolidations = ({
   page = 1,
   limit = 20,
   filters = [],
+  order,
   search,
 }: UseConsolidationsOptions = {}) => {
   const queryClient = useQueryClient();
@@ -27,28 +26,24 @@ export const useConsolidations = ({
 
   const { data, isLoading, isFetching, error, refetch } =
     useQuery<FindConsolidationsResponse>({
-      queryKey: [...CONSOLIDATIONS_QUERY_KEY, { page, limit, filters, search }],
+      queryKey: consolidationKeys.list({ page, limit, filters, order, search }),
       queryFn: () =>
-        consolidationRepository.find({ filters, limit, offset, search }),
+        consolidationRepository.find({ filters, order, limit, offset, search }),
       placeholderData: keepPreviousData,
     });
 
-  const createMutation = useMutation({
-    mutationFn: (request: CreateConsolidationRequest) =>
-      consolidationRepository.create(request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
-      // El catálogo de tráilers dice en qué consolidados va cada uno.
-      queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => consolidationRepository.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+    onSuccess: (_, id) => {
+      queryClient.removeQueries({ queryKey: consolidationKeys.detail(id) });
+    },
+    // También al fallar: un rechazo suele ser que el consolidado cambió por
+    // otro lado (lo sellaron, le movieron órdenes), y el listado debe
+    // mostrar el estado real.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: consolidationKeys.all });
       // El catálogo de tráilers dice en qué consolidados va cada uno.
-      queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: trailerKeys.all });
     },
   });
 
@@ -64,10 +59,6 @@ export const useConsolidations = ({
     isFetching,
     error: error?.message ?? null,
     refetch,
-
-    createConsolidation: (request: CreateConsolidationRequest) =>
-      createMutation.mutateAsync(request),
-    isCreating: createMutation.isPending,
 
     deleteConsolidation: (id: string) => deleteMutation.mutateAsync(id),
     isDeleting: deleteMutation.isPending,

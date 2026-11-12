@@ -1,5 +1,6 @@
 import { storeTypes } from "@contexts/iam/domain/schemas/store/Store";
 import { z } from "zod";
+import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
 import { aggregateRootSchema } from "@contexts/shared/domain/schemas/AggregateRoot";
 import { paginationSchema } from "@contexts/shared/domain/schemas/Pagination";
 import { driverSchema } from "@contexts/shipping/domain/schemas/driver/Driver";
@@ -36,6 +37,20 @@ export const consolidatedOrderVerificationStatuses = [
 
 export type ConsolidatedOrderVerificationStatus =
   (typeof consolidatedOrderVerificationStatuses)[number];
+
+export const VERIFICATION_LABELS: Record<ConsolidatedOrderVerificationStatus, string> = {
+  PENDING: "Pendiente",
+  REVIEWED: "Revisado",
+  ALERT: "Alerta",
+};
+
+/** Un tono por estado, para que la columna, el filtro y la barra de avance
+ * pinten igual: pendiente espera a alguien, alerta es un problema. */
+export const VERIFICATION_TONE: Record<ConsolidatedOrderVerificationStatus, StatusTone> = {
+  PENDING: "waiting",
+  REVIEWED: "done",
+  ALERT: "stopped",
+};
 
 // El renglón de una orden dentro del consolidado, tal como vive en el
 // agregado (`GET /consolidation/:id` lo manda enriquecido aparte, ver
@@ -272,6 +287,14 @@ export const findConsolidationsResponseSchema = z.object({
 export type FindConsolidationsResponse = z.infer<
   typeof findConsolidationsResponseSchema
 >;
+
+/** Métricas del listado, sobre toda la colección (el listado pagina). */
+export const consolidationStatsSchema = z.object({
+  byStage: z.record(z.enum(consolidationStages), z.number().int().nonnegative()),
+  loadedOrders: z.number().int().nonnegative(),
+});
+
+export type ConsolidationStats = z.infer<typeof consolidationStatsSchema>;
 
 export const createConsolidationResponseSchema = z.object({
   consolidation: consolidationSchema,

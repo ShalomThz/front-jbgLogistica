@@ -28,7 +28,7 @@ import { PageLoader } from "@contexts/shared/ui/components/PageLoader";
 import { CameraPhotoInput } from "@contexts/shared/ui/components/CameraPhotoInput";
 import { useMedia } from "@contexts/shared/infrastructure/hooks/media/useMedia";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
-import { TONE_OUTLINE, TONE_TEXT } from "@contexts/shared/domain/schemas/StatusTone";
+import { TONE_FILL, TONE_OUTLINE, TONE_TEXT } from "@contexts/shared/domain/schemas/StatusTone";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
@@ -39,9 +39,11 @@ import {
 } from "@contexts/consolidation/infrastructure/hooks/useConsolidation";
 import type { ConsolidationHistoryEntryPrimitives } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS, toneForStage } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
-import type {
-  ConsolidatedOrderDetailPrimitives,
-  ConsolidatedOrderVerificationStatus,
+import {
+  VERIFICATION_LABELS,
+  VERIFICATION_TONE,
+  type ConsolidatedOrderDetailPrimitives,
+  type ConsolidatedOrderVerificationStatus,
 } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { STAGE_LABELS as SHIPMENT_STAGE_LABELS } from "@contexts/shipping/domain/schemas/shipment/ShipmentStages";
 import {
@@ -57,7 +59,9 @@ import {
   orderQueryOptions,
   useOrder,
 } from "@contexts/sales/infrastructure/hooks/orders/useOrder";
-import { CONSOLIDATIONS_QUERY_KEY } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
+import { consolidationKeys } from "@contexts/consolidation/infrastructure/hooks/consolidationKeys";
+import { countVerification } from "@contexts/consolidation/domain/countVerification";
+import { VerificationBar } from "@contexts/consolidation/ui/components/VerificationBar";
 import { CarrierLogo } from "@contexts/shared/ui/components/CarrierLogo";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import type { StatusTone } from "@contexts/shared/domain/schemas/StatusTone";
@@ -247,9 +251,9 @@ const VERIFICATION_CONFIG: Record<
   ConsolidatedOrderVerificationStatus,
   { label: string; tone: StatusTone; icon: React.ElementType }
 > = {
-  REVIEWED: { label: "Revisado", tone: "done", icon: CircleCheck },
-  PENDING: { label: "Pendiente", tone: "waiting", icon: Clock },
-  ALERT: { label: "Alerta", tone: "stopped", icon: TriangleAlert },
+  REVIEWED: { label: VERIFICATION_LABELS.REVIEWED, tone: VERIFICATION_TONE.REVIEWED, icon: CircleCheck },
+  PENDING: { label: VERIFICATION_LABELS.PENDING, tone: VERIFICATION_TONE.PENDING, icon: Clock },
+  ALERT: { label: VERIFICATION_LABELS.ALERT, tone: VERIFICATION_TONE.ALERT, icon: TriangleAlert },
 };
 
 const VERIFICATION_OPTIONS = Object.keys(
@@ -316,7 +320,7 @@ export const ConsolidationDetailPage = () => {
     setTimelineOrderId(null);
     // Rastreo/Verificación salen del detalle del consolidado, que los eventos
     // del envío no invalidan — se refresca al volver a la tabla.
-    queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+    if (id) queryClient.invalidateQueries({ queryKey: consolidationKeys.detail(id) });
   };
 
   const { data, isLoading } = useConsolidation(id);
@@ -402,7 +406,9 @@ export const ConsolidationDetailPage = () => {
       }
       if (!q) return true;
       return (
-        orderLabel(o).toLowerCase().includes(q) ||
+        (o.orderNumber?.toLowerCase().includes(q) ?? false) ||
+        (o.partnerOrderNumber?.toLowerCase().includes(q) ?? false) ||
+        o.orderId.toLowerCase().startsWith(q) ||
         (o.client?.name.toLowerCase().includes(q) ?? false) ||
         (o.store?.name.toLowerCase().includes(q) ?? false) ||
         (o.carrierName?.toLowerCase().includes(q) ?? false) ||
@@ -427,6 +433,13 @@ export const ConsolidationDetailPage = () => {
   const maxDestinationCount = destinations[0]?.[1] ?? 0;
   const maxSectionFeet = sections[0]?.[1] ?? 0;
   const capacityTone = isOverCapacity ? "stopped" : "done";
+  const verification = countVerification(orders);
+
+  // Desde la tarjeta de verificación: abre Órdenes filtrada por ese estado.
+  const showOrdersWith = (status: ConsolidatedOrderVerificationStatus) => {
+    setVerificationFilter(status);
+    setActiveTab("ordenes");
+  };
   const editingCommentOrder = orders.find((o) => o.orderId === editingCommentId);
 
   const handleRemoveOrder = async (orderId: string) => {
@@ -507,10 +520,34 @@ export const ConsolidationDetailPage = () => {
           </Button>
           <div>
             <h1 className="font-mono text-2xl font-bold">{consolidation.folio}</h1>
-            <p className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="size-3.5" />
-              {consolidation.origin.label} → {consolidation.destination.label}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3.5" />
+                {consolidation.origin.label} → {consolidation.destination.label}
+              </span>
+              <span
+                className="flex items-center gap-1"
+                title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
+              >
+                <Truck className="size-3.5" />
+                {trailer ? (
+                  <span className="font-mono font-medium text-foreground">{trailer.unitNumber}</span>
+                ) : (
+                  "Sin unidad"
+                )}
+              </span>
+              <span
+                className="flex min-w-0 items-center gap-1"
+                title={driver ? `${driver.name} · ${driver.licenseNumber}` : undefined}
+              >
+                <User className="size-3.5 shrink-0" />
+                {driver ? (
+                  <span className="truncate font-medium text-foreground">{driver.name}</span>
+                ) : (
+                  "Sin conductor"
+                )}
+              </span>
+            </div>
             {consolidation.plannedDepartureAt && (
               <p className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Calendar className="size-3.5" />
@@ -539,39 +576,6 @@ export const ConsolidationDetailPage = () => {
           )}
         </div>
       </div>
-
-      <Card className="py-0">
-        <CardContent className="flex flex-col divide-y p-0 sm:flex-row sm:divide-x sm:divide-y-0">
-          <div className="flex flex-1 items-center gap-3 p-3">
-            <div className="shrink-0 rounded-full bg-muted p-2 text-primary">
-              <Truck className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Número de unidad</p>
-              <p
-                className="truncate font-mono text-lg font-semibold"
-                title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
-              >
-                {trailer ? trailer.unitNumber : "Sin asignar"}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-1 items-center gap-3 p-3">
-            <div className="shrink-0 rounded-full bg-muted p-2 text-primary">
-              <User className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Conductor</p>
-              <p
-                className="truncate text-lg font-semibold"
-                title={driver ? `${driver.name} · ${driver.licenseNumber}` : undefined}
-              >
-                {driver ? driver.name : "Sin asignar"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Métricas (colapsable) */}
       <div className="space-y-2">
@@ -652,6 +656,42 @@ export const ConsolidationDetailPage = () => {
                   className={cn("h-full rounded-full", isOverCapacity ? "bg-destructive" : "bg-primary")}
                   style={{ width: `${Math.min(100, capacityPct)}%` }}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="py-0">
+            <CardContent className="p-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold tabular-nums">{verification.reviewedPct}%</span>
+                  <span className="text-sm text-muted-foreground">verificado</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {verification.reviewed} de {verification.total} órdenes
+                </span>
+              </div>
+              <VerificationBar count={verification} className="mt-2 h-2" />
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                {(
+                  [
+                    ["REVIEWED", verification.reviewed, "revisadas"],
+                    ["ALERT", verification.alert, "con alerta"],
+                    ["PENDING", verification.pending, "pendientes"],
+                  ] as const
+                ).map(([status, count, label]) => (
+                  <button
+                    key={status}
+                    type="button"
+                    disabled={count === 0}
+                    onClick={() => showOrdersWith(status)}
+                    className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none"
+                  >
+                    <span className={cn("size-2 rounded-full", TONE_FILL[VERIFICATION_TONE[status]])} />
+                    <span className="font-medium tabular-nums text-foreground">{count}</span>
+                    {label}
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -810,16 +850,32 @@ export const ConsolidationDetailPage = () => {
                   value={verificationFilter}
                   onValueChange={(v) => setVerificationFilter(v as typeof verificationFilter)}
                 >
-                  <SelectTrigger className="w-full sm:w-56">
+                  <SelectTrigger
+                    className={cn(
+                      "w-full sm:w-56",
+                      verificationFilter !== "all" &&
+                        TONE_OUTLINE[VERIFICATION_CONFIG[verificationFilter].tone],
+                    )}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las revisiones</SelectItem>
-                    {VERIFICATION_OPTIONS.map((v) => (
-                      <SelectItem key={v} value={v}>
-                        {VERIFICATION_CONFIG[v].label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">
+                      Todas las revisiones
+                      <span className="text-muted-foreground tabular-nums">({verification.total})</span>
+                    </SelectItem>
+                    {VERIFICATION_OPTIONS.map((v) => {
+                      const { label, icon: Icon, tone } = VERIFICATION_CONFIG[v];
+                      return (
+                        <SelectItem key={v} value={v}>
+                          <Icon className={cn("size-3.5", TONE_TEXT[tone])} />
+                          {label}
+                          <span className="text-muted-foreground tabular-nums">
+                            ({orders.filter((o) => o.verificationStatus === v).length})
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -828,6 +884,21 @@ export const ConsolidationDetailPage = () => {
                   el encabezado sticky siga fijo (igual que la tabla de órdenes). */}
               {/* En móvil la tabla tiene un alto propio (la página ya
                   scrollea) para conservar el encabezado fijo. */}
+              {filteredOrders.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Ninguna orden coincide con la búsqueda o el filtro.
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setOrderSearch("");
+                      setVerificationFilter("all");
+                    }}
+                  >
+                    Limpiar filtros
+                  </Button>
+                </div>
+              ) : (
               <div className="min-h-0 flex-1 overflow-hidden rounded-md border [&>div]:max-h-[70dvh] [&>div]:overflow-auto md:[&>div]:max-h-full">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-background">
@@ -1065,13 +1136,14 @@ export const ConsolidationDetailPage = () => {
                   </TableBody>
                 </Table>
               </div>
+              )}
 
-              {canReviewOrders && (
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    Mostrando {filteredOrders.length} de {orders.length} orden
-                    {orders.length === 1 ? "" : "es"}.
-                  </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Mostrando {filteredOrders.length} de {orders.length} orden
+                  {orders.length === 1 ? "" : "es"}.
+                </p>
+                {canReviewOrders && (
                   <Button
                     size="sm"
                     className="gap-1.5"
@@ -1081,8 +1153,8 @@ export const ConsolidationDetailPage = () => {
                     <Save className="size-3.5" />
                     {isUpdatingOrderComments ? "Guardando..." : "Guardar revisión"}
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </TabsContent>

@@ -5,10 +5,15 @@ import type {
   UpdateConsolidationOrderCommentsRequest,
 } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import { consolidationRepository } from "@contexts/consolidation/infrastructure/services/consolidationRepository";
-import { CONSOLIDATIONS_QUERY_KEY } from "./useConsolidations";
-import { TRAILERS_QUERY_KEY } from "./useTrailers";
+import { consolidationKeys } from "./consolidationKeys";
+import { trailerKeys } from "./trailerKeys";
 
-const consolidationKey = (id: string) => [...CONSOLIDATIONS_QUERY_KEY, id] as const;
+/**
+ * Sin los 5 minutos de caché del resto (como `useShipment`): varias personas
+ * editan el mismo consolidado y el back rechaza guardar sobre una versión
+ * vieja. Al entrar se muestra lo que haya y se vuelve a pedir.
+ */
+const ALWAYS_FRESH = { staleTime: 0 } as const;
 
 /** El detalle ya trae todo lo que necesitan las pestañas (órdenes
  * enriquecidas, conductor, tráiler, historial) en una sola respuesta — no hay
@@ -16,24 +21,28 @@ const consolidationKey = (id: string) => [...CONSOLIDATIONS_QUERY_KEY, id] as co
  * endpoint. */
 export const useConsolidation = (id: string | undefined) =>
   useQuery({
-    queryKey: consolidationKey(id ?? ""),
+    queryKey: consolidationKeys.detail(id ?? ""),
     queryFn: () => consolidationRepository.getById(id!),
     enabled: !!id,
+    ...ALWAYS_FRESH,
   });
 
-/** Mutaciones sobre un consolidado puntual: invalidan tanto su detalle como el
- * listado (el folio/etapa/capacidad que se ve ahí también cambia). También al
+/** Mutaciones sobre un consolidado puntual: invalidan todo lo de
+ * consolidados (su detalle, el listado, las órdenes disponibles). También al
  * fallar (`onSettled`): un rechazo suele ser que el consolidado cambió por
  * otro lado, y la pantalla debe mostrar el estado real. */
 export const useConsolidationActions = (id: string) => {
   const queryClient = useQueryClient();
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: consolidationKey(id) });
-    queryClient.invalidateQueries({ queryKey: CONSOLIDATIONS_QUERY_KEY });
+  // Se espera la recarga de consolidados (como en `useBoxes`): `mutateAsync`
+  // resuelve con el detalle ya fresco, y quien limpia sus borradores al
+  // terminar no ve reaparecer un momento los valores anteriores.
+  const invalidate = async () => {
     // El catálogo de tráilers dice en qué consolidados va cada uno y cuáles
-    // ya se sellaron: cambiar el tráiler o la etapa lo deja viejo.
-    queryClient.invalidateQueries({ queryKey: TRAILERS_QUERY_KEY });
+    // ya se sellaron: cambiar el tráiler o la etapa lo deja viejo. No se
+    // espera: esta pantalla no lo muestra.
+    void queryClient.invalidateQueries({ queryKey: trailerKeys.all });
+    await queryClient.invalidateQueries({ queryKey: consolidationKeys.all });
   };
 
   const updateDetailsMutation = useMutation({

@@ -31,7 +31,6 @@ import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
-import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import type { TrailerListItem } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 import { Container, Eye, Pencil, Plus, RefreshCw, Search, TriangleAlert, Truck } from "lucide-react";
 
@@ -92,34 +91,12 @@ export const TrailersPage = () => {
 
   const { trailers, isLoading, refetch, createTrailer, isCreating, updateTrailer, isUpdating } =
     useTrailers();
-  // Para calcular "Espacio ocupado": el consolidado activo (no CONCILIADO) de
-  // cada unidad, si tiene uno — no es un campo propio del tráiler, se deriva
-  // cruzando con la lista de consolidados que ya se pide en otras pantallas.
-  const { consolidations } = useConsolidations({ limit: 100 });
-
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TrailerListItem | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [viewing, setViewing] = useState<TrailerListItem | null>(null);
-
-  const activeConsolidationByTrailer = useMemo(() => {
-    const map = new Map<string, { totalLinearFeet: number }>();
-    // Orden ascendente por creación: si por algún motivo una unidad quedara
-    // con más de un consolidado abierto a la vez (no debería, el back no lo
-    // impide todavía), se queda con el más reciente al sobrescribir al final.
-    const sorted = [...consolidations].sort(
-      (a, b) =>
-        new Date(a.consolidation.createdAt).getTime() -
-        new Date(b.consolidation.createdAt).getTime(),
-    );
-    for (const { consolidation, totalLinearFeet } of sorted) {
-      if (!consolidation.trailerId || consolidation.stage === "CONCILIADO") continue;
-      map.set(consolidation.trailerId, { totalLinearFeet });
-    }
-    return map;
-  }, [consolidations]);
 
   const filteredTrailers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -268,10 +245,13 @@ export const TrailersPage = () => {
               </TableHeader>
               <TableBody>
                 {filteredTrailers.map((t) => {
-                  const active = activeConsolidationByTrailer.get(t.id);
-                  const occupiedPct = active
-                    ? Math.min(100, Math.round((active.totalLinearFeet / t.capacityLinearFeet) * 100))
-                    : null;
+                  // Lo calcula el back: el consolidado sin conciliar más
+                  // reciente de la unidad.
+                  const occupied = t.occupiedLinearFeet;
+                  const occupiedPct =
+                    occupied !== null
+                      ? Math.min(100, Math.round((occupied / t.capacityLinearFeet) * 100))
+                      : null;
                   return (
                     <TableRow key={t.id} className="cursor-pointer" onClick={() => setViewing(t)}>
                       <TableCell>
@@ -291,10 +271,10 @@ export const TrailersPage = () => {
                       <TableCell className="font-mono text-sm">{t.plates}</TableCell>
                       <TableCell className="text-sm">{t.capacityLinearFeet} ft</TableCell>
                       <TableCell className="min-w-36">
-                        {active ? (
+                        {occupied !== null ? (
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">
-                              {active.totalLinearFeet.toFixed(1)} / {t.capacityLinearFeet} ft ·{" "}
+                              {occupied.toFixed(1)} / {t.capacityLinearFeet} ft ·{" "}
                               {occupiedPct}%
                             </p>
                             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

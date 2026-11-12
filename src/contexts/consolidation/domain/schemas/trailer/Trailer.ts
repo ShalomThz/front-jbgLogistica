@@ -37,6 +37,9 @@ export const trailerListItemSchema = trailerSchema.extend({
   // Consolidados sin conciliar que ya lo usan: asignarlo a otro se permite,
   // pero se pide confirmación.
   openInFolios: z.array(z.string()),
+  // Pies lineales del consolidado sin conciliar más reciente ("espacio
+  // ocupado"); null si no va en ninguno.
+  occupiedLinearFeet: z.number().nullable(),
 });
 
 export type TrailerListItem = z.infer<typeof trailerListItemSchema>;
