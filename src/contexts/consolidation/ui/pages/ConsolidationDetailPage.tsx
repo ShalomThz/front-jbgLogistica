@@ -54,6 +54,7 @@ import { ConsolidationStageTimeline } from "@contexts/consolidation/ui/component
 import { ConsolidationAdvanceStageDialog } from "@contexts/consolidation/ui/components/ConsolidationAdvanceStageDialog";
 import { AddOrdersDialog } from "@contexts/consolidation/ui/components/AddOrdersDialog";
 import { OrderCommentDialog } from "@contexts/consolidation/ui/components/OrderCommentDialog";
+import { RemoveOrderDialog } from "@contexts/consolidation/ui/components/RemoveOrderDialog";
 import { ConsolidationDepartureDialog } from "@contexts/consolidation/ui/components/ConsolidationDepartureDialog";
 import { formatDeparture } from "@contexts/consolidation/domain/departureDate";
 import { OrderDetailDialog } from "@contexts/order-flow/ui/components/order/detail/OrderDetailDialog";
@@ -283,6 +284,8 @@ export const ConsolidationDetailPage = () => {
   const [statsOpen, setStatsOpen] = useState(false);
   const [addOrdersOpen, setAddOrdersOpen] = useState(false);
   const [departureOpen, setDepartureOpen] = useState(false);
+  // Orden a quitar, en espera de confirmación.
+  const [removingOrderId, setRemovingOrderId] = useState<string | null>(null);
   const [evidencePhotos, setEvidencePhotos] = useState<File[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
   const [verificationFilter, setVerificationFilter] = useState<"all" | ConsolidatedOrderVerificationStatus>("all");
@@ -448,10 +451,14 @@ export const ConsolidationDetailPage = () => {
   };
   const editingCommentOrder = orders.find((o) => o.orderId === editingCommentId);
 
-  const handleRemoveOrder = async (orderId: string) => {
+  const removingOrder = orders.find((o) => o.orderId === removingOrderId);
+
+  const handleRemoveOrder = async () => {
+    if (!removingOrderId) return;
     try {
-      await removeOrder(orderId);
+      await removeOrder(removingOrderId);
       toast.success("Orden quitada del consolidado");
+      setRemovingOrderId(null);
     } catch (error) {
       toast.error(parseApiError(error));
     }
@@ -1149,8 +1156,8 @@ export const ConsolidationDetailPage = () => {
                                 size="icon"
                                 variant="ghost"
                                 className="size-7 text-destructive hover:bg-destructive/10"
-                                disabled={isRemovingOrder}
-                                onClick={() => handleRemoveOrder(o.orderId)}
+                                aria-label="Quitar orden del consolidado"
+                                onClick={() => setRemovingOrderId(o.orderId)}
                               >
                                 <Trash2 className="size-3.5" />
                               </Button>
@@ -1351,6 +1358,16 @@ export const ConsolidationDetailPage = () => {
           initialValue={consolidation.plannedDepartureAt}
           onSave={(plannedDepartureAt) => updateDetails({ plannedDepartureAt })}
           isSaving={isUpdatingDetails}
+        />
+      )}
+
+      {removingOrder && (
+        <RemoveOrderDialog
+          open
+          onOpenChange={(open) => !open && setRemovingOrderId(null)}
+          orderLabel={orderLabel(removingOrder)}
+          onConfirm={handleRemoveOrder}
+          isRemoving={isRemovingOrder}
         />
       )}
 
