@@ -39,11 +39,16 @@ import {
   STAGE_LABELS,
   toneForStage,
 } from "@contexts/consolidation/domain/schemas/consolidation/ConsolidationStages";
-import { TONE_OUTLINE } from "@contexts/shared/domain/schemas/StatusTone";
+import { TONE_OUTLINE, TONE_TEXT } from "@contexts/shared/domain/schemas/StatusTone";
 import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/useConsolidations";
 import { useConsolidationStats } from "@contexts/consolidation/infrastructure/hooks/useConsolidationStats";
 import { useConsolidationFilters } from "@contexts/consolidation/ui/hooks/useConsolidationFilters";
-import type { ConsolidationListItem } from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
+import { countVerification } from "@contexts/consolidation/domain/countVerification";
+import { VerificationBar } from "@contexts/consolidation/ui/components/VerificationBar";
+import {
+  VERIFICATION_TONE,
+  type ConsolidationListItem,
+} from "@contexts/consolidation/domain/schemas/consolidation/Consolidation";
 import {
   Boxes,
   ChevronDown,
@@ -279,6 +284,7 @@ export const ConsolidationsPage = () => {
                   <TableHead>Etapa</TableHead>
                   <TableHead>Cajas</TableHead>
                   <TableHead>Capacidad</TableHead>
+                  <TableHead>Verificación</TableHead>
                   <TableHead>Creado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -290,6 +296,7 @@ export const ConsolidationsPage = () => {
                     100,
                     Math.round((totalLinearFeet / c.capacityLinearFeet) * 100),
                   );
+                  const verification = countVerification(c.orders);
                   return (
                     <TableRow
                       key={c.id}
@@ -333,6 +340,24 @@ export const ConsolidationsPage = () => {
                             style={{ width: `${capacityPct}%` }}
                           />
                         </div>
+                      </TableCell>
+                      <TableCell className="min-w-36">
+                        {verification.total === 0 ? (
+                          <p className="text-xs text-muted-foreground">Sin órdenes</p>
+                        ) : (
+                          <>
+                            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {verification.reviewed} / {verification.total} · {verification.reviewedPct}%
+                              {verification.alert > 0 && (
+                                <span className={cn("inline-flex items-center gap-0.5 font-medium", TONE_TEXT[VERIFICATION_TONE.ALERT])}>
+                                  <TriangleAlert className="size-3" />
+                                  {verification.alert}
+                                </span>
+                              )}
+                            </p>
+                            <VerificationBar count={verification} className="mt-1 h-1.5" />
+                          </>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDate(c.createdAt)}
