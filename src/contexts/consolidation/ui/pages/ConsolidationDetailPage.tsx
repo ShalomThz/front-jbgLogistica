@@ -577,6 +577,42 @@ export const ConsolidationDetailPage = () => {
         </div>
       </div>
 
+      <Card className="py-0">
+        <CardContent className="p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold tabular-nums">{verification.reviewedPct}%</span>
+              <span className="text-sm text-muted-foreground">verificado</span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {verification.reviewed} de {verification.total} órdenes
+            </span>
+          </div>
+          <VerificationBar count={verification} className="mt-2 h-2" />
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            {(
+              [
+                ["REVIEWED", verification.reviewed, "revisadas"],
+                ["ALERT", verification.alert, "con alerta"],
+                ["PENDING", verification.pending, "pendientes"],
+              ] as const
+            ).map(([status, count, label]) => (
+              <button
+                key={status}
+                type="button"
+                disabled={count === 0}
+                onClick={() => showOrdersWith(status)}
+                className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none"
+              >
+                <span className={cn("size-2 rounded-full", TONE_FILL[VERIFICATION_TONE[status]])} />
+                <span className="font-medium tabular-nums text-foreground">{count}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Métricas (colapsable) */}
       <div className="space-y-2">
         <button
@@ -656,42 +692,6 @@ export const ConsolidationDetailPage = () => {
                   className={cn("h-full rounded-full", isOverCapacity ? "bg-destructive" : "bg-primary")}
                   style={{ width: `${Math.min(100, capacityPct)}%` }}
                 />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="py-0">
-            <CardContent className="p-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold tabular-nums">{verification.reviewedPct}%</span>
-                  <span className="text-sm text-muted-foreground">verificado</span>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {verification.reviewed} de {verification.total} órdenes
-                </span>
-              </div>
-              <VerificationBar count={verification} className="mt-2 h-2" />
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                {(
-                  [
-                    ["REVIEWED", verification.reviewed, "revisadas"],
-                    ["ALERT", verification.alert, "con alerta"],
-                    ["PENDING", verification.pending, "pendientes"],
-                  ] as const
-                ).map(([status, count, label]) => (
-                  <button
-                    key={status}
-                    type="button"
-                    disabled={count === 0}
-                    onClick={() => showOrdersWith(status)}
-                    className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none"
-                  >
-                    <span className={cn("size-2 rounded-full", TONE_FILL[VERIFICATION_TONE[status]])} />
-                    <span className="font-medium tabular-nums text-foreground">{count}</span>
-                    {label}
-                  </button>
-                ))}
               </div>
             </CardContent>
           </Card>
