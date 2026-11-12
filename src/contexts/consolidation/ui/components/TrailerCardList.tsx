@@ -1,10 +1,11 @@
 import { Badge } from "@contexts/shared/shadcn";
 import { cn } from "@contexts/shared/shadcn/lib/utils";
-import type { TrailerPrimitives } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
+import { TONE_OUTLINE } from "@contexts/shared/domain/schemas/StatusTone";
+import type { TrailerListItem } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 import { CheckCircle2, Truck } from "lucide-react";
 
 interface Props {
-  trailers: TrailerPrimitives[];
+  trailers: TrailerListItem[];
   selectedId: string;
   onSelect: (id: string) => void;
   /** Id de la etiqueta visible del grupo, para lectores de pantalla. */
@@ -14,7 +15,8 @@ interface Props {
 /** Lista de unidades elegibles como tarjetas — cada una se ve y se siente
  * como un vehículo real (ícono, estado, capacidad), no una fila de combo
  * box. Mismo espíritu que un selector de flota: tocar la tarjeta es "elegir
- * ese camión". */
+ * ese camión". Una unidad que ya va en otro consolidado abierto se ve pero
+ * no se puede elegir: un tráiler, un consolidado. */
 export const TrailerCardList = ({ trailers, selectedId, onSelect, labelledBy }: Props) => {
   if (trailers.length === 0) {
     return (
@@ -36,18 +38,22 @@ export const TrailerCardList = ({ trailers, selectedId, onSelect, labelledBy }: 
     >
       {trailers.map((t) => {
         const isSelected = t.id === selectedId;
+        const busyIn = t.activeConsolidation?.folio;
         return (
           <button
             key={t.id}
             type="button"
             role="radio"
             aria-checked={isSelected}
+            disabled={!!busyIn}
+            title={busyIn ? `Ya está en el consolidado ${busyIn}` : undefined}
             onClick={() => onSelect(t.id)}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.98]",
+              "disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100",
               isSelected
                 ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "hover:bg-muted/50",
+                : !busyIn && "hover:bg-muted/50",
             )}
           >
             <div
@@ -68,9 +74,15 @@ export const TrailerCardList = ({ trailers, selectedId, onSelect, labelledBy }: 
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <Badge variant="outline" className="border-status-done bg-status-done-soft text-status-done-fg">
-                Activo
-              </Badge>
+              {busyIn ? (
+                <Badge variant="outline" className={cn("font-mono", TONE_OUTLINE.waiting)}>
+                  En {busyIn}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-status-done bg-status-done-soft text-status-done-fg">
+                  Disponible
+                </Badge>
+              )}
               <p className="mt-1 text-xs text-muted-foreground">{t.capacityLinearFeet} ft</p>
             </div>
           </button>

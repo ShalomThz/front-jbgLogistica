@@ -298,9 +298,6 @@ export type ConsolidationStats = z.infer<typeof consolidationStatsSchema>;
 
 export const createConsolidationResponseSchema = z.object({
   consolidation: consolidationSchema,
-  // Folios de otros consolidados sin conciliar que usan el mismo tráiler —
-  // un aviso, no impide crear.
-  trailerInUseBy: z.array(z.string()),
 });
 
 export type CreateConsolidationResponse = z.infer<

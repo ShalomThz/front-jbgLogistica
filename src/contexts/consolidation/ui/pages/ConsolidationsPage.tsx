@@ -44,6 +44,7 @@ import { useConsolidations } from "@contexts/consolidation/infrastructure/hooks/
 import { useConsolidationStats } from "@contexts/consolidation/infrastructure/hooks/useConsolidationStats";
 import { useConsolidationFilters } from "@contexts/consolidation/ui/hooks/useConsolidationFilters";
 import { countVerification } from "@contexts/consolidation/domain/countVerification";
+import { formatDeparture } from "@contexts/consolidation/domain/departureDate";
 import { VerificationBar } from "@contexts/consolidation/ui/components/VerificationBar";
 import {
   VERIFICATION_TONE,
@@ -321,6 +322,11 @@ export const ConsolidationsPage = () => {
                       </TableCell>
                       <TableCell className="text-sm">
                         {c.origin.label} → {c.destination.label}
+                        {c.plannedDepartureAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Sale {formatDeparture(c.plannedDepartureAt)}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={TONE_OUTLINE[tone]}>

@@ -6,6 +6,7 @@ import type { NewConsolidationFormValues } from "@contexts/consolidation/domain/
 import type { TrailerPrimitives } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 import type { DriverListViewPrimitives } from "@contexts/shipping/domain/schemas/driver/DriverListView";
 import type { NewConsolidationStep } from "@contexts/consolidation/ui/hooks/useNewConsolidationFlow";
+import { departureFromInput, formatDeparture } from "@contexts/consolidation/domain/departureDate";
 import { TruckVisual } from "@contexts/consolidation/ui/components/TruckVisual";
 
 interface Props {
@@ -69,6 +70,7 @@ export const ConsolidationReviewStep = ({
 
   const trailer = trailers.find((t) => t.id === values.trailerId);
   const driver = drivers.find((d) => d.id === values.driverId);
+  const departure = departureFromInput(values.plannedDepartureAt ?? "");
   const orders = values.orders ?? [];
   const capacity = Number(values.capacityLinearFeet) || 0;
   const totalLinearFeet = orders.reduce((sum, o) => sum + (o.linearFeet ?? 0), 0);
@@ -97,6 +99,10 @@ export const ConsolidationReviewStep = ({
           <Row label="Folio" value={<span className="font-mono">{values.folio}</span>} />
           <Row label="Origen" value={values.origin} />
           <Row label="Destino" value={values.destination} />
+          <Row
+            label="Salida"
+            value={departure ? formatDeparture(departure) : "Sin fecha"}
+          />
         </Section>
 
         <Section icon={Truck} title="Unidad" onEdit={() => onEdit("datos")}>
