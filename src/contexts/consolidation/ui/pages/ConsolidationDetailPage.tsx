@@ -520,10 +520,34 @@ export const ConsolidationDetailPage = () => {
           </Button>
           <div>
             <h1 className="font-mono text-2xl font-bold">{consolidation.folio}</h1>
-            <p className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="size-3.5" />
-              {consolidation.origin.label} → {consolidation.destination.label}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3.5" />
+                {consolidation.origin.label} → {consolidation.destination.label}
+              </span>
+              <span
+                className="flex items-center gap-1"
+                title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
+              >
+                <Truck className="size-3.5" />
+                {trailer ? (
+                  <span className="font-mono font-medium text-foreground">{trailer.unitNumber}</span>
+                ) : (
+                  "Sin unidad"
+                )}
+              </span>
+              <span
+                className="flex min-w-0 items-center gap-1"
+                title={driver ? `${driver.name} · ${driver.licenseNumber}` : undefined}
+              >
+                <User className="size-3.5 shrink-0" />
+                {driver ? (
+                  <span className="truncate font-medium text-foreground">{driver.name}</span>
+                ) : (
+                  "Sin conductor"
+                )}
+              </span>
+            </div>
             {consolidation.plannedDepartureAt && (
               <p className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Calendar className="size-3.5" />
@@ -552,39 +576,6 @@ export const ConsolidationDetailPage = () => {
           )}
         </div>
       </div>
-
-      <Card className="py-0">
-        <CardContent className="flex flex-col divide-y p-0 sm:flex-row sm:divide-x sm:divide-y-0">
-          <div className="flex flex-1 items-center gap-3 p-3">
-            <div className="shrink-0 rounded-full bg-muted p-2 text-primary">
-              <Truck className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Número de unidad</p>
-              <p
-                className="truncate font-mono text-lg font-semibold"
-                title={trailer ? `${trailer.unitNumber} · ${trailer.type} · Placas ${trailer.plates}` : undefined}
-              >
-                {trailer ? trailer.unitNumber : "Sin asignar"}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-1 items-center gap-3 p-3">
-            <div className="shrink-0 rounded-full bg-muted p-2 text-primary">
-              <User className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Conductor</p>
-              <p
-                className="truncate text-lg font-semibold"
-                title={driver ? `${driver.name} · ${driver.licenseNumber}` : undefined}
-              >
-                {driver ? driver.name : "Sin asignar"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Métricas (colapsable) */}
       <div className="space-y-2">
