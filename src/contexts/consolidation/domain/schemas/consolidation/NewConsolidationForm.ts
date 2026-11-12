@@ -17,6 +17,8 @@ export const newConsolidationFormSchema = z.object({
   folio: z.string().trim().min(1, "El folio es requerido"),
   origin: z.string().trim().min(1, "El origen es requerido"),
   destination: z.string().trim().min(1, "El destino es requerido"),
+  // Día de salida planeada (`YYYY-MM-DD`); vacío = sin fecha todavía.
+  plannedDepartureAt: z.string(),
   trailerId: z.string().min(1, "Elige un tráiler"),
   // Vacío = sin conductor asignado.
   driverId: z.string(),
@@ -31,6 +33,7 @@ export const newConsolidationDefaultValues: NewConsolidationFormValues = {
   folio: "",
   origin: "",
   destination: "",
+  plannedDepartureAt: "",
   trailerId: "",
   driverId: "",
   capacityLinearFeet: "53",
@@ -44,6 +47,7 @@ export const NEW_CONSOLIDATION_STEP_FIELDS = {
     "folio",
     "origin",
     "destination",
+    "plannedDepartureAt",
     "trailerId",
     "driverId",
     "capacityLinearFeet",

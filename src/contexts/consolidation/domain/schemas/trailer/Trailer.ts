@@ -29,17 +29,23 @@ export const updateTrailerRequestSchema = createTrailerRequestSchema
 
 export type UpdateTrailerRequest = z.infer<typeof updateTrailerRequestSchema>;
 
+// El consolidado abierto (sin conciliar) en el que va un tráiler. Un tráiler
+// va en uno solo a la vez: mientras lo tenga, no se le puede asignar a otro.
+export const activeConsolidationSchema = z.object({
+  id: z.string(),
+  folio: z.string(),
+  // Pies lineales de sus órdenes ("espacio ocupado").
+  linearFeet: z.number(),
+  // Salida planeada del viaje (ISO); es del viaje, no del tráiler.
+  plannedDepartureAt: z.string().nullable(),
+});
+
 // Tráiler como llega en el listado: además trae en qué consolidados ya
-// sellados va. Esos embarques guardan su propia copia de unidad, tipo y
-// placas, así que editar el tráiler no los cambia.
+// sellados va (guardan su propia copia de unidad, tipo y placas, así que
+// editar el tráiler no los cambia) y su consolidado abierto, si tiene.
 export const trailerListItemSchema = trailerSchema.extend({
   sealedInFolios: z.array(z.string()),
-  // Consolidados sin conciliar que ya lo usan: asignarlo a otro se permite,
-  // pero se pide confirmación.
-  openInFolios: z.array(z.string()),
-  // Pies lineales del consolidado sin conciliar más reciente ("espacio
-  // ocupado"); null si no va en ninguno.
-  occupiedLinearFeet: z.number().nullable(),
+  activeConsolidation: activeConsolidationSchema.nullable(),
 });
 
 export type TrailerListItem = z.infer<typeof trailerListItemSchema>;

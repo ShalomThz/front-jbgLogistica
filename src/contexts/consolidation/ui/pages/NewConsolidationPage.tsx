@@ -8,7 +8,6 @@ import { useNewConsolidationFlow } from "@contexts/consolidation/ui/hooks/useNew
 import { ConsolidationDetailsStep } from "@contexts/consolidation/ui/components/new-consolidation/ConsolidationDetailsStep";
 import { ConsolidationOrdersStep } from "@contexts/consolidation/ui/components/new-consolidation/ConsolidationOrdersStep";
 import { ConsolidationReviewStep } from "@contexts/consolidation/ui/components/new-consolidation/ConsolidationReviewStep";
-import { TrailerInUseDialog } from "@contexts/consolidation/ui/components/new-consolidation/TrailerInUseDialog";
 
 /**
  * Alta de un consolidado en 3 pasos (datos → órdenes → revisar). El estado y
@@ -126,12 +125,6 @@ export const NewConsolidationPage = () => {
           )}
         </div>
       </footer>
-
-      <TrailerInUseDialog
-        trailer={flow.trailerToConfirm}
-        onConfirm={flow.confirmTrailer}
-        onCancel={flow.cancelTrailer}
-      />
     </div>
   );
 };

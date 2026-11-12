@@ -32,6 +32,7 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
 import { useTrailers } from "@contexts/consolidation/infrastructure/hooks/useTrailers";
 import type { TrailerListItem } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
+import { formatDeparture } from "@contexts/consolidation/domain/departureDate";
 import { Container, Eye, Pencil, Plus, RefreshCw, Search, TriangleAlert, Truck } from "lucide-react";
 
 interface FormState {
@@ -88,6 +89,7 @@ export const TrailersPage = () => {
   const canCreate = user ? consolidationPolicies.createTrailers(user) : false;
   const canEdit = user ? consolidationPolicies.editTrailers(user) : false;
   const canCreateConsolidation = user ? consolidationPolicies.create(user) : false;
+  const canViewConsolidation = user ? consolidationPolicies.view(user) : false;
 
   const { trailers, isLoading, refetch, createTrailer, isCreating, updateTrailer, isUpdating } =
     useTrailers();
@@ -97,6 +99,7 @@ export const TrailersPage = () => {
   const [editing, setEditing] = useState<TrailerListItem | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [viewing, setViewing] = useState<TrailerListItem | null>(null);
+  const viewingConsolidation = viewing?.activeConsolidation ?? null;
 
   const filteredTrailers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -239,15 +242,17 @@ export const TrailersPage = () => {
                   <TableHead>Placas</TableHead>
                   <TableHead>Capacidad</TableHead>
                   <TableHead>Espacio ocupado</TableHead>
+                  <TableHead>Salida</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTrailers.map((t) => {
-                  // Lo calcula el back: el consolidado sin conciliar más
-                  // reciente de la unidad.
-                  const occupied = t.occupiedLinearFeet;
+                  // Lo calcula el back: el consolidado abierto de la unidad
+                  // (va en uno solo a la vez).
+                  const active = t.activeConsolidation;
+                  const occupied = active?.linearFeet ?? null;
                   const occupiedPct =
                     occupied !== null
                       ? Math.min(100, Math.round((occupied / t.capacityLinearFeet) * 100))
@@ -288,6 +293,13 @@ export const TrailersPage = () => {
                           <span className="text-xs text-muted-foreground">Sin consolidado activo</span>
                         )}
                       </TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {active?.plannedDepartureAt ? (
+                          formatDeparture(active.plannedDepartureAt)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={t.isActive ? "default" : "outline"}>
                           {t.isActive ? "Activo" : "Inactivo"}
@@ -295,7 +307,23 @@ export const TrailersPage = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {canCreateConsolidation && t.isActive && (
+                          {/* Ocupada: lleva a su consolidado (aunque la hayan
+                              desactivado después). Libre: crear uno con ella. */}
+                          {active && canViewConsolidation && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/consolidations/${active.id}`);
+                              }}
+                            >
+                              <Container className="size-3.5" />
+                              Ver consolidado
+                            </Button>
+                          )}
+                          {!active && canCreateConsolidation && t.isActive && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -343,7 +371,11 @@ export const TrailersPage = () => {
       </Card>
 
       <Dialog open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
-        <DialogContent className="sm:max-w-md">
+        {/* Crece con lo que lleva (el folio del consolidado puede ser largo),
+            desde el ancho de siempre y sin salirse de la pantalla. `w-max` y
+            no `w-auto`: al estar centrado con `left: 50%`, `auto` sólo
+            alcanzaría la mitad de la pantalla. */}
+        <DialogContent className="sm:w-max sm:max-w-[calc(100%-4rem)] sm:min-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Truck className="size-5 text-primary" />
@@ -364,10 +396,22 @@ export const TrailersPage = () => {
               </dl>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="sm:flex-wrap">
             <Button variant="outline" onClick={() => setViewing(null)}>
               Cerrar
             </Button>
+            {viewingConsolidation && canViewConsolidation && (
+              <Button
+                variant="outline"
+                className="max-w-full gap-1.5"
+                title={`Ver consolidado ${viewingConsolidation.folio}`}
+                onClick={() => navigate(`/consolidations/${viewingConsolidation.id}`)}
+              >
+                <Container className="size-3.5" />
+                Ver consolidado
+                <span className="min-w-0 truncate font-mono">{viewingConsolidation.folio}</span>
+              </Button>
+            )}
             {canEdit && viewing && (
               <Button
                 className="gap-1.5"

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { consolidationRepository } from "@contexts/consolidation/infrastructure/
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
 import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { consolidationPolicies } from "@contexts/shared/domain/policies/consolidation.policy";
+import { departureFromInput } from "@contexts/consolidation/domain/departureDate";
 import type { TrailerListItem } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 
 export const NEW_CONSOLIDATION_STEPS = [
@@ -64,6 +65,8 @@ export const useNewConsolidationFlow = () => {
   // Guarda síncrona: el estado no alcanza a re-renderizar entre dos clics
   // seguidos, el ref sí.
   const submittingRef = useRef(false);
+  // Ya creado: desde ahí la unidad la ocupa el consolidado propio.
+  const [created, setCreated] = useState(false);
 
   // Validar por paso no es un submit, así que React Hook Form nunca
   // revalida al escribir: un campo marcado seguiría en rojo después de
@@ -80,71 +83,65 @@ export const useNewConsolidationFlow = () => {
     [form],
   );
 
-  /** Tráiler en espera de confirmación: ya está en otro consolidado abierto. */
-  const [trailerToConfirm, setTrailerToConfirm] =
-    useState<TrailerListItem | null>(null);
-  /** Folios que el usuario ya vio y aceptó al elegir el tráiler. */
-  // Guarda de qué tráiler son: si después se elige otro, no aplican.
-  const confirmedInUse = useRef<{ trailerId: string; folios: string[] } | null>(
-    null,
-  );
-
-  /** Elegir un tráiler trae su capacidad como punto de partida. */
-  const applyTrailer = (id: string) => {
-    form.setValue("trailerId", id);
+  /** Un tráiler va en un solo consolidado abierto: el que ya va en otro no
+   * se puede elegir (la tarjeta va deshabilitada; esto es la defensa). Elegir
+   * uno trae su capacidad como punto de partida. */
+  const selectTrailer = (id: string) => {
     const trailer = trailers.find((t) => t.id === id);
-    if (trailer) {
-      form.setValue("capacityLinearFeet", String(trailer.capacityLinearFeet), {
-        shouldValidate: true,
-      });
-    }
+    if (!trailer || trailer.activeConsolidation) return;
+    form.setValue("trailerId", id);
+    form.setValue("capacityLinearFeet", String(trailer.capacityLinearFeet), {
+      shouldValidate: true,
+    });
     form.clearErrors("trailerId");
   };
 
-  /** Un tráiler que ya va en otro consolidado sin conciliar no se asigna
-   * directo: primero se pide confirmación. */
-  const selectTrailer = (id: string) => {
-    const trailer = trailers.find((t) => t.id === id);
-    if (trailer && trailer.openInFolios.length > 0 && id !== form.getValues("trailerId")) {
-      setTrailerToConfirm(trailer);
-      return;
-    }
-    applyTrailer(id);
-  };
-
-  const confirmTrailer = () => {
-    if (!trailerToConfirm) return;
-    confirmedInUse.current = {
-      trailerId: trailerToConfirm.id,
-      folios: trailerToConfirm.openInFolios,
-    };
-    applyTrailer(trailerToConfirm.id);
-    setTrailerToConfirm(null);
-  };
-
-  const cancelTrailer = () => setTrailerToConfirm(null);
-
   // Preselecciona la unidad cuando se llega desde "Crear consolidado" en la
   // fila de un tráiler (Tráilers → ?trailerId=...), una sola vez, en cuanto
-  // carga el catálogo. Sólo activos: la lista no muestra los inactivos.
-  // Se resuelve durante el render (no en un efecto): si el tráiler ya está en
-  // otro consolidado abierto se abre la confirmación, igual que al elegirlo.
+  // carga el catálogo. Sólo activos: la lista no muestra los inactivos. Se
+  // resuelve durante el render; escribir en el formulario y avisar son
+  // efectos (abajo).
   const paramTrailerId = searchParams.get("trailerId");
   const [paramHandled, setParamHandled] = useState(false);
-  const [preselectId, setPreselectId] = useState<string | null>(null);
-  const paramTrailer = !paramHandled
+  const [paramTrailer, setParamTrailer] = useState<TrailerListItem | null>(null);
+  const foundParamTrailer = !paramHandled
     ? trailers.find((t) => t.id === paramTrailerId && t.isActive)
     : undefined;
-  if (paramTrailer) {
+  if (foundParamTrailer) {
     setParamHandled(true);
-    if (paramTrailer.openInFolios.length > 0) setTrailerToConfirm(paramTrailer);
-    else setPreselectId(paramTrailer.id);
+    setParamTrailer(foundParamTrailer);
   }
-  // Escribir en el formulario sí es un efecto (React Hook Form es externo).
   useEffect(() => {
-    if (preselectId && !form.getValues("trailerId")) applyTrailer(preselectId);
+    if (!paramTrailer) return;
+    if (paramTrailer.activeConsolidation) {
+      // Con `id`: StrictMode corre el efecto dos veces en desarrollo.
+      toast.error(
+        `${paramTrailer.unitNumber} ya está en ${paramTrailer.activeConsolidation.folio}. Elige otra unidad.`,
+        { id: "new-consolidation-param-trailer" },
+      );
+    } else if (!form.getValues("trailerId")) {
+      selectTrailer(paramTrailer.id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preselectId]);
+  }, [paramTrailer]);
+
+  // Si la unidad elegida queda ocupada (otra persona creó un consolidado con
+  // ella; el back rechazó el alta y el catálogo se recargó), se vuelve al
+  // paso de datos y se suelta para elegir otra. No después de crear: ahí la
+  // ocupa el consolidado propio. El paso se ajusta en el render; soltarla es
+  // escribir en el formulario, un efecto.
+  const selectedTrailerId = useWatch({ control: form.control, name: "trailerId" });
+  const takenTrailer = created
+    ? undefined
+    : trailers.find((t) => t.id === selectedTrailerId && t.activeConsolidation);
+  if (takenTrailer && step !== "datos") setStep("datos");
+  useEffect(() => {
+    if (!takenTrailer?.activeConsolidation) return;
+    form.setValue("trailerId", "");
+    form.setError("trailerId", {
+      message: `${takenTrailer.unitNumber} ya está en ${takenTrailer.activeConsolidation.folio}. Elige otra unidad.`,
+    });
+  }, [takenTrailer, form]);
 
   const validateStep = (current: NewConsolidationStep) =>
     current === "revisar"
@@ -213,12 +210,13 @@ export const useNewConsolidationFlow = () => {
       }
       const values = form.getValues();
 
-      let created;
+      let response;
       try {
-        created = await createConsolidation({
+        response = await createConsolidation({
           folio: values.folio.trim(),
           origin: { label: values.origin.trim(), geolocation: null },
           destination: { label: values.destination.trim(), geolocation: null },
+          plannedDepartureAt: departureFromInput(values.plannedDepartureAt),
           trailerId: values.trailerId,
           driverId: values.driverId || null,
           capacityLinearFeet: Number(values.capacityLinearFeet),
@@ -232,21 +230,8 @@ export const useNewConsolidationFlow = () => {
         return;
       }
 
-      const { consolidation, trailerInUseBy } = created;
-      // Sólo avisa lo que no se confirmó al elegirlo (otro consolidado lo
-      // tomó mientras tanto).
-      const confirmed =
-        confirmedInUse.current?.trailerId === values.trailerId
-          ? confirmedInUse.current.folios
-          : [];
-      const newlyInUse = trailerInUseBy.filter(
-        (folio) => !confirmed.includes(folio),
-      );
-      if (newlyInUse.length > 0) {
-        toast.warning(
-          `El tráiler también está asignado a: ${newlyInUse.join(", ")}`,
-        );
-      }
+      setCreated(true);
+      const { consolidation } = response;
 
       // El consolidado ya existe: si cargarle las órdenes falla, se entra a
       // él igual (reintentar aquí chocaría con el folio) y se agregan desde
@@ -289,8 +274,5 @@ export const useNewConsolidationFlow = () => {
     submitting,
     trailers,
     selectTrailer,
-    trailerToConfirm,
-    confirmTrailer,
-    cancelTrailer,
   };
 };

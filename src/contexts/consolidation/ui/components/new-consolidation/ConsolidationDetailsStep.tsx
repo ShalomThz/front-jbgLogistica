@@ -15,15 +15,16 @@ import {
 import { cn } from "@contexts/shared/shadcn/lib/utils";
 import { ChevronDown, Container, Truck } from "lucide-react";
 import type { NewConsolidationFormValues } from "@contexts/consolidation/domain/schemas/consolidation/NewConsolidationForm";
-import type { TrailerPrimitives } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
+import type { TrailerListItem } from "@contexts/consolidation/domain/schemas/trailer/Trailer";
 import type { DriverListViewPrimitives } from "@contexts/shipping/domain/schemas/driver/DriverListView";
 import { TrailerCardList } from "@contexts/consolidation/ui/components/TrailerCardList";
+import { DepartureDatePicker } from "@contexts/consolidation/ui/components/DepartureDatePicker";
 import { TRAILER_FIELD_ID } from "@contexts/consolidation/ui/hooks/useNewConsolidationFlow";
 
 const NO_DRIVER = "none";
 
 interface Props {
-  trailers: TrailerPrimitives[];
+  trailers: TrailerListItem[];
   drivers: DriverListViewPrimitives[];
   onSelectTrailer: (id: string) => void;
 }
@@ -39,9 +40,9 @@ export const ConsolidationDetailsStep = ({ trailers, drivers, onSelectTrailer }:
     control,
     formState: { errors },
   } = useFormContext<NewConsolidationFormValues>();
-  const [trailerId, driverId, capacity] = useWatch({
+  const [trailerId, driverId, capacity, plannedDepartureAt] = useWatch({
     control,
-    name: ["trailerId", "driverId", "capacityLinearFeet"],
+    name: ["trailerId", "driverId", "capacityLinearFeet", "plannedDepartureAt"],
   });
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -87,6 +88,14 @@ export const ConsolidationDetailsStep = ({ trailers, drivers, onSelectTrailer }:
               {...register("destination")}
             />
             <FieldError message={errors.destination?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="planned-departure">Fecha de salida</Label>
+            <DepartureDatePicker
+              id="planned-departure"
+              value={plannedDepartureAt}
+              onChange={(v) => setValue("plannedDepartureAt", v, { shouldDirty: true })}
+            />
           </div>
         </CardContent>
       </Card>

@@ -26,10 +26,10 @@ vi.mock("@contexts/iam/infrastructure/hooks/auth/useAuth", () => ({
 }));
 vi.mock("sonner", () => ({ toast }));
 
-const FREE = trailer("free", []);
-const BUSY = trailer("busy", ["MX-01"]);
+const FREE = trailer("free", null);
+const BUSY = trailer("busy", "MX-01");
 
-function trailer(id: string, openInFolios: string[]) {
+function trailer(id: string, busyIn: string | null) {
   return {
     id,
     unitNumber: `T-${id}`,
@@ -38,8 +38,9 @@ function trailer(id: string, openInFolios: string[]) {
     capacityLinearFeet: id === "free" ? 48 : 53,
     isActive: true,
     sealedInFolios: [],
-    openInFolios,
-    occupiedLinearFeet: null,
+    activeConsolidation: busyIn
+      ? { id: `c-${busyIn}`, folio: busyIn, linearFeet: 10, plannedDepartureAt: null }
+      : null,
   };
 }
 
@@ -68,7 +69,6 @@ beforeEach(() => {
   ];
   createConsolidation.mockResolvedValue({
     consolidation: { id: "c-1", folio: "MX-02" },
-    trailerInUseBy: [],
   });
 });
 
@@ -78,49 +78,51 @@ describe("useNewConsolidationFlow", () => {
 
     await waitFor(() => expect(result.current.form.getValues("trailerId")).toBe("free"));
     expect(result.current.form.getValues("capacityLinearFeet")).toBe("48");
-    expect(result.current.trailerToConfirm).toBeNull();
   });
 
-  it("?trailerId= de un tráiler en uso pide confirmación y, si se cancela, no vuelve a pedirla", async () => {
-    const { result, rerender } = mount("/consolidations/new?trailerId=busy");
+  it("?trailerId= de un tráiler ocupado no lo preselecciona y avisa en qué consolidado va", async () => {
+    const { result } = mount("/consolidations/new?trailerId=busy");
 
-    await waitFor(() => expect(result.current.trailerToConfirm?.id).toBe("busy"));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+    expect(toast.error.mock.calls[0][0]).toContain("MX-01");
     expect(result.current.form.getValues("trailerId")).toBe("");
+  });
 
-    act(() => result.current.cancelTrailer());
+  it("un tráiler ocupado no se puede elegir", () => {
+    const { result } = mount();
+
+    act(() => result.current.selectTrailer("busy"));
+
+    expect(result.current.form.getValues("trailerId")).toBe("");
+  });
+
+  it("si la unidad elegida queda ocupada por otro, se suelta y se vuelve a datos", async () => {
+    const { result, rerender } = mount();
+    act(() => result.current.selectTrailer("free"));
+    fillDetails(result);
+    await act(() => result.current.handleNext());
+    expect(result.current.step).toBe("ordenes");
+
+    // El catálogo se recarga: otra persona creó un consolidado con ella.
+    trailers.current = [trailer("free", "MX-77"), BUSY];
     rerender();
 
-    expect(result.current.trailerToConfirm).toBeNull();
-    expect(result.current.form.getValues("trailerId")).toBe("");
+    await waitFor(() => expect(result.current.form.getValues("trailerId")).toBe(""));
+    expect(result.current.form.getFieldState("trailerId").error?.message).toContain("MX-77");
+    expect(result.current.step).toBe("datos");
   });
 
-  it("elegir un tráiler en uso no lo asigna hasta confirmar", () => {
-    const { result } = mount();
-
-    act(() => result.current.selectTrailer("busy"));
-    expect(result.current.trailerToConfirm?.id).toBe("busy");
-    expect(result.current.form.getValues("trailerId")).toBe("");
-
-    act(() => result.current.confirmTrailer());
-    expect(result.current.trailerToConfirm).toBeNull();
-    expect(result.current.form.getValues("trailerId")).toBe("busy");
-  });
-
-  it("al crear sólo avisa de los folios que no se confirmaron", async () => {
-    createConsolidation.mockResolvedValue({
-      consolidation: { id: "c-1", folio: "MX-02" },
-      trailerInUseBy: ["MX-01", "MX-09"],
-    });
-    const { result } = mount();
-    act(() => result.current.selectTrailer("busy"));
-    act(() => result.current.confirmTrailer());
+  it("después de crear, ver la unidad en el consolidado propio no la suelta", async () => {
+    const { result, rerender } = mount();
+    act(() => result.current.selectTrailer("free"));
     fillDetails(result);
-
     await act(() => result.current.handleCreate());
 
-    expect(toast.warning).toHaveBeenCalledTimes(1);
-    expect(toast.warning.mock.calls[0][0]).toContain("MX-09");
-    expect(toast.warning.mock.calls[0][0]).not.toContain("MX-01");
+    trailers.current = [trailer("free", "MX-02"), BUSY];
+    rerender();
+
+    expect(result.current.form.getValues("trailerId")).toBe("free");
+    expect(result.current.form.getFieldState("trailerId").error).toBeUndefined();
   });
 
   it("un doble clic en crear crea un solo consolidado", async () => {

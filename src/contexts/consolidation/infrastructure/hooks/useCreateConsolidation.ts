@@ -16,7 +16,13 @@ export const useCreateConsolidation = () => {
       consolidationRepository.create(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: consolidationKeys.all });
-      // El catálogo de tráilers dice en qué consolidados va cada uno.
+    },
+    // También al fallar: el rechazo suele ser que otra persona tomó la unidad,
+    // y el catálogo debe mostrarla ocupada. Sin devolver la promesa a
+    // propósito: `mutateAsync` resuelve antes del refetch, y el asistente
+    // marca el alta como hecha antes de ver su unidad ocupada por el
+    // consolidado propio (si no, la soltaría).
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: trailerKeys.all });
     },
   });
