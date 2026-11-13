@@ -3,6 +3,7 @@ import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
 import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import type { Direction, Filter } from "@contexts/shared/domain/services/CreateCriteriaSchema";
 import type { AddPaymentRequest } from "../../../application/order/AddPaymentRequest";
+import type { AddPaymentNoteRequest } from "../../../application/order/AddPaymentNoteRequest";
 import type { CreateHQOrderRequest } from "../../../application/order/CreateHQOrderRequest";
 import type { CreatePartnerOrderRequest } from "../../../application/order/CreatePartnerOrderRequest";
 import type { EditOrderRequest } from "../../../application/order/EditOrderRequest";
@@ -102,6 +103,14 @@ export const useOrders = ({
     },
   });
 
+  const addPaymentNoteMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AddPaymentNoteRequest }) =>
+      orderRepository.addPaymentNote(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    },
+  });
+
   const removePaymentMutation = useMutation({
     mutationFn: ({ id, paymentId }: { id: string; paymentId: string }) =>
       orderRepository.removePayment(id, paymentId),
@@ -159,7 +168,12 @@ export const useOrders = ({
       await removePaymentMutation.mutateAsync({ id, paymentId }),
     clearPayments: async (id: string) =>
       await clearPaymentsMutation.mutateAsync(id),
+    addPaymentNote: async (id: string, data: AddPaymentNoteRequest) =>
+      await addPaymentNoteMutation.mutateAsync({ id, data }),
+    // La nota comparte el flag: mientras se guarda se bloquean las demás
+    // acciones del libro, porque dos escrituras a la vez pisan una a la otra.
     isSavingPayment:
+      addPaymentNoteMutation.isPending ||
       addPaymentMutation.isPending ||
       removePaymentMutation.isPending ||
       clearPaymentsMutation.isPending,

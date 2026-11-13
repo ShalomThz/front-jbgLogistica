@@ -30,10 +30,15 @@ export const OrderPaymentControl = ({
   order,
   canEdit,
 }: OrderPaymentControlProps) => {
-  const { addPayment, removePayment, clearPayments, isSavingPayment } =
-    useOrders({
-      enabled: false,
-    });
+  const {
+    addPayment,
+    removePayment,
+    clearPayments,
+    addPaymentNote,
+    isSavingPayment,
+  } = useOrders({
+    enabled: false,
+  });
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const status = resolvePaymentStatus(order.financials);
 
@@ -69,6 +74,7 @@ export const OrderPaymentControl = ({
         onAddPayment={(data) => addPayment(order.id, data)}
         onRemovePayment={(paymentId) => removePayment(order.id, paymentId)}
         onClearPayments={() => clearPayments(order.id)}
+        onAddPaymentNote={(data) => addPaymentNote(order.id, data)}
         isSaving={isSavingPayment}
       />
     </>
