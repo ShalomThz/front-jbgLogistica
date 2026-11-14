@@ -124,8 +124,13 @@ export function OrderSuccessView({ shipment: requestedShipment, orderId, totalBi
       : [];
   // El cobro de la venta, leído del servidor: cada abono se sube al
   // registrarlo, así que no hay pendientes que se pierdan o se repitan.
-  const { addPayment, removePayment, clearPayments, isSavingPayment } =
-    useOrders({ enabled: false });
+  const {
+    addPayment,
+    removePayment,
+    clearPayments,
+    addPaymentNote,
+    isSavingPayment,
+  } = useOrders({ enabled: false });
   const [ledgerOpen, setLedgerOpen] = useState(false);
   // A dónde iba quien quiso salir sin cobrar, mientras confirma.
   const [exitAction, setExitAction] = useState<(() => void) | null>(null);
@@ -690,6 +695,7 @@ export function OrderSuccessView({ shipment: requestedShipment, orderId, totalBi
           onAddPayment={(data) => addPayment(order.id, data)}
           onRemovePayment={(paymentId) => removePayment(order.id, paymentId)}
           onClearPayments={() => clearPayments(order.id)}
+          onAddPaymentNote={(data) => addPaymentNote(order.id, data)}
           isSaving={isSavingPayment}
         />
       )}

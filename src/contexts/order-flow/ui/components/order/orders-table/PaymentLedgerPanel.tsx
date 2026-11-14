@@ -1,7 +1,12 @@
 import { useState } from "react";
-import { Badge, Button, Label } from "@contexts/shared/shadcn";
-import { Check, Coins, Receipt, Trash2, X } from "lucide-react";
+import { Badge, Button, Label, Textarea } from "@contexts/shared/shadcn";
+import { Check, Coins, MessageSquare, Receipt, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
+import type { AddPaymentNoteRequest } from "@contexts/sales/application/order/AddPaymentNoteRequest";
+import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import {
   PAYMENT_STATUS_BADGE_CLASS,
@@ -20,9 +25,12 @@ const formatMoney = (amount: number, currency: string) =>
 const microLabel =
   "text-[10px] font-medium uppercase tracking-wide text-muted-foreground";
 
+const NOTE_MAX_LENGTH = 1000;
+
 interface Props {
   order: OrderListView;
   onRemovePayment: (paymentId: string) => Promise<void>;
+  onAddPaymentNote: (data: AddPaymentNoteRequest) => Promise<void>;
   isSaving: boolean;
 }
 
@@ -37,6 +45,7 @@ interface Props {
 export const PaymentLedgerPanel = ({
   order,
   onRemovePayment,
+  onAddPaymentNote,
   isSaving,
 }: Props) => {
   const { financials } = order;
@@ -46,6 +55,38 @@ export const PaymentLedgerPanel = ({
   const [confirmingRemoveId, setConfirmingRemoveId] = useState<string | null>(
     null,
   );
+
+  // Las notas de cobranza son internas de HQ. El back ya no se las manda a
+  // quien no tiene el permiso; acá solo se evita mostrar una sección vacía con
+  // un botón que respondería 403.
+  const { user } = useAuth();
+  const canSeePaymentNotes = user ? orderPolicies.editHQ(user) : false;
+
+  const [noteText, setNoteText] = useState("");
+  // El último intento que falló, como en `AddPaymentForm`: reintentar **la
+  // misma** nota reusa su id —quizá la respuesta se perdió pero el back sí la
+  // guardó— y no la duplica. Si se cambió el texto es otra nota, con id nuevo.
+  const [failedNote, setFailedNote] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
+  const trimmedNote = noteText.trim();
+
+  const handleAddNote = async () => {
+    if (!trimmedNote) return;
+    const id =
+      failedNote?.text === trimmedNote ? failedNote.id : crypto.randomUUID();
+    try {
+      await onAddPaymentNote({ id, text: trimmedNote });
+    } catch (error) {
+      // Lo escrito se queda, para corregir o reintentar.
+      setFailedNote({ id, text: trimmedNote });
+      toast.error(parseApiError(error));
+      return;
+    }
+    setFailedNote(null);
+    setNoteText("");
+  };
 
   const status = resolvePaymentStatus(order.financials);
 
@@ -272,6 +313,53 @@ export const PaymentLedgerPanel = ({
           </div>
         ))}
       </div>
+
+      {/* Notas de cobranza: un historial que solo crece. No es la nota de la
+          orden, que sale en la factura. */}
+      {canSeePaymentNotes && (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className={microLabel}>Notas de cobranza</Label>
+          {financials.paymentNotes.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {financials.paymentNotes.length}
+            </Badge>
+          )}
+        </div>
+        {financials.paymentNotes.map((n) => (
+          <div
+            key={n.id}
+            className="flex gap-3 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm"
+          >
+            <MessageSquare className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="whitespace-pre-wrap break-words">{n.text}</p>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {n.createdByName} · {new Date(n.date).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        ))}
+        <Textarea
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          maxLength={NOTE_MAX_LENGTH}
+          placeholder="Ej.: el cliente liquida el viernes"
+          rows={2}
+          disabled={isSaving}
+        />
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isSaving || !trimmedNote}
+            onClick={handleAddNote}
+          >
+            Agregar nota
+          </Button>
+        </div>
+      </div>
+      )}
 
       </div>
     </div>

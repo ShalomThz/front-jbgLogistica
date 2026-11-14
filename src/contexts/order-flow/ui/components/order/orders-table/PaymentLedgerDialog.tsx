@@ -17,6 +17,7 @@ import {
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import type { AddPaymentRequest } from "@contexts/sales/application/order/AddPaymentRequest";
+import type { AddPaymentNoteRequest } from "@contexts/sales/application/order/AddPaymentNoteRequest";
 import { PaymentLedgerPanel } from "./PaymentLedgerPanel";
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
   onAddPayment: (data: AddPaymentRequest) => Promise<void>;
   onRemovePayment: (paymentId: string) => Promise<void>;
   onClearPayments: () => Promise<void>;
+  onAddPaymentNote: (data: AddPaymentNoteRequest) => Promise<void>;
   isSaving: boolean;
 }
 
@@ -36,6 +38,7 @@ export const PaymentLedgerDialog = ({
   onAddPayment,
   onRemovePayment,
   onClearPayments,
+  onAddPaymentNote,
   isSaving,
 }: Props) => {
   const status = resolvePaymentStatus(order.financials);
@@ -88,6 +91,7 @@ export const PaymentLedgerDialog = ({
           <PaymentLedgerPanel
             order={order}
             onRemovePayment={onRemovePayment}
+            onAddPaymentNote={onAddPaymentNote}
             isSaving={isSaving}
           />
         </div>

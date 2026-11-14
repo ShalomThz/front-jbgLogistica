@@ -33,6 +33,22 @@ export const paymentSchema = z.object({
 
 export type PaymentPrimitives = z.infer<typeof paymentSchema>;
 
+/** Una nota sobre la cobranza de la orden. No es `notes` (sale en la factura)
+ * ni `paymentConcept` (flujo legacy de pago único). Sin `min`/`max` a
+ * propósito: la tabla parsea las 50 órdenes en un solo `.parse()`, y una nota
+ * fuera de regla la dejaría en blanco. La regla de escritura vive en el back. */
+export const paymentNoteSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  createdBy: z.string(),
+  /** El nombre del autor al momento de escribirla. */
+  createdByName: z.string(),
+  /** Marca de tiempo ISO en que se escribió. */
+  date: z.string(),
+});
+
+export type PaymentNotePrimitives = z.infer<typeof paymentNoteSchema>;
+
 /**
  * Cada clave defaultea, igual que en el back: un `financials` incompleto se lee
  * como cuenta vacía —o sea, un DRAFT— en vez de tumbar la orden.
@@ -58,6 +74,10 @@ export const orderFinancialsSchema = z.object({
   /** Libro de abonos parciales. Vacío para órdenes previas al campo o
    * liquidadas por el flujo antiguo de pago único. */
   payments: z.array(paymentSchema).default([]),
+  /** Historial de notas de cobranza, de la más vieja a la más nueva. El default
+   * es obligatorio: las vistas de `ordersListView` anteriores al campo llegan
+   * sin la clave. */
+  paymentNotes: z.array(paymentNoteSchema).default([]),
   // `.prefault` y no `.default`: en zod 4 el default toma el tipo de salida, y
   // acá lo que se quiere es hacer pasar un `{}` por el schema para que actúen
   // los defaults de adentro.

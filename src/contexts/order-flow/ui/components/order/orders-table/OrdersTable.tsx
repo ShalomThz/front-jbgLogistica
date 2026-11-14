@@ -43,6 +43,7 @@ interface OrdersTableProps {
   highlightOrderId?: string;
   canEdit: (order: OrderListView) => boolean;
   canEditHQ: boolean;
+  canDelete: (order: OrderListView) => boolean;
   canViewFinancials: boolean;
   /** Qué columnas escondió el usuario. El estado vive en la página, junto al
    * menú que lo cambia, que está en la barra de herramientas. */
@@ -56,6 +57,7 @@ interface OrdersTableProps {
   onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
+  onDelete: (order: OrderListView) => void;
 }
 
 export const OrdersTable = ({
@@ -63,6 +65,7 @@ export const OrdersTable = ({
   highlightOrderId,
   canEdit,
   canEditHQ,
+  canDelete,
   canViewFinancials,
   isHidden,
   downloadingLabel,
@@ -74,6 +77,7 @@ export const OrdersTable = ({
   onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
+  onDelete,
 }: OrdersTableProps) => {
   const visible = useMemo(
     () =>
@@ -84,6 +88,7 @@ export const OrdersTable = ({
   const ctx: OrderColumnContext = {
     canEdit,
     canEditHQ,
+    canDelete,
     downloadingLabel,
     downloadingInvoice,
     sendingInvoiceOrderId,
@@ -92,6 +97,7 @@ export const OrdersTable = ({
     onSendInvoiceEmail,
     onEdit,
     onCompleteSale,
+    onDelete,
   };
 
   return (
@@ -110,6 +116,7 @@ export const OrdersTable = ({
               isHighlighted={order.id === highlightOrderId}
               canEdit={canEdit(order)}
               canEditHQ={canEditHQ}
+              canDelete={canDelete(order)}
               canViewFinancials={canViewFinancials}
               downloadingLabel={downloadingLabel}
               downloadingInvoice={downloadingInvoice}
@@ -120,6 +127,7 @@ export const OrdersTable = ({
               onSendInvoiceEmail={onSendInvoiceEmail}
               onEdit={onEdit}
               onCompleteSale={onCompleteSale}
+              onDelete={onDelete}
             />
           ))
         )}
