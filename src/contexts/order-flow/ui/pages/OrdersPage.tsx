@@ -151,8 +151,11 @@ export const OrdersPage = () => {
 
   const canDeletePartner = user ? orderPolicies.deletePartner(user) : false;
   const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
+  // Solo se ofrece en una orden cancelada: primero se cancela, después se
+  // borra. Es una regla de la pantalla; el back no la exige.
   const canDelete = (order: OrderListView) =>
-    order.type === "PARTNER" ? canDeletePartner : canDeleteHQ;
+    order.status === "CANCELLED" &&
+    (order.type === "PARTNER" ? canDeletePartner : canDeleteHQ);
 
   // El back puede rechazarla —la orden está en un consolidado, o su guía se
   // está creando—: se muestra el motivo y la confirmación queda abierta.

@@ -214,11 +214,13 @@ export const OrderDetailDialog = ({
   const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
   const userCanEdit = order.type === "PARTNER" ? (canEditPartner || canEditHQ) : canEditHQ;
   const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
-  const userCanDelete = user
-    ? order.type === "PARTNER"
+  // Solo en una orden cancelada, igual que en el menú de la tabla.
+  const userCanDelete =
+    !!user &&
+    order.status === "CANCELLED" &&
+    (order.type === "PARTNER"
       ? orderPolicies.deletePartner(user)
-      : orderPolicies.deleteHQ(user)
-    : false;
+      : orderPolicies.deleteHQ(user));
   // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
   const labelOptions =
     user && shippingPolicies.viewLabel(user) && shipment
