@@ -22,7 +22,7 @@ import {
   availableLabelOptions,
   type LabelSource,
 } from "@contexts/shipping/ui/labels/labelOptions";
-import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer } from "lucide-react";
+import { Loader2, Mail, MoreHorizontal, Package, Pencil, Printer, Trash2 } from "lucide-react";
 import {
   DisabledReason,
   LABEL_PENDING_REASON,
@@ -33,6 +33,7 @@ interface OrderActionsMenuProps {
   order: OrderListView;
   canEdit: boolean;
   canEditHQ: boolean;
+  canDelete: boolean;
   downloadingLabel: string | null;
   downloadingInvoice: string | null;
   sendingInvoiceOrderId: string | null;
@@ -41,12 +42,14 @@ interface OrderActionsMenuProps {
   onSendInvoiceEmail: (order: OrderListView) => void;
   onEdit: (order: OrderListView) => void;
   onCompleteSale: (order: OrderListView) => void;
+  onDelete: (order: OrderListView) => void;
 }
 
 export const OrderActionsMenu = ({
   order,
   canEdit,
   canEditHQ,
+  canDelete,
   downloadingLabel,
   downloadingInvoice,
   sendingInvoiceOrderId,
@@ -55,6 +58,7 @@ export const OrderActionsMenu = ({
   onSendInvoiceEmail,
   onEdit,
   onCompleteSale,
+  onDelete,
 }: OrderActionsMenuProps) => {
   const isOpen = order.status !== "COMPLETED" && order.status !== "CANCELLED";
   // Con la guía en creación no se entra a completar la venta (ver EditOrderPage).
@@ -170,6 +174,20 @@ export const OrderActionsMenu = ({
                 )}
               </>
             )}
+          </>
+        )}
+        {/* Abre la confirmación; el borrado en sí lo decide el back, que la
+            rechaza si la orden está en un consolidado o su guía se está creando. */}
+        {canDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="bg-red-50 text-red-700 focus:bg-red-100 focus:text-red-800 dark:bg-red-950/30 dark:text-red-400 dark:focus:bg-red-950/50"
+              onClick={() => onDelete(order)}
+            >
+              <Trash2 className="size-4" />
+              Eliminar orden
+            </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

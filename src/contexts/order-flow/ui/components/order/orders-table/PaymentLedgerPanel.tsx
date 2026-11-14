@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import type { OrderListView } from "@contexts/sales/domain/schemas/order/OrderListViewSchemas";
 import type { AddPaymentNoteRequest } from "@contexts/sales/application/order/AddPaymentNoteRequest";
 import { parseApiError } from "@contexts/shared/infrastructure/http/errors";
+import { useAuth } from "@contexts/iam/infrastructure/hooks/auth/useAuth";
+import { orderPolicies } from "@contexts/shared/domain/policies/order.policy";
 import { PAYMENT_METHOD_LABELS } from "@contexts/shared/domain/schemas/PaymentMethod";
 import {
   PAYMENT_STATUS_BADGE_CLASS,
@@ -53,6 +55,12 @@ export const PaymentLedgerPanel = ({
   const [confirmingRemoveId, setConfirmingRemoveId] = useState<string | null>(
     null,
   );
+
+  // Las notas de cobranza son internas de HQ. El back ya no se las manda a
+  // quien no tiene el permiso; acá solo se evita mostrar una sección vacía con
+  // un botón que respondería 403.
+  const { user } = useAuth();
+  const canSeePaymentNotes = user ? orderPolicies.editHQ(user) : false;
 
   const [noteText, setNoteText] = useState("");
   // El último intento que falló, como en `AddPaymentForm`: reintentar **la
@@ -308,6 +316,7 @@ export const PaymentLedgerPanel = ({
 
       {/* Notas de cobranza: un historial que solo crece. No es la nota de la
           orden, que sale en la factura. */}
+      {canSeePaymentNotes && (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className={microLabel}>Notas de cobranza</Label>
@@ -350,6 +359,7 @@ export const PaymentLedgerPanel = ({
           </Button>
         </div>
       </div>
+      )}
 
       </div>
     </div>

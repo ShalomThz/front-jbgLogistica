@@ -63,7 +63,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@contexts/shared/shadcn";
-import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, TriangleAlert, Users } from "lucide-react";
+import { Ban, ChevronDown, DollarSign, Download, FileText, Info, Loader2, Mail, Package, Pencil, Printer, Route, Store, Tag, Trash2, TriangleAlert, Users } from "lucide-react";
 import boxIsometricSvg from "@/assets/box-isometric.svg";
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -123,6 +123,10 @@ interface OrderDetailDialogProps {
   isCancelling?: boolean;
   sendingInvoiceOrderId?: string | null;
   onSendInvoiceEmail?: (order: OrderListView) => void;
+  /** Abre la confirmación de borrado. Sin él no se ofrece eliminar: el detalle
+   * también se abre desde rutas y consolidados, donde borrar no corresponde. */
+  onDelete?: (order: OrderListView) => void;
+  isDeleting?: boolean;
   /** Pestaña con la que abre cada vez (p. ej. "historial" para ir directo a
    * la línea de tiempo). */
   defaultTab?: string;
@@ -136,6 +140,8 @@ export const OrderDetailDialog = ({
   isCancelling,
   sendingInvoiceOrderId,
   onSendInvoiceEmail,
+  onDelete,
+  isDeleting,
   defaultTab = "resumen",
 }: OrderDetailDialogProps) => {
   const navigate = useNavigate();
@@ -208,6 +214,11 @@ export const OrderDetailDialog = ({
   const canViewFinancials = user ? orderPolicies.viewFinancials(user) : false;
   const userCanEdit = order.type === "PARTNER" ? (canEditPartner || canEditHQ) : canEditHQ;
   const userCanCancelShipment = user ? shippingPolicies.cancel(user) : false;
+  const userCanDelete = user
+    ? order.type === "PARTNER"
+      ? orderPolicies.deletePartner(user)
+      : orderPolicies.deleteHQ(user)
+    : false;
   // Sin el permiso el back rechaza la descarga: no se ofrecen etiquetas.
   const labelOptions =
     user && shippingPolicies.viewLabel(user) && shipment
@@ -1059,6 +1070,17 @@ export const OrderDetailDialog = ({
               }}
               isLoading={isCancelling}
             />
+          )}
+          {userCanDelete && onDelete && (
+            <Button
+              variant="destructive"
+              onClick={() => onDelete(order)}
+              disabled={isDeleting}
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="size-4" />
+              Eliminar
+            </Button>
           )}
           {userCanEdit && (
             order.type === "PARTNER" ? (

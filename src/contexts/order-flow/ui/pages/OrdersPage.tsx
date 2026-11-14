@@ -37,6 +37,7 @@ import {
 import { useOrderDialog } from "../hooks/orders/useOrderDialog";
 import { OrderDetailDialog } from "../components/order/detail/OrderDetailDialog";
 import { SendInvoiceEmailDialog } from "../components/order/SendInvoiceEmailDialog";
+import { OrderDeleteDialog } from "../components/order/OrderDeleteDialog";
 import { OrderFilters } from "../components/order/OrderFilters";
 import { OrderReport } from "../components/order/OrderReport";
 import { OrdersTable } from "../components/order/orders-table/OrdersTable";
@@ -74,9 +75,12 @@ export const OrdersPage = () => {
     totalPages,
     isLoading,
     refetch,
+    deleteOrder,
+    isDeleting,
   } = useOrders({ page, limit, ...criteria });
 
   const [orderToEmail, setOrderToEmail] = useState<OrderListView | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<OrderListView | null>(null);
   const { cancelShipment, isCancelling } = useShipmentActions();
   const { sendInvoiceEmail, sendingInvoiceOrderId } = useSendInvoiceEmail();
   const { user } = useAuth();
@@ -144,6 +148,25 @@ export const OrdersPage = () => {
 
   const canEdit = (order: OrderListView) =>
     order.type === "PARTNER" ? canEditPartner : canEditHQ;
+
+  const canDeletePartner = user ? orderPolicies.deletePartner(user) : false;
+  const canDeleteHQ = user ? orderPolicies.deleteHQ(user) : false;
+  const canDelete = (order: OrderListView) =>
+    order.type === "PARTNER" ? canDeletePartner : canDeleteHQ;
+
+  // El back puede rechazarla —la orden está en un consolidado, o su guía se
+  // está creando—: se muestra el motivo y la confirmación queda abierta.
+  const handleDelete = async () => {
+    if (!orderToDelete) return;
+    try {
+      await deleteOrder(orderToDelete.id);
+    } catch (error) {
+      toast.error(parseApiError(error));
+      return;
+    }
+    setOrderToDelete(null);
+    handleCloseDialog();
+  };
 
   const handleCreateOrder = () => {
     if (canCreatePartner && canCreateHQ) {
@@ -229,6 +252,7 @@ export const OrdersPage = () => {
         highlightOrderId={highlightOrderId}
         canEdit={canEdit}
         canEditHQ={canEditHQ}
+        canDelete={canDelete}
         canViewFinancials={canViewFinancials}
         isHidden={columns.isHidden}
         downloadingLabel={downloadingLabel}
@@ -240,6 +264,7 @@ export const OrdersPage = () => {
         onSendInvoiceEmail={handleSendInvoiceEmail}
         onEdit={(order) => navigate(`/orders/${order.id}/edit`)}
         onCompleteSale={(order) => navigate(`/orders/${order.id}/edit?mode=complete`)}
+        onDelete={setOrderToDelete}
       />
 
       {pagination && total > 0 && (
@@ -290,6 +315,16 @@ export const OrdersPage = () => {
         isCancelling={isCancelling}
         sendingInvoiceOrderId={sendingInvoiceOrderId}
         onSendInvoiceEmail={handleSendInvoiceEmail}
+        onDelete={setOrderToDelete}
+        isDeleting={isDeleting}
+      />
+
+      <OrderDeleteDialog
+        order={orderToDelete}
+        open={!!orderToDelete}
+        onClose={() => setOrderToDelete(null)}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
       />
 
       <SendInvoiceEmailDialog
